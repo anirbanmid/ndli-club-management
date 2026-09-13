@@ -1,4 +1,4 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP03-1789320969980,EMP03,2026-09-13T17:36:09.938924+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
-ACT-EMP03-1789320970611,EMP03,2026-09-13T17:36:10.611454+00:00,Offline training,0,,Workshop at Pune University
-ACT-RENEW-EMP03-1789320971965,EMP03,2026-09-13T17:36:11.887141+00:00,Registration Renewal,1,NDLI-MH-103,"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-13T17:36:11.887141+00:00, Upcoming Renewal Due Date: 2028-12-31"
+ACT-PRIORITY-EMP03-1789322027031,EMP03,2026-09-13T17:53:46.984410+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
+ACT-EMP03-1789322027798,EMP03,2026-09-13T17:53:47.798719+00:00,Offline training,0,,Workshop at Pune University
+ACT-RENEW-EMP03-1789322029890,EMP03,2026-09-13T17:53:49.552945+00:00,Registration Renewal,1,NDLI-MH-103,"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-13T17:53:49.552945+00:00, Upcoming Renewal Due Date: 2028-12-31"
