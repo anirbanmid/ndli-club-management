@@ -677,13 +677,13 @@
       </div>
 
       <div class="highlight-card">
-        <div class="highlight-card-title">💾 Automated 7-Day Rolling Backups</div>
-        <p class="highlight-card-desc">Autonomous engine compiling ZIP backups every 7 days across Admin and Employee data tiers with a strict 2-version retention pruning invariant.</p>
+        <div class="highlight-card-title">🔄 Master DB Reconciliation Engine</div>
+        <p class="highlight-card-desc">1-click audit scanning all 7 regional nodes, recovering missing entries, recalibrating quotas, and ensuring 100% data integrity without data loss.</p>
       </div>
 
       <div class="highlight-card">
-        <div class="highlight-card-title">⏰ 72-Hour Reminders & 30-Day Escalations</div>
-        <p class="highlight-card-desc">Unresolved issues trigger 72-hour employee reminders recurring weekly. Any issue unaddressed for 30+ days automatically escalates to the Central Admin.</p>
+        <div class="highlight-card-title">☁️ Google Drive Cloud Mirroring</div>
+        <p class="highlight-card-desc">Automated cloud mirroring of 7-day and manual ZIP backups directly into Google Drive with strict 2-version rolling retention.</p>
       </div>
     </div>
 
@@ -807,12 +807,17 @@
         <span class="toc-page-num">Page 12</span>
       </div>
       <div class="toc-row">
-        <span class="toc-section">6.7 Automated 7-Day Rolling Backups & Disaster Recovery</span>
+        <span class="toc-section">6.7 Master DB Reconciliation Engine (Run Full Node-to-Master Reconciliation)</span>
         <span class="toc-dots"></span>
         <span class="toc-page-num">Page 13</span>
       </div>
       <div class="toc-row">
-        <span class="toc-section">6.8 Dynamic Verification Certificate Customization</span>
+        <span class="toc-section">6.8 Automated 7-Day Rolling Backups & Google Drive Cloud Mirroring</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 13</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.9 Dynamic Verification Certificate Customization</span>
         <span class="toc-dots"></span>
         <span class="toc-page-num">Page 13</span>
       </div>
@@ -1299,34 +1304,41 @@
       <span class="header-tag-right">Page 13 of 14</span>
     </div>
 
-    <h2>6.7 Automated 7-Day Rolling Backups & System Recovery</h2>
-    <p>
+    <h2>6.7 Node-to-Master Database Reconciliation Engine</h2>
+    <p style="margin-bottom: 4px;">
+      The <strong>Master DB Reconciliation</strong> module (operated via the <strong>"Run Full Node-to-Master Reconciliation"</strong> button in the Admin Office Portal) serves as the primary system-wide data integrity and state recovery mechanism for IIT Kharagpur:
+    </p>
+    <ul style="margin-top: 3px; margin-bottom: 8px;">
+      <li><strong>Distributed Node Audit:</strong> Recursively scans all regional officer node databases across India (<code>data/employees/emp01/</code> through <code>emp07/</code>, plus any newly provisioned officers), inspecting their local <code>clubs.csv</code> and <code>activity_log.csv</code> files.</li>
+      <li><strong>Missing Record Discovery & Merge:</strong> Discovers any club approvals or support activities logged during intermittent network connectivity or restored from historical backups, and seamlessly merges them into the Central Master Database without overwriting newer records or losing data.</li>
+      <li><strong>Schema Normalization & Renewal Recalculation:</strong> Validates all date stamps against strict ISO-8601 formatting, verifies stakeholder contact emails, and recalculates dynamic annual club renewal dates.</li>
+      <li><strong>Quota & Star Rating Synchronization:</strong> Recomputes each officer's approved club counts and support activity tallies directly from raw source records, guaranteeing that <code>master_quotas.csv</code> and the <strong>Employee Performance Evaluation & Star Rating Matrix</strong> display 100% verified, tamper-proof ratings.</li>
+      <li><strong>Operational Best Practice:</strong> Central administrators should trigger full reconciliation after restoring backups, after manual CSV imports/edits, or whenever an administrative data audit is conducted.</li>
+    </ul>
+
+    <h2>6.8 Automated 7-Day Rolling Backups & Google Drive Cloud Mirroring</h2>
+    <p style="margin-bottom: 4px;">
       The platform incorporates an autonomous background backup engine running continuously in the server process:
     </p>
 
-    <div class="screenshot-figure">
-      <div class="screenshot-container" style="max-height: 82mm;">
+    <div class="screenshot-figure" style="margin: 4px 0 6px 0;">
+      <div class="screenshot-container" style="max-height: 48mm;">
         <img src="images/06_automated_backups.png" alt="Automated Backups Tab">
       </div>
-      <div class="screenshot-caption">Figure 6.4: Automated 7-Day Rolling Backup Engine & Historical Snapshot Recovery Console</div>
+      <div class="screenshot-caption">Figure 6.4: Master DB Reconciliation Console, 7-Day Rolling Backup Engine & Google Drive Cloud Mirror</div>
     </div>
 
-    <ul>
+    <ul style="margin-top: 3px; margin-bottom: 8px;">
       <li><strong>Autonomous 7-Day Cadence:</strong> Archives both Central Master DBs and all 7 Regional Node DBs into compressed ZIP snapshots.</li>
       <li><strong>Strict 2-Version Retention Invariant:</strong> Preserves only the last 2 historical snapshots. All older archives are automatically pruned, preventing storage bloat.</li>
-      <li><strong>Manual On-Demand Snapshots:</strong> Administrators can trigger an instantaneous backup at any time by clicking <strong>"Create Backup Now"</strong>.</li>
-      <li><strong>Disaster Recovery:</strong> Download or restore any historical archive directly from the portal interface with atomic file restoration.</li>
+      <li><strong>Google Drive Webhook Relay:</strong> Every backup automatically mirrors a timestamped ZIP archive directly into the Google Drive <code>backups/</code> repository via Webhook Relay.</li>
+      <li><strong>On-Demand Manual Snapshot:</strong> Administrators can trigger an instantaneous backup at any time by clicking <strong>"Trigger Backup Now ⚡"</strong>.</li>
     </ul>
 
-    <h2>6.8 Dynamic Verification Certificate Customization</h2>
-    <p>
-      Administrators can configure the layout and visual assets of official NDLI Club Verification Certificates:
+    <h2>6.9 Dynamic Verification Certificate Customization</h2>
+    <p style="margin-bottom: 0;">
+      Administrators can configure the layout and visual assets of official NDLI Club Verification Certificates, including authorized signatory designations, high-resolution PNG signatures, and the official IIT Kharagpur institutional seal. Every certificate permanently embeds official attribution to the NDLI Central Administration Office.
     </p>
-    <ul>
-      <li><strong>Official Signatories:</strong> Customize title and designation for Authorized Signatories and Nodal Officers.</li>
-      <li><strong>Visual Assets:</strong> Upload high-resolution PNG signatures and the IIT Kharagpur institutional seal.</li>
-      <li><strong>Attribution Integrity:</strong> Every certificate permanently embeds official attribution to the NDLI Central Administration Office.</li>
-    </ul>
   </div>
 
   <!-- =======================================================================
@@ -1341,8 +1353,8 @@
 
     <h1>7. Maintenance, Cloud Deployment & FAQs</h1>
 
-    <h2>7.1 File & Directory Topology</h2>
-    <pre><code>ndli_club_management/
+    <h2 style="margin-top: 4px; margin-bottom: 3px;">7.1 File & Directory Topology</h2>
+    <pre style="font-size: 6.8pt; line-height: 1.22; margin: 3px 0 6px 0; padding: 5px 8px;"><code>ndli_club_management/
 ├── app.py                     # HTTP Server & REST API Controller
 ├── auth.py                    # PBKDF2 Password & Session Manager
 ├── config.py                  # Global Ports & System Constants
@@ -1361,8 +1373,8 @@
 ├── templates/                 # Production Frontends (admin, employee, index)
 └── static/                    # CSS Stylesheets, Branding Assets & Scripts</code></pre>
 
-    <h2>7.2 Render Cloud Deployment Specification</h2>
-    <ol>
+    <h2 style="margin-top: 4px; margin-bottom: 3px;">7.2 Render Cloud Deployment Specification</h2>
+    <ol style="margin: 3px 0 6px 0; padding-left: 20px; font-size: 8.5pt;">
       <li><strong>Environment:</strong> Python 3.10+ (Standard Library, zero external dependencies).</li>
       <li><strong>Build Command:</strong> <code>python -c "print('Build verified')"</code> (or leave blank).</li>
       <li><strong>Start Command:</strong> <code>python app.py</code></li>
@@ -1370,7 +1382,7 @@
       <li><strong>Health Check Endpoint:</strong> <code>/api/health</code> (returns HTTP 200 OK with service status).</li>
     </ol>
 
-    <h2>7.3 Frequently Asked Questions (FAQs)</h2>
+    <h2 style="margin-top: 4px; margin-bottom: 3px;">7.3 Frequently Asked Questions (FAQs)</h2>
     <div class="callout callout-primary">
       <div class="callout-title">Q: How do regional entries sync with the master database?</div>
       When an officer logs an activity or approves a club, the sync engine writes to the local node CSV and immediately updates the master CSV with atomic mutex locking, rendering on the admin dashboard within seconds.
@@ -1381,7 +1393,12 @@
       The web client holds pending submissions in memory and retries upon reconnection. The backend engine prevents duplicate record creation using unique Club ID indexes.
     </div>
 
-    <div style="margin-top: 20px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 10px; font-size: 8pt; color: #64748B;">
+    <div class="callout callout-primary" style="margin-top: 5px;">
+      <div class="callout-title">Q: What is the function of the "Run Full Node-to-Master Reconciliation" button?</div>
+      It executes an authoritative, non-destructive audit across all employee nodes. It recovers any entries logged offline or restored from backups, validates schema headers and renewal dates, and recomputes all quota tallies and star ratings to ensure 100% data integrity without data loss.
+    </div>
+
+    <div style="margin-top: 8px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 6px; font-size: 7.5pt; color: #64748B;">
       <strong>National Digital Library of India (NDLI) Club Management System</strong><br>
       Developed & Architected by <strong>Dr. Anirban Mukherjee</strong> • Indian Institute of Technology Kharagpur<br>
       © 2026 NDLI IIT Kharagpur. All Rights Reserved. Official Operational Handbook.
