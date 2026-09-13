@@ -877,7 +877,10 @@
       try {
         const res = await apiRequest("/api/admin/backup/trigger", "POST", { note: "Manual Admin Trigger" });
         if (res.ok && res.data && res.data.success) {
-          alert(`Backup completed successfully!\nBackup ID: ${res.data.backup_id}\nRetained Backups: ${res.data.retained_backups.join(', ')}`);
+          const driveMsg = res.data.drive_file
+            ? `\n☁️ Google Drive Archive: ${res.data.drive_file} (Saved in Google Drive /backups)`
+            : (res.data.drive_sync?.status === 'SUCCESS' ? `\n☁️ Google Drive: Mirrored to Drive /backups folder` : '');
+          alert(`Backup completed successfully!\n📦 Local Backup ID: ${res.data.backup_id}${driveMsg}\n🔄 Retained Backups: ${res.data.retained_backups.join(', ')}`);
           loadAdminBackupStatus();
         } else {
           alert("Backup failed: " + (res.data?.message || "Unknown error"));
