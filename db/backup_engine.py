@@ -10,7 +10,7 @@ import threading
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 
 from config import (
     BASE_DIR,
@@ -380,6 +380,103 @@ class BackupEngine:
                 "next_backup_due": next_due_str,
                 "backups": backups_list,
                 "status": "HEALTHY"
+            }
+
+    @classmethod
+    def restore_backup(cls, source_path: Union[str, Path]) -> Dict[str, Any]:
+        """
+        Emergency database restoration from a local directory or ZIP archive.
+        Accepts:
+        - A Path/str pointing to a .zip archive (downloaded from Google Drive or local)
+        - A Path/str pointing to a backup snapshot directory (e.g. data/backups/backup_...)
+        Replaces active CSVs in data/master/ and data/employees/ and executes full reconciliation.
+        """
+        import zipfile
+        from db.sync_engine import SyncEngine
+
+        src = Path(source_path)
+        if not src.exists():
+            raise FileNotFoundError(f"Backup source does not exist: {src}")
+
+        with _BACKUP_LOCK:
+            restored_master_files = []
+            restored_employee_nodes = []
+
+            # Case A: ZIP archive (e.g. downloaded from Google Drive backups folder)
+            if src.is_file() and (src.suffix.lower() == ".zip" or zipfile.is_zipfile(src)):
+                import tempfile
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with zipfile.ZipFile(src, "r") as zf:
+                        zf.extractall(tmpdir)
+                    tmp_path = Path(tmpdir)
+
+                    master_src = tmp_path / "master"
+                    if not master_src.exists():
+                        for sub in tmp_path.glob("**/master"):
+                            if sub.is_dir():
+                                master_src = sub
+                                break
+
+                    emp_src = tmp_path / "employees"
+                    if not emp_src.exists():
+                        for sub in tmp_path.glob("**/employees"):
+                            if sub.is_dir():
+                                emp_src = sub
+                                break
+
+                    if master_src and master_src.exists():
+                        MASTER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+                        for f in master_src.iterdir():
+                            if f.is_file() and f.suffix == ".csv":
+                                shutil.copy2(str(f), str(MASTER_DATA_DIR / f.name))
+                                restored_master_files.append(f.name)
+
+                    if emp_src and emp_src.exists():
+                        EMPLOYEE_NODES_DIR.mkdir(parents=True, exist_ok=True)
+                        for e_dir in emp_src.iterdir():
+                            if e_dir.is_dir():
+                                dest_node = EMPLOYEE_NODES_DIR / e_dir.name.lower()
+                                dest_node.mkdir(parents=True, exist_ok=True)
+                                restored_employee_nodes.append(e_dir.name)
+                                for f in e_dir.iterdir():
+                                    if f.is_file() and f.suffix == ".csv":
+                                        shutil.copy2(str(f), str(dest_node / f.name))
+
+            # Case B: Local backup directory
+            elif src.is_dir():
+                master_src = src / "master"
+                emp_src = src / "employees"
+
+                if master_src.exists():
+                    MASTER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+                    for f in master_src.iterdir():
+                        if f.is_file() and f.suffix == ".csv":
+                            shutil.copy2(str(f), str(MASTER_DATA_DIR / f.name))
+                            restored_master_files.append(f.name)
+
+                if emp_src.exists():
+                    EMPLOYEE_NODES_DIR.mkdir(parents=True, exist_ok=True)
+                    for e_dir in emp_src.iterdir():
+                        if e_dir.is_dir():
+                            dest_node = EMPLOYEE_NODES_DIR / e_dir.name.lower()
+                            dest_node.mkdir(parents=True, exist_ok=True)
+                            restored_employee_nodes.append(e_dir.name)
+                            for f in e_dir.iterdir():
+                                if f.is_file() and f.suffix == ".csv":
+                                    shutil.copy2(str(f), str(dest_node / f.name))
+            else:
+                raise ValueError(f"Unrecognized backup format for source: {src}")
+
+            # Run full reconciliation to rebuild all indexes, schemas, and performance quotas
+            reconcile_summary = SyncEngine.reconcile_all_nodes()
+
+            return {
+                "success": True,
+                "message": "Emergency restoration completed successfully.",
+                "source": str(src),
+                "restored_master_files": restored_master_files,
+                "restored_employee_nodes": restored_employee_nodes,
+                "reconciliation_summary": reconcile_summary
             }
 
     @classmethod

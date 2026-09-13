@@ -1553,6 +1553,29 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 }, status=500)
             return
 
+        # FEATURE 2: Emergency Database Restore (Admin)
+        if path in ["/api/admin/backup/restore", "/api/admin/backup/emergency-restore"]:
+            target_source = body.get("source") or body.get("backup_id") or body.get("filename")
+            if not target_source:
+                existing = BackupEngine.get_existing_backups()
+                if existing:
+                    target_source = str(existing[0])
+                else:
+                    self._send_error("No backup available to restore.", status=400)
+                    return
+            try:
+                res = BackupEngine.restore_backup(target_source)
+                self._send_json(res)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self._send_json({
+                    "success": False,
+                    "error": True,
+                    "message": f"Restoration failed: {str(e)}"
+                }, status=500)
+            return
+
         # FEATURE 4: Log Unresolved Issue & Set 72-Hour Reminder
         if path == "/api/issues/create":
             club_id = str(body.get("club_id", "")).strip().upper()
