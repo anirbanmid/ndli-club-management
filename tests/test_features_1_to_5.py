@@ -692,19 +692,26 @@ class TestFeatures1To5(unittest.TestCase):
                 self.assertTrue(data.startswith(b"\x89PNG"))
 
     def test_ui_templates_and_gas_have_user_manual_links(self):
-        """Verify templates and deployment_gas have user manual download and online read links."""
+        """Verify templates and deployment_gas have user manual download link and no Read Online references."""
         idx_content = (BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8")
         self.assertIn("/api/download/user-manual", idx_content)
-        self.assertIn("/manual", idx_content)
+        self.assertNotIn("Read Online", idx_content)
+        self.assertNotIn("Manual Online", idx_content)
         self.assertIn("NDLI Club Management System User Manual", idx_content)
 
         admin_content = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
         self.assertIn("/api/download/user-manual", admin_content)
-        self.assertIn("/manual", admin_content)
+        self.assertNotIn("Read Online", admin_content)
+        self.assertNotIn("Manual Online", admin_content)
+
+        employee_content = (BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
+        self.assertIn("/api/download/user-manual", employee_content)
+        self.assertNotIn("Read Online", employee_content)
+        self.assertNotIn("Manual Online", employee_content)
 
         gas_code = (BASE_DIR / "deployment_gas" / "Code.gs").read_text(encoding="utf-8")
         self.assertIn('download === "user-manual"', gas_code)
-        self.assertIn('page === "manual"', gas_code)
+        self.assertNotIn("Read Online", gas_code)
 
 
 if __name__ == "__main__":
