@@ -89,6 +89,13 @@ function initTabs() {
       });
     });
   });
+
+  const urlTab = new URLSearchParams(window.location.search).get("tab");
+  if (urlTab) {
+    const target = urlTab.startsWith("tab-") ? urlTab : "tab-" + urlTab;
+    const btn = document.querySelector(`.tab-btn[data-target="${target}"]`);
+    if (btn) btn.click();
+  }
 }
 
 // Auto-run on DOMContentLoaded
