@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NDLI Club Management & Regional Employee Activity Tracking System — User Manual</title>
+  <style>
+    /* CSS Paged Media Standards for 14-Page Publication PDF */
+    @page {
+      size: A4 portrait;
+      margin: 14mm 16mm 16mm 16mm;
+      @bottom-right {
+        content: "Page " counter(page) " of 14";
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 8pt;
+        color: #64748B;
+      }
+      @bottom-left {
+        content: "NDLI Club Management System • IIT Kharagpur";
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 8pt;
+        color: #64748B;
+      }
+    }
+
+    @page :first {
+      margin: 0;
+      @bottom-right { content: none; }
+      @bottom-left { content: none; }
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.48;
+      color: #1E293B;
+      background-color: #FFFFFF;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* =========================================================================
+       PAGE 1: COVER PAGE
+       ========================================================================= */
+    .cover-page {
+      width: 100%;
+      height: 297mm;
+      max-height: 297mm;
+      background: linear-gradient(145deg, #071912 0%, #103125 42%, #1A503E 78%, #0D7751 100%);
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 26mm 22mm 22mm 22mm;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover-page::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, rgba(217, 119, 6, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .cover-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      border-bottom: 2px solid rgba(217, 119, 6, 0.55);
+      padding-bottom: 18px;
+    }
+
+    .cover-crest {
+      width: 68px;
+      height: 68px;
+      background: #FFFFFF;
+      border-radius: 10px;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+
+    .cover-crest img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .cover-org {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #FCD34D;
+    }
+
+    .cover-dept {
+      font-size: 9pt;
+      color: #E2E8F0;
+      letter-spacing: 0.04em;
+      margin-top: 3px;
+    }
+
+    .cover-body {
+      margin-top: 25px;
+      margin-bottom: 25px;
+    }
+
+    .cover-tag {
+      display: inline-block;
+      background: rgba(217, 119, 6, 0.28);
+      border: 1px solid #F59E0B;
+      color: #FDE68A;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    .cover-title {
+      font-size: 26pt;
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+      margin: 0 0 14px 0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .cover-subtitle {
+      font-size: 11.5pt;
+      line-height: 1.45;
+      color: #CBD5E1;
+      font-weight: 400;
+      max-width: 95%;
+      margin: 0 0 22px 0;
+    }
+
+    .cover-features-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .cover-pill {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-size: 8pt;
+      color: #F8FAFC;
+      font-weight: 500;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .cover-meta-item {
+      margin-bottom: 3px;
+    }
+
+    .cover-meta-label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      color: #94A3B8;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .cover-meta-val {
+      font-size: 9pt;
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    .cover-author-box {
+      text-align: right;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(217, 119, 6, 0.45);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .cover-author-title {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      color: #FCD34D;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+    }
+
+    .cover-author-name {
+      font-size: 10.5pt;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-top: 2px;
+    }
+
+    .cover-author-affil {
+      font-size: 7.8pt;
+      color: #CBD5E1;
+      margin-top: 2px;
+    }
+
+    /* =========================================================================
+       DOCUMENT INTERIOR TYPOGRAPHY & STRUCTURE
+       ========================================================================= */
+    .doc-page {
+      padding: 0;
+      height: 265mm;
+      max-height: 265mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1.5px solid #E2E8F0;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+    }
+
+    .header-title-left {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #103125;
+    }
+
+    .header-tag-right {
+      font-size: 7.5pt;
+      background: #F1F5F9;
+      color: #475569;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    h1, h2, h3, h4 {
+      color: #103125;
+      font-weight: 700;
+      margin-top: 0.8em;
+      margin-bottom: 0.35em;
+    }
+
+    h1 {
+      font-size: 15pt;
+      border-bottom: 2px solid #1A503E;
+      padding-bottom: 4px;
+      margin-top: 0;
+      color: #103125;
+      letter-spacing: -0.01em;
+    }
+
+    h2 {
+      font-size: 11.5pt;
+      color: #1A503E;
+      border-left: 3.5px solid #0D7751;
+      padding-left: 8px;
+      margin-top: 0.9em;
+    }
+
+    h3 {
+      font-size: 10pt;
+      color: #1E293B;
+      margin-top: 0.8em;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 0.65em;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 0.7em;
+      padding-left: 18px;
+    }
+
+    li {
+      margin-bottom: 0.25em;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 10px 0;
+      font-size: 8.5pt;
+      line-height: 1.4;
+    }
+
+    .callout-info {
+      background: #F0FDF4;
+      border-left: 3.5px solid #0D7751;
+      color: #064E3B;
+    }
+
+    .callout-warning {
+      background: #FFFBEB;
+      border-left: 3.5px solid #D97706;
+      color: #78350F;
+    }
+
+    .callout-primary {
+      background: #F8FAFC;
+      border-left: 3.5px solid #1A503E;
+      color: #0F172A;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px 0;
+      font-size: 8pt;
+    }
+
+    th, td {
+      border: 1px solid #CBD5E1;
+      padding: 5px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #103125;
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #F8FAFC;
+    }
+
+    /* Screenshots */
+    .screenshot-figure {
+      margin: 10px 0 12px 0;
+      text-align: center;
+    }
+
+    .screenshot-container {
+      max-height: 98mm;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      background: #F8FAFC;
+    }
+
+    .screenshot-container img {
+      max-height: 98mm;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .screenshot-caption {
+      font-size: 7.8pt;
+      color: #475569;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* Index (TOC) Styles */
+    .toc-container {
+      margin: 10px 0;
+    }
+
+    .toc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px dotted #CBD5E1;
+      font-size: 8.8pt;
+    }
+
+    .toc-chapter {
+      font-weight: 700;
+      color: #103125;
+    }
+
+    .toc-section {
+      padding-left: 16px;
+      color: #334155;
+    }
+
+    .toc-dots {
+      flex: 1;
+      border-bottom: 1px dotted #94A3B8;
+      margin: 0 6px;
+      height: 1px;
+    }
+
+    .toc-page-num {
+      font-weight: 700;
+      color: #1A503E;
+    }
+
+    /* Grid cards */
+    .highlight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .highlight-card {
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .highlight-card-title {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #103125;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .highlight-card-desc {
+      font-size: 7.8pt;
+      color: #475569;
+      line-height: 1.35;
+      margin: 0;
+    }
+
+    .formula-box {
+      background: #F8FAFC;
+      border: 1.5px solid #0D7751;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 8px 0;
+      text-align: center;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #064E3B;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 5px;
+      font-size: 7pt;
+      font-weight: 700;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge-green { background: #D1FAE5; color: #065F46; }
+    .badge-gold { background: #FEF3C7; color: #92400E; }
+    .badge-blue { background: #DBEAFE; color: #1E40AF; }
+    .badge-red { background: #FEE2E2; color: #991B1B; }
+
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 8pt;
+      background: #F1F5F9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      color: #0F172A;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =======================================================================
+       PAGE 1: COVER PAGE
+       ======================================================================= -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <div class="cover-crest">
+        <img src="images/01_landing_portal_selector.png" alt="Emblem" style="filter: contrast(1.2);">
+      </div>
+      <div>
+        <div class="cover-org">National Digital Library of India (NDLI)</div>
+        <div class="cover-dept">Central Administration Office • Indian Institute of Technology Kharagpur</div>
+      </div>
+    </div>
+
+    <div class="cover-body">
+      <span class="cover-tag">Official Operational Handbook & User Manual</span>
+      <h1 class="cover-title">NDLI Club Management & Regional Employee Activity Tracking System</h1>
+      <p class="cover-subtitle">
+        A Unified, Enterprise-Grade Operational Guidebook for Central Administrative Governance, 
+        7 Regional Nodal Zone Workspaces, Automated 7-Day Backups, and Real-Time Multi-State Activity Tracking.
+      </p>
+
+      <div class="cover-features-pill-row">
+        <span class="cover-pill">✓ Dual-Portal Architecture</span>
+        <span class="cover-pill">✓ 7 Regional Nodal Zones</span>
+        <span class="cover-pill">✓ 36 States/UTs Automated Mapping</span>
+        <span class="cover-pill">✓ 50/30/20/10 Star Rating Matrix</span>
+        <span class="cover-pill">✓ AI Strategic Decision Engine</span>
+        <span class="cover-pill">✓ Automated 7-Day Rolling Backups</span>
+        <span class="cover-pill">✓ Dynamic Renewal Certificates</span>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Document Release</div>
+          <div class="cover-meta-val">Production Edition v2.4 • September 2026</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">System Deployment Target</div>
+          <div class="cover-meta-val">Cloud Web Service & Google Drive / GAS Hybrid Architecture</div>
+        </div>
+      </div>
+
+      <div class="cover-author-box">
+        <div class="cover-author-title">Lead System Architect & Full-Stack Developer</div>
+        <div class="cover-author-name">Dr. Anirban Mukherjee</div>
+        <div class="cover-author-affil">NDLI Project • Central Administration Office<br>Indian Institute of Technology Kharagpur</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 2: PREFACE
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 2 of 14</span>
+    </div>
+
+    <h1>1. Preface</h1>
+
+    <p>
+      The <strong>National Digital Library of India (NDLI)</strong> Club initiative, coordinated by the 
+      <strong>Indian Institute of Technology Kharagpur (IIT Kharagpur)</strong> under the Ministry of Education, 
+      Government of India, represents a nationwide endeavor to empower educational institutions, cultivate lifelong reading 
+      habits, and bridge the digital knowledge divide across all 36 States and Union Territories.
+    </p>
+
+    <p>
+      As the network of authorized NDLI Clubs expanded exponentially into thousands of secondary schools, universities, 
+      and research institutes, managing field engagements and institutional verifications necessitated an enterprise-grade, 
+      resilient software platform. The <strong>NDLI Club Management and Employee Activity Tracking System</strong> was 
+      architected and developed by <strong>Dr. Anirban Mukherjee</strong> to serve as this centralized operational bridge.
+    </p>
+
+    <h2>1.1 Core Architectural Principles</h2>
+    <ul>
+      <li><strong>Zero External Dependency Kernel:</strong> Engineered entirely on the native Python standard library (HTTP server, JSON, and CSV engines). Runs instantly on any operating system without complex runtime dependency conflicts.</li>
+      <li><strong>Dual-Portal Governance:</strong> Logical and physical separation between the Central Administration Office Master Portal at IIT Kharagpur and the 7 Regional Zonal Workspaces distributed across India.</li>
+      <li><strong>Node-to-Master Synchronization:</strong> Regional officers log field activities and club approvals into their dedicated node CSV files, which are immediately reconciled into the central master databases with strict atomic locking.</li>
+      <li><strong>Autonomous Data Resilience:</strong> Automated rolling backups execute every 7 days, maintaining a strict 2-version retention policy to guarantee deterministic storage bounds and data safety.</li>
+    </ul>
+
+    <h2>1.2 Scope & Intended Audience</h2>
+    <p>
+      This operational handbook provides authoritative guidance for Central Administrative Officers at IIT Kharagpur, 
+      the 7 Regional Zonal Officers managing daily zonal operations, and DevOps engineers overseeing cloud deployments.
+    </p>
+
+    <div class="callout callout-info">
+      <div class="callout-title">📌 Institutional Attribution & Brand Identity</div>
+      The application adheres strictly to the official IIT Kharagpur identity, utilizing deep forest green tones 
+      (<code>#103125</code>, <code>#1A503E</code>, <code>#0D7751</code>) and verified developer attribution to Lead Architect 
+      <strong>Dr. Anirban Mukherjee</strong> across all portals, verification certificates, and administrative endpoints.
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 3: FEATURE HIGHLIGHTS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 3 of 14</span>
+    </div>
+
+    <h1>2. Feature Highlights & Executive Overview</h1>
+    <p>
+      The platform integrates an extensive suite of administrative governance and regional execution capabilities:
+    </p>
+
+    <div class="highlight-grid">
+      <div class="highlight-card">
+        <div class="highlight-card-title">🏛️ Central Administration Dashboard</div>
+        <p class="highlight-card-desc">Real-time KPI telemetry, Donut and Trajectory charts, Renewal Attention centers, and multi-dimensional scope filtering by Zone and Academic Year.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">⭐ Employee Performance Star Matrix</div>
+        <p class="highlight-card-desc">Statutory 50/30/20/10 weighted formula evaluating regional officers with dynamic 1-to-5 star rating badges, filtered by Year, Month, and State.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">🗺️ National Penetration Roster</div>
+        <p class="highlight-card-desc">Exhaustive roster covering all 36 States & UTs with real-time club density, recent activity timestamps, and responsive no-horizontal-scroll layout.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">🧠 AI Strategic Decision Engine</div>
+        <p class="highlight-card-desc">Heuristic intelligence formulating policy recommendations, identifying penetration deficits, and generating 30/90/365-day milestone roadmaps.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">📝 Regional Daily Activity Logging (SEC A)</div>
+        <p class="highlight-card-desc">Real-time logging across 4 categories: Phone/Remote, OS Ticket Closing, Online Webinars, and Offline Field Training with automatic ISO timestamps.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">🏛️ Club Approval & Auto-Zone Engine (SEC B/C)</div>
+        <p class="highlight-card-desc">Standardized onboarding capturing institutional stakeholders and automatically mapping selected states across 36 territories to their 6 statutory zones.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">🔍 Universal Search & Metadata Editor</div>
+        <p class="highlight-card-desc">Instant live-indexed search across Club ID, Registration No, State, or Institute name with in-place record correction and atomic master synchronization.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">📜 Dynamic Verification Certificates</div>
+        <p class="highlight-card-desc">Generates official IIT Kharagpur Renewal Certificates embedding official seals, dynamic signatories, Sutradhar typography, and instant vector PDF export.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">💾 Automated 7-Day Rolling Backups</div>
+        <p class="highlight-card-desc">Autonomous engine compiling ZIP backups every 7 days across Admin and Employee data tiers with a strict 2-version retention pruning invariant.</p>
+      </div>
+
+      <div class="highlight-card">
+        <div class="highlight-card-title">⏰ 72-Hour Reminders & 30-Day Escalations</div>
+        <p class="highlight-card-desc">Unresolved issues trigger 72-hour employee reminders recurring weekly. Any issue unaddressed for 30+ days automatically escalates to the Central Admin.</p>
+      </div>
+    </div>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 82mm;">
+        <img src="images/01_landing_portal_selector.png" alt="Landing Portal Selector">
+      </div>
+      <div class="screenshot-caption">Figure 2.1: Unified Landing Portal — Dual Gateway for Central Administration and 7 Regional Zonal Workspaces</div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 4: PROPER INDEX (TABLE OF CONTENTS)
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 4 of 14</span>
+    </div>
+
+    <h1>3. Table of Contents & Navigation Index</h1>
+    <p>
+      This index details all operational chapters and technical specifications contained within this manual:
+    </p>
+
+    <div class="toc-container">
+      <div class="toc-row">
+        <span class="toc-chapter">1. Preface & Architectural Foundation</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 2</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">2. Feature Highlights & Executive Matrix</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 3</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">3. Table of Contents & Navigation Index</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 4</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">4. Comprehensive Feature Specifications & Database Schemas</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 5</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">4.1 Master Database Schema Specifications</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 5</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">4.2 Regional Zonal Jurisdiction & Territorial Boundaries</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 5</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">5. Regional Employee Portal Operations (Zonal Workspaces)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 6</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">5.1 Workspace Launch & Zonal Officer Authentication</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 6</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">5.2 Daily Support Activity Logging (SEC A)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 7</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">5.3 Approving & Onboarding New NDLI Clubs (SEC B & C)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 7</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">5.4 Universal Search, Record Editing & Annual Renewal</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 8</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">5.5 Unresolved Club Issues, 72-Hour Reminders & Node CSV Downloads</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 8</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">6. Central Administration Office Portal Operations</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 9</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.1 Admin Security & Executive KPI Telemetry</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 9</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.2 Statistical Infographics & Geographic Scope Filtering</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 10</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.3 Handling 30-Day Administrative Escalations</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 10</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.4 Employee Performance Evaluation & Star Rating Formula</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 11</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.5 National State-Wise Penetration & Density Roster</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 12</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.6 AI Strategic Decision Module & Policy Roadmaps</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 12</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.7 Automated 7-Day Rolling Backups & Disaster Recovery</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 13</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">6.8 Dynamic Verification Certificate Customization</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 13</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-chapter">7. Maintenance, Cloud Deployment & Troubleshooting</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 14</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">7.1 Directory Topology & Synchronization Architecture</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 14</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">7.2 Render Cloud Deployment Specification</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 14</span>
+      </div>
+      <div class="toc-row">
+        <span class="toc-section">7.3 Operational FAQs & System Attribution</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">Page 14</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 5: DETAILED SPECIFICATIONS & SCHEMAS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 5 of 14</span>
+    </div>
+
+    <h1>4. Detailed Specifications & Schemas</h1>
+    <p>
+      The platform is powered by a high-performance, atomic CSV database engine. Every operation is schema-validated 
+      to guarantee consistency across master and employee node tiers.
+    </p>
+
+    <h2>4.1 Master Database Schema Specifications</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Database File</th>
+          <th style="width: 38%;">Schema Columns</th>
+          <th style="width: 40%;">Operational Function</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>master_clubs.csv</code></td>
+          <td><code>id, reg_no, name, state, zone, patron_email, president_email, secretary_email, approved_by, approval_date, last_renewal_date, renewal_date</code></td>
+          <td>Stores all active NDLI Clubs nationwide. Enforces strict +1 year renewal date invariants from establishment or last renewal.</td>
+        </tr>
+        <tr>
+          <td><code>master_activities.csv</code></td>
+          <td><code>id, emp_id, timestamp, support_type, notes, state, zone</code></td>
+          <td>Aggregated log of all field interactions (calls, ticket closures, webinars, offline campus visits) across India.</td>
+        </tr>
+        <tr>
+          <td><code>master_quotas.csv</code></td>
+          <td><code>emp_id, emp_name, zone, clubs_approved, total_activities, last_activity, updated_at</code></td>
+          <td>Scoreboard tracking individual employee performance quotas and daily logging volume.</td>
+        </tr>
+        <tr>
+          <td><code>master_users.csv</code></td>
+          <td><code>id, email, password_hash, salt, full_name, role, zone, assigned_states, is_active, created_at</code></td>
+          <td>Credentials database. Passwords secured using PBKDF2-HMAC-SHA256 (100,000 rounds) with per-user 16-byte random salts.</td>
+        </tr>
+        <tr>
+          <td><code>master_issues.csv</code></td>
+          <td><code>id, club_id, club_name, emp_id, reported_at, issue_notes, status, next_reminder_date, resolved_at, resolution_notes</code></td>
+          <td>Engine for 72-hour employee reminders, 7-day recurrent cycles, and 30-day Admin escalations.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4.2 Regional Zonal Jurisdiction Roster</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 12%;">User ID</th>
+          <th style="width: 25%;">Regional Officer</th>
+          <th style="width: 15%;">Zone</th>
+          <th style="width: 48%;">Territorial Jurisdiction (36 States & UTs)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>EMP01</code></td>
+          <td><strong>Rohan Sharma</strong></td>
+          <td><span class="badge badge-blue">North</span></td>
+          <td>Jammu & Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi, Uttar Pradesh</td>
+        </tr>
+        <tr>
+          <td><code>EMP02</code></td>
+          <td><strong>Pooja Verma</strong></td>
+          <td><span class="badge badge-gold">Central</span></td>
+          <td>Madhya Pradesh, Chhattisgarh</td>
+        </tr>
+        <tr>
+          <td><code>EMP03</code></td>
+          <td><strong>Amit Patel</strong></td>
+          <td><span class="badge badge-green">West</span></td>
+          <td>Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar & Nagar Haveli</td>
+        </tr>
+        <tr>
+          <td><code>EMP04</code></td>
+          <td><strong>Debabrata Ghosh</strong></td>
+          <td><span class="badge badge-blue">East</span></td>
+          <td>Bihar, Jharkhand, West Bengal, Odisha</td>
+        </tr>
+        <tr>
+          <td><code>EMP05</code></td>
+          <td><strong>Mayanglambam Singh</strong></td>
+          <td><span class="badge badge-green">North East</span></td>
+          <td>Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram</td>
+        </tr>
+        <tr>
+          <td><code>EMP06</code></td>
+          <td><strong>K. Venkatesh</strong></td>
+          <td><span class="badge badge-gold">South</span></td>
+          <td>Andhra Pradesh, Telangana, Karnataka (South Sector 1)</td>
+        </tr>
+        <tr>
+          <td><code>EMP07</code></td>
+          <td><strong>Ananya Nair</strong></td>
+          <td><span class="badge badge-gold">South</span></td>
+          <td>Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep (South Sector 2)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 6: EMPLOYEE PORTAL WORKSPACE
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 6 of 14</span>
+    </div>
+
+    <h1>5. Regional Employee Portal Operations</h1>
+    <p>
+      The <strong>NDLI Club Employee Portal</strong> is the operational cockpit for the 7 Regional Zonal Officers. 
+      It features real-time clock synchronization, pending reminder feeds, and structured data entry workflows.
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 102mm;">
+        <img src="images/04_employee_portal_activity_tracker.png" alt="Employee Portal Activity Tracker">
+      </div>
+      <div class="screenshot-caption">Figure 5.1: Regional Employee Workspace (EMP01 - Rohan Sharma, North Zone)</div>
+    </div>
+
+    <h2>5.1 Logging In & Selecting Zonal Officer Profile</h2>
+    <ol>
+      <li><strong>Navigate to Portal:</strong> Open <code>/employee</code> or select <strong>"NDLI Club Employee Portal"</strong> from the landing gateway.</li>
+      <li><strong>Interactive Officer Directory:</strong> Click any of the 7 regional officer chips (e.g., <em>EMP01 - Rohan Sharma (North)</em>). The system automatically inputs their official email and pre-configures their territorial scope.</li>
+      <li><strong>Password Authentication:</strong> Enter the assigned regional password (e.g., <code>EmpNorth#2026</code>) and click <strong>"Authenticate & Open Portal"</strong>.</li>
+      <li><strong>Workspace Activation:</strong> An encrypted 24-byte session token is generated, opening the officer's dedicated workspace with their node database pre-loaded.</li>
+    </ol>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 7: DAILY ACTIVITY LOGGING & CLUB APPROVALS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 7 of 14</span>
+    </div>
+
+    <h2>5.2 Step-by-Step: Logging Daily Support Activities (SEC A)</h2>
+    <p>
+      Zonal officers engage with educational institutions daily to resolve obstacles and conduct orientation sessions. 
+      Every interaction must be logged immediately in <strong>SEC A</strong>:
+    </p>
+
+    <ol>
+      <li>
+        <strong>Select Nature of Support:</strong> Choose the appropriate activity tier:
+        <ul>
+          <li><strong>Phone call and remote assistance:</strong> Voice calls, WhatsApp consultations, and remote desktop setup.</li>
+          <li><strong>Closing of OS Ticket:</strong> Formal resolution of institutional support tickets logged via NDLI helpdesk.</li>
+          <li><strong>Online training:</strong> Conducting virtual orientation webinars, faculty workshops, and student onboarding.</li>
+          <li><strong>Offline training:</strong> On-premise physical campus visits, seminars, and library workshops.</li>
+        </ul>
+      </li>
+      <li><strong>Activity Notes:</strong> Enter brief notes identifying the institution, key stakeholders, and topics addressed.</li>
+      <li><strong>Submit Entry:</strong> Click <strong>"Submit Activity Log"</strong>. The entry is recorded in <code>activity_log.csv</code> with automatic timestamping and synced incrementally to the Central Master Database.</li>
+    </ol>
+
+    <h2>5.3 Step-by-Step: Approving & Onboarding New NDLI Clubs (SEC B & C)</h2>
+    <p>
+      When an institution completes its registration requirements, the officer authorizes the club through <strong>SEC B & C</strong>:
+    </p>
+
+    <ol>
+      <li><strong>Trigger Approval Form:</strong> Click the button <strong>"⚡ SEC B: Approve New NDLI Club"</strong> to reveal SEC C.</li>
+      <li><strong>Input Institutional Codes:</strong> Enter the unique Club ID (e.g., <code>CLUB-DEL-2026-01</code>), Registration Number, and Institution Name.</li>
+      <li><strong>State Selection (Auto-Zone Engine):</strong> Select the institution's state from the dropdown. The system automatically determines and locks the statutory Zone (North, Central, West, East, North East, South), preventing territorial misclassification.</li>
+      <li><strong>Stakeholder Contact Matrix:</strong> Provide verified email addresses for Patron (Head of Institution), President (Faculty Lead), and Secretary (Student Representative).</li>
+      <li><strong>Authorize Club:</strong> Click <strong>"Confirm & Authorize New NDLI Club"</strong>. The club is committed to the node database, increments the officer's performance quota, and syncs to <code>master_clubs.csv</code>.</li>
+    </ol>
+
+    <div class="callout callout-warning">
+      <div class="callout-title">⚠️ Mandatory Next Renewal Date Invariant (Rule 10)</div>
+      Upon club approval, the system enforces <strong>Rule 10</strong>: the upcoming renewal date is automatically set to 
+      <em>exactly 1 calendar year (+1 year)</em> from the Date of Approval (DOA). Under no circumstances can a renewal date precede DOA.
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 8: UNIVERSAL SEARCH, RENEWALS & REMINDERS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 8 of 14</span>
+    </div>
+
+    <h2>5.4 Universal Club Search, Record Editing & Annual Renewal</h2>
+    <p>
+      The lower section of the Employee Portal provides comprehensive directory lookup and annual renewal workflows:
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 82mm;">
+        <img src="images/09_employee_portal_full_view.png" alt="Universal Search & Renewal View">
+      </div>
+      <div class="screenshot-caption">Figure 5.2: Employee Portal Lower Workspace — Universal Search, Details Inspector, and 72-Hour Reminder Stream</div>
+    </div>
+
+    <ol>
+      <li><strong>Universal Keyword Query:</strong> Enter any search string into the search box. The table dynamically filters by Club ID, Registration No, State, or Institute name.</li>
+      <li><strong>Inspect & Edit Metadata:</strong> Click <strong>"Inspect / Edit"</strong> on any club card. An interactive modal displays all current parameters, allowing officers to update stakeholder emails and institutional names with instant master sync.</li>
+      <li><strong>Execute Annual Renewal:</strong> Click <strong>"🔄 Process Registration Renewal"</strong>, verify credentials, and confirm. The system updates the Last Renewal Date (LRD) to today, calculates the next renewal date as +1 year, and generates a downloadable verification certificate.</li>
+    </ol>
+
+    <h2>5.5 Unresolved Club Issues & 72-Hour Reminders</h2>
+    <p>
+      When an institution reports an unresolved issue, the officer clicks <strong>"Report Issue / Set Reminder"</strong>:
+    </p>
+    <ul>
+      <li><strong>72-Hour Grace Window:</strong> The ticket enters a pending state. Exactly 72 hours later, a prominent reminder banner appears in the employee's dashboard header.</li>
+      <li><strong>Resolution Workflow:</strong> Clicking the reminder allows the officer to mark it <strong>"Resolved"</strong> or <strong>"Not Resolved"</strong>. If unresolved, the system automatically reschedules a reminder every 7 days until resolved.</li>
+      <li><strong>Exporting Node CSVs:</strong> Officers can click <strong>"Download Activity Log"</strong> and <strong>"Download Clubs Log"</strong> to export exact copies of their node databases for local record-keeping.</li>
+    </ul>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 9: CENTRAL ADMIN PORTAL OVERVIEW
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 9 of 14</span>
+    </div>
+
+    <h1>6. Central Administration Office Portal Operations</h1>
+    <p>
+      The <strong>Central Administration Office Portal</strong> at IIT Kharagpur is the executive master control console. 
+      It synthesizes field reports from all 7 regional zones into actionable statistical intelligence.
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 102mm;">
+        <img src="images/02_admin_portal_overview.png" alt="Admin Portal Overview">
+      </div>
+      <div class="screenshot-caption">Figure 6.1: Central Administration Executive Dashboard — Real-Time KPIs, Donut Charts & Scope Filters</div>
+    </div>
+
+    <h2>6.1 Admin Security & Executive KPI Monitors</h2>
+    <p>
+      Administrative access is protected by role-based authentication (<code>admin@iitkgp.ac.in</code>). 
+      The dashboard displays five top-level operational meters:
+    </p>
+    <ul>
+      <li><strong>Total NDLI Clubs:</strong> Cumulative authorized clubs across all 36 States & UTs.</li>
+      <li><strong>Total Daily Support Logs:</strong> Nationwide count of field interactions submitted across all regional nodes.</li>
+      <li><strong>Active Regional Nodes:</strong> Number of operational regional databases communicating in real-time.</li>
+      <li><strong>Renewal Attention Center:</strong> Highlights clubs with expired or imminent registration deadlines (within 30 days). Clicking the card opens an interactive drill-down inspection list.</li>
+      <li><strong>30-Day Escalations Monitor:</strong> Displays persistent club issues unresolved for 30 or more days across any zone, requiring central administrative intervention.</li>
+    </ul>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 10: ANALYTICS, CHARTS & ESCALATIONS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 10 of 14</span>
+    </div>
+
+    <h2>6.2 Statistical Infographics & Geographic Scope Filtering</h2>
+    <p>
+      The dashboard renders dynamic visual charts representing national adoption patterns:
+    </p>
+
+    <ul>
+      <li><strong>Zone-Wise Distribution Donut Chart:</strong> Displays institutional concentration across the 6 geopolitical zones (North, Central, West, East, North East, South).</li>
+      <li><strong>Monthly Trajectory Area Chart:</strong> Illustrates onboarding velocity month-over-month, showing seasonal registration trends.</li>
+      <li><strong>Support Classification Breakdown:</strong> Tracks the nationwide proportion of remote phone support, OS ticket resolutions, online webinars, and physical campus trainings.</li>
+      <li><strong>Scope Filter Bar:</strong> Administrators can filter all dashboard metrics simultaneously by <strong>Zone</strong> (e.g., "North Zone Only") and <strong>Academic Year</strong> (e.g., 2026, 2025).</li>
+    </ul>
+
+    <h2>6.3 Handling 30-Day Administrative Escalations</h2>
+    <p>
+      Issues unresolved at the regional level for more than 30 days automatically trigger central escalation:
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 82mm;">
+        <img src="images/08_admin_dashboard_full_view.png" alt="Admin Full Dashboard with Matrices">
+      </div>
+      <div class="screenshot-caption">Figure 6.2: Admin Portal Lower Section — Penetration Roster, Employee Performance Matrix & Escalation Monitors</div>
+    </div>
+
+    <ol>
+      <li>Click the red <strong>"30-Day Escalations"</strong> card in the KPI header.</li>
+      <li>Review the institution's grievance history, originating zonal officer, and days elapsed.</li>
+      <li>Click <strong>"Review & Resolve"</strong> to record Central Office directives and mark the ticket <strong>"Resolved"</strong> or <strong>"Not Resolved"</strong> (re-queuing for 7-day central tracking).</li>
+    </ol>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 11: EMPLOYEE PERFORMANCE MATRIX
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 11 of 14</span>
+    </div>
+
+    <h2>6.4 Employee Performance Evaluation & Star Rating Matrix</h2>
+    <p>
+      The <strong>Employee Performance Evaluation & Star Rating Matrix</strong> provides an objective merit evaluation 
+      of all 7 regional zonal officers based on an approved multi-criteria weighting formula:
+    </p>
+
+    <div class="formula-box">
+      Composite Score = (Clubs Approved × 0.50) + ((OS Tickets Closed + Phone Calls) × 0.30) + (Offline Training × 0.20) + (Online Training × 0.10)
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Evaluation Metric</th>
+          <th style="width: 15%;">Weightage</th>
+          <th style="width: 60%;">Operational Significance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>New Club Approvals</strong></td>
+          <td><span class="badge badge-green">50% Weight</span></td>
+          <td>Primary organizational KPI reflecting institutional expansion and onboarding capacity.</td>
+        </tr>
+        <tr>
+          <td><strong>OS Tickets Closed & Remote Calls</strong></td>
+          <td><span class="badge badge-gold">30% Weight</span></td>
+          <td>Measures responsiveness to club operational queries and problem-solving velocity.</td>
+        </tr>
+        <tr>
+          <td><strong>Offline Field Training</strong></td>
+          <td><span class="badge badge-blue">20% Weight</span></td>
+          <td>Physical campus workshops, library orientations, and direct faculty development sessions.</td>
+        </tr>
+        <tr>
+          <td><strong>Online Training</strong></td>
+          <td><span class="badge badge-blue">10% Weight</span></td>
+          <td>Virtual webinars, digital orientation sessions, and remote demonstrations.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Star Rating Thresholds & Categorization</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">Star Rating</th>
+          <th style="width: 22%;">Normalized Benchmark</th>
+          <th style="width: 60%;">Performance Appraisal Designation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>⭐⭐⭐⭐⭐</td>
+          <td>80% – 100% of Benchmark</td>
+          <td><strong>Outstanding:</strong> Consistently exceeds institutional quotas, fast ticket resolution, proactive field engagement.</td>
+        </tr>
+        <tr>
+          <td>⭐⭐⭐⭐</td>
+          <td>60% – 79% of Benchmark</td>
+          <td><strong>Commendable:</strong> Strong performance across onboarding, ticket closing, and training.</td>
+        </tr>
+        <tr>
+          <td>⭐⭐⭐</td>
+          <td>40% – 59% of Benchmark</td>
+          <td><strong>Satisfactory:</strong> Fulfills standard institutional quotas and baseline activity targets.</td>
+        </tr>
+        <tr>
+          <td>⭐⭐</td>
+          <td>20% – 39% of Benchmark</td>
+          <td><strong>Needs Improvement:</strong> Below expected club onboarding velocity or lagging ticket resolution.</td>
+        </tr>
+        <tr>
+          <td>⭐</td>
+          <td>0% – 19% of Benchmark</td>
+          <td><strong>Critical Deficit:</strong> Immediate administrative consultation and field support required.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Dynamic Analytical Filtering</h3>
+    <p>
+      Administrators can filter performance records by <strong>Year</strong> (e.g., 2026), <strong>Month</strong> (January–December), 
+      and <strong>State</strong> to evaluate seasonal performance or regional specializations.
+    </p>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 12: STATE ROSTER & AI DECISION ENGINE
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 12 of 14</span>
+    </div>
+
+    <h2>6.5 National State-Wise Penetration & Density Roster</h2>
+    <p>
+      The <strong>National State-Wise Penetration & Density Roster</strong> renders all 36 States and Union Territories 
+      with zero horizontal scrolling, enabling instant nationwide assessment:
+    </p>
+
+    <ul>
+      <li><strong>Territory & Jurisdiction:</strong> Lists each State/UT, assigned Regional Zonal Officer, and geopolitical Zone.</li>
+      <li><strong>Club Density:</strong> Real-time count of active NDLI Clubs operating within that state.</li>
+      <li><strong>Activity Timestamp:</strong> Displays the exact date of the latest onboarding or support engagement.</li>
+      <li><strong>Health Status Badges:</strong> Color-coded indicators denoting High Density (Green), Medium Density (Gold), or Priority Expansion (Red).</li>
+    </ul>
+
+    <h2>6.6 AI Strategic Decision Module & Policy Roadmaps</h2>
+    <p>
+      The <strong>AI Strategic Decision Engine</strong> executes continuous heuristic evaluation across the aggregated 
+      master databases to generate strategic recommendations for central leadership:
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 82mm;">
+        <img src="images/03_ai_strategic_roadmap.png" alt="AI Decision Engine">
+      </div>
+      <div class="screenshot-caption">Figure 6.3: AI Strategic Decision Engine — Automated Growth Corridors, Deficit Analysis & Milestone Roadmaps</div>
+    </div>
+
+    <ul>
+      <li><strong>State Penetration Deficit Formulation:</strong> Automatically identifies territories with club densities below national population-adjusted benchmarks, recommending targeted state-level campaigns.</li>
+      <li><strong>High-Growth Corridor Detection:</strong> Identifies zones exhibiting accelerating adoption momentum to allocate supplemental training materials and regional resources.</li>
+      <li><strong>Milestone Policy Roadmaps:</strong> Synthesizes operational directives into <strong>30-Day Immediate</strong>, <strong>90-Day Mid-Term</strong>, and <strong>1-Year Strategic Milestones</strong>.</li>
+    </ul>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 13: AUTOMATED BACKUPS & CERTIFICATE ENGINE
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 13 of 14</span>
+    </div>
+
+    <h2>6.7 Automated 7-Day Rolling Backups & System Recovery</h2>
+    <p>
+      The platform incorporates an autonomous background backup engine running continuously in the server process:
+    </p>
+
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 82mm;">
+        <img src="images/06_automated_backups.png" alt="Automated Backups Tab">
+      </div>
+      <div class="screenshot-caption">Figure 6.4: Automated 7-Day Rolling Backup Engine & Historical Snapshot Recovery Console</div>
+    </div>
+
+    <ul>
+      <li><strong>Autonomous 7-Day Cadence:</strong> Archives both Central Master DBs and all 7 Regional Node DBs into compressed ZIP snapshots.</li>
+      <li><strong>Strict 2-Version Retention Invariant:</strong> Preserves only the last 2 historical snapshots. All older archives are automatically pruned, preventing storage bloat.</li>
+      <li><strong>Manual On-Demand Snapshots:</strong> Administrators can trigger an instantaneous backup at any time by clicking <strong>"Create Backup Now"</strong>.</li>
+      <li><strong>Disaster Recovery:</strong> Download or restore any historical archive directly from the portal interface with atomic file restoration.</li>
+    </ul>
+
+    <h2>6.8 Dynamic Verification Certificate Customization</h2>
+    <p>
+      Administrators can configure the layout and visual assets of official NDLI Club Verification Certificates:
+    </p>
+    <ul>
+      <li><strong>Official Signatories:</strong> Customize title and designation for Authorized Signatories and Nodal Officers.</li>
+      <li><strong>Visual Assets:</strong> Upload high-resolution PNG signatures and the IIT Kharagpur institutional seal.</li>
+      <li><strong>Attribution Integrity:</strong> Every certificate permanently embeds official attribution to the NDLI Central Administration Office.</li>
+    </ul>
+  </div>
+
+  <!-- =======================================================================
+       PAGE 14: MAINTENANCE, CLOUD DEPLOYMENT & FAQS
+       ======================================================================= -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual</span>
+      <span class="header-tag-right">Page 14 of 14</span>
+    </div>
+
+    <h1>7. Maintenance, Cloud Deployment & FAQs</h1>
+
+    <h2>7.1 File & Directory Topology</h2>
+    <pre><code>ndli_club_management/
+├── app.py                     # HTTP Server & REST API Controller
+├── auth.py                    # PBKDF2 Password & Session Manager
+├── config.py                  # Global Ports & System Constants
+├── state_zone_mapper.py       # 36 States/UTs to 6 Zones Mapping Rules
+├── ai/
+│   └── decision_module.py     # AI Strategic Analysis Engine
+├── db/
+│   ├── csv_engine.py          # Atomic CSV Engine with Mutex Locking
+│   ├── sync_engine.py         # Node-to-Master Synchronization Core
+│   ├── backup_engine.py       # 7-Day Scheduler & Retention Safeguard
+│   └── issue_manager.py       # 72-Hour Reminders & 30-Day Escalations
+├── data/
+│   ├── master/                # Central Master CSV Databases
+│   ├── employees/             # 7 Regional Node DBs (emp01-emp07)
+│   └── backups/               # Automated Rolling ZIP Archives (Max 2)
+├── templates/                 # Production Frontends (admin, employee, index)
+└── static/                    # CSS Stylesheets, Branding Assets & Scripts</code></pre>
+
+    <h2>7.2 Render Cloud Deployment Specification</h2>
+    <ol>
+      <li><strong>Environment:</strong> Python 3.10+ (Standard Library, zero external dependencies).</li>
+      <li><strong>Build Command:</strong> <code>python -c "print('Build verified')"</code> (or leave blank).</li>
+      <li><strong>Start Command:</strong> <code>python app.py</code></li>
+      <li><strong>Port Binding:</strong> Dynamically reads <code>$PORT</code> environment variable (defaults to 8080).</li>
+      <li><strong>Health Check Endpoint:</strong> <code>/api/health</code> (returns HTTP 200 OK with service status).</li>
+    </ol>
+
+    <h2>7.3 Frequently Asked Questions (FAQs)</h2>
+    <div class="callout callout-primary">
+      <div class="callout-title">Q: How do regional entries sync with the master database?</div>
+      When an officer logs an activity or approves a club, the sync engine writes to the local node CSV and immediately updates the master CSV with atomic mutex locking, rendering on the admin dashboard within seconds.
+    </div>
+
+    <div class="callout callout-primary">
+      <div class="callout-title">Q: What happens if an employee experiences intermittent internet connectivity?</div>
+      The web client holds pending submissions in memory and retries upon reconnection. The backend engine prevents duplicate record creation using unique Club ID indexes.
+    </div>
+
+    <div style="margin-top: 20px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 10px; font-size: 8pt; color: #64748B;">
+      <strong>National Digital Library of India (NDLI) Club Management System</strong><br>
+      Developed & Architected by <strong>Dr. Anirban Mukherjee</strong> • Indian Institute of Technology Kharagpur<br>
+      © 2026 NDLI IIT Kharagpur. All Rights Reserved. Official Operational Handbook.
+    </div>
+  </div>
+
+</body>
+</html>

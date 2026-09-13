@@ -1,2 +1,4 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP05-1789311810598,EMP05,2026-09-13T15:03:30.505682+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
+ACT-PRIORITY-EMP05-1789320970196,EMP05,2026-09-13T17:36:10.148350+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
+ACT-PRIORITY-EMP05-1789320971211,EMP05,2026-09-13T17:36:11.143592+00:00,Club Approval,1,NDLI-AUTO-REN-01,Approved new NDLI Club: Automated Renewal University (NDLI-AUTO-REN-01)
+ACT-RENEW-EMP05-1789320971337,EMP05,2026-09-13T17:36:11.285518+00:00,Registration Renewal,1,NDLI-AUTO-REN-01,"Renewal Approved for Club NDLI-AUTO-REN-01. Last Renewal Date: 2026-09-13T17:36:11.285518+00:00, Upcoming Renewal Due Date: 2027-09-13"

@@ -239,6 +239,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "POST /api/admin/employees/status",
                     "GET  /api/employees/roster",
                     "GET  /api/employees/profile?id=<emp_id>",
+                    "GET  /api/download/user-manual",
                     "GET  /api/admin/download/master-clubs",
                     "GET  /api/admin/backup/status",
                     "POST /api/admin/backup/trigger",
@@ -933,6 +934,43 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "master_activities_count": master_acts,
                 "storage_mode": get_storage_adapter().get_info()["mode"]
             })
+            return
+
+        # DOWNLOAD USER MANUAL (PDF)
+        if path in [
+            "/api/download/user-manual",
+            "/api/download/manual",
+            "/download/user-manual",
+            "/download/manual",
+            "/manual.pdf",
+            "/NDLI_Club_Management_User_Manual.pdf",
+            "/user-manual.pdf"
+        ]:
+            user_manual_file = BASE_DIR / "NDLI_Club_Management_User_Manual.pdf"
+            if not user_manual_file.exists():
+                alt_path = BASE_DIR / "docs" / "NDLI_Club_Management_User_Manual.pdf"
+                if alt_path.exists():
+                    user_manual_file = alt_path
+
+            if not user_manual_file.exists():
+                self._send_error("User Manual PDF not found. Please compile it first.", status=404)
+                return
+
+            try:
+                with open(user_manual_file, "rb") as f:
+                    pdf_bytes = f.read()
+
+                disp_type = "inline" if ("inline" in query_params or "view" in query_params) else "attachment"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Disposition", f'{disp_type}; filename="NDLI_Club_Management_User_Manual.pdf"')
+                self.send_header("Content-Length", str(len(pdf_bytes)))
+                self.send_header("Cache-Control", "public, max-age=3600")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(pdf_bytes)
+            except Exception as e:
+                self._send_error(f"Error serving User Manual PDF: {str(e)}", status=500)
             return
 
         # FEATURE 1: Download Master CSV (master_clubs.csv) from Admin Dashboard
