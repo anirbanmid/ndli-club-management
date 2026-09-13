@@ -1061,10 +1061,79 @@ function apiDispatcher(path, method, body, token) {
 
     // --- ADMIN: METRICS (MASTER CSV TO ADMIN DASHBOARD SYNC) ---
     if (path === "admin/metrics") {
-      var clubs = getCsvData("master", "master_clubs.csv").rows;
-      var activities = getCsvData("master", "master_activities.csv").rows;
-      var quotas = getCsvData("master", "master_quotas.csv").rows;
-      var users = getCsvData("master", "master_users.csv").rows;
+      var allClubs = getCsvData("master", "master_clubs.csv").rows;
+      var allActivities = getCsvData("master", "master_activities.csv").rows;
+      var allQuotas = getCsvData("master", "master_quotas.csv").rows;
+      var allUsers = getCsvData("master", "master_users.csv").rows;
+
+      var filterZone = String(body.zone || "ALL").trim();
+      if (filterZone.toUpperCase() === "ALL" || !filterZone) filterZone = "ALL";
+      var filterYear = String(body.year || "ALL").trim();
+      if (filterYear.toUpperCase() === "ALL" || !filterYear) filterYear = "ALL";
+
+      // Discover available years
+      var availableYearsSet = { "2026": true, "2025": true, "2024": true };
+      for (var cy = 0; cy < allClubs.length; cy++) {
+        var cTs = allClubs[cy].date_of_approval || allClubs[cy].submission_timestamp || allClubs[cy].updated_at || "";
+        if (cTs && cTs.length >= 4) {
+          var yPart = cTs.substring(0, 4);
+          if (/^\d{4}$/.test(yPart)) availableYearsSet[yPart] = true;
+        }
+      }
+      for (var ay = 0; ay < allActivities.length; ay++) {
+        var aTs = allActivities[ay].timestamp || allActivities[ay].submission_timestamp || allActivities[ay].created_at || "";
+        if (aTs && aTs.length >= 4) {
+          var ayPart = aTs.substring(0, 4);
+          if (/^\d{4}$/.test(ayPart)) availableYearsSet[ayPart] = true;
+        }
+      }
+      var availableYears = Object.keys(availableYearsSet).sort().reverse();
+
+      // Employee to zone map
+      var empToZone = {};
+      for (var ui = 0; ui < allUsers.length; ui++) {
+        if (allUsers[ui].role === "EMPLOYEE") {
+          empToZone[allUsers[ui].id] = allUsers[ui].zone || "Other";
+        }
+      }
+
+      // Filter clubs
+      var clubs = [];
+      for (var fc = 0; fc < allClubs.length; fc++) {
+        var cl = allClubs[fc];
+        var cZone = cl.zone || getZoneForState(cl.state || "");
+        var cTs = cl.date_of_approval || cl.submission_timestamp || cl.updated_at || "";
+        var cYear = (cTs && cTs.length >= 4) ? cTs.substring(0, 4) : "";
+
+        if (filterZone !== "ALL" && cZone !== filterZone) continue;
+        if (filterYear !== "ALL" && cYear !== filterYear) continue;
+        clubs.push(cl);
+      }
+
+      // Filter activities
+      var activities = [];
+      for (var fa = 0; fa < allActivities.length; fa++) {
+        var ac = allActivities[fa];
+        var aZone = empToZone[ac.emp_id] || "Other";
+        var aTs = ac.timestamp || ac.submission_timestamp || ac.created_at || "";
+        var aYear = (aTs && aTs.length >= 4) ? aTs.substring(0, 4) : "";
+
+        if (filterZone !== "ALL" && aZone !== filterZone) continue;
+        if (filterYear !== "ALL" && aYear !== filterYear) continue;
+        activities.push(ac);
+      }
+
+      // Filter quotas
+      var quotas = allQuotas;
+      var filteredEmpUsers = allUsers.filter(function(u) { return u.role === "EMPLOYEE"; });
+      if (filterZone !== "ALL") {
+        var zoneEmpIds = {};
+        for (var ze = 0; ze < allUsers.length; ze++) {
+          if (allUsers[ze].zone === filterZone) zoneEmpIds[allUsers[ze].id] = true;
+        }
+        quotas = allQuotas.filter(function(q) { return !!zoneEmpIds[q.emp_id]; });
+        filteredEmpUsers = allUsers.filter(function(u) { return u.role === "EMPLOYEE" && u.zone === filterZone; });
+      }
 
       var stateCounts = {};
       var zoneCounts = { "North": 0, "Central": 0, "West": 0, "East": 0, "North East": 0, "South": 0 };
@@ -1123,14 +1192,18 @@ function apiDispatcher(path, method, body, token) {
       }
 
       // Coverage Index
+      var targetStateList = ALL_INDIAN_STATES;
+      if (filterZone !== "ALL" && ZONE_STATE_MAP[filterZone]) {
+        targetStateList = ZONE_STATE_MAP[filterZone];
+      }
       var repStates = [];
       var defStates = [];
-      for (var sIdx = 0; sIdx < ALL_INDIAN_STATES.length; sIdx++) {
-        var sName = ALL_INDIAN_STATES[sIdx];
+      for (var sIdx = 0; sIdx < targetStateList.length; sIdx++) {
+        var sName = targetStateList[sIdx];
         if (stateCounts[sName] && stateCounts[sName] > 0) repStates.push(sName);
         else defStates.push(sName);
       }
-      var covPct = Math.round((repStates.length / ALL_INDIAN_STATES.length) * 100);
+      var covPct = targetStateList.length > 0 ? Math.round((repStates.length / targetStateList.length) * 100) : 0;
 
       // Renewal Health
       var totalClubs = clubs.length;
@@ -1139,7 +1212,8 @@ function apiDispatcher(path, method, body, token) {
 
       // Zone Efficiency
       var zoneEff = {};
-      ALL_ZONES.forEach(function(z) {
+      var activeZoneList = (filterZone === "ALL") ? ALL_ZONES : [filterZone];
+      activeZoneList.forEach(function(z) {
         var cCount = zoneCounts[z] || 0;
         zoneEff[z] = {
           clubs: cCount,
@@ -1152,10 +1226,15 @@ function apiDispatcher(path, method, body, token) {
         summary: {
           total_clubs: totalClubs,
           total_activities: activities.length,
-          total_employees: users.filter(function(u) { return u.role === "EMPLOYEE"; }).length || 7,
+          total_employees: filteredEmpUsers.length,
           quotas: quotas,
           renewal_attention_count: overdueClubs.length + expiringSoonClubs.length
         },
+        filters: {
+          zone: filterZone,
+          year: filterYear
+        },
+        available_years: availableYears,
         state_wise_clubs: stateCounts,
         zone_wise_clubs: zoneCounts,
         year_wise_clubs: yearCounts,
@@ -1170,15 +1249,16 @@ function apiDispatcher(path, method, body, token) {
           retention_rate_pct: retRate
         },
         coverage_index: {
-          total_states: ALL_INDIAN_STATES.length,
+          total_states: targetStateList.length,
           represented_count: repStates.length,
           deficit_count: defStates.length,
           coverage_percentage: covPct,
           deficit_states: defStates,
-          represented_states: repStates
+          represented_states: repStates,
+          zone_scope: filterZone
         },
         zone_efficiency: zoneEff,
-        users: users.map(function(u) {
+        users: allUsers.map(function(u) {
           return {
             id: u.id,
             full_name: u.full_name || u.name,
