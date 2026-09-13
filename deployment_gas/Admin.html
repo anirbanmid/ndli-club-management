@@ -1362,6 +1362,34 @@ tbody tr:hover {
       margin-bottom: 1.35rem;
       box-shadow: var(--shadow-xs);
     }
+    /* Responsive adjustments to eliminate horizontal scroll in analytical matrices */
+    .responsive-matrix-card {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+      grid-column: 1 / -1 !important;
+    }
+    .responsive-matrix-card .table-responsive {
+      width: 100% !important;
+      overflow-x: auto;
+      box-sizing: border-box;
+    }
+    #state-breakdown-table, #employee-performance-table {
+      width: 100% !important;
+      table-layout: auto;
+      border-collapse: collapse;
+    }
+    #state-breakdown-table th, #state-breakdown-table td,
+    #employee-performance-table th, #employee-performance-table td {
+      white-space: normal !important;
+      word-break: normal;
+      overflow-wrap: break-word;
+      box-sizing: border-box;
+    }
+    #employee-performance-table th {
+      vertical-align: bottom;
+      line-height: 1.2;
+    }
   </style>
 </head>
 <body>
@@ -1580,25 +1608,25 @@ tbody tr:hover {
       </div>
 
       <!-- 5. FILTERABLE STATE BREAKDOWN & EMPLOYEE PERFORMANCE -->
-      <div class="grid-2" style="margin-top: 1.5rem;">
+      <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem; width: 100%;">
         <!-- State-Wise Breakdown Table -->
-        <div class="chart-container" id="state-breakdown-container">
-          <div class="card-header">
+        <div class="chart-container responsive-matrix-card" id="state-breakdown-container" style="width: 100%;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
             <div>
-              <h3 class="card-title">National State-Wise Penetration & Density Roster</h3>
-              <p class="card-subtitle">All 36+ Indian States and Union Territories with color-gradient density indicators</p>
+              <h3 class="card-title" style="margin: 0;">National State-Wise Penetration &amp; Density Roster</h3>
+              <p class="card-subtitle" style="margin: 0; font-size: 0.825rem; color: var(--text-muted);">All 36+ Indian States and Union Territories with color-gradient density indicators</p>
             </div>
             <span class="pill pill-primary" id="table-filter-badge" style="display: none;">Filtered View</span>
           </div>
-          <div class="table-responsive" style="max-height: 420px;">
-            <table>
+          <div class="table-responsive" style="max-height: 420px; overflow-y: auto; overflow-x: auto; width: 100%;">
+            <table id="state-breakdown-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr>
-                  <th>State / Union Territory</th>
-                  <th>Zone</th>
-                  <th>Clubs</th>
-                  <th>Density & Share %</th>
-                  <th>Penetration Status</th>
+                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase;">
+                  <th style="padding: 0.55rem 0.75rem; width: 28%; white-space: normal;">State / Union Territory</th>
+                  <th style="padding: 0.55rem 0.5rem; width: 16%; text-align: center; white-space: normal;">Zone</th>
+                  <th style="padding: 0.55rem 0.5rem; width: 12%; text-align: center; white-space: normal;">Clubs</th>
+                  <th style="padding: 0.55rem 0.75rem; width: 24%; white-space: normal;">Density &amp; Share %</th>
+                  <th style="padding: 0.55rem 0.75rem; width: 20%; text-align: center; white-space: normal;">Penetration Status</th>
                 </tr>
               </thead>
               <tbody id="state-breakdown-tbody">
@@ -1609,7 +1637,7 @@ tbody tr:hover {
         </div>
 
         <!-- Individual Employee Performance Evaluation & Star Rating Matrix -->
-        <div class="card" style="grid-column: 1 / -1; margin-top: 1.25rem;">
+        <div class="card responsive-matrix-card" id="employee-performance-card" style="margin-top: 0; width: 100%;">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
             <div>
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
@@ -1689,19 +1717,19 @@ tbody tr:hover {
           </div>
 
           <!-- Performance Scorecard Matrix Table -->
-          <div class="table-responsive" style="overflow-x: auto;">
-            <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse;">
+          <div class="table-responsive" style="overflow-x: auto; width: 100%;">
+            <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                  <th style="padding: 0.65rem 0.75rem; text-align: center; width: 60px;">Rank</th>
-                  <th style="padding: 0.65rem 0.75rem;">Officer &amp; Zone</th>
-                  <th style="padding: 0.65rem 0.75rem;">Assigned Jurisdiction</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="50% weightage">Clubs Approved (50%)</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="10% weightage">Online Training (10%)</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="20% weightage">Offline Training (20%)</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="30% weightage">Other Supports (30%)</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="Weighted Total Score">Weighted Score</th>
-                  <th style="padding: 0.65rem 0.75rem; text-align: center; width: 140px;">Star Rating</th>
+                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px;">
+                  <th style="padding: 0.5rem 0.35rem; width: 5%; text-align: center; white-space: normal;">Rank</th>
+                  <th style="padding: 0.5rem 0.5rem; width: 17%; text-align: left; white-space: normal;">Officer &amp; Zone</th>
+                  <th style="padding: 0.5rem 0.5rem; width: 16%; text-align: left; white-space: normal;">Assigned Jurisdiction</th>
+                  <th style="padding: 0.5rem 0.35rem; width: 10%; text-align: center; white-space: normal;" title="50% weightage">Clubs Approved<br><span style="font-size: 0.65rem; color: #15803d; font-weight: 700;">(50% Wt)</span></th>
+                  <th style="padding: 0.5rem 0.35rem; width: 10%; text-align: center; white-space: normal;" title="10% weightage">Online Training<br><span style="font-size: 0.65rem; color: #7e22ce; font-weight: 700;">(10% Wt)</span></th>
+                  <th style="padding: 0.5rem 0.35rem; width: 10%; text-align: center; white-space: normal;" title="20% weightage">Offline Training<br><span style="font-size: 0.65rem; color: #c2410c; font-weight: 700;">(20% Wt)</span></th>
+                  <th style="padding: 0.5rem 0.35rem; width: 11%; text-align: center; white-space: normal;" title="30% weightage">Other Supports<br><span style="font-size: 0.65rem; color: #0284c7; font-weight: 700;">(30% Wt)</span></th>
+                  <th style="padding: 0.5rem 0.35rem; width: 9%; text-align: center; white-space: normal;" title="Weighted Total Score">Weighted<br><span style="font-size: 0.65rem; color: #047857; font-weight: 700;">Score</span></th>
+                  <th style="padding: 0.5rem 0.4rem; width: 12%; text-align: center; white-space: normal;">Star Rating<br><span style="font-size: 0.65rem; color: #b45309; font-weight: 700;">(1 to 5 ★)</span></th>
                 </tr>
               </thead>
               <tbody id="employee-performance-tbody">
@@ -3266,16 +3294,16 @@ document.addEventListener("DOMContentLoaded", function() {
         const tr = document.createElement("tr");
         tr.style.borderBottom = "1px solid #e2e8f0";
 
-        let rankBadge = `<span style="font-weight: 700; color: var(--text-muted); font-size: 0.9rem;">#${off.rank || (idx + 1)}</span>`;
-        if (off.rank === 1) rankBadge = `<span style="font-size: 1.3rem;" title="Rank 1 - Top Performer">🥇</span>`;
-        else if (off.rank === 2) rankBadge = `<span style="font-size: 1.25rem;" title="Rank 2">🥈</span>`;
-        else if (off.rank === 3) rankBadge = `<span style="font-size: 1.2rem;" title="Rank 3">🥉</span>`;
+        let rankBadge = `<span style="font-weight: 700; color: var(--text-muted); font-size: 0.85rem;">#${off.rank || (idx + 1)}</span>`;
+        if (off.rank === 1) rankBadge = `<span style="font-size: 1.15rem;" title="Rank 1 - Top Performer">🥇</span>`;
+        else if (off.rank === 2) rankBadge = `<span style="font-size: 1.1rem;" title="Rank 2">🥈</span>`;
+        else if (off.rank === 3) rankBadge = `<span style="font-size: 1.05rem;" title="Rank 3">🥉</span>`;
 
         const starsNum = off.stars || 1;
         const starDisplay = `
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <span style="color: #eab308; font-size: 1.15rem; letter-spacing: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${off.stars_display || '★☆☆☆☆'}</span>
-            <span style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-top: 2px;">${off.rating_label || (starsNum + '.0 / 5.0')}</span>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;">
+            <span style="color: #eab308; font-size: 0.95rem; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${off.stars_display || '★☆☆☆☆'}</span>
+            <span style="font-size: 0.68rem; font-weight: 700; color: #475569; margin-top: 1px;">${off.rating_label || (starsNum + '.0 / 5.0')}</span>
           </div>
         `;
 
@@ -3285,46 +3313,46 @@ document.addEventListener("DOMContentLoaded", function() {
           : "";
 
         tr.innerHTML = `
-          <td style="padding: 0.75rem 0.5rem; text-align: center; vertical-align: middle;">${rankBadge}</td>
-          <td style="padding: 0.75rem; vertical-align: middle;">
-            <div style="font-weight: 700; color: var(--text); font-size: 0.88rem;">${safeEscapePerf(off.full_name || off.emp_id)}</div>
-            <div style="display: flex; gap: 0.4rem; align-items: center; margin-top: 3px;">
-              <span class="badge-tag" style="background: var(--primary); color: #fff; font-size: 0.65rem; padding: 2px 6px;">${safeEscapePerf(off.emp_id)}</span>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">${safeEscapePerf(off.zone || '')} Zone</span>
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">${rankBadge}</td>
+          <td style="padding: 0.5rem; vertical-align: middle; text-align: left;">
+            <div style="font-weight: 700; color: var(--text); font-size: 0.84rem; line-height: 1.2;">${safeEscapePerf(off.full_name || off.emp_id)}</div>
+            <div style="display: flex; gap: 0.3rem; align-items: center; margin-top: 2px;">
+              <span class="badge-tag" style="background: var(--primary); color: #fff; font-size: 0.62rem; padding: 1px 5px;">${safeEscapePerf(off.emp_id)}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">${safeEscapePerf(off.zone || '')}</span>
             </div>
           </td>
-          <td style="padding: 0.75rem; font-size: 0.78rem; color: #475569; max-width: 180px; vertical-align: middle; ${stateHighlightStyle}">
-            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeEscapePerf(off.assigned_states || '')}">
+          <td style="padding: 0.5rem; font-size: 0.75rem; color: #475569; vertical-align: middle; text-align: left; ${stateHighlightStyle}">
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${safeEscapePerf(off.assigned_states || '')}">
               ${safeEscapePerf(off.assigned_states || 'All India')}
             </div>
-            ${(selectedState && selectedState !== "ALL" && coversState) ? '<span style="display: inline-block; font-size: 0.68rem; color: #166534; margin-top: 2px;">✓ In Jurisdiction</span>' : ''}
+            ${(selectedState && selectedState !== "ALL" && coversState) ? '<span style="display: inline-block; font-size: 0.65rem; color: #166534; margin-top: 1px;">✓ Selected State</span>' : ''}
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.95rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 12px;">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.88rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 10px;">
               ${off.clubs_approved || 0}
             </span>
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #6b21a8; background: #f3e8ff; padding: 2px 8px; border-radius: 12px;">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #6b21a8; background: #f3e8ff; padding: 2px 6px; border-radius: 10px;">
               ${off.online_training || 0}
             </span>
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #c2410c; background: #ffedd5; padding: 2px 8px; border-radius: 12px;">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #c2410c; background: #ffedd5; padding: 2px 6px; border-radius: 10px;">
               ${off.offline_training || 0}
             </span>
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px;" title="Phone Call & Remote + OS Ticket">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 2px 6px; border-radius: 10px;" title="Phone Call & Remote + OS Ticket">
               ${off.other_supports || 0}
             </span>
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 1rem; font-weight: 800; color: var(--primary); background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 10px; border-radius: 14px;">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.92rem; font-weight: 800; color: var(--primary); background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 12px;">
               ${(off.weighted_score !== undefined ? off.weighted_score.toFixed(2) : '0.00')}
             </span>
           </td>
-          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+          <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
             ${starDisplay}
           </td>
         `;
@@ -3413,28 +3441,28 @@ document.addEventListener("DOMContentLoaded", function() {
         let densityMeterHtml = "";
         if (cnt > 0) {
           densityMeterHtml = `
-            <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 140px;">
-              <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%; max-width: 150px;">
+              <div style="flex: 1; min-width: 35px; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
                 <div style="width: ${Math.max(12, pctOfMax)}%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #0D7751 55%, #103125 100%); border-radius: 999px;"></div>
               </div>
-              <span style="font-size: 0.76rem; font-weight: 700; color: var(--primary-dark); min-width: 42px;">${sharePct}%</span>
+              <span style="font-size: 0.76rem; font-weight: 700; color: var(--primary-dark); white-space: nowrap;">${sharePct}%</span>
             </div>
           `;
         } else {
           densityMeterHtml = `
-            <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 140px;">
-              <div style="flex: 1; height: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 999px;"></div>
-              <span style="font-size: 0.74rem; color: #94a3b8; min-width: 42px;">0.0%</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%; max-width: 150px;">
+              <div style="flex: 1; min-width: 35px; height: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 999px;"></div>
+              <span style="font-size: 0.74rem; color: #94a3b8; white-space: nowrap;">0.0%</span>
             </div>
           `;
         }
 
         tr.innerHTML = `
-          <td><strong>${escapeHtml(st)}</strong></td>
-          <td><span class="pill pill-primary">${escapeHtml(zone)}</span></td>
-          <td><strong style="font-size: 1.05rem; color: var(--primary);">${cnt}</strong></td>
-          <td>${densityMeterHtml}</td>
-          <td><span class="pill ${pen.pillClass}">${pen.text}</span></td>
+          <td style="padding: 0.55rem 0.75rem; font-size: 0.84rem;"><strong>${escapeHtml(st)}</strong></td>
+          <td style="padding: 0.55rem 0.5rem; text-align: center;"><span class="pill pill-primary" style="font-size: 0.72rem; padding: 2px 8px;">${escapeHtml(zone)}</span></td>
+          <td style="padding: 0.55rem 0.5rem; text-align: center;"><strong style="font-size: 0.95rem; color: var(--primary);">${cnt}</strong></td>
+          <td style="padding: 0.55rem 0.75rem;">${densityMeterHtml}</td>
+          <td style="padding: 0.55rem 0.75rem; text-align: center;"><span class="pill ${pen.pillClass}" style="font-size: 0.72rem; padding: 2px 8px;">${pen.text}</span></td>
         `;
         tbody.appendChild(tr);
       });

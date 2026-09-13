@@ -1,3 +1,3 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP02-1789311062429,EMP02,2026-09-13T14:51:02.379290+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
-ACT-EMP02-1789311063514,EMP02,2026-09-13T14:51:03.514003+00:00,Online training,0,,Conducted webinar for 15 MP schools
+ACT-PRIORITY-EMP02-1789311811272,EMP02,2026-09-13T15:03:31.106977+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
+ACT-EMP02-1789311811728,EMP02,2026-09-13T15:03:31.728907+00:00,Online training,0,,Conducted webinar for 15 MP schools

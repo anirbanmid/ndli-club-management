@@ -1,2 +1,2 @@
 club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date
-NDLI-KA-107,REG-2024-KA-007,Indian Institute of Science Bengaluru,Karnataka,South,director@iisc.ac.in,pres.ndli@iisc.ac.in,sec.ndli@iisc.ac.in,2025-05-01T10:30:00Z,2026-05-01T10:30:00Z,2027-05-01,Approved,EMP06,2026-09-13T14:51:02.797468+00:00,2025-05-01T10:30:00Z,2027-05-01
+NDLI-KA-107,REG-2024-KA-007,Indian Institute of Science Bengaluru,Karnataka,South,director@iisc.ac.in,pres.ndli@iisc.ac.in,sec.ndli@iisc.ac.in,2025-05-01T10:30:00Z,2026-05-01T10:30:00Z,2027-05-01,Approved,EMP06,2026-09-13T15:03:31.336352+00:00,2025-05-01T10:30:00Z,2027-05-01
