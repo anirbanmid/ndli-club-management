@@ -627,6 +627,39 @@ function doGet(e) {
       .downloadAsFile("clubs_" + empId + ".csv");
   }
 
+  // 1.1 USER MANUAL DIRECT DOWNLOAD & WEB VIEWER ROUTING
+  if (download === "user-manual" || download === "manual" || download === "user_manual.pdf" || page === "manual" || page === "user-manual" || page === "documentation") {
+    var driveUrl = "https://ndli-club-management.onrender.com/api/download/user-manual";
+    try {
+      var manualFiles = DriveApp.getFilesByName("NDLI_Club_Management_User_Manual.pdf");
+      if (manualFiles.hasNext()) {
+        var mPdf = manualFiles.next();
+        if (!mPdf.isTrashed()) {
+          driveUrl = mPdf.getUrl();
+        }
+      }
+    } catch (e) {}
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<meta http-equiv="refresh" content="1;url=' + driveUrl + '">' +
+      '<title>NDLI Club Management System - User Manual</title>' +
+      '<style>body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;text-align:center;padding:50px 20px;background:#f8fafc;color:#103125;} ' +
+      '.card{max-width:550px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.1);padding:30px;border-top:5px solid #0D7751;} ' +
+      '.btn{display:inline-block;margin:10px 8px;padding:12px 24px;background:#1A503E;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;} ' +
+      '.btn-outline{background:#fff;color:#0D7751;border:1px solid #0D7751;}</style>' +
+      '</head><body><div class="card">' +
+      '<div style="font-size:2.5rem;margin-bottom:10px;">📖</div>' +
+      '<h2 style="margin:0 0 10px 0;color:#103125;">NDLI Club Management System</h2>' +
+      '<h4 style="margin:0 0 15px 0;color:#0D7751;">Official User Manual &amp; Operational Handbook (14 Pages)</h4>' +
+      '<p style="color:#64748b;font-size:0.95rem;">IIT Kharagpur Central Master Administration Office &amp; 7 Regional Operational Zones</p>' +
+      '<p>Opening the official handbook...</p>' +
+      '<div style="margin-top:20px;">' +
+      '<a href=\"' + driveUrl + '\" class=\"btn\" target=\"_blank\">📥 Download PDF (14 Pages)</a>' +
+      '<a href=\"https://ndli-club-management.onrender.com/manual\" class=\"btn btn-outline\" target=\"_blank\">🌐 Read Online (HTML)</a>' +
+      '</div></div></body></html>';
+    return HtmlService.createHtmlOutput(html).setTitle("NDLI User Manual (14 Pages) - IIT Kharagpur");
+  }
+
   // 2. REST API DIRECT GET CALLS (e.g. ?api=1&path=/api/admin/metrics)
   if (e.parameter.api === "1" || e.parameter.api === "true" || e.parameter.rest === "1" || (e.parameter.path && !page)) {
     var restPath = e.parameter.path || "";

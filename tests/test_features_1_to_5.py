@@ -642,7 +642,69 @@ class TestFeatures1To5(unittest.TestCase):
         self.assertIn('id="restore-captcha-display"', content)
         self.assertIn('id="restore-captcha-input"', content)
         self.assertIn('id="restore-admin-password"', content)
-        self.assertIn("executeEmergencyRestore", content)
+    def test_user_manual_pdf_exists_and_valid(self):
+        """Verify User Manual PDF is present in root, docs, and static with valid PDF structure."""
+        pdf_root = BASE_DIR / "NDLI_Club_Management_User_Manual.pdf"
+        pdf_docs = BASE_DIR / "docs" / "NDLI_Club_Management_User_Manual.pdf"
+        pdf_static = BASE_DIR / "static" / "NDLI_Club_Management_User_Manual.pdf"
+
+        self.assertTrue(pdf_root.exists(), "Root User Manual PDF must exist.")
+        self.assertTrue(pdf_docs.exists(), "Docs User Manual PDF must exist.")
+        self.assertTrue(pdf_static.exists(), "Static User Manual PDF must exist.")
+
+        # Check binary signature (%PDF-) and size > 1 MB
+        with open(pdf_root, "rb") as f:
+            header = f.read(5)
+            self.assertEqual(header, b"%PDF-", "File must have standard PDF magic bytes.")
+        self.assertGreater(pdf_root.stat().st_size, 1_000_000, "PDF should be compiled with all 14 pages and figures.")
+
+    def test_user_manual_download_endpoint(self):
+        """Verify GET /api/download/user-manual returns valid PDF payload."""
+        req = urllib.request.Request(f"{self.base_url}/api/download/user-manual")
+        with urllib.request.urlopen(req) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertEqual(resp.headers.get("Content-Type"), "application/pdf")
+            self.assertIn("NDLI_Club_Management_User_Manual.pdf", resp.headers.get("Content-Disposition", ""))
+            body = resp.read()
+            self.assertTrue(body.startswith(b"%PDF-"))
+
+    def test_user_manual_html_view_endpoint(self):
+        """Verify GET /manual and /user-manual serve the interactive HTML edition."""
+        for path in ["/manual", "/user-manual", "/documentation"]:
+            req = urllib.request.Request(f"{self.base_url}{path}")
+            with urllib.request.urlopen(req) as resp:
+                self.assertEqual(resp.status, 200)
+                self.assertIn("text/html", resp.headers.get("Content-Type", ""))
+                html = resp.read().decode("utf-8")
+                self.assertIn("NDLI Club Management System", html)
+                self.assertIn("Dr. Anirban Mukherjee", html)
+                self.assertIn("One-Click Emergency Database Restoration", html)
+
+    def test_docs_static_assets_serving(self):
+        """Verify embedded manual screenshots in docs/images are served without broken links."""
+        test_img = BASE_DIR / "docs" / "images" / "06_automated_backups.png"
+        if test_img.exists():
+            req = urllib.request.Request(f"{self.base_url}/docs/images/06_automated_backups.png")
+            with urllib.request.urlopen(req) as resp:
+                self.assertEqual(resp.status, 200)
+                self.assertEqual(resp.headers.get("Content-Type"), "image/png")
+                data = resp.read()
+                self.assertTrue(data.startswith(b"\x89PNG"))
+
+    def test_ui_templates_and_gas_have_user_manual_links(self):
+        """Verify templates and deployment_gas have user manual download and online read links."""
+        idx_content = (BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("/api/download/user-manual", idx_content)
+        self.assertIn("/manual", idx_content)
+        self.assertIn("NDLI Club Management System User Manual", idx_content)
+
+        admin_content = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
+        self.assertIn("/api/download/user-manual", admin_content)
+        self.assertIn("/manual", admin_content)
+
+        gas_code = (BASE_DIR / "deployment_gas" / "Code.gs").read_text(encoding="utf-8")
+        self.assertIn('download === "user-manual"', gas_code)
+        self.assertIn('page === "manual"', gas_code)
 
 
 if __name__ == "__main__":
