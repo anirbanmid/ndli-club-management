@@ -418,21 +418,85 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         # Admin Performance Dashboard Metrics
         if path == "/api/admin/metrics":
             session = self._get_auth_session()
-            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
-            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
-            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            all_quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
 
-            # Calculate breakdown metrics
+            # Query Filters: Scope by Zone and/or Year
+            raw_zone = query_params.get("zone", ["ALL"])[0].strip()
+            raw_year = query_params.get("year", ["ALL"])[0].strip()
+            filter_zone = raw_zone if raw_zone.upper() != "ALL" and raw_zone else "ALL"
+            filter_year = raw_year if raw_year.upper() != "ALL" and raw_year else "ALL"
+
+            # Discover all available years dynamically across database
+            available_years_set = {"2026", "2025", "2024"}
+            for c in all_clubs:
+                ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+                if ts:
+                    dp = parse_iso_or_date(ts)
+                    if dp:
+                        available_years_set.add(str(dp.year))
+            for a in all_activities:
+                ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
+                if ts:
+                    dp = parse_iso_or_date(ts)
+                    if dp:
+                        available_years_set.add(str(dp.year))
+            available_years = sorted(list(available_years_set), reverse=True)
+
+            # Build employee to zone mapping
+            emp_to_zone = {u.get("id"): u.get("zone", "Other") for u in all_users if u.get("role") == "EMPLOYEE"}
+
+            # Filter clubs by zone and year
+            filtered_clubs = []
+            for c in all_clubs:
+                c_st = c.get("state", "").strip()
+                c_zone = c.get("zone", "").strip() or get_zone_for_state(c_st)
+                ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+                dp = parse_iso_or_date(ts) if ts else None
+                c_year = str(dp.year) if dp else ""
+
+                if filter_zone != "ALL" and c_zone != filter_zone:
+                    continue
+                if filter_year != "ALL" and c_year != filter_year:
+                    continue
+                filtered_clubs.append(c)
+
+            # Filter activities by zone and year
+            filtered_activities = []
+            for a in all_activities:
+                emp_id = a.get("emp_id", "")
+                act_zone = emp_to_zone.get(emp_id, "Other")
+                ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
+                dp = parse_iso_or_date(ts) if ts else None
+                a_year = str(dp.year) if dp else ""
+
+                if filter_zone != "ALL" and act_zone != filter_zone:
+                    continue
+                if filter_year != "ALL" and a_year != filter_year:
+                    continue
+                filtered_activities.append(a)
+
+            # Filter quotas and users by zone
+            if filter_zone != "ALL":
+                zone_emp_ids = {u.get("id") for u in all_users if u.get("zone") == filter_zone}
+                quotas = [q for q in all_quotas if q.get("emp_id") in zone_emp_ids]
+                filtered_emp_users = [u for u in all_users if u.get("role") == "EMPLOYEE" and u.get("zone") == filter_zone]
+            else:
+                quotas = all_quotas
+                filtered_emp_users = [u for u in all_users if u.get("role") == "EMPLOYEE"]
+
+            # Calculate breakdown metrics from filtered clubs
             state_counts: Dict[str, int] = {}
             zone_counts: Dict[str, int] = {}
             year_counts: Dict[str, int] = {}
             month_counts: Dict[str, int] = {}
             status_counts: Dict[str, int] = {}
 
-            for c in clubs:
+            for c in filtered_clubs:
                 st = c.get("state", "Unknown")
-                zn = c.get("zone", "Unknown")
+                zn = c.get("zone", "Unknown") or get_zone_for_state(st)
                 stat = c.get("status", "Approved")
                 ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
 
@@ -448,11 +512,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                         year_counts[yr] = year_counts.get(yr, 0) + 1
                         month_counts[mo] = month_counts.get(mo, 0) + 1
 
-            attention_data = AIDecisionEngine.get_renewal_attention_data()
+            attention_data = AIDecisionEngine.get_renewal_attention_data(clubs=filtered_clubs)
 
             # Detailed Analytics: 1. Support Type Breakdown
             support_type_counts = {st: 0 for st in SUPPORT_TYPES}
-            for a in activities:
+            for a in filtered_activities:
                 stype = a.get("support_type", "")
                 if stype in support_type_counts:
                     support_type_counts[stype] += 1
@@ -460,7 +524,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     support_type_counts[stype] = support_type_counts.get(stype, 0) + 1
 
             # Detailed Analytics: 2. Renewal & Retention Health
-            total_clubs_count = len(clubs)
+            total_clubs_count = len(filtered_clubs)
             overdue_count = attention_data.get("overdue_count", 0)
             expiring_soon_count = attention_data.get("expiring_soon_count", 0)
             active_validity_count = max(0, total_clubs_count - overdue_count)
@@ -473,26 +537,30 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "retention_rate_pct": retention_rate_pct
             }
 
-            # Detailed Analytics: 3. National State Coverage Index
-            all_india_states = get_all_states()
-            total_states = len(all_india_states)
-            represented_states = [s for s in all_india_states if state_counts.get(s, 0) > 0]
-            deficit_states = [s for s in all_india_states if state_counts.get(s, 0) == 0]
-            coverage_pct = round((len(represented_states) / max(1, total_states)) * 100, 1)
+            # Detailed Analytics: 3. National / Regional State Coverage Index
+            if filter_zone != "ALL":
+                target_states = ZONE_STATE_MAP.get(filter_zone, [])
+            else:
+                target_states = get_all_states()
+
+            total_states = len(target_states)
+            represented_states = [s for s in target_states if state_counts.get(s, 0) > 0]
+            deficit_states = [s for s in target_states if state_counts.get(s, 0) == 0]
+            coverage_pct = round((len(represented_states) / max(1, total_states)) * 100, 1) if total_states > 0 else 0.0
             coverage_index = {
                 "total_states": total_states,
                 "represented_count": len(represented_states),
                 "deficit_count": len(deficit_states),
                 "coverage_percentage": coverage_pct,
                 "deficit_states": deficit_states,
-                "represented_states": represented_states
+                "represented_states": represented_states,
+                "zone_scope": filter_zone
             }
 
             # Detailed Analytics: 4. Zone Efficiency & Activity Distribution
             all_zones = get_all_zones()
-            emp_to_zone = {u.get("id"): u.get("zone", "Other") for u in users if u.get("role") == "EMPLOYEE"}
             zone_support_counts: Dict[str, int] = {z: 0 for z in all_zones}
-            for a in activities:
+            for a in filtered_activities:
                 emp_id = a.get("emp_id")
                 z = emp_to_zone.get(emp_id)
                 if z and z in zone_support_counts:
@@ -501,7 +569,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     zone_support_counts[z] = zone_support_counts.get(z, 0) + 1
 
             zone_efficiency = {}
-            for z in all_zones:
+            for z in (all_zones if filter_zone == "ALL" else [filter_zone]):
                 c_cnt = zone_counts.get(z, 0)
                 s_cnt = zone_support_counts.get(z, 0)
                 zone_efficiency[z] = {
@@ -512,12 +580,17 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
             self._send_json({
                 "summary": {
-                    "total_clubs": len(clubs),
-                    "total_activities": len(activities),
-                    "total_employees": len([u for u in users if u.get("role") == "EMPLOYEE"]),
+                    "total_clubs": len(filtered_clubs),
+                    "total_activities": len(filtered_activities),
+                    "total_employees": len(filtered_emp_users),
                     "quotas": quotas,
                     "renewal_attention_count": attention_data["total_attention_count"]
                 },
+                "filters": {
+                    "zone": filter_zone,
+                    "year": filter_year
+                },
+                "available_years": available_years,
                 "state_wise_clubs": state_counts,
                 "zone_wise_clubs": zone_counts,
                 "year_wise_clubs": dict(sorted(year_counts.items())),
@@ -527,7 +600,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "renewal_health": renewal_health,
                 "coverage_index": coverage_index,
                 "zone_efficiency": zone_efficiency,
-                "users": [{k: v for k, v in u.items() if k not in ["password_hash", "salt"]} for u in users]
+                "users": [{k: v for k, v in u.items() if k not in ["password_hash", "salt"]} for u in all_users]
             })
             return
 

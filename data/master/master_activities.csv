@@ -1,15 +1,15 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP01-1789305541620,EMP01,2026-09-13T13:19:01.579185+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
-ACT-PRIORITY-EMP04-1789305541714,EMP04,2026-09-13T13:19:01.665662+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)
-ACT-PRIORITY-EMP01-1789305541843,EMP01,2026-09-13T13:19:01.785640+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
-ACT-PRIORITY-EMP03-1789305541982,EMP03,2026-09-13T13:19:01.901694+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
-ACT-PRIORITY-EMP07-1789305542102,EMP07,2026-09-13T13:19:02.047825+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)
-ACT-PRIORITY-EMP05-1789305542219,EMP05,2026-09-13T13:19:02.166106+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
-ACT-PRIORITY-EMP02-1789305542334,EMP02,2026-09-13T13:19:02.276986+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
-ACT-PRIORITY-EMP06-1789305542454,EMP06,2026-09-13T13:19:02.391156+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
-ACT-EMP01-1789305542521,EMP01,2026-09-13T13:19:02.521248+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
-ACT-EMP01-1789305542582,EMP01,2026-09-13T13:19:02.582470+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
-ACT-EMP02-1789305542632,EMP02,2026-09-13T13:19:02.632240+00:00,Online training,0,,Conducted webinar for 15 MP schools
-ACT-EMP03-1789305542683,EMP03,2026-09-13T13:19:02.683176+00:00,Offline training,0,,Workshop at Pune University
-ACT-EMP04-1789305542744,EMP04,2026-09-13T13:19:02.744138+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved
-ACT-EMP06-1789305542802,EMP06,2026-09-13T13:19:02.802811+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus
+ACT-PRIORITY-EMP01-1789309516044,EMP01,2026-09-13T14:25:16.021194+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
+ACT-PRIORITY-EMP04-1789309516135,EMP04,2026-09-13T14:25:16.081585+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)
+ACT-PRIORITY-EMP01-1789309516232,EMP01,2026-09-13T14:25:16.190523+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
+ACT-PRIORITY-EMP03-1789309516327,EMP03,2026-09-13T14:25:16.289829+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
+ACT-PRIORITY-EMP07-1789309516425,EMP07,2026-09-13T14:25:16.383097+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)
+ACT-PRIORITY-EMP05-1789309516510,EMP05,2026-09-13T14:25:16.470760+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
+ACT-PRIORITY-EMP02-1789309516599,EMP02,2026-09-13T14:25:16.559108+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
+ACT-PRIORITY-EMP06-1789309516693,EMP06,2026-09-13T14:25:16.655315+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
+ACT-EMP01-1789309516958,EMP01,2026-09-13T14:25:16.958179+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
+ACT-EMP01-1789309517382,EMP01,2026-09-13T14:25:17.382275+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
+ACT-EMP02-1789309517544,EMP02,2026-09-13T14:25:17.544199+00:00,Online training,0,,Conducted webinar for 15 MP schools
+ACT-EMP03-1789309517647,EMP03,2026-09-13T14:25:17.647648+00:00,Offline training,0,,Workshop at Pune University
+ACT-EMP04-1789309517711,EMP04,2026-09-13T14:25:17.711172+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved
+ACT-EMP06-1789309517776,EMP06,2026-09-13T14:25:17.776958+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus

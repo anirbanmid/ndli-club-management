@@ -129,9 +129,9 @@ class AIDecisionEngine:
         }
 
     @classmethod
-    def get_renewal_attention_data(cls) -> Dict[str, Any]:
+    def get_renewal_attention_data(cls, clubs: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """
-        Scans all clubs in master database to identify those requiring renewal attention:
+        Scans clubs in database to identify those requiring renewal attention:
         1. Overdue clubs: renewal date is in the past (< today).
         2. Expiring soon clubs: renewal date is within 90 days (0 <= delta <= 90 days).
         If renewal_date is empty, calculates automatically as establishment date + 1 year.
@@ -139,17 +139,18 @@ class AIDecisionEngine:
         """
         from db.sync_engine import calculate_next_renewal_date, parse_iso_or_date
 
-        clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-        seen_ids = {c.get("club_id", "").strip().upper() for c in clubs if c.get("club_id")}
-        if EMPLOYEE_NODES_DIR.exists():
-            for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
-                if emp_dir.is_dir():
-                    node_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS)
-                    for nc in node_clubs:
-                        nid = nc.get("club_id", "").strip().upper()
-                        if nid and nid not in seen_ids:
-                            clubs.append(nc)
-                            seen_ids.add(nid)
+        if clubs is None:
+            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            seen_ids = {c.get("club_id", "").strip().upper() for c in clubs if c.get("club_id")}
+            if EMPLOYEE_NODES_DIR.exists():
+                for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
+                    if emp_dir.is_dir():
+                        node_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS)
+                        for nc in node_clubs:
+                            nid = nc.get("club_id", "").strip().upper()
+                            if nid and nid not in seen_ids:
+                                clubs.append(nc)
+                                seen_ids.add(nid)
         today = datetime.now(timezone.utc).date()
 
         overdue_clubs: List[Dict[str, Any]] = []

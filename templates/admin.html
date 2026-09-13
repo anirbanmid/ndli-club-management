@@ -83,17 +83,17 @@
       <div class="stat-card">
         <span class="stat-label">Total NDLI Clubs</span>
         <span class="stat-value" id="kpi-clubs">0</span>
-        <span class="stat-desc">Across all 36 States & UTs</span>
+        <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States & UTs</span>
       </div>
       <div class="stat-card accent">
         <span class="stat-label">Total Daily Support Logs</span>
         <span class="stat-value" id="kpi-activities">0</span>
-        <span class="stat-desc">Real-time sync from 7 zones</span>
+        <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 7 zones</span>
       </div>
       <div class="stat-card success">
         <span class="stat-label">Active Regional Nodes</span>
         <span class="stat-value" id="kpi-nodes">7</span>
-        <span class="stat-desc">Dedicated CSV Node DBs</span>
+        <span class="stat-desc" id="kpi-nodes-desc">Dedicated CSV Node DBs</span>
       </div>
       <div class="stat-card danger" id="card-renewal-attention" onclick="openRenewalAttentionModal()" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -211,8 +211,8 @@
         <div class="infographic-card" id="zone-donut-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
             <div>
-              <h3 class="card-title">Zone-Wise Club Share</h3>
-              <p class="card-subtitle">Proportional distribution across 6 operational zonal commands</p>
+              <h3 class="card-title" id="zone-donut-title">Zone-Wise Club Share</h3>
+              <p class="card-subtitle" id="zone-donut-subtitle">Proportional distribution across 6 operational zonal commands</p>
             </div>
             <span class="pill pill-primary">Donut Infographic</span>
           </div>
@@ -603,9 +603,26 @@
     let CURRENT_TABLE_STATE_FILTER = null;
 
     async function loadDashboardData() {
-      const res = await apiRequest("/api/admin/metrics");
+      const zoneEl = document.getElementById("filter-zone");
+      const yearEl = document.getElementById("filter-year");
+      const zone = zoneEl ? zoneEl.value : "ALL";
+      const year = yearEl ? yearEl.value : "ALL";
+
+      const queryParams = new URLSearchParams();
+      if (zone && zone !== "ALL") queryParams.append("zone", zone);
+      if (year && year !== "ALL") queryParams.append("year", year);
+      const qs = queryParams.toString();
+      const endpoint = qs ? `/api/admin/metrics?${qs}` : "/api/admin/metrics";
+
+      const res = await apiRequest(endpoint);
       if (res.ok && res.data) {
         GLOBAL_METRICS = res.data;
+
+        // Dynamically sync available database years into dropdown
+        if (res.data.available_years && Array.isArray(res.data.available_years)) {
+          populateYearFilterOptions(res.data.available_years, year);
+        }
+
         renderKPIs(res.data);
         renderStatisticalAnalytics(res.data);
         renderZoneDonutChart(res.data.zone_wise_clubs, res.data.state_wise_clubs);
@@ -618,6 +635,24 @@
       // Trigger live updates for automated backups and 30-day escalation reminders
       loadAdminBackupStatus();
       loadAdminEscalationReminders();
+    }
+
+    function populateYearFilterOptions(years, currentSelected) {
+      const select = document.getElementById("filter-year");
+      if (!select) return;
+      const existingVals = new Set(Array.from(select.options).map(o => o.value));
+      years.forEach(yr => {
+        if (!existingVals.has(yr)) {
+          const opt = document.createElement("option");
+          opt.value = yr;
+          opt.textContent = `${yr}`;
+          select.appendChild(opt);
+          existingVals.add(yr);
+        }
+      });
+      if (currentSelected && existingVals.has(currentSelected)) {
+        select.value = currentSelected;
+      }
     }
 
     // =========================================================================
@@ -976,18 +1011,45 @@
     function renderKPIs(data) {
       document.getElementById("kpi-clubs").innerText = data.summary.total_clubs || 0;
       document.getElementById("kpi-activities").innerText = data.summary.total_activities || 0;
-      document.getElementById("kpi-nodes").innerText = data.summary.total_employees || 7;
+      document.getElementById("kpi-nodes").innerText = data.summary.total_employees !== undefined ? data.summary.total_employees : 7;
       if (data.summary.renewal_attention_count !== undefined) {
         document.getElementById("kpi-renewals").innerText = data.summary.renewal_attention_count;
       }
+
+      // Update descriptions based on active filter scope
+      const filterZ = document.getElementById("filter-zone") ? document.getElementById("filter-zone").value : "ALL";
+      const filterY = document.getElementById("filter-year") ? document.getElementById("filter-year").value : "ALL";
+
+      let scopeDesc = "Across all 36 States & UTs";
+      let actsDesc = "Real-time sync from 7 zones";
+      let nodesDesc = "Dedicated CSV Node DBs";
+
+      if (filterZ !== "ALL" || filterY !== "ALL") {
+        const parts = [];
+        if (filterZ !== "ALL") parts.push(`${filterZ} Zone`);
+        if (filterY !== "ALL") parts.push(`${filterY}`);
+        scopeDesc = `Filtered: ${parts.join(" • ")}`;
+        actsDesc = `Support logs for ${parts.join(" • ")}`;
+        nodesDesc = filterZ !== "ALL" ? `Officers in ${filterZ} Zone` : "Dedicated CSV Node DBs";
+      }
+
+      const clubsDescEl = document.getElementById("kpi-clubs-desc");
+      if (clubsDescEl) clubsDescEl.innerText = scopeDesc;
+      const actsDescEl = document.getElementById("kpi-activities-desc");
+      if (actsDescEl) actsDescEl.innerText = actsDesc;
+      const nodesDescEl = document.getElementById("kpi-nodes-desc");
+      if (nodesDescEl) nodesDescEl.innerText = nodesDesc;
     }
 
     // 1. Detailed Statistical Analytics Metric Cards
     function renderStatisticalAnalytics(data) {
+      const filterZ = document.getElementById("filter-zone") ? document.getElementById("filter-zone").value : "ALL";
+      const filterY = document.getElementById("filter-year") ? document.getElementById("filter-year").value : "ALL";
+
       // Coverage Index
       const cov = data.coverage_index || {};
       const repCount = cov.represented_count !== undefined ? cov.represented_count : 0;
-      const totalStates = cov.total_states || 36;
+      const totalStates = cov.total_states || (filterZ !== "ALL" && CLIENT_ZONE_MAP[filterZ] ? CLIENT_ZONE_MAP[filterZ].length : 36);
       const covPct = cov.coverage_percentage !== undefined ? cov.coverage_percentage : 0;
 
       const covBadge = document.getElementById("badge-coverage-ratio");
@@ -995,7 +1057,11 @@
       const covVal = document.getElementById("stat-coverage-pct");
       if (covVal) covVal.innerText = `${covPct}%`;
       const covDesc = document.getElementById("stat-coverage-desc");
-      if (covDesc) covDesc.innerText = `${cov.deficit_count || 0} States/UTs in deficit`;
+      if (covDesc) {
+        covDesc.innerText = filterZ !== "ALL"
+          ? `${cov.deficit_count || 0} States in deficit in ${filterZ} Zone`
+          : `${cov.deficit_count || 0} States/UTs in deficit nationally`;
+      }
 
       // Retention Health
       const ren = data.renewal_health || {};
@@ -1012,20 +1078,26 @@
       const supVal = document.getElementById("stat-support-ratio");
       if (supVal) supVal.innerText = `${density}`;
 
-      // Leading Regional Zone
+      // Leading Regional Zone / Scope Indicator
       const zCounts = data.zone_wise_clubs || {};
-      let topZone = "North";
-      let topCount = -1;
-      for (const [z, c] of Object.entries(zCounts)) {
-        if (c > topCount) {
-          topCount = c;
-          topZone = z;
-        }
-      }
       const zlVal = document.getElementById("stat-zone-leader");
-      if (zlVal) zlVal.innerText = `${topZone} Zone`;
       const zlDesc = document.getElementById("stat-zone-leader-desc");
-      if (zlDesc) zlDesc.innerText = `${topCount} clubs approved (${totalClubs > 0 ? Math.round((topCount/totalClubs)*100) : 0}% share)`;
+
+      if (filterZ !== "ALL") {
+        if (zlVal) zlVal.innerText = `${filterZ} Zone`;
+        if (zlDesc) zlDesc.innerText = `${totalClubs} approved clubs in ${filterZ} Zone scope`;
+      } else {
+        let topZone = "North";
+        let topCount = -1;
+        for (const [z, c] of Object.entries(zCounts)) {
+          if (c > topCount) {
+            topCount = c;
+            topZone = z;
+          }
+        }
+        if (zlVal) zlVal.innerText = `${topZone} Zone`;
+        if (zlDesc) zlDesc.innerText = `${topCount >= 0 ? topCount : 0} clubs approved (${totalClubs > 0 ? Math.round((topCount/totalClubs)*100) : 0}% share)`;
+      }
     }
 
     // 2. Zone Donut Chart SVG
@@ -1033,43 +1105,78 @@
       const container = document.getElementById("zone-donut-container");
       if (!container) return;
 
-      const zoneTotals = { "North": 0, "Central": 0, "West": 0, "East": 0, "North East": 0, "South": 0 };
-      if (zoneWiseClubs && Object.keys(zoneWiseClubs).length > 0) {
-        for (const [z, c] of Object.entries(zoneWiseClubs)) {
-          if (zoneTotals[z] !== undefined) zoneTotals[z] = c;
-        }
+      const filterZ = document.getElementById("filter-zone") ? document.getElementById("filter-zone").value : "ALL";
+      const titleEl = document.getElementById("zone-donut-title");
+      const subtitleEl = document.getElementById("zone-donut-subtitle");
+
+      let items = {};
+      let chartLabel = "Clubs";
+
+      if (filterZ !== "ALL" && filterZ) {
+        if (titleEl) titleEl.innerText = `${filterZ} Zone: State Club Share`;
+        if (subtitleEl) subtitleEl.innerText = `Distribution across states within ${filterZ} operational command`;
+
+        const zoneStates = CLIENT_ZONE_MAP[filterZ] || [];
+        zoneStates.forEach(st => {
+          items[st] = (stateWiseClubs && stateWiseClubs[st]) || 0;
+        });
       } else {
-        for (const [st, cnt] of Object.entries(stateWiseClubs || {})) {
-          const z = clientGetZoneForState(st) || "Other";
-          if (zoneTotals[z] !== undefined) zoneTotals[z] += cnt;
+        if (titleEl) titleEl.innerText = "Zone-Wise Club Share";
+        if (subtitleEl) subtitleEl.innerText = "Proportional distribution across 6 operational zonal commands";
+
+        items = { "North": 0, "Central": 0, "West": 0, "East": 0, "North East": 0, "South": 0 };
+        if (zoneWiseClubs && Object.keys(zoneWiseClubs).length > 0) {
+          for (const [z, c] of Object.entries(zoneWiseClubs)) {
+            if (items[z] !== undefined) items[z] = c;
+          }
+        } else {
+          for (const [st, cnt] of Object.entries(stateWiseClubs || {})) {
+            const z = clientGetZoneForState(st) || "Other";
+            if (items[z] !== undefined) items[z] += cnt;
+          }
         }
       }
 
-      const total = Object.values(zoneTotals).reduce((a, b) => a + b, 0) || 1;
-      const colors = {
-        "North": "#103125",
-        "Central": "#1A503E",
-        "West": "#0D7751",
-        "East": "#10b981",
-        "North East": "#059669",
-        "South": "#34d399"
-      };
+      const total = Object.values(items).reduce((a, b) => a + b, 0);
+
+      const colorPalette = [
+        "#103125", "#0D7751", "#1A503E", "#10b981", "#059669",
+        "#34d399", "#065f46", "#047857", "#6ee7b7", "#022c22"
+      ];
 
       const radius = 70;
       const cx = 95;
       const cy = 95;
       const circumference = 2 * Math.PI * radius;
 
+      if (total === 0) {
+        container.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; color: var(--text-muted); width: 100%;">
+            <svg width="120" height="120" viewBox="0 0 190 190">
+              <circle cx="${cx}" cy="${cy}" r="${radius}" fill="transparent" stroke="#e2e8f0" stroke-width="22"/>
+            </svg>
+            <span style="font-size: 0.85rem; margin-top: 0.5rem; font-weight: 600;">No clubs found for selected scope</span>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort items descending by value
+      let sortedEntries = Object.entries(items).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+      if (sortedEntries.length === 0) {
+        sortedEntries = Object.entries(items);
+      }
+
       let accumulatedAngle = 0;
       let paths = "";
       let legendHtml = "";
 
-      for (const [zone, val] of Object.entries(zoneTotals)) {
-        const pct = val / total;
+      sortedEntries.forEach(([name, val], idx) => {
+        const pct = total > 0 ? (val / total) : 0;
         const strokeDash = pct * circumference;
         const offset = -accumulatedAngle;
         accumulatedAngle += strokeDash;
-        const color = colors[zone] || "#64748b";
+        const color = colorPalette[idx % colorPalette.length];
 
         paths += `
           <circle
@@ -1082,7 +1189,7 @@
             stroke-dasharray="${strokeDash} ${circumference - strokeDash}"
             stroke-dashoffset="${offset}"
             style="transition: all 0.5s ease; cursor: pointer;"
-            title="${zone} Zone: ${val} clubs (${Math.round(pct * 100)}%)"
+            title="${name}: ${val} clubs (${Math.round(pct * 100)}%)"
           />
         `;
 
@@ -1090,12 +1197,12 @@
           <div class="donut-legend-item">
             <div style="display: flex; align-items: center;">
               <span class="donut-legend-dot" style="background: ${color};"></span>
-              <strong>${zone}</strong>
+              <strong>${name}</strong>
             </div>
             <span><strong>${val}</strong> (${Math.round(pct * 100)}%)</span>
           </div>
         `;
-      }
+      });
 
       container.innerHTML = `
         <div class="donut-svg-wrapper">
@@ -1104,10 +1211,10 @@
           </svg>
           <div class="donut-center-text">
             <div class="donut-center-number">${total}</div>
-            <div class="donut-center-label">Clubs</div>
+            <div class="donut-center-label">${chartLabel}</div>
           </div>
         </div>
-        <div class="donut-legend-col">
+        <div class="donut-legend-col" style="max-height: 180px; overflow-y: auto;">
           ${legendHtml}
         </div>
       `;
@@ -1415,26 +1522,29 @@
 
       const filterZ = document.getElementById("filter-zone") ? document.getElementById("filter-zone").value : "ALL";
 
-      // Consolidate all 36+ Indian States & UTs
-      const allStatesSet = new Set(Object.keys(CLIENT_ZONE_MAP).flatMap(z => CLIENT_ZONE_MAP[z]));
-      for (const st of Object.keys(stateCounts || {})) { allStatesSet.add(st); }
+      // Consolidate States to display
+      let targetStates = [];
+      if (filterZ !== "ALL" && CLIENT_ZONE_MAP[filterZ]) {
+        targetStates = CLIENT_ZONE_MAP[filterZ];
+      } else {
+        const allStatesSet = new Set(Object.keys(CLIENT_ZONE_MAP).flatMap(z => CLIENT_ZONE_MAP[z]));
+        for (const st of Object.keys(stateCounts || {})) { allStatesSet.add(st); }
+        targetStates = Array.from(allStatesSet);
+      }
 
-      const sortedStates = Array.from(allStatesSet).map(st => ({
+      const sortedStates = targetStates.map(st => ({
         state: st,
         count: (stateCounts && stateCounts[st]) || 0,
-        zone: clientGetZoneForState(st) || "Unknown"
+        zone: clientGetZoneForState(st) || filterZ || "Unknown"
       })).sort((a, b) => b.count - a.count || a.state.localeCompare(b.state));
 
-      const totalClubs = (GLOBAL_METRICS && GLOBAL_METRICS.summary && GLOBAL_METRICS.summary.total_clubs) || 1;
+      const totalClubs = (GLOBAL_METRICS && GLOBAL_METRICS.summary && GLOBAL_METRICS.summary.total_clubs) || 0;
       const maxCount = Math.max(1, ...sortedStates.map(s => s.count));
 
       sortedStates.forEach(item => {
         const st = item.state;
         const cnt = item.count;
         const zone = item.zone;
-
-        // Zone filter
-        if (filterZ !== "ALL" && zone !== filterZ) return;
 
         // Single State filter
         if (CURRENT_TABLE_STATE_FILTER && st.toLowerCase() !== CURRENT_TABLE_STATE_FILTER.toLowerCase()) return;
@@ -1480,10 +1590,8 @@
       });
     }
 
-    function applyFilters() {
-      if (GLOBAL_METRICS) {
-        renderStateBreakdown(GLOBAL_METRICS.state_wise_clubs);
-      }
+    async function applyFilters() {
+      await loadDashboardData();
     }
 
     // AI Decision Module
