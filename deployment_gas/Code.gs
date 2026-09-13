@@ -655,7 +655,6 @@ function doGet(e) {
       '<p>Opening the official handbook...</p>' +
       '<div style="margin-top:20px;">' +
       '<a href=\"' + driveUrl + '\" class=\"btn\" target=\"_blank\">📥 Download PDF (14 Pages)</a>' +
-      '<a href=\"https://ndli-club-management.onrender.com/manual\" class=\"btn btn-outline\" target=\"_blank\">🌐 Read Online (HTML)</a>' +
       '</div></div></body></html>';
     return HtmlService.createHtmlOutput(html).setTitle("NDLI User Manual (14 Pages) - IIT Kharagpur");
   }
