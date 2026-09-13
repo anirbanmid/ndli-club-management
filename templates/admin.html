@@ -879,7 +879,7 @@
         if (res.ok && res.data && res.data.success) {
           const driveMsg = res.data.drive_file
             ? `\n☁️ Google Drive Archive: ${res.data.drive_file} (Saved in Google Drive /backups)`
-            : (res.data.drive_sync?.status === 'SUCCESS' ? `\n☁️ Google Drive: Mirrored to Drive /backups folder` : '');
+            : (res.data.drive_sync && res.data.drive_sync.status !== 'FAILED' ? `\n☁️ Google Drive: Mirrored to Drive /backups folder` : '');
           alert(`Backup completed successfully!\n📦 Local Backup ID: ${res.data.backup_id}${driveMsg}\n🔄 Retained Backups: ${res.data.retained_backups.join(', ')}`);
           loadAdminBackupStatus();
         } else {

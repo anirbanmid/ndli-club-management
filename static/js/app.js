@@ -49,7 +49,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
   try {
     const res = await fetch(path, options);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      return { ok: false, status: res.status, data: { error: true, message: `Server error (${res.status}): ${text.slice(0, 150)}` } };
+    }
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: { error: true, message: err.message || "Network error." } };
