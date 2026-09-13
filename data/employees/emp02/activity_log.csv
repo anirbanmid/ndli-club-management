@@ -1,5 +1,5 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP02-1789320970291,EMP02,2026-09-13T17:36:10.245076+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
-ACT-EMP02-1789320970554,EMP02,2026-09-13T17:36:10.554099+00:00,Online training,0,,Conducted webinar for 15 MP schools
-ACT-PRIORITY-EMP02-1789320971070,EMP02,2026-09-13T17:36:10.944126+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)
-ACT-EMP02-1789320971517,EMP02,2026-09-13T17:36:11.517051+00:00,Online training,0,,Webinar with colleges
+ACT-PRIORITY-EMP02-1789322027455,EMP02,2026-09-13T17:53:47.407845+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
+ACT-EMP02-1789322027735,EMP02,2026-09-13T17:53:47.735463+00:00,Online training,0,,Conducted webinar for 15 MP schools
+ACT-PRIORITY-EMP02-1789322028268,EMP02,2026-09-13T17:53:48.158165+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)
+ACT-EMP02-1789322028708,EMP02,2026-09-13T17:53:48.708631+00:00,Online training,0,,Webinar with colleges

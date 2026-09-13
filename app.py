@@ -240,6 +240,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "GET  /api/employees/roster",
                     "GET  /api/employees/profile?id=<emp_id>",
                     "GET  /api/download/user-manual",
+                    "GET  /api/download/promo-video",
+                    "GET  /promo-video",
                     "GET  /api/admin/download/master-clubs",
                     "GET  /api/admin/backup/status",
                     "POST /api/admin/backup/trigger",
@@ -971,6 +973,46 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(pdf_bytes)
             except Exception as e:
                 self._send_error(f"Error serving User Manual PDF: {str(e)}", status=500)
+            return
+
+        # PROMOTIONAL ADVERTISEMENT VIDEO (MP4)
+        if path in [
+            "/api/download/promo-video",
+            "/api/download/video",
+            "/download/promo-video",
+            "/download/video",
+            "/ndli_promo_video.mp4",
+            "/promo-video.mp4",
+            "/video.mp4",
+            "/promo-video",
+            "/video"
+        ]:
+            video_file = BASE_DIR / "ndli_promo_video.mp4"
+            if not video_file.exists():
+                alt_path = BASE_DIR / "static" / "ndli_promo_video.mp4"
+                if alt_path.exists():
+                    video_file = alt_path
+
+            if not video_file.exists():
+                self._send_error("Promotional Video MP4 not found.", status=404)
+                return
+
+            try:
+                with open(video_file, "rb") as f:
+                    video_bytes = f.read()
+
+                disp_type = "attachment" if ("download" in query_params or path.startswith("/api/download")) else "inline"
+                self.send_response(200)
+                self.send_header("Content-Type", "video/mp4")
+                self.send_header("Content-Disposition", f'{disp_type}; filename="NDLI_Promo_Video.mp4"')
+                self.send_header("Content-Length", str(len(video_bytes)))
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Cache-Control", "public, max-age=86400")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(video_bytes)
+            except Exception as e:
+                self._send_error(f"Error serving promo video: {str(e)}", status=500)
             return
 
         # FEATURE 1: Download Master CSV (master_clubs.csv) from Admin Dashboard

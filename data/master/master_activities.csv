@@ -1,26 +1,26 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP01-1789320969684,EMP01,2026-09-13T17:36:09.650596+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
-ACT-PRIORITY-EMP04-1789320969793,EMP04,2026-09-13T17:36:09.749011+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)
-ACT-PRIORITY-EMP01-1789320969889,EMP01,2026-09-13T17:36:09.847484+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
-ACT-PRIORITY-EMP03-1789320969980,EMP03,2026-09-13T17:36:09.938924+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
-ACT-PRIORITY-EMP07-1789320970094,EMP07,2026-09-13T17:36:10.045956+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)
-ACT-PRIORITY-EMP05-1789320970196,EMP05,2026-09-13T17:36:10.148350+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
-ACT-PRIORITY-EMP02-1789320970291,EMP02,2026-09-13T17:36:10.245076+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
-ACT-PRIORITY-EMP06-1789320970396,EMP06,2026-09-13T17:36:10.351059+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
-ACT-EMP01-1789320970449,EMP01,2026-09-13T17:36:10.449640+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
-ACT-EMP01-1789320970499,EMP01,2026-09-13T17:36:10.499076+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
-ACT-EMP02-1789320970554,EMP02,2026-09-13T17:36:10.554099+00:00,Online training,0,,Conducted webinar for 15 MP schools
-ACT-EMP03-1789320970611,EMP03,2026-09-13T17:36:10.611454+00:00,Offline training,0,,Workshop at Pune University
-ACT-EMP04-1789320970666,EMP04,2026-09-13T17:36:10.666931+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved
-ACT-EMP06-1789320970730,EMP06,2026-09-13T17:36:10.730788+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus
-ACT-PRIORITY-EMP02-1789320971070,EMP02,2026-09-13T17:36:10.944126+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)
-ACT-PRIORITY-EMP05-1789320971211,EMP05,2026-09-13T17:36:11.143592+00:00,Club Approval,1,NDLI-AUTO-REN-01,Approved new NDLI Club: Automated Renewal University (NDLI-AUTO-REN-01)
-ACT-RENEW-EMP05-1789320971337,EMP05,2026-09-13T17:36:11.285518+00:00,Registration Renewal,1,NDLI-AUTO-REN-01,"Renewal Approved for Club NDLI-AUTO-REN-01. Last Renewal Date: 2026-09-13T17:36:11.285518+00:00, Upcoming Renewal Due Date: 2027-09-13"
-ACT-EMP01-1789320971402,EMP01,2026-09-13T17:36:11.402383+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved
-ACT-EMP02-1789320971517,EMP02,2026-09-13T17:36:11.517051+00:00,Online training,0,,Webinar with colleges
-ACT-EMP01-1789320971630-1,EMP01,2026-09-13T17:36:11.630390+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]
-ACT-EMP01-1789320971630-2,EMP01,2026-09-13T17:36:11.630390+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]
-ACT-EMP01-1789320971630-3,EMP01,2026-09-13T17:36:11.630390+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]
-ACT-EMP01-1789320971630-4,EMP01,2026-09-13T17:36:11.630390+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]
-ACT-EMP01-1789320971630-5,EMP01,2026-09-13T17:36:11.630390+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]
-ACT-RENEW-EMP03-1789320971965,EMP03,2026-09-13T17:36:11.887141+00:00,Registration Renewal,1,NDLI-MH-103,"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-13T17:36:11.887141+00:00, Upcoming Renewal Due Date: 2028-12-31"
+ACT-PRIORITY-EMP01-1789322026755,EMP01,2026-09-13T17:53:46.726434+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
+ACT-PRIORITY-EMP04-1789322026836,EMP04,2026-09-13T17:53:46.796513+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)
+ACT-PRIORITY-EMP01-1789322026935,EMP01,2026-09-13T17:53:46.894264+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
+ACT-PRIORITY-EMP03-1789322027031,EMP03,2026-09-13T17:53:46.984410+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)
+ACT-PRIORITY-EMP07-1789322027199,EMP07,2026-09-13T17:53:47.147171+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)
+ACT-PRIORITY-EMP05-1789322027350,EMP05,2026-09-13T17:53:47.307820+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)
+ACT-PRIORITY-EMP02-1789322027455,EMP02,2026-09-13T17:53:47.407845+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)
+ACT-PRIORITY-EMP06-1789322027565,EMP06,2026-09-13T17:53:47.520137+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
+ACT-EMP01-1789322027619,EMP01,2026-09-13T17:53:47.619196+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
+ACT-EMP01-1789322027673,EMP01,2026-09-13T17:53:47.673098+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
+ACT-EMP02-1789322027735,EMP02,2026-09-13T17:53:47.735463+00:00,Online training,0,,Conducted webinar for 15 MP schools
+ACT-EMP03-1789322027798,EMP03,2026-09-13T17:53:47.798719+00:00,Offline training,0,,Workshop at Pune University
+ACT-EMP04-1789322027857,EMP04,2026-09-13T17:53:47.857208+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved
+ACT-EMP06-1789322027915,EMP06,2026-09-13T17:53:47.915272+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus
+ACT-PRIORITY-EMP02-1789322028268,EMP02,2026-09-13T17:53:48.158165+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)
+ACT-PRIORITY-EMP05-1789322028420,EMP05,2026-09-13T17:53:48.335723+00:00,Club Approval,1,NDLI-AUTO-REN-01,Approved new NDLI Club: Automated Renewal University (NDLI-AUTO-REN-01)
+ACT-RENEW-EMP05-1789322028523,EMP05,2026-09-13T17:53:48.475500+00:00,Registration Renewal,1,NDLI-AUTO-REN-01,"Renewal Approved for Club NDLI-AUTO-REN-01. Last Renewal Date: 2026-09-13T17:53:48.475500+00:00, Upcoming Renewal Due Date: 2027-09-13"
+ACT-EMP01-1789322028587,EMP01,2026-09-13T17:53:48.587896+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved
+ACT-EMP02-1789322028708,EMP02,2026-09-13T17:53:48.708631+00:00,Online training,0,,Webinar with colleges
+ACT-EMP01-1789322028901-1,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]
+ACT-EMP01-1789322028901-2,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]
+ACT-EMP01-1789322028901-3,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]
+ACT-EMP01-1789322028901-4,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]
+ACT-EMP01-1789322028901-5,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]
+ACT-RENEW-EMP03-1789322029890,EMP03,2026-09-13T17:53:49.552945+00:00,Registration Renewal,1,NDLI-MH-103,"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-13T17:53:49.552945+00:00, Upcoming Renewal Due Date: 2028-12-31"
