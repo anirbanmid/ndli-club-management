@@ -1539,9 +1539,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # FEATURE 2: Trigger Database Backup Manually (Admin)
         if path in ["/api/admin/backup/trigger", "/api/admin/backup/create"]:
-            note_param = body.get("note", "Manual Admin Trigger")
-            res = BackupEngine.create_backup(note=note_param)
-            self._send_json(res)
+            try:
+                note_param = body.get("note", "Manual Admin Trigger")
+                res = BackupEngine.create_backup(note=note_param)
+                self._send_json(res)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self._send_json({
+                    "success": False,
+                    "error": True,
+                    "message": f"Backup operation failed: {str(e)}"
+                }, status=500)
             return
 
         # FEATURE 4: Log Unresolved Issue & Set 72-Hour Reminder

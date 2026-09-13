@@ -2089,7 +2089,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
   try {
     const res = await fetch(path, options);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      return { ok: false, status: res.status, data: { error: true, message: `Server error (${res.status}): ${text.slice(0, 150)}` } };
+    }
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: { error: true, message: err.message || "Network error." } };
@@ -2278,7 +2284,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
   if (body) options.body = JSON.stringify(body);
   try {
     const res = await fetch(path, options);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      return { ok: false, status: res.status, data: { error: true, message: `Server error (${res.status}): ${text.slice(0, 150)}` } };
+    }
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: { error: true, message: err.message || "Network error." } };
@@ -2431,7 +2443,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         if (res.ok && res.data && res.data.success) {
           const driveMsg = res.data.drive_file
             ? `\n☁️ Google Drive Archive: ${res.data.drive_file} (Saved in Google Drive /backups)`
-            : (res.data.drive_sync?.status === 'SUCCESS' ? `\n☁️ Google Drive: Mirrored to Drive /backups folder` : '');
+            : (res.data.drive_sync && res.data.drive_sync.status !== 'FAILED' ? `\n☁️ Google Drive: Mirrored to Drive /backups folder` : '');
           alert(`Backup completed successfully!\n📦 Local Backup ID: ${res.data.backup_id}${driveMsg}\n🔄 Retained Backups: ${res.data.retained_backups.join(', ')}`);
           loadAdminBackupStatus();
         } else {

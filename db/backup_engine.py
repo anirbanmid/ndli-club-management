@@ -3,6 +3,7 @@ NDLI Club Management - Automated Database Backup Engine
 Handles 7-day automated backups of Admin and Employee databases with strict 2-backup retention.
 """
 import os
+import sys
 import json
 import shutil
 import threading
@@ -182,69 +183,80 @@ class BackupEngine:
         or mounted Drive directory, ensuring the backup ZIP archive is stored in Google Drive
         and the 2-backup retention policy is enforced directly in Google Drive.
         """
-        import os
-        from config import DRIVE_STORAGE_MODE, APPS_SCRIPT_SYNC_URL
-        import urllib.request
-        import json
+        try:
+            from config import DRIVE_STORAGE_MODE, APPS_SCRIPT_SYNC_URL
+            import urllib.request
 
-        # Skip live HTTP network calls during automated test suites
-        if os.getenv("NDLI_TESTING") == "true" or "unittest" in sys.modules:
-            return {
+            # Skip live HTTP network calls during automated test suites
+            if os.getenv("NDLI_TESTING") == "true" or "unittest" in sys.modules:
+                return {
+                    "mode": DRIVE_STORAGE_MODE,
+                    "status": "SUCCESS",
+                    "filename": f"{backup_id}.zip",
+                    "message": "[Testing Mode] Google Drive mirror simulated"
+                }
+
+            drive_info = {
                 "mode": DRIVE_STORAGE_MODE,
-                "status": "SUCCESS",
-                "filename": f"{backup_id}.zip",
-                "message": "[Testing Mode] Google Drive mirror simulated"
+                "status": "pending_mirror" if (DRIVE_STORAGE_MODE == "APPS_SCRIPT_RELAY" and APPS_SCRIPT_SYNC_URL) else "skipped",
+                "message": "Mirroring to Google Drive /backups folder"
             }
 
-        drive_info = {
-            "mode": DRIVE_STORAGE_MODE,
-            "status": "pending_mirror" if (DRIVE_STORAGE_MODE == "APPS_SCRIPT_RELAY" and APPS_SCRIPT_SYNC_URL) else "skipped",
-            "message": "Mirroring to Google Drive /backups folder"
-        }
-
-        if DRIVE_STORAGE_MODE == "APPS_SCRIPT_RELAY" and APPS_SCRIPT_SYNC_URL:
-            def _do_relay():
-                try:
-                    payload = {
-                        "path": "admin/backup/trigger",
-                        "data": {
-                            "backup_id": backup_id,
-                            "note": note
+            if DRIVE_STORAGE_MODE == "APPS_SCRIPT_RELAY" and APPS_SCRIPT_SYNC_URL:
+                def _do_relay():
+                    try:
+                        payload = {
+                            "path": "admin/backup/trigger",
+                            "data": {
+                                "backup_id": backup_id,
+                                "note": note
+                            }
                         }
-                    }
-                    req = urllib.request.Request(
-                        APPS_SCRIPT_SYNC_URL,
-                        data=json.dumps(payload).encode("utf-8"),
-                        headers={"Content-Type": "application/json"},
-                        method="POST"
-                    )
-                    with urllib.request.urlopen(req, timeout=30) as resp:
-                        data = json.loads(resp.read().decode("utf-8"))
-                        drive_data = data.get("data", {})
-                        schedule_file = cls.get_schedule_file()
-                        if schedule_file.exists():
-                            try:
-                                with open(schedule_file, "r", encoding="utf-8") as sf:
-                                    sdata = json.load(sf)
-                                sdata["drive_sync"] = {
-                                    "status": "SUCCESS",
-                                    "filename": drive_data.get("filename"),
-                                    "timestamp": drive_data.get("timestamp")
-                                }
-                                with open(schedule_file, "w", encoding="utf-8") as sf:
-                                    json.dump(sdata, sf, indent=2)
-                            except Exception:
-                                pass
-                except Exception as e:
-                    print(f"[!] Error in async Google Drive backup relay: {e}")
+                        req = urllib.request.Request(
+                            APPS_SCRIPT_SYNC_URL,
+                            data=json.dumps(payload).encode("utf-8"),
+                            headers={"Content-Type": "application/json"},
+                            method="POST"
+                        )
+                        with urllib.request.urlopen(req, timeout=30) as resp:
+                            resp_content = resp.read().decode("utf-8")
+                            if resp_content:
+                                try:
+                                    data = json.loads(resp_content)
+                                    drive_data = data.get("data", {})
+                                    schedule_file = cls.get_schedule_file()
+                                    if schedule_file.exists():
+                                        try:
+                                            with open(schedule_file, "r", encoding="utf-8") as sf:
+                                                sdata = json.load(sf)
+                                            sdata["drive_sync"] = {
+                                                "status": "SUCCESS",
+                                                "filename": drive_data.get("filename"),
+                                                "timestamp": drive_data.get("timestamp")
+                                            }
+                                            with open(schedule_file, "w", encoding="utf-8") as sf:
+                                                json.dump(sdata, sf, indent=2)
+                                        except Exception:
+                                            pass
+                                except Exception as parse_err:
+                                    print(f"[!] Warning: Could not parse GAS response as JSON: {parse_err}")
+                    except Exception as e:
+                        print(f"[!] Error in async Google Drive backup relay: {e}")
 
-            if async_relay:
-                t = threading.Thread(target=_do_relay, daemon=True)
-                t.start()
-            else:
-                _do_relay()
+                if async_relay:
+                    t = threading.Thread(target=_do_relay, daemon=True)
+                    t.start()
+                else:
+                    _do_relay()
 
-        return drive_info
+            return drive_info
+        except Exception as e:
+            print(f"[!] Warning: Failed to initialize Google Drive backup sync: {e}")
+            return {
+                "mode": "ERROR",
+                "status": "FAILED",
+                "message": f"Drive mirror initialization skipped: {str(e)}"
+            }
 
     @classmethod
     def check_and_run_auto_backup(cls, force: bool = False) -> Optional[Dict[str, Any]]:
