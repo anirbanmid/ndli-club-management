@@ -313,7 +313,7 @@ function setupWeeklyBackupTrigger() {
   }
 }
 
-function runWeeklyBackup() {
+function runWeeklyBackup(customId) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -322,6 +322,7 @@ function runWeeklyBackup() {
     var backupFolder = getOrCreateSubfolder(root, "backups");
 
     var dateStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd_HHmmss");
+    var filename = customId ? (customId + ".zip") : ("ndli_backup_" + dateStr + ".zip");
     var blobs = [];
 
     // Gather Master CSVs
@@ -347,14 +348,14 @@ function runWeeklyBackup() {
     }
 
     // Create Zip Archive
-    var zipBlob = Utilities.zip(blobs, "ndli_backup_" + dateStr + ".zip");
+    var zipBlob = Utilities.zip(blobs, filename);
     backupFolder.createFile(zipBlob);
-    Logger.log("[NDLI Backup] Created new backup: ndli_backup_" + dateStr + ".zip");
+    Logger.log("[NDLI Backup] Created new backup: " + filename);
 
     // Enforce 2-backup rolling retention
     enforceBackupRetention(backupFolder, 2);
 
-    return { success: true, timestamp: dateStr, filename: "ndli_backup_" + dateStr + ".zip" };
+    return { success: true, timestamp: dateStr, filename: filename, backup_id: customId || ("ndli_backup_" + dateStr) };
   } finally {
     lock.releaseLock();
   }
@@ -367,7 +368,7 @@ function enforceBackupRetention(backupFolder, maxBackups) {
   while (fIter.hasNext()) {
     var file = fIter.next();
     var fName = String(file.getName ? file.getName() : file.name || "");
-    if (fName.indexOf("ndli_backup_") === 0) {
+    if (fName.indexOf("ndli_backup_") === 0 || fName.indexOf("backup_") === 0) {
       files.push({ file: file, date: file.getDateCreated ? file.getDateCreated().getTime() : Date.now() });
     }
   }
@@ -1714,7 +1715,7 @@ function apiDispatcher(path, method, body, token) {
       while (fIter.hasNext()) {
         var f = fIter.next();
         var fn = String(f.getName ? f.getName() : f.name || "");
-        if (fn.indexOf("ndli_backup_") === 0) {
+        if (fn.indexOf("ndli_backup_") === 0 || fn.indexOf("backup_") === 0) {
           var dtCreated = f.getDateCreated ? f.getDateCreated() : new Date();
           files.push({
             backup_id: fn,
@@ -1743,8 +1744,29 @@ function apiDispatcher(path, method, body, token) {
     }
 
     if (path === "admin/backup/trigger" || path === "backup/run-manual") {
-      var bRes = runWeeklyBackup();
+      var d = body.data || body;
+      var customId = d.backup_id || "";
+      var bRes = runWeeklyBackup(customId);
       return { ok: true, status: 200, data: bRes };
+    }
+
+    if (path === "admin/backup/upload" || path === "sync/upload-backup") {
+      var root = getSystemFolder();
+      var backupFolder = getOrCreateSubfolder(root, "backups");
+      var d = body.data || body;
+      var fileName = d.fileName || (d.backup_id ? d.backup_id + ".zip" : "backup.zip");
+      var base64Data = d.base64Content || "";
+      if (!base64Data) {
+        return { ok: false, status: 400, data: { error: true, message: "Missing base64Content" } };
+      }
+      var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), "application/zip", fileName);
+      var f = backupFolder.createFile(blob);
+      enforceBackupRetention(backupFolder, 2);
+      return {
+        ok: true,
+        status: 200,
+        data: { success: true, message: "Backup uploaded to Google Drive", filename: fileName, fileId: f.getId() }
+      };
     }
 
     // --- STATE ZONE MAP ---
