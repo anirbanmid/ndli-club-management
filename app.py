@@ -230,6 +230,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "POST /api/activity/log",
                     "GET  /api/activity/list",
                     "GET  /api/admin/metrics",
+                    "GET  /api/admin/employee-performance",
                     "GET  /api/admin/renewal-attention",
                     "GET  /api/admin/ai-insights",
                     "GET  /api/admin/employees",
@@ -601,6 +602,210 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "coverage_index": coverage_index,
                 "zone_efficiency": zone_efficiency,
                 "users": [{k: v for k, v in u.items() if k not in ["password_hash", "salt"]} for u in all_users]
+            })
+            return
+
+        # Admin Employee Performance Evaluation & Star Rating Matrix
+        if path == "/api/admin/employee-performance":
+            raw_year = query_params.get("year", ["ALL"])[0].strip()
+            raw_month = query_params.get("month", ["ALL"])[0].strip()
+            raw_state = query_params.get("state", ["ALL"])[0].strip() or query_params.get("states", ["ALL"])[0].strip()
+
+            filter_year = raw_year if raw_year.upper() != "ALL" and raw_year else "ALL"
+            filter_month = raw_month if raw_month.upper() != "ALL" and raw_month else "ALL"
+            filter_state = raw_state if raw_state.upper() != "ALL" and raw_state else "ALL"
+
+            month_map = {
+                "january": 1, "jan": 1, "01": 1, "1": 1,
+                "february": 2, "feb": 2, "02": 2, "2": 2,
+                "march": 3, "mar": 3, "03": 3, "3": 3,
+                "april": 4, "apr": 4, "04": 4, "4": 4,
+                "may": 5, "05": 5, "5": 5,
+                "june": 6, "jun": 6, "06": 6, "6": 6,
+                "july": 7, "jul": 7, "07": 7, "7": 7,
+                "august": 8, "aug": 8, "08": 8, "8": 8,
+                "september": 9, "sep": 9, "sept": 9, "09": 9, "9": 9,
+                "october": 10, "oct": 10, "10": 10,
+                "november": 11, "nov": 11, "11": 11,
+                "december": 12, "dec": 12, "12": 12
+            }
+            target_month_num = month_map.get(filter_month.lower()) if filter_month != "ALL" else None
+
+            all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+
+            # Build club lookup for activity state resolution
+            club_lookup = {c.get("club_id", "").strip().upper(): c for c in all_clubs if c.get("club_id")}
+
+            # Discover available years dynamically
+            available_years_set = {"2026", "2025", "2024"}
+            for c in all_clubs:
+                ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+                if ts:
+                    dp = parse_iso_or_date(ts)
+                    if dp:
+                        available_years_set.add(str(dp.year))
+            for a in all_activities:
+                ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
+                if ts:
+                    dp = parse_iso_or_date(ts)
+                    if dp:
+                        available_years_set.add(str(dp.year))
+            available_years = sorted(list(available_years_set), reverse=True)
+
+            all_states_list = get_all_states()
+
+            # Active employee officers
+            officers = [u for u in all_users if u.get("role") == "EMPLOYEE"]
+
+            evaluations = []
+            for u in officers:
+                emp_id = u.get("id", "").strip().upper()
+                emp_name = u.get("full_name", "") or u.get("name", "") or emp_id
+                emp_zone = u.get("zone", "") or "Other"
+                assigned_states_str = u.get("assigned_states", "")
+                assigned_states_list = [s.strip().lower() for s in assigned_states_str.split(",") if s.strip()]
+
+                covers_state = (filter_state == "ALL") or (filter_state.lower() in assigned_states_list)
+
+                # 1. Clubs Approved (50% weightage)
+                clubs_approved = 0
+                for c in all_clubs:
+                    c_emp = c.get("approved_by_emp_id", "").strip().upper()
+                    if not c_emp:
+                        c_zn = c.get("zone", "").strip() or get_zone_for_state(c.get("state", ""))
+                        if c_zn == emp_zone:
+                            c_emp = emp_id
+
+                    if c_emp != emp_id:
+                        continue
+
+                    c_state = c.get("state", "").strip()
+                    if filter_state != "ALL" and c_state.lower() != filter_state.lower():
+                        continue
+
+                    ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+                    dp = parse_iso_or_date(ts) if ts else None
+                    if filter_year != "ALL":
+                        if not dp or str(dp.year) != filter_year:
+                            continue
+                    if target_month_num is not None:
+                        if not dp or dp.month != target_month_num:
+                            continue
+
+                    clubs_approved += 1
+
+                # 2. Activities: Online Training (10%), Offline Training (20%), Other Supports (30%)
+                online_training = 0
+                offline_training = 0
+                other_supports = 0
+
+                for a in all_activities:
+                    a_emp = a.get("emp_id", "").strip().upper()
+                    if a_emp != emp_id:
+                        continue
+
+                    # State filtering for activities
+                    if filter_state != "ALL":
+                        cid = a.get("club_id", "").strip().upper()
+                        ref_club = club_lookup.get(cid)
+                        act_state = ref_club.get("state", "").strip() if ref_club else ""
+                        if act_state:
+                            if act_state.lower() != filter_state.lower():
+                                continue
+                        else:
+                            if not covers_state:
+                                continue
+
+                    ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
+                    dp = parse_iso_or_date(ts) if ts else None
+                    if filter_year != "ALL":
+                        if not dp or str(dp.year) != filter_year:
+                            continue
+                    if target_month_num is not None:
+                        if not dp or dp.month != target_month_num:
+                            continue
+
+                    stype = a.get("support_type", "").strip()
+                    if stype == "Online training":
+                        online_training += 1
+                    elif stype == "Offline training":
+                        offline_training += 1
+                    elif stype in ["Phone call and remote assistance", "Closing of OS Ticket"]:
+                        other_supports += 1
+
+                # 3. 50/30/20/10 Weighted Score Calculation
+                # 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
+                weighted_score = round(
+                    (0.50 * clubs_approved) +
+                    (0.30 * other_supports) +
+                    (0.20 * offline_training) +
+                    (0.10 * online_training),
+                    2
+                )
+
+                evaluations.append({
+                    "emp_id": emp_id,
+                    "full_name": emp_name,
+                    "zone": emp_zone,
+                    "assigned_states": assigned_states_str,
+                    "clubs_approved": clubs_approved,
+                    "online_training": online_training,
+                    "offline_training": offline_training,
+                    "other_supports": other_supports,
+                    "total_activities": online_training + offline_training + other_supports,
+                    "weighted_score": weighted_score,
+                    "covers_selected_state": covers_state
+                })
+
+            # Sort officers descending by weighted_score, then clubs_approved, then total_activities
+            evaluations.sort(key=lambda x: (x["weighted_score"], x["clubs_approved"], x["total_activities"]), reverse=True)
+
+            # Assign Ranks and Star Ratings (1 to 5 Stars)
+            max_score = max((e["weighted_score"] for e in evaluations), default=0.0)
+            for idx, e in enumerate(evaluations, start=1):
+                e["rank"] = idx
+                w_score = e["weighted_score"]
+                if max_score > 0 and w_score > 0:
+                    ratio = w_score / max_score
+                    if ratio >= 0.80:
+                        stars = 5
+                    elif ratio >= 0.60:
+                        stars = 4
+                    elif ratio >= 0.40:
+                        stars = 3
+                    elif ratio >= 0.20:
+                        stars = 2
+                    else:
+                        stars = 1
+                else:
+                    stars = 1
+                e["stars"] = stars
+                e["stars_display"] = "★" * stars + "☆" * (5 - stars)
+                e["rating_label"] = f"{stars}.0 / 5.0"
+
+            self._send_json({
+                "success": True,
+                "filters": {
+                    "year": filter_year,
+                    "month": filter_month,
+                    "state": filter_state
+                },
+                "available_years": available_years,
+                "available_states": all_states_list,
+                "weightage": {
+                    "club_approval_pct": 50,
+                    "other_supports_pct": 30,
+                    "offline_training_pct": 20,
+                    "online_training_pct": 10
+                },
+                "summary": {
+                    "total_officers": len(evaluations),
+                    "max_score": max_score,
+                    "top_officer": evaluations[0] if evaluations else None
+                },
+                "officers": evaluations
             })
             return
 
