@@ -381,6 +381,87 @@ function enforceBackupRetention(backupFolder, maxBackups) {
   }
 }
 
+function restoreBackup(backupFileName) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var root = getSystemFolder();
+    var dbFolder = getOrCreateSubfolder(root, "databases");
+    var backupFolder = getOrCreateSubfolder(root, "backups");
+    
+    var targetFile = null;
+    if (backupFileName) {
+      var fIter = backupFolder.getFilesByName(backupFileName);
+      if (fIter.hasNext()) targetFile = fIter.next();
+    }
+    if (!targetFile) {
+      var files = [];
+      var fIter = backupFolder.getFiles();
+      while (fIter.hasNext()) {
+        var f = fIter.next();
+        var fName = String(f.getName ? f.getName() : f.name || "");
+        if (fName.indexOf(".zip") !== -1) {
+          files.push({ file: f, date: f.getDateCreated ? f.getDateCreated().getTime() : Date.now() });
+        }
+      }
+      files.sort(function(a, b) { return b.date - a.date; });
+      if (files.length > 0) targetFile = files[0].file;
+    }
+    
+    if (!targetFile) {
+      throw new Error("No backup archive (.zip) found in Google Drive backups folder.");
+    }
+    
+    Logger.log("[NDLI Restore] Restoring from archive: " + targetFile.getName());
+    var zipBlob = targetFile.getBlob();
+    var unzippedBlobs = Utilities.unzip(zipBlob);
+    
+    var restoredFilesCount = 0;
+    for (var i = 0; i < unzippedBlobs.length; i++) {
+      var b = unzippedBlobs[i];
+      var entryPath = b.getName();
+      
+      if (entryPath.indexOf("master/") === 0) {
+        var csvName = entryPath.replace("master/", "");
+        var mFolder = getOrCreateSubfolder(dbFolder, "master");
+        var existing = mFolder.getFilesByName(csvName);
+        if (existing.hasNext()) {
+          existing.next().setContent(b.getDataAsString("UTF-8"));
+        } else {
+          mFolder.createFile(csvName, b.getDataAsString("UTF-8"), MimeType.CSV);
+        }
+        restoredFilesCount++;
+      } else if (entryPath.indexOf("employees/") === 0) {
+        var parts = entryPath.split("/");
+        if (parts.length >= 3) {
+          var empId = parts[1].toLowerCase();
+          var csvName = parts[2];
+          var empParent = getOrCreateSubfolder(dbFolder, "employees");
+          var subFolder = getOrCreateSubfolder(empParent, empId);
+          var existing = subFolder.getFilesByName(csvName);
+          if (existing.hasNext()) {
+            existing.next().setContent(b.getDataAsString("UTF-8"));
+          } else {
+            subFolder.createFile(csvName, b.getDataAsString("UTF-8"), MimeType.CSV);
+          }
+          restoredFilesCount++;
+        }
+      }
+    }
+    
+    var recRes = apiDispatcher("sync/reconcile", "POST", {}, "");
+    Logger.log("[NDLI Restore] Successfully restored " + restoredFilesCount + " files and reconciled Master DB.");
+    return {
+      success: true,
+      restored_from: targetFile.getName(),
+      restored_files_count: restoredFilesCount,
+      reconciliation: recRes.data
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ====================================================================
 // 5. THREAD-SAFE CSV PARSER & SERIALIZER
 // ====================================================================
@@ -1748,6 +1829,13 @@ function apiDispatcher(path, method, body, token) {
       var customId = d.backup_id || "";
       var bRes = runWeeklyBackup(customId);
       return { ok: true, status: 200, data: bRes };
+    }
+
+    if (path === "admin/backup/restore" || path === "backup/restore") {
+      var d = body.data || body;
+      var fName = d.filename || d.backup_id || "";
+      var rRes = restoreBackup(fName);
+      return { ok: true, status: 200, data: rRes };
     }
 
     if (path === "admin/backup/upload" || path === "sync/upload-backup") {
