@@ -1769,6 +1769,93 @@ function apiDispatcher(path, method, body, token) {
       };
     }
 
+    // --- MASTER RECONCILIATION ---
+    if (path === "sync/reconcile") {
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var mActs = getCsvData("master", "master_activities.csv");
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+
+      var allClubsMap = {};
+      mClubs.rows.forEach(function(c) {
+        var cid = String(c.club_id || "").trim().toUpperCase();
+        if (cid) allClubsMap[cid] = c;
+      });
+
+      var allActsMap = {};
+      mActs.rows.forEach(function(a) {
+        var aid = String(a.activity_id || "").trim();
+        if (aid) allActsMap[aid] = a;
+      });
+
+      var employeeCounts = {};
+      var root = getSystemFolder();
+      var empParent = getOrCreateSubfolder(root, "employees");
+      var eIter = empParent.getFolders();
+      var syncedNodes = 0;
+
+      while (eIter.hasNext()) {
+        var eFolder = eIter.next();
+        var empId = eFolder.getName().toUpperCase();
+        syncedNodes++;
+        employeeCounts[empId] = { clubs: 0, activities: 0 };
+
+        var nClubs = getCsvData("employees/" + empId.toLowerCase(), "clubs.csv");
+        if (nClubs && nClubs.rows) {
+          nClubs.rows.forEach(function(c) {
+            var cid = String(c.club_id || "").trim().toUpperCase();
+            if (cid) {
+              if (!allClubsMap[cid] || (c.updated_at || "") >= (allClubsMap[cid].updated_at || "")) {
+                allClubsMap[cid] = c;
+              }
+              employeeCounts[empId].clubs++;
+            }
+          });
+        }
+
+        var nActs = getCsvData("employees/" + empId.toLowerCase(), "activity_log.csv");
+        if (nActs && nActs.rows) {
+          nActs.rows.forEach(function(a) {
+            var aid = String(a.activity_id || "").trim();
+            if (aid) {
+              allActsMap[aid] = a;
+              employeeCounts[empId].activities++;
+            }
+          });
+        }
+      }
+
+      var mergedClubs = Object.keys(allClubsMap).map(function(k) { return allClubsMap[k]; });
+      var mergedActs = Object.keys(allActsMap).map(function(k) { return allActsMap[k]; });
+      writeCsvData("master", "master_clubs.csv", mClubs.headers, mergedClubs);
+      writeCsvData("master", "master_activities.csv", mActs.headers, mergedActs);
+
+      if (mQuotas && mQuotas.rows) {
+        var updatedQuotas = mQuotas.rows.map(function(q) {
+          var eid = String(q.emp_id || "").toUpperCase();
+          if (employeeCounts[eid]) {
+            q.clubs_approved_count = String(employeeCounts[eid].clubs);
+            q.support_logs_count = String(employeeCounts[eid].activities);
+          }
+          return q;
+        });
+        writeCsvData("master", "master_quotas.csv", mQuotas.headers, updatedQuotas);
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          message: "Reconciliation completed successfully.",
+          summary: {
+            total_master_clubs: mergedClubs.length,
+            total_master_activities: mergedActs.length,
+            employees_synced: syncedNodes
+          }
+        }
+      };
+    }
+
     // --- STATE ZONE MAP ---
     if (path === "state-zone/map") {
       return { ok: true, status: 200, data: { map: ZONE_STATE_MAP, states: ALL_INDIAN_STATES, zones: ALL_ZONES } };
