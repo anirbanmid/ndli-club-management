@@ -812,7 +812,7 @@
         <span class="toc-page-num">Page 13</span>
       </div>
       <div class="toc-row">
-        <span class="toc-section">6.8 Automated 7-Day Rolling Backups & Google Drive Cloud Mirroring</span>
+        <span class="toc-section">6.8 Automated 7-Day Backups, Cloud Mirroring & One-Click Emergency Restore</span>
         <span class="toc-dots"></span>
         <span class="toc-page-num">Page 13</span>
       </div>
@@ -1316,23 +1316,25 @@
       <li><strong>Operational Best Practice:</strong> Central administrators should trigger full reconciliation after restoring backups, after manual CSV imports/edits, or whenever an administrative data audit is conducted.</li>
     </ul>
 
-    <h2>6.8 Automated 7-Day Rolling Backups & Google Drive Cloud Mirroring</h2>
+    <h2>6.8 Automated 7-Day Backups, Cloud Mirroring & One-Click Emergency Restore</h2>
     <p style="margin-bottom: 4px;">
-      The platform incorporates an autonomous background backup engine running continuously in the server process:
+      The platform incorporates an autonomous background backup engine and a disaster recovery console in the Admin Portal:
     </p>
 
-    <div class="screenshot-figure" style="margin: 4px 0 6px 0;">
-      <div class="screenshot-container" style="max-height: 48mm;">
+    <div class="screenshot-figure" style="margin: 3px 0 5px 0;">
+      <div class="screenshot-container" style="max-height: 46mm;">
         <img src="images/06_automated_backups.png" alt="Automated Backups Tab">
       </div>
       <div class="screenshot-caption">Figure 6.4: Master DB Reconciliation Console, 7-Day Rolling Backup Engine & Google Drive Cloud Mirror</div>
     </div>
 
-    <ul style="margin-top: 3px; margin-bottom: 8px;">
+    <ul style="margin-top: 2px; margin-bottom: 6px;">
       <li><strong>Autonomous 7-Day Cadence:</strong> Archives both Central Master DBs and all 7 Regional Node DBs into compressed ZIP snapshots.</li>
       <li><strong>Strict 2-Version Retention Invariant:</strong> Preserves only the last 2 historical snapshots. All older archives are automatically pruned, preventing storage bloat.</li>
       <li><strong>Google Drive Webhook Relay:</strong> Every backup automatically mirrors a timestamped ZIP archive directly into the Google Drive <code>backups/</code> repository via Webhook Relay.</li>
-      <li><strong>On-Demand Manual Snapshot:</strong> Administrators can trigger an instantaneous backup at any time by clicking <strong>"Trigger Backup Now ⚡"</strong>.</li>
+      <li><strong>One-Click Emergency Database Restoration:</strong> Administrators can roll back the entire system from retained snapshots or Google Drive archives via the <strong>"One-Click Restore Database ↺"</strong> button under <em>Google Drive &amp; Node Sync Health</em>.</li>
+      <li><strong>Two-Layer Security Protocol:</strong> To prevent accidental or unauthorized triggers, restoration requires solving a randomized 5-character alphanumeric anti-robot CAPTCHA code and re-verifying the Central Admin password.</li>
+      <li><strong>Automated Post-Restore Reconciliation:</strong> Following archive decompression, the engine immediately runs full node-to-master reconciliation, ensuring 100% data consistency and updated ratings across all nodes.</li>
     </ul>
 
     <h2>6.9 Dynamic Verification Certificate Customization</h2>
@@ -1383,19 +1385,24 @@
     </ol>
 
     <h2 style="margin-top: 4px; margin-bottom: 3px;">7.3 Frequently Asked Questions (FAQs)</h2>
-    <div class="callout callout-primary">
+    <div class="callout callout-primary" style="padding: 5px 10px; margin: 3px 0; font-size: 8.2pt; line-height: 1.35;">
       <div class="callout-title">Q: How do regional entries sync with the master database?</div>
       When an officer logs an activity or approves a club, the sync engine writes to the local node CSV and immediately updates the master CSV with atomic mutex locking, rendering on the admin dashboard within seconds.
     </div>
 
-    <div class="callout callout-primary">
+    <div class="callout callout-primary" style="padding: 5px 10px; margin: 3px 0; font-size: 8.2pt; line-height: 1.35;">
       <div class="callout-title">Q: What happens if an employee experiences intermittent internet connectivity?</div>
       The web client holds pending submissions in memory and retries upon reconnection. The backend engine prevents duplicate record creation using unique Club ID indexes.
     </div>
 
-    <div class="callout callout-primary" style="margin-top: 5px;">
+    <div class="callout callout-primary" style="padding: 5px 10px; margin: 3px 0; font-size: 8.2pt; line-height: 1.35;">
       <div class="callout-title">Q: What is the function of the "Run Full Node-to-Master Reconciliation" button?</div>
-      It executes an authoritative, non-destructive audit across all employee nodes. It recovers any entries logged offline or restored from backups, validates schema headers and renewal dates, and recomputes all quota tallies and star ratings to ensure 100% data integrity without data loss.
+      It executes an authoritative audit across all employee nodes. It recovers any entries logged offline or restored from backups, validates schema headers and renewal dates, and recomputes all quota tallies and star ratings to ensure 100% data integrity without data loss.
+    </div>
+
+    <div class="callout callout-primary" style="padding: 5px 10px; margin: 3px 0; font-size: 8.2pt; line-height: 1.35;">
+      <div class="callout-title">Q: In emergency, how to restore database from backup created in Google Drive?</div>
+      In the Admin Office Portal under "Google Drive &amp; Node Sync Health", click <strong>"One-Click Restore Database ↺"</strong>, solve the dynamic CAPTCHA security code, and enter the Master Admin Password. The system restores both Master DB and all 7 Regional Node DBs and triggers automatic reconciliation. Server CLI: <code>python restore_backup.py &lt;file.zip&gt;</code>.
     </div>
 
     <div style="margin-top: 8px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 6px; font-size: 7.5pt; color: #64748B;">
