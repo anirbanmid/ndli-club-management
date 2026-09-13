@@ -1555,6 +1555,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # FEATURE 2: Emergency Database Restore (Admin)
         if path in ["/api/admin/backup/restore", "/api/admin/backup/emergency-restore"]:
+            password = str(body.get("password", "")).strip()
+            admin_email = str(body.get("admin_email") or body.get("email") or DEFAULT_ADMIN_EMAIL).strip()
+
+            if not password:
+                self._send_error("Master Admin password is required to authorize emergency database restoration.", status=401)
+                return
+
+            auth_ok, auth_err, user = AuthService.authenticate(admin_email, password)
+            if not auth_ok or not user or user.get("role") != "ADMIN":
+                self._send_error("Authentication failed: Invalid Master Admin password. Restoration aborted.", status=403)
+                return
+
             target_source = body.get("source") or body.get("backup_id") or body.get("filename")
             if not target_source:
                 existing = BackupEngine.get_existing_backups()

@@ -590,7 +590,62 @@ class TestFeatures1To5(unittest.TestCase):
 
         self.assertEqual(len(created_ids), len(set(created_ids)), "All created issue IDs must be strictly unique")
 
+    def test_emergency_restore_requires_admin_password(self):
+        """
+        Security Verification:
+        Emergency database restore requires second-layer Master Admin password verification.
+        Missing password -> 401, Invalid password -> 403.
+        """
+        # 1. Missing password
+        status, data = self._post("/api/admin/backup/restore", {})
+        self.assertEqual(status, 401)
+        self.assertFalse(data.get("success", True))
+        self.assertIn("password is required", data.get("message", "").lower())
+
+        # 2. Invalid password
+        status, data = self._post("/api/admin/backup/restore", {"password": "WrongPassword123!"})
+        self.assertEqual(status, 403)
+        self.assertFalse(data.get("success", True))
+        self.assertIn("invalid master admin password", data.get("message", "").lower())
+
+    def test_emergency_restore_with_valid_password_success(self):
+        """
+        Emergency Restore Execution:
+        Restores database from backup snapshot upon valid Master Admin password verification.
+        """
+        # Ensure at least one backup exists
+        backup_res = BackupEngine.create_backup(note="Test Pre-Restore Snapshot")
+        backup_id = backup_res["backup_id"]
+
+        status, data = self._post("/api/admin/backup/restore", {
+            "password": "Seed#Admin-Rotated2026",
+            "backup_id": backup_id
+        })
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+        self.assertIn("restored_from", data)
+        self.assertGreaterEqual(data.get("restored_files_count", 0), 1)
+
+    def test_admin_html_has_one_click_restore_and_security_modal(self):
+        """
+        UI Elements Verification:
+        Templates must contain One-Click Restore button, Emergency Restore Modal,
+        dynamic CAPTCHA challenge, and Admin Password input.
+        """
+        html_path = BASE_DIR / "templates" / "admin.html"
+        self.assertTrue(html_path.exists())
+        content = html_path.read_text(encoding="utf-8")
+
+        self.assertIn("openEmergencyRestoreModal", content)
+        self.assertIn("One-Click Restore Database", content)
+        self.assertIn('id="emergency-restore-modal"', content)
+        self.assertIn('id="restore-captcha-display"', content)
+        self.assertIn('id="restore-captcha-input"', content)
+        self.assertIn('id="restore-admin-password"', content)
+        self.assertIn("executeEmergencyRestore", content)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

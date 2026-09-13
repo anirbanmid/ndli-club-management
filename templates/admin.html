@@ -718,7 +718,10 @@
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
             <strong style="font-size: 0.9rem; color: var(--text);">Retained Backup Archives (Max 2):</strong>
-            <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
+              <button class="btn btn-danger btn-sm" onclick="openEmergencyRestoreModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;"><span>↺</span> One-Click Restore Database</button>
+            </div>
           </div>
 
           <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem;">
@@ -840,6 +843,8 @@
             }
           }
 
+          window._cachedAdminBackups = d.backups || [];
+
           const listEl = document.getElementById("backup-archives-list");
           if (listEl) {
             if (!d.backups || d.backups.length === 0) {
@@ -859,7 +864,10 @@
                         Admin Master Files: <strong>${adminCount}</strong> • Employee Nodes: <strong>${empCount}</strong>
                       </div>
                     </div>
-                    <span class="pill pill-success" style="font-size: 0.7rem;">Backup #${idx + 1} Stored</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span class="pill pill-success" style="font-size: 0.7rem;">Backup #${idx + 1} Stored</span>
+                      <button class="btn btn-outline btn-sm" onclick="openEmergencyRestoreModal('${escapeHtml(b.backup_id)}')" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; border-color: #dc2626; color: #dc2626; font-weight: 600;">↺ Restore</button>
+                    </div>
                   </div>
                 `;
               });
@@ -887,6 +895,168 @@
         }
       } catch (e) {
         alert("Error triggering backup: " + e.message);
+      }
+    }
+
+    // =========================================================================
+    // EMERGENCY ONE-CLICK DATABASE RESTORE WITH DUAL-LAYER SECURITY
+    // =========================================================================
+    let currentRestoreCaptcha = "";
+
+    function generateRestoreCaptcha() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      currentRestoreCaptcha = code;
+      const display = document.getElementById("restore-captcha-display");
+      if (display) display.innerText = code;
+      const input = document.getElementById("restore-captcha-input");
+      if (input) input.value = "";
+      const err = document.getElementById("restore-captcha-error");
+      if (err) { err.style.display = "none"; err.innerText = ""; }
+      return code;
+    }
+
+    function openEmergencyRestoreModal(targetBackupId = "") {
+      const modal = document.getElementById("emergency-restore-modal");
+      if (!modal) return;
+
+      generateRestoreCaptcha();
+
+      const passInput = document.getElementById("restore-admin-password");
+      if (passInput) passInput.value = "";
+      const passErr = document.getElementById("restore-password-error");
+      if (passErr) { passErr.style.display = "none"; passErr.innerText = ""; }
+
+      // Populate select dropdown with available backups
+      const select = document.getElementById("restore-target-select");
+      if (select) {
+        select.innerHTML = '<option value="">Latest Available Backup Snapshot (Default)</option>';
+        if (window._cachedAdminBackups && window._cachedAdminBackups.length > 0) {
+          window._cachedAdminBackups.forEach(b => {
+            const opt = document.createElement("option");
+            opt.value = b.backup_id || b.filename;
+            opt.innerText = `${b.backup_id || b.filename} (${b.created_at ? new Date(b.created_at).toLocaleDateString() : 'Snapshot'})`;
+            if (targetBackupId && (b.backup_id === targetBackupId || b.filename === targetBackupId)) {
+              opt.selected = true;
+            }
+            select.appendChild(opt);
+          });
+        } else if (targetBackupId) {
+          const opt = document.createElement("option");
+          opt.value = targetBackupId;
+          opt.innerText = `${targetBackupId} (Selected Archive)`;
+          opt.selected = true;
+          select.appendChild(opt);
+        }
+      }
+
+      modal.classList.add("active");
+      modal.classList.add("open");
+      modal.style.display = "flex";
+
+      setTimeout(() => {
+        const cInp = document.getElementById("restore-captcha-input");
+        if (cInp) cInp.focus();
+      }, 100);
+    }
+
+    function closeEmergencyRestoreModal() {
+      const modal = document.getElementById("emergency-restore-modal");
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+      }
+    }
+
+    async function executeEmergencyRestore() {
+      const captchaInput = (document.getElementById("restore-captcha-input")?.value || "").trim().toUpperCase();
+      const passInput = (document.getElementById("restore-admin-password")?.value || "").trim();
+      const targetBackup = document.getElementById("restore-target-select")?.value || "";
+
+      const captchaErr = document.getElementById("restore-captcha-error");
+      const passErr = document.getElementById("restore-password-error");
+
+      let hasError = false;
+      if (captchaErr) { captchaErr.style.display = "none"; captchaErr.innerText = ""; }
+      if (passErr) { passErr.style.display = "none"; passErr.innerText = ""; }
+
+      if (!captchaInput) {
+        if (captchaErr) {
+          captchaErr.innerText = "Please enter the 5-character CAPTCHA security code.";
+          captchaErr.style.display = "block";
+        }
+        hasError = true;
+      } else if (captchaInput !== currentRestoreCaptcha) {
+        if (captchaErr) {
+          captchaErr.innerText = "Incorrect CAPTCHA code. Please re-enter.";
+          captchaErr.style.display = "block";
+        }
+        generateRestoreCaptcha();
+        hasError = true;
+      }
+
+      if (!passInput) {
+        if (passErr) {
+          passErr.innerText = "Administrator password is required.";
+          passErr.style.display = "block";
+        }
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      const confirmBtn = document.getElementById("btn-execute-restore");
+      const cancelBtn = document.getElementById("btn-cancel-restore");
+      const originalText = confirmBtn ? confirmBtn.innerHTML : "";
+
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = "<span>⏳</span> Restoring Databases &amp; Reconciling...";
+      }
+      if (cancelBtn) cancelBtn.disabled = true;
+
+      try {
+        const payload = {
+          password: passInput,
+          source: targetBackup || undefined,
+          backup_id: targetBackup || undefined
+        };
+
+        const res = await apiRequest("/api/admin/backup/restore", "POST", payload);
+
+        if (res.ok && res.data && res.data.success) {
+          closeEmergencyRestoreModal();
+          const recInfo = res.data.reconciliation ? `\n🔄 Reconciled ${res.data.reconciliation.reconciled_clubs || 0} clubs & ${res.data.reconciliation.reconciled_activities || 0} activities across nodes.` : '';
+          alert(`✅ EMERGENCY DATABASE RESTORATION SUCCESSFUL!\n\n📦 Restored from: ${res.data.restored_from || targetBackup || 'Latest Snapshot'}\n📁 Files Restored: ${res.data.restored_files_count || 'All database files'}${recInfo}\n\nSystem data is synchronized and active.`);
+          loadDashboardData();
+          loadAdminBackupStatus();
+        } else {
+          const errMsg = res.data?.message || res.message || "Failed to restore database.";
+          if (errMsg.toLowerCase().includes("password") || errMsg.toLowerCase().includes("authentication")) {
+            if (passErr) {
+              passErr.innerText = errMsg;
+              passErr.style.display = "block";
+            } else {
+              alert("Restoration Failed: " + errMsg);
+            }
+          } else {
+            alert("Restoration Failed: " + errMsg);
+          }
+          generateRestoreCaptcha();
+        }
+      } catch (err) {
+        alert("Error during restoration: " + err.message);
+        generateRestoreCaptcha();
+      } finally {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = originalText;
+        }
+        if (cancelBtn) cancelBtn.disabled = false;
       }
     }
 
@@ -2945,7 +3115,11 @@
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
 
-          if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
+          const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
+
+          if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
+            closeEmergencyRestoreModal();
+          } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
           } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
             closeAdminEscalationsListModal();
@@ -2973,6 +3147,8 @@
               closeAdminEscalationsListModal();
             } else if (overlay.id === "admin-issue-resolution-modal") {
               closeAdminIssueModal();
+            } else if (overlay.id === "emergency-restore-modal") {
+              closeEmergencyRestoreModal();
             }
           }
         });
@@ -3264,6 +3440,85 @@
         </button>
         <button type="button" class="btn btn-success" id="btn-admin-mark-resolved" onclick="submitAdminIssueResolution('Resolved')">
           <span>✓</span> Resolved
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMERGENCY DATABASE RESTORE SECURITY MODAL -->
+  <div class="modal-overlay modal" id="emergency-restore-modal" style="z-index: 1250; display: none;">
+    <div class="modal-content" style="max-width: 620px; width: 95%;">
+      <button class="modal-close" onclick="closeEmergencyRestoreModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🚨</span> Emergency Database Restoration
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Roll back Master DB &amp; Regional Node DBs from a validated backup archive</p>
+        </div>
+        <span class="pill pill-danger" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Critical Action</span>
+      </div>
+
+      <!-- Warning Banner -->
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+        <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
+          <span>⚠️</span> NON-REVERSIBLE ROLLBACK WARNING
+        </strong>
+        Executing this restoration will overwrite all current records in the Master Database (<code>master_clubs.csv</code>, <code>master_activities.csv</code>, <code>master_quotas.csv</code>, <code>master_issues.csv</code>) and all 7 Regional Employee Node databases with the selected snapshot. Any unbacked changes made after this backup snapshot was generated will be permanently replaced.
+      </div>
+
+      <!-- Backup Selection Form -->
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="margin-bottom: 0.85rem;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 0.35rem;">Target Backup Archive to Restore:</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <select id="restore-target-select" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: #fff;">
+              <option value="">Latest Available Backup Snapshot (Default)</option>
+            </select>
+          </div>
+          <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Select a specific backup snapshot or leave on default to restore the latest backup.</small>
+        </div>
+
+        <div style="border-top: 1px dashed var(--border); padding-top: 0.85rem; margin-top: 0.85rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🛡️</span> Dual-Layer Security Verification
+          </h4>
+
+          <!-- Layer 1: CAPTCHA -->
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
+              Security Layer 1: Anti-Accidental CAPTCHA Verification
+            </label>
+            <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.35rem;">
+              <div id="restore-captcha-display" style="background: linear-gradient(135deg, #103125 0%, #1A503E 100%); color: #34d399; font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; letter-spacing: 5px; padding: 0.4rem 1.1rem; border-radius: 4px; user-select: none; border: 1px solid #065f46; text-decoration: line-through;">
+                CAPTCHA
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="generateRestoreCaptcha()" title="Regenerate CAPTCHA Code" style="padding: 0.45rem 0.65rem;">
+                🔄
+              </button>
+            </div>
+            <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="6" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
+            <div id="restore-captcha-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
+          </div>
+
+          <!-- Layer 2: Admin Password -->
+          <div>
+            <label for="restore-admin-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
+              Security Layer 2: Master Administrator Password
+            </label>
+            <input type="password" id="restore-admin-password" placeholder="Enter Central Admin Password (e.g. Seed#Admin-Rotated2026)" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+            <div id="restore-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-outline" onclick="closeEmergencyRestoreModal()" id="btn-cancel-restore">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-execute-restore" onclick="executeEmergencyRestore()" style="background: #dc2626; border-color: #b91c1c; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <span>⚠️</span> Confirm &amp; Execute Restore
         </button>
       </div>
     </div>

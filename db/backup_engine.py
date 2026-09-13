@@ -396,7 +396,18 @@ class BackupEngine:
 
         src = Path(source_path)
         if not src.exists():
-            raise FileNotFoundError(f"Backup source does not exist: {src}")
+            candidate_dir = BACKUP_DIR / str(source_path)
+            candidate_zip = BACKUP_DIR / f"{source_path}.zip"
+            if candidate_dir.exists():
+                src = candidate_dir
+            elif candidate_zip.exists():
+                src = candidate_zip
+            else:
+                matches = list(BACKUP_DIR.glob(f"*{source_path}*"))
+                if matches:
+                    src = matches[0]
+                else:
+                    raise FileNotFoundError(f"Backup source does not exist: {src}")
 
         with _BACKUP_LOCK:
             restored_master_files = []
@@ -474,8 +485,11 @@ class BackupEngine:
                 "success": True,
                 "message": "Emergency restoration completed successfully.",
                 "source": str(src),
+                "restored_from": str(src.name),
+                "restored_files_count": len(restored_master_files) + len(restored_employee_nodes),
                 "restored_master_files": restored_master_files,
                 "restored_employee_nodes": restored_employee_nodes,
+                "reconciliation": reconcile_summary,
                 "reconciliation_summary": reconcile_summary
             }
 
