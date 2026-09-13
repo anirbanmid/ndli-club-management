@@ -1608,17 +1608,123 @@ tbody tr:hover {
           </div>
         </div>
 
-        <!-- Individual Employee Quota Performance -->
-        <div class="chart-container">
-          <div class="card-header">
+        <!-- Individual Employee Performance Evaluation & Star Rating Matrix -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1.25rem;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
             <div>
-              <h3 class="card-title">Individual Employee Performance Leaderboard</h3>
-              <p class="card-subtitle">Priority Club Approvals vs Daily Support Logs across 7 Zonal Officers</p>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <h3 class="card-title" style="margin: 0;">Employee Performance Evaluation &amp; Star Rating Matrix</h3>
+                <span class="pill pill-primary" style="font-weight: 700;">Ranked 1 to 5 Stars ★</span>
+              </div>
+              <p class="card-subtitle" style="margin: 0; font-size: 0.825rem; color: var(--text-muted);">
+                Official Evaluation Formula: <strong>50%</strong> Club Approval + <strong>30%</strong> Phone Call/Remote &amp; OS Ticket Closing + <strong>20%</strong> Offline Training + <strong>10%</strong> Online Training
+              </p>
             </div>
-            <span class="pill pill-success">Live Quotas</span>
+            
+            <!-- Filters: Year, Month, State -->
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <div style="display: flex; flex-direction: column;">
+                <label for="perf-filter-year" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Year</label>
+                <select id="perf-filter-year" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 90px;" onchange="loadEmployeePerformance()">
+                  <option value="ALL">All Years</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+              </div>
+
+              <div style="display: flex; flex-direction: column;">
+                <label for="perf-filter-month" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Month</label>
+                <select id="perf-filter-month" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 105px;" onchange="loadEmployeePerformance()">
+                  <option value="ALL">All Months</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+
+              <div style="display: flex; flex-direction: column;">
+                <label for="perf-filter-state" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">State</label>
+                <select id="perf-filter-state" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 140px;" onchange="loadEmployeePerformance()">
+                  <option value="ALL">All States / UTs</option>
+                </select>
+              </div>
+
+              <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                <button class="btn btn-outline btn-sm" onclick="resetPerformanceFilters()" style="margin-top: 14px; height: 32px; padding: 0 0.6rem;" title="Reset performance filters">Reset ↺</button>
+              </div>
+            </div>
           </div>
-          <div id="employee-bars-container" style="padding: 0.5rem 0;">
-            <!-- Rendered dynamically -->
+
+          <!-- Formula & Weightage Summary Chips -->
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.6rem 0.85rem; background: #f8fafc; border-radius: 6px; border: 1px solid var(--border); font-size: 0.75rem;">
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #166534; font-weight: 600;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span>
+              Clubs Approved: <strong>50% Weightage</strong>
+            </span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #0369a1; font-weight: 600;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0284c7;"></span>
+              Other Supports (Call / Remote / OS Ticket): <strong>30% Weightage</strong>
+            </span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #7c2d12; font-weight: 600;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span>
+              Offline Training: <strong>20% Weightage</strong>
+            </span>
+            <span style="color: #cbd5e1;">|</span>
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #6b21a8; font-weight: 600;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></span>
+              Online Training: <strong>10% Weightage</strong>
+            </span>
+          </div>
+
+          <!-- Performance Scorecard Matrix Table -->
+          <div class="table-responsive" style="overflow-x: auto;">
+            <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <th style="padding: 0.65rem 0.75rem; text-align: center; width: 60px;">Rank</th>
+                  <th style="padding: 0.65rem 0.75rem;">Officer &amp; Zone</th>
+                  <th style="padding: 0.65rem 0.75rem;">Assigned Jurisdiction</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="50% weightage">Clubs Approved (50%)</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="10% weightage">Online Training (10%)</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="20% weightage">Offline Training (20%)</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="30% weightage">Other Supports (30%)</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center;" title="Weighted Total Score">Weighted Score</th>
+                  <th style="padding: 0.65rem 0.75rem; text-align: center; width: 140px;">Star Rating</th>
+                </tr>
+              </thead>
+              <tbody id="employee-performance-tbody">
+                <tr>
+                  <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    Loading employee performance matrix...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Relative Volume Distribution (Quota Breakdown) -->
+          <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                Relative Activity Distribution (Volume Bars)
+              </span>
+              <span class="pill pill-success" style="font-size: 0.7rem;">Live Sync</span>
+            </div>
+            <div id="employee-bars-container" style="padding: 0.25rem 0;">
+              <!-- Rendered dynamically -->
+            </div>
           </div>
         </div>
       </div>
@@ -2224,6 +2330,7 @@ document.addEventListener("DOMContentLoaded", function() {
       // Trigger live updates for automated backups and 30-day escalation reminders
       try { await loadAdminBackupStatus(); } catch(e) {}
       try { await loadAdminEscalationReminders(); } catch(e) {}
+      try { await loadEmployeePerformance(); } catch(e) {}
     }
 
     function populateYearFilterOptions(years, currentSelected) {
@@ -3060,6 +3167,168 @@ document.addEventListener("DOMContentLoaded", function() {
           </div>
         `;
         container.appendChild(row);
+      });
+    }
+
+    // 6B. Employee Performance Evaluation & Star Rating Matrix Loader
+    async function loadEmployeePerformance() {
+      const yearEl = document.getElementById("perf-filter-year");
+      const monthEl = document.getElementById("perf-filter-month");
+      const stateEl = document.getElementById("perf-filter-state");
+
+      const year = yearEl ? yearEl.value : "ALL";
+      const month = monthEl ? monthEl.value : "ALL";
+      const state = stateEl ? stateEl.value : "ALL";
+
+      const q = new URLSearchParams();
+      if (year && year !== "ALL") q.append("year", year);
+      if (month && month !== "ALL") q.append("month", month);
+      if (state && state !== "ALL") q.append("state", state);
+
+      const qs = q.toString();
+      const endpoint = qs ? `/api/admin/employee-performance?${qs}` : "/api/admin/employee-performance";
+
+      const tbody = document.getElementById("employee-performance-tbody");
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Evaluating performance metrics (${year !== 'ALL' ? year : 'All Years'}, ${month !== 'ALL' ? 'Month ' + month : 'All Months'}, ${state !== 'ALL' ? state : 'All States'})...</td></tr>`;
+      }
+
+      try {
+        const res = await apiRequest(endpoint);
+        if (res.ok && res.data && res.data.success) {
+          // Populate available years dynamically if provided
+          if (res.data.available_years && yearEl) {
+            const curY = yearEl.value;
+            const existingY = new Set(Array.from(yearEl.options).map(o => o.value));
+            res.data.available_years.forEach(yr => {
+              if (!existingY.has(yr)) {
+                const opt = document.createElement("option");
+                opt.value = yr;
+                opt.textContent = yr;
+                yearEl.appendChild(opt);
+                existingY.add(yr);
+              }
+            });
+            yearEl.value = curY;
+          }
+
+          // Populate available states dynamically if provided
+          if (res.data.available_states && stateEl && stateEl.options.length <= 1) {
+            const curS = stateEl.value;
+            res.data.available_states.forEach(st => {
+              const opt = document.createElement("option");
+              opt.value = st;
+              opt.textContent = st;
+              stateEl.appendChild(opt);
+            });
+            stateEl.value = curS;
+          }
+
+          renderEmployeePerformanceTable(res.data.officers, state);
+        } else {
+          if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 1.5rem; color: #ef4444;">Failed to load employee performance matrix: ${(res.data && res.data.message) || 'Unknown error'}</td></tr>`;
+          }
+        }
+      } catch (err) {
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 1.5rem; color: #ef4444;">Error evaluating performance: ${err.message}</td></tr>`;
+        }
+      }
+    }
+
+    function resetPerformanceFilters() {
+      const yearEl = document.getElementById("perf-filter-year");
+      const monthEl = document.getElementById("perf-filter-month");
+      const stateEl = document.getElementById("perf-filter-state");
+      if (yearEl) yearEl.value = "ALL";
+      if (monthEl) monthEl.value = "ALL";
+      if (stateEl) stateEl.value = "ALL";
+      loadEmployeePerformance();
+    }
+
+    function safeEscapePerf(str) {
+      if (str === null || str === undefined) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function renderEmployeePerformanceTable(officers, selectedState) {
+      const tbody = document.getElementById("employee-performance-tbody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (!officers || officers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">No officers found matching the selected filters.</td></tr>`;
+        return;
+      }
+
+      officers.forEach((off, idx) => {
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid #e2e8f0";
+
+        let rankBadge = `<span style="font-weight: 700; color: var(--text-muted); font-size: 0.9rem;">#${off.rank || (idx + 1)}</span>`;
+        if (off.rank === 1) rankBadge = `<span style="font-size: 1.3rem;" title="Rank 1 - Top Performer">🥇</span>`;
+        else if (off.rank === 2) rankBadge = `<span style="font-size: 1.25rem;" title="Rank 2">🥈</span>`;
+        else if (off.rank === 3) rankBadge = `<span style="font-size: 1.2rem;" title="Rank 3">🥉</span>`;
+
+        const starsNum = off.stars || 1;
+        const starDisplay = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <span style="color: #eab308; font-size: 1.15rem; letter-spacing: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${off.stars_display || '★☆☆☆☆'}</span>
+            <span style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-top: 2px;">${off.rating_label || (starsNum + '.0 / 5.0')}</span>
+          </div>
+        `;
+
+        const coversState = off.covers_selected_state !== undefined ? off.covers_selected_state : true;
+        const stateHighlightStyle = (selectedState && selectedState !== "ALL" && coversState)
+          ? "background: #f0fdf4; font-weight: 600;"
+          : "";
+
+        tr.innerHTML = `
+          <td style="padding: 0.75rem 0.5rem; text-align: center; vertical-align: middle;">${rankBadge}</td>
+          <td style="padding: 0.75rem; vertical-align: middle;">
+            <div style="font-weight: 700; color: var(--text); font-size: 0.88rem;">${safeEscapePerf(off.full_name || off.emp_id)}</div>
+            <div style="display: flex; gap: 0.4rem; align-items: center; margin-top: 3px;">
+              <span class="badge-tag" style="background: var(--primary); color: #fff; font-size: 0.65rem; padding: 2px 6px;">${safeEscapePerf(off.emp_id)}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${safeEscapePerf(off.zone || '')} Zone</span>
+            </div>
+          </td>
+          <td style="padding: 0.75rem; font-size: 0.78rem; color: #475569; max-width: 180px; vertical-align: middle; ${stateHighlightStyle}">
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeEscapePerf(off.assigned_states || '')}">
+              ${safeEscapePerf(off.assigned_states || 'All India')}
+            </div>
+            ${(selectedState && selectedState !== "ALL" && coversState) ? '<span style="display: inline-block; font-size: 0.68rem; color: #166534; margin-top: 2px;">✓ In Jurisdiction</span>' : ''}
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.95rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 12px;">
+              ${off.clubs_approved || 0}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #6b21a8; background: #f3e8ff; padding: 2px 8px; border-radius: 12px;">
+              ${off.online_training || 0}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #c2410c; background: #ffedd5; padding: 2px 8px; border-radius: 12px;">
+              ${off.offline_training || 0}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 0.88rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px;" title="Phone Call & Remote + OS Ticket">
+              ${off.other_supports || 0}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <span style="display: inline-block; font-size: 1rem; font-weight: 800; color: var(--primary); background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 10px; border-radius: 14px;">
+              ${(off.weighted_score !== undefined ? off.weighted_score.toFixed(2) : '0.00')}
+            </span>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            ${starDisplay}
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 

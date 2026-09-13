@@ -1,2 +1,2 @@
 club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date
-NDLI-MH-103,REG-2024-MH-003,College of Engineering Pune (COEP),Maharashtra,West,director@coeptech.ac.in,club.head@coeptech.ac.in,club.sec@coeptech.ac.in,2025-11-20T11:00:00Z,,2026-11-20,Approved,EMP03,2026-09-13T14:25:16.289829+00:00,2025-11-20T11:00:00Z,2026-11-20
+NDLI-MH-103,REG-2024-MH-003,College of Engineering Pune (COEP),Maharashtra,West,director@coeptech.ac.in,club.head@coeptech.ac.in,club.sec@coeptech.ac.in,2025-11-20T11:00:00Z,,2026-11-20,Approved,EMP03,2026-09-13T14:51:02.120604+00:00,2025-11-20T11:00:00Z,2026-11-20

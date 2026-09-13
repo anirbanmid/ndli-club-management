@@ -1,3 +1,3 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP06-1789309516693,EMP06,2026-09-13T14:25:16.655315+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
-ACT-EMP06-1789309517776,EMP06,2026-09-13T14:25:17.776958+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus
+ACT-PRIORITY-EMP06-1789311063231,EMP06,2026-09-13T14:51:02.797468+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)
+ACT-EMP06-1789311063678,EMP06,2026-09-13T14:51:03.678385+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus

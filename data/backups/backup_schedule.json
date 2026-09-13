@@ -1,12 +1,12 @@
 {
-  "last_backup_time": "2026-09-13T14:24:31.425410+00:00",
-  "last_backup_id": "backup_20260913_142431_425410",
-  "next_backup_due": "2026-09-20T14:24:31.425410+00:00",
+  "last_backup_time": "2026-09-13T14:50:30.931378+00:00",
+  "last_backup_id": "backup_20260913_145030_931378",
+  "next_backup_due": "2026-09-20T14:50:30.931378+00:00",
   "interval_days": 7,
   "max_retained_backups": 2,
   "retained_backups": [
-    "backup_20260913_142431_425410",
-    "backup_20260913_142430_062604"
+    "backup_20260913_145030_931378",
+    "backup_20260913_145030_341812"
   ],
   "deleted_previous_backups": []
 }

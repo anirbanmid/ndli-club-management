@@ -1274,6 +1274,233 @@ function apiDispatcher(path, method, body, token) {
       return { ok: true, status: 200, data: metricsData };
     }
 
+    // --- ADMIN: EMPLOYEE PERFORMANCE EVALUATION & STAR RATING MATRIX ---
+    if (path === "admin/employee-performance") {
+      var rawYear = String(body.year || "ALL").trim();
+      var rawMonth = String(body.month || "ALL").trim();
+      var rawState = String(body.state || body.states || "ALL").trim();
+
+      var filterYear = (rawYear.toUpperCase() !== "ALL" && rawYear) ? rawYear : "ALL";
+      var filterMonth = (rawMonth.toUpperCase() !== "ALL" && rawMonth) ? rawMonth : "ALL";
+      var filterState = (rawState.toUpperCase() !== "ALL" && rawState) ? rawState : "ALL";
+
+      var monthMap = {
+        "january": 1, "jan": 1, "01": 1, "1": 1,
+        "february": 2, "feb": 2, "02": 2, "2": 2,
+        "march": 3, "mar": 3, "03": 3, "3": 3,
+        "april": 4, "apr": 4, "04": 4, "4": 4,
+        "may": 5, "05": 5, "5": 5,
+        "june": 6, "jun": 6, "06": 6, "6": 6,
+        "july": 7, "jul": 7, "07": 7, "7": 7,
+        "august": 8, "aug": 8, "08": 8, "8": 8,
+        "september": 9, "sep": 9, "sept": 9, "09": 9, "9": 9,
+        "october": 10, "oct": 10, "10": 10,
+        "november": 11, "nov": 11, "11": 11,
+        "december": 12, "dec": 12, "12": 12
+      };
+      var targetMonthNum = (filterMonth !== "ALL") ? (monthMap[filterMonth.toLowerCase()] || null) : null;
+
+      var allUsers = getCsvData("master", "master_users.csv").rows;
+      var allClubs = getCsvData("master", "master_clubs.csv").rows;
+      var allActivities = getCsvData("master", "master_activities.csv").rows;
+
+      // Build club lookup for activity state resolution
+      var clubLookup = {};
+      for (var ci = 0; ci < allClubs.length; ci++) {
+        var clb = allClubs[ci];
+        if (clb.club_id) clubLookup[String(clb.club_id).trim().toUpperCase()] = clb;
+      }
+
+      // Discover available years
+      var availableYearsSet = { "2026": true, "2025": true, "2024": true };
+      function parseDateObj(ts) {
+        if (!ts) return null;
+        var cleanTs = String(ts).trim();
+        var d = new Date(cleanTs);
+        if (!isNaN(d.getTime())) return d;
+        var parts = cleanTs.split("T")[0].split(" ")[0].split("-");
+        if (parts.length === 3) {
+          var year = parseInt(parts[0], 10);
+          var month = parseInt(parts[1], 10) - 1;
+          var day = parseInt(parts[2], 10);
+          var d2 = new Date(year, month, day);
+          if (!isNaN(d2.getTime())) return d2;
+        }
+        return null;
+      }
+
+      for (var cy = 0; cy < allClubs.length; cy++) {
+        var cTs = allClubs[cy].date_of_approval || allClubs[cy].submission_timestamp || allClubs[cy].updated_at || "";
+        var d = parseDateObj(cTs);
+        if (d) availableYearsSet[String(d.getFullYear())] = true;
+      }
+      for (var ay = 0; ay < allActivities.length; ay++) {
+        var aTs = allActivities[ay].timestamp || allActivities[ay].submission_timestamp || allActivities[ay].created_at || "";
+        var d = parseDateObj(aTs);
+        if (d) availableYearsSet[String(d.getFullYear())] = true;
+      }
+      var availableYears = Object.keys(availableYearsSet).sort().reverse();
+
+      var officers = [];
+      for (var ui = 0; ui < allUsers.length; ui++) {
+        if (allUsers[ui].role === "EMPLOYEE") officers.push(allUsers[ui]);
+      }
+
+      var evaluations = [];
+      for (var oi = 0; oi < officers.length; oi++) {
+        var u = officers[oi];
+        var empId = String(u.id || "").trim().toUpperCase();
+        var empName = u.full_name || u.name || empId;
+        var empZone = u.zone || "Other";
+        var assignedStatesStr = u.assigned_states || "";
+        var assignedStatesList = assignedStatesStr.split(",").map(function(s) { return s.trim().toLowerCase(); }).filter(function(s) { return s.length > 0; });
+
+        var coversState = (filterState === "ALL") || (assignedStatesList.indexOf(filterState.toLowerCase()) !== -1);
+
+        // 1. Clubs Approved (50% weightage)
+        var clubsApproved = 0;
+        for (var cj = 0; cj < allClubs.length; cj++) {
+          var c = allClubs[cj];
+          var cEmp = String(c.approved_by_emp_id || "").trim().toUpperCase();
+          if (!cEmp) {
+            var cZn = String(c.zone || "").trim() || getZoneForState(c.state || "");
+            if (cZn === empZone) cEmp = empId;
+          }
+          if (cEmp !== empId) continue;
+
+          var cState = String(c.state || "").trim();
+          if (filterState !== "ALL" && cState.toLowerCase() !== filterState.toLowerCase()) continue;
+
+          var ts = c.date_of_approval || c.submission_timestamp || c.updated_at || "";
+          var dp = parseDateObj(ts);
+          if (filterYear !== "ALL") {
+            if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+          }
+          if (targetMonthNum !== null) {
+            if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+          }
+          clubsApproved++;
+        }
+
+        // 2. Activities: Online Training (10%), Offline Training (20%), Other Supports (30%)
+        var onlineTraining = 0;
+        var offlineTraining = 0;
+        var otherSupports = 0;
+
+        for (var aj = 0; aj < allActivities.length; aj++) {
+          var a = allActivities[aj];
+          var aEmp = String(a.emp_id || "").trim().toUpperCase();
+          if (aEmp !== empId) continue;
+
+          if (filterState !== "ALL") {
+            var cid = String(a.club_id || "").trim().toUpperCase();
+            var refClub = clubLookup[cid];
+            var actState = refClub ? String(refClub.state || "").trim() : "";
+            if (actState) {
+              if (actState.toLowerCase() !== filterState.toLowerCase()) continue;
+            } else {
+              if (!coversState) continue;
+            }
+          }
+
+          var ts = a.timestamp || a.submission_timestamp || a.created_at || "";
+          var dp = parseDateObj(ts);
+          if (filterYear !== "ALL") {
+            if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+          }
+          if (targetMonthNum !== null) {
+            if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+          }
+
+          var stype = String(a.support_type || "").trim();
+          if (stype === "Online training") {
+            onlineTraining++;
+          } else if (stype === "Offline training") {
+            offlineTraining++;
+          } else if (stype === "Phone call and remote assistance" || stype === "Closing of OS Ticket") {
+            otherSupports++;
+          }
+        }
+
+        // 3. Weighted score: 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
+        var weightedScore = Math.round(((0.50 * clubsApproved) + (0.30 * otherSupports) + (0.20 * offlineTraining) + (0.10 * onlineTraining)) * 100) / 100;
+
+        evaluations.push({
+          emp_id: empId,
+          full_name: empName,
+          zone: empZone,
+          assigned_states: assignedStatesStr,
+          clubs_approved: clubsApproved,
+          online_training: onlineTraining,
+          offline_training: offlineTraining,
+          other_supports: otherSupports,
+          total_activities: onlineTraining + offlineTraining + otherSupports,
+          weighted_score: weightedScore,
+          covers_selected_state: coversState
+        });
+      }
+
+      // Sort descending by weighted_score, then clubs_approved, then total_activities
+      evaluations.sort(function(a, b) {
+        if (b.weighted_score !== a.weighted_score) return b.weighted_score - a.weighted_score;
+        if (b.clubs_approved !== a.clubs_approved) return b.clubs_approved - a.clubs_approved;
+        return b.total_activities - a.total_activities;
+      });
+
+      // Max score & Star Rating calculation
+      var maxScore = 0;
+      for (var mi = 0; mi < evaluations.length; mi++) {
+        if (evaluations[mi].weighted_score > maxScore) maxScore = evaluations[mi].weighted_score;
+      }
+
+      for (var ri = 0; ri < evaluations.length; ri++) {
+        var ev = evaluations[ri];
+        ev.rank = ri + 1;
+        var stars = 1;
+        if (maxScore > 0 && ev.weighted_score > 0) {
+          var ratio = ev.weighted_score / maxScore;
+          if (ratio >= 0.80) stars = 5;
+          else if (ratio >= 0.60) stars = 4;
+          else if (ratio >= 0.40) stars = 3;
+          else if (ratio >= 0.20) stars = 2;
+          else stars = 1;
+        }
+        ev.stars = stars;
+        var sStr = "";
+        for (var s1 = 0; s1 < stars; s1++) sStr += "★";
+        for (var s2 = 0; s2 < (5 - stars); s2++) sStr += "☆";
+        ev.stars_display = sStr;
+        ev.rating_label = stars + ".0 / 5.0";
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          filters: {
+            year: filterYear,
+            month: filterMonth,
+            state: filterState
+          },
+          available_years: availableYears,
+          available_states: ALL_INDIAN_STATES,
+          weightage: {
+            club_approval_pct: 50,
+            other_supports_pct: 30,
+            offline_training_pct: 20,
+            online_training_pct: 10
+          },
+          summary: {
+            total_officers: evaluations.length,
+            max_score: maxScore,
+            top_officer: evaluations.length > 0 ? evaluations[0] : null
+          },
+          officers: evaluations
+        }
+      };
+    }
+
     // --- ADMIN: RENEWAL ATTENTION CLUBS ---
     if (path === "admin/renewal-attention") {
       var clubs = getCsvData("master", "master_clubs.csv").rows;
