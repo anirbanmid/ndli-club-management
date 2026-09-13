@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ndli-club-management
+    env: python
+    buildCommand: ""
+    startCommand: python app.py
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: NDLI_HOST
+        value: 0.0.0.0
+      - key: NDLI_STORAGE_MODE
+        value: APPS_SCRIPT_RELAY
+      - key: NDLI_APPS_SCRIPT_SYNC_URL
+        value: https://script.google.com/macros/s/AKfycbyyBeTLzjrA018d79S1yvgCDduGtyLlG95oJ5BgThV-bU2GUcoQWudYiBkOL_LADDo3/exec

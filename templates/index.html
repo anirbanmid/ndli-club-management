@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Dr. Anirban Mukherjee">
+  <title>NDLI Club Management System | IIT Kharagpur</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .hero-banner {
+      background: var(--gradient-nav);
+      color: #ffffff;
+      padding: 3rem 1.75rem;
+      border-radius: var(--radius-xl);
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-banner h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+    .hero-banner p {
+      font-size: 1.05rem;
+      max-width: 800px;
+      color: #d1e4dc;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .portal-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .portal-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-light);
+    }
+    .admin-master-card {
+      border-top: 5px solid var(--primary);
+      background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+    }
+    .employee-node-card {
+      border-top: 5px solid var(--primary-light);
+    }
+    .drive-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: rgba(16, 49, 37, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.45rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 0.5rem;
+      backdrop-filter: blur(4px);
+    }
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      background: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #34d399;
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <div class="brand-logo-card">
+          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>NDLI Club Management System</h1>
+          <p>Central Administration & Regional Operations • IIT Kharagpur</p>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="/admin" class="nav-link"><span class="badge-tag" style="background: var(--primary-light);">Admin</span> Master Office</a>
+        <a href="/login" class="nav-link"><span class="badge-tag" style="background: var(--primary);">🔐 Login</span> Employee Login</a>
+        <a href="/employee" class="nav-link">Employee Portal</a>
+        <a href="/api/health" target="_blank" class="nav-link">REST API Status</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero-banner">
+      <div style="margin-bottom: 1.25rem; display: inline-flex; background: #ffffff; padding: 6px 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);">
+        <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 48px; width: auto; object-fit: contain;">
+      </div>
+      <span class="badge-tag" style="background: var(--primary-light); margin-bottom: 0.75rem; font-size: 0.75rem; padding: 0.25rem 0.75rem;">National Operational Platform</span>
+      <h2>NDLI Club Management System</h2>
+      <p>Integrated Web Portal & Node Synchronization Architecture connecting IIT Kharagpur Central Master Administration with 7 Regional Operational Zones across India.</p>
+      <div style="margin: 0.75rem 0;">
+        <a href="/login" class="btn btn-accent btn-lg" style="box-shadow: 0 4px 16px rgba(13, 119, 81, 0.4);">
+          🔐 Employee Sign-In (User ID & Password) →
+        </a>
+      </div>
+      <div class="drive-status-badge">
+        <span class="pulse-dot"></span>
+        <span id="drive-mode-label">Drive Storage: LOCAL_SYNC / Google Drive Mirror</span>
+        <span>•</span>
+        <span id="nodes-count-label">7 Regional Nodes Synced</span>
+      </div>
+    </section>
+
+    <!-- Master Admin Card -->
+    <section style="margin-bottom: 2rem;">
+      <div class="portal-card admin-master-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span class="pill pill-warning" style="margin-bottom: 0.5rem;">IIT Kharagpur HQ</span>
+            <h3 style="font-size: 1.4rem; color: var(--primary); font-weight: 700;">Admin Master Control Center</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 700px; margin-top: 0.25rem;">
+              Central oversight office for all NDLI clubs across India. Features interactive infographics, team/individual performance metrics, AI strategic decision engine, and one-click employee provisioning & access control.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="/admin" class="btn btn-accent btn-lg">Launch Master Admin UI →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 Employee Interfaces Across India -->
+    <section>
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">7 Regional Employee Portals</h3>
+          <p class="card-subtitle">Dedicated portals for 7 zonal nodal officers. Employees log in with User ID (e.g. EMP01) and password to manage activity logs, club approvals, and renewals.</p>
+        </div>
+        <a href="/login" class="btn btn-primary btn-sm">🔐 Regional Officer Sign-In</a>
+      </div>
+
+      <div class="grid-3" id="employee-portals-grid">
+        <!-- EMP01 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP01</span>
+              <span class="pill pill-success">North Zone</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Rohan Sharma</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Delhi, UP, Punjab, Haryana, J&K, Ladakh, Uttarakhand, HP, Chandigarh
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp01/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP01" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP01 (North Zone) →</a>
+          </div>
+        </div>
+
+        <!-- EMP02 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP02</span>
+              <span class="pill pill-success">Central Zone</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Pooja Verma</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Madhya Pradesh, Chhattisgarh
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp02/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP02" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP02 (Central Zone) →</a>
+          </div>
+        </div>
+
+        <!-- EMP03 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP03</span>
+              <span class="pill pill-success">West Zone</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Amit Patel</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Rajasthan, Gujarat, Maharashtra, Goa, Daman & Diu, Dadar & Nagar Haveli
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp03/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP03" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP03 (West Zone) →</a>
+          </div>
+        </div>
+
+        <!-- EMP04 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP04</span>
+              <span class="pill pill-success">East Zone</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Debabrata Ghosh</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Bihar, Jharkhand, West Bengal, Odisha
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp04/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP04" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP04 (East Zone) →</a>
+          </div>
+        </div>
+
+        <!-- EMP05 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP05</span>
+              <span class="pill pill-success">North East Zone</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Mayanglambam Singh</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp05/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP05" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP05 (North East) →</a>
+          </div>
+        </div>
+
+        <!-- EMP06 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP06</span>
+              <span class="pill pill-success">South Zone 1</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">K. Venkatesh</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Andhra Pradesh, Telangana, Karnataka
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp06/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP06" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP06 (South Zone 1) →</a>
+          </div>
+        </div>
+
+        <!-- EMP07 -->
+        <div class="portal-card employee-node-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-primary">EMP07</span>
+              <span class="pill pill-success">South Zone 2</span>
+            </div>
+            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Ananya Nair</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+              <strong>States:</strong> Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep
+            </p>
+            <p style="font-size: 0.78rem; color: #475569;">
+              Node DB: <code>data/employees/emp07/</code>
+            </p>
+          </div>
+          <div style="margin-top: 1.25rem;">
+            <a href="/employee/EMP07" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP07 (South Zone 2) →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
+  <footer class="system-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-card">
+          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
+        </div>
+        <div class="footer-meta">
+          <div class="footer-title">National Digital Library of India Club Management System</div>
+          <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones</div>
+        </div>
+      </div>
+      <div class="footer-credit-box">
+        <span class="dev-role">Lead System Architect & Full-Stack Developer</span>
+        <span class="dev-name">Dr. Anirban Mukherjee</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    // Live health fetch
+    async function loadStatus() {
+      try {
+        const res = await fetch("/api/sync/status");
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById("drive-mode-label").innerText = "Drive Storage: " + data.storage_mode;
+          document.getElementById("nodes-count-label").innerText = "Master Clubs: " + data.master_clubs_count + " | Activities: " + data.master_activities_count;
+        }
+      } catch (e) {
+        console.warn("Status check:", e);
+      }
+    }
+    loadStatus();
+  </script>
+</body>
+</html>
