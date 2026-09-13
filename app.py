@@ -163,8 +163,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
-        # Static assets serving
-        if path.startswith("/static/"):
+        # Static assets serving (static/ and docs/)
+        if path.startswith("/static/") or path.startswith("/docs/"):
             rel_path = path.lstrip("/")
             file_path = BASE_DIR / rel_path
             content_type = "application/octet-stream"
@@ -182,12 +182,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 content_type = "image/jpeg"
             elif path.endswith(".json"):
                 content_type = "application/json; charset=utf-8"
+            elif path.endswith(".pdf"):
+                content_type = "application/pdf"
             self._serve_file(file_path, content_type)
             return
 
         # HTML Portal Routes
         if path in ["/portal", "/index.html"]:
             self._serve_file(BASE_DIR / "templates" / "index.html")
+            return
+
+        if path in ["/manual", "/user-manual", "/documentation", "/user_manual", "/manual/view"]:
+            self._serve_file(BASE_DIR / "docs" / "user_manual.html", "text/html; charset=utf-8")
             return
 
         if path == "/admin":
@@ -239,6 +245,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "POST /api/admin/employees/status",
                     "GET  /api/employees/roster",
                     "GET  /api/employees/profile?id=<emp_id>",
+                    "GET  /manual",
+                    "GET  /manual.pdf",
                     "GET  /api/download/user-manual",
                     "GET  /api/download/promo-video",
                     "GET  /promo-video",
@@ -953,6 +961,10 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 alt_path = BASE_DIR / "docs" / "NDLI_Club_Management_User_Manual.pdf"
                 if alt_path.exists():
                     user_manual_file = alt_path
+                else:
+                    alt_static = BASE_DIR / "static" / "NDLI_Club_Management_User_Manual.pdf"
+                    if alt_static.exists():
+                        user_manual_file = alt_static
 
             if not user_manual_file.exists():
                 self._send_error("User Manual PDF not found. Please compile it first.", status=404)

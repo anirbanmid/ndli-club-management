@@ -1,11 +1,11 @@
 activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes
-ACT-PRIORITY-EMP01-1789322026755,EMP01,2026-09-13T17:53:46.726434+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
-ACT-PRIORITY-EMP01-1789322026935,EMP01,2026-09-13T17:53:46.894264+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
-ACT-EMP01-1789322027619,EMP01,2026-09-13T17:53:47.619196+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
-ACT-EMP01-1789322027673,EMP01,2026-09-13T17:53:47.673098+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
-ACT-EMP01-1789322028587,EMP01,2026-09-13T17:53:48.587896+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved
-ACT-EMP01-1789322028901-1,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]
-ACT-EMP01-1789322028901-2,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]
-ACT-EMP01-1789322028901-3,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]
-ACT-EMP01-1789322028901-4,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]
-ACT-EMP01-1789322028901-5,EMP01,2026-09-13T17:53:48.901102+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]
+ACT-PRIORITY-EMP01-1789331489162,EMP01,2026-09-13T20:31:29.133636+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)
+ACT-PRIORITY-EMP01-1789331489349,EMP01,2026-09-13T20:31:29.309227+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)
+ACT-EMP01-1789331489874,EMP01,2026-09-13T20:31:29.874646+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal
+ACT-EMP01-1789331489937,EMP01,2026-09-13T20:31:29.937213+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved
+ACT-EMP01-1789331490765,EMP01,2026-09-13T20:31:30.765489+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved
+ACT-EMP01-1789331490983-1,EMP01,2026-09-13T20:31:30.983443+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]
+ACT-EMP01-1789331490983-2,EMP01,2026-09-13T20:31:30.983443+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]
+ACT-EMP01-1789331490983-3,EMP01,2026-09-13T20:31:30.983443+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]
+ACT-EMP01-1789331490983-4,EMP01,2026-09-13T20:31:30.983443+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]
+ACT-EMP01-1789331490983-5,EMP01,2026-09-13T20:31:30.983443+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]

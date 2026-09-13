@@ -101,6 +101,7 @@
         <a href="/login" class="nav-link"><span class="badge-tag" style="background:var(--primary-light);">🔐 Login</span> Employee Login</a>
         <a href="/employee" class="nav-link">Employee Portals</a>
         <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span class="badge-tag" style="background:#0D7751; color:#ffffff;">📖 Manual</span> User Manual</a>
+        <a href="/manual" class="nav-link" target="_blank" title="Read Interactive User Manual Online"><span class="badge-tag" style="background:#1A503E; color:#ffffff;">🌐 Read</span> Manual Online</a>
         <a href="/" class="nav-link">Main Portal</a>
       </div>
     </div>
@@ -719,6 +720,8 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
             <strong style="font-size: 0.9rem; color: var(--text);">Retained Backup Archives (Max 2):</strong>
             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <a href="/api/download/user-manual" class="btn btn-outline btn-sm" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;" title="Download Official User Manual (PDF)"><span>📖</span> Manual (PDF)</a>
+              <a href="/manual" class="btn btn-outline btn-sm" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;" title="Read User Manual Online"><span>🌐</span> Read Online</a>
               <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
               <button class="btn btn-danger btn-sm" onclick="openEmergencyRestoreModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;"><span>↺</span> One-Click Restore Database</button>
             </div>
