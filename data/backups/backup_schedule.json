@@ -1,0 +1,12 @@
+{
+  "last_backup_time": "2026-09-13T13:19:05.262950+00:00",
+  "last_backup_id": "backup_20260913_131905_262950",
+  "next_backup_due": "2026-09-20T13:19:05.262950+00:00",
+  "interval_days": 7,
+  "max_retained_backups": 2,
+  "retained_backups": [
+    "backup_20260913_131905_262950",
+    "backup_20260913_131904_396943"
+  ],
+  "deleted_previous_backups": []
+}

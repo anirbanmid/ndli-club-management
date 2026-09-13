@@ -1,0 +1,2875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Dr. Anirban Mukherjee">
+  <title>NDLI Club IIT Kharagpur — Central Administration Office</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .ai-card {
+      background: linear-gradient(135deg, #103125 0%, #1A503E 60%, #0c2018 100%);
+      color: #ffffff;
+      border: 1px solid rgba(13, 119, 81, 0.45);
+      border-radius: var(--radius-lg);
+      padding: 1.6rem;
+      margin-bottom: 1.6rem;
+      box-shadow: var(--shadow);
+    }
+    .ai-rec-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 0.85rem;
+      transition: background 0.2s;
+    }
+    .ai-rec-box:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.15rem;
+      margin-bottom: 1.6rem;
+    }
+    .chart-container {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.35rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-bar {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      background: #ffffff;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 1.35rem;
+      box-shadow: var(--shadow-xs);
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <div class="brand-logo-card">
+          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>NDLI Club IIT Kharagpur — Central Administration Office</h1>
+          <p>NDLI Club Master Control & Strategic Decision System</p>
+        </div>
+      </a>
+      <div class="nav-links">
+        <span class="badge-tag" id="nav-admin-badge" style="background:#be123c;">ADMIN LOCKED 🔒</span>
+        <span id="nav-admin-user" style="font-size: 0.85rem; color: #cbd5e1;">Access Restricted</span>
+        <button id="nav-admin-auth-btn" class="btn btn-sm btn-accent" style="color:#ffffff; padding:0.25rem 0.65rem; font-size:0.78rem;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
+        <a href="/login" class="nav-link"><span class="badge-tag" style="background:var(--primary-light);">🔐 Login</span> Employee Login</a>
+        <a href="/employee" class="nav-link">Employee Portals</a>
+        <a href="/" class="nav-link">Main Portal</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Top KPIs -->
+    <div class="kpi-row">
+      <div class="stat-card">
+        <span class="stat-label">Total NDLI Clubs</span>
+        <span class="stat-value" id="kpi-clubs">0</span>
+        <span class="stat-desc">Across all 36 States & UTs</span>
+      </div>
+      <div class="stat-card accent">
+        <span class="stat-label">Total Daily Support Logs</span>
+        <span class="stat-value" id="kpi-activities">0</span>
+        <span class="stat-desc">Real-time sync from 7 zones</span>
+      </div>
+      <div class="stat-card success">
+        <span class="stat-label">Active Regional Nodes</span>
+        <span class="stat-value" id="kpi-nodes">7</span>
+        <span class="stat-desc">Dedicated CSV Node DBs</span>
+      </div>
+      <div class="stat-card danger" id="card-renewal-attention" onclick="openRenewalAttentionModal()" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="stat-label">Renewal Attention</span>
+          <span style="font-size: 0.72rem; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
+        </div>
+        <span class="stat-value" id="kpi-renewals">0</span>
+        <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
+      </div>
+      <div class="stat-card danger" id="card-admin-escalations" onclick="openAdminEscalationsListModal()" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
+          <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: #ffffff; background: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
+        </div>
+        <span class="stat-value" id="kpi-admin-escalations" style="color: #dc2626;">0</span>
+        <span class="stat-desc" id="kpi-admin-escalations-desc">Unresolved 30+ days (Click to inspect)</span>
+      </div>
+    </div>
+
+    <!-- Global Alert -->
+    <div id="admin-alert"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-target="tab-dashboard">Performance Dashboard & Infographics</button>
+      <button class="tab-btn" data-target="tab-ai">AI Decision & Strategic Roadmap</button>
+      <button class="tab-btn" data-target="tab-employees" id="tab-btn-employees">Employee Management (Add / Edit / Block)</button>
+      <button class="tab-btn" data-target="tab-sync">Google Drive & Node Sync Health</button>
+    </div>
+
+    <!-- TAB 1: PERFORMANCE DASHBOARD & INFOGRAPHICS -->
+    <div class="tab-panel active" id="tab-dashboard">
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🔍</span> Analytics & Geographic Scope:
+        </div>
+        <div>
+          <label style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Zone</label>
+          <select id="filter-zone" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+            <option value="ALL">All Operational Zones (6)</option>
+            <option value="North">North Zone</option>
+            <option value="Central">Central Zone</option>
+            <option value="West">West Zone</option>
+            <option value="East">East Zone</option>
+            <option value="North East">North East Zone</option>
+            <option value="South">South Zone</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Year</label>
+          <select id="filter-year" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+            <option value="ALL">All Inception Years</option>
+            <option value="2026">2026 (Current Cycle)</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-outline btn-sm" onclick="loadDashboardData()">Refresh Metrics ↻</button>
+          <button class="btn btn-primary btn-sm" id="btn-download-master-csv" onclick="downloadMasterCSV()" title="Download master_clubs.csv database copy" style="background: #0D7751; color: #ffffff; font-weight: 600;">Download Master CSV</button>
+        </div>
+      </div>
+
+      <!-- 30+ DAYS UNRESOLVED CLUB ISSUES ESCALATION REMINDERS (FEATURE 5) -->
+      <div id="admin-issues-escalation-container" style="margin-bottom: 1.5rem;"></div>
+
+      <!-- 1. DETAILED STATISTICAL ANALYTICS HIGHLIGHT METRICS (4 CARDS) -->
+      <div class="kpi-row" style="margin-bottom: 1.75rem;">
+        <!-- Coverage Ratio Card -->
+        <div class="stat-card" id="card-coverage-index">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="stat-label">National State Coverage</span>
+            <span class="pill pill-primary" id="badge-coverage-ratio" style="font-size: 0.72rem;">0 / 36</span>
+          </div>
+          <span class="stat-value" id="stat-coverage-pct">0%</span>
+          <span class="stat-desc" id="stat-coverage-desc">States with active club presence</span>
+        </div>
+
+        <!-- Renewal Retention Card -->
+        <div class="stat-card accent" id="card-retention-rate">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="stat-label">Club Retention Rate</span>
+            <span class="pill pill-success" style="font-size: 0.72rem;">Active Cycle</span>
+          </div>
+          <span class="stat-value" id="stat-retention-rate">100%</span>
+          <span class="stat-desc" id="stat-retention-desc">Clubs with active valid registration</span>
+        </div>
+
+        <!-- Activity Support Density Card -->
+        <div class="stat-card success" id="card-support-density">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="stat-label">Support Density Ratio</span>
+            <span class="pill pill-primary" style="font-size: 0.72rem;">Logs / Club</span>
+          </div>
+          <span class="stat-value" id="stat-support-ratio">0.0</span>
+          <span class="stat-desc">Average support logs per approved club</span>
+        </div>
+
+        <!-- Zone Efficiency Leader Card -->
+        <div class="stat-card warning" id="card-zone-leader">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="stat-label">Leading Regional Zone</span>
+            <span class="badge-tag" style="background: var(--primary);">Top Volume</span>
+          </div>
+          <span class="stat-value" id="stat-zone-leader" style="font-size: 1.55rem; margin-top: 0.5rem; margin-bottom: 0.2rem;">-</span>
+          <span class="stat-desc" id="stat-zone-leader-desc">Highest regional club density</span>
+        </div>
+      </div>
+
+
+      <!-- 3. STRATEGIC MODERN INFOGRAPHICS GRID (2x2) -->
+      <div class="grid-2">
+        <!-- Zone Distribution Donut Chart Card -->
+        <div class="infographic-card" id="zone-donut-card">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <div>
+              <h3 class="card-title">Zone-Wise Club Share</h3>
+              <p class="card-subtitle">Proportional distribution across 6 operational zonal commands</p>
+            </div>
+            <span class="pill pill-primary">Donut Infographic</span>
+          </div>
+          <div class="donut-chart-container" id="zone-donut-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Registration Growth Trajectory Area Chart Card -->
+        <div class="infographic-card" id="trajectory-card">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <div>
+              <h3 class="card-title">Monthly Registration Trajectory</h3>
+              <p class="card-subtitle">Momentum curve and velocity of new NDLI club approvals</p>
+            </div>
+            <span class="pill pill-success">Growth Curve</span>
+          </div>
+          <div class="trajectory-svg-container" id="trajectory-svg-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SUPPORT ACTIVITY BREAKDOWN & RENEWAL HEALTH INFOGRAPHICS -->
+      <div class="grid-2" style="margin-top: 1.5rem;">
+        <!-- Support Activity Types Breakdown -->
+        <div class="infographic-card" id="support-breakdown-card">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <div>
+              <h3 class="card-title">SEC A: Support Activity Breakdown</h3>
+              <p class="card-subtitle">Volume distribution across the 4 official operational support categories</p>
+            </div>
+            <span class="pill pill-primary">SEC A Metrics</span>
+          </div>
+          <div class="support-split-grid" id="support-split-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Renewal & Retention Health Gauge -->
+        <div class="infographic-card" id="renewal-health-card">
+          <div class="card-header" style="margin-bottom: 0.5rem;">
+            <div>
+              <h3 class="card-title">Club Renewal & Retention Health</h3>
+              <p class="card-subtitle">1-Year Registration lifecycle status and attention tracking</p>
+            </div>
+            <span class="pill pill-highlight-amber" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="openRenewalAttentionModal()">
+              ⚡ Attention Center
+            </span>
+          </div>
+          <div class="retention-gauge-wrapper" id="retention-gauge-container">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. FILTERABLE STATE BREAKDOWN & EMPLOYEE PERFORMANCE -->
+      <div class="grid-2" style="margin-top: 1.5rem;">
+        <!-- State-Wise Breakdown Table -->
+        <div class="chart-container" id="state-breakdown-container">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">National State-Wise Penetration & Density Roster</h3>
+              <p class="card-subtitle">All 36+ Indian States and Union Territories with color-gradient density indicators</p>
+            </div>
+            <span class="pill pill-primary" id="table-filter-badge" style="display: none;">Filtered View</span>
+          </div>
+          <div class="table-responsive" style="max-height: 420px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>State / Union Territory</th>
+                  <th>Zone</th>
+                  <th>Clubs</th>
+                  <th>Density & Share %</th>
+                  <th>Penetration Status</th>
+                </tr>
+              </thead>
+              <tbody id="state-breakdown-tbody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Individual Employee Quota Performance -->
+        <div class="chart-container">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Individual Employee Performance Leaderboard</h3>
+              <p class="card-subtitle">Priority Club Approvals vs Daily Support Logs across 7 Zonal Officers</p>
+            </div>
+            <span class="pill pill-success">Live Quotas</span>
+          </div>
+          <div id="employee-bars-container" style="padding: 0.5rem 0;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: AI DECISION & STRATEGIC ROADMAP -->
+    <div class="tab-panel" id="tab-ai">
+      <div class="ai-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <span class="badge-tag" style="background: #6366f1;">AI Decision Engine</span>
+            <h3 style="font-size: 1.35rem; font-weight: 700; margin-top: 0.35rem;">Strategic Roadmap & Policy Insights</h3>
+            <p style="color: #c7d2fe; font-size: 0.85rem;">
+              Automated analytical pipelines processing master records to formulate data-backed recommendations for IIT Kharagpur administration.
+            </p>
+          </div>
+          <button class="btn btn-accent btn-sm" onclick="loadAIDecisions()">Re-Analyze Data ↻</button>
+        </div>
+
+        <div id="ai-recommendations-list">
+          <p style="text-align: center; color: #c7d2fe; padding: 1.5rem;">Running neural decision heuristics across master CSV records...</p>
+        </div>
+      </div>
+
+      <!-- State Penetration Deficit Table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">State Penetration Deficit Analysis</h3>
+            <p class="card-subtitle">Identifies States and UTs needing immediate outreach campaigns</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Deficit Category</th>
+                <th>Count</th>
+                <th>Target States</th>
+                <th>Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody id="penetration-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: EMPLOYEE MANAGEMENT (ADD / EDIT / BLOCK) -->
+    <div class="tab-panel" id="tab-employees">
+      <!-- SECURITY GATE: ADMIN ID AND PASSWORD PROTECTION -->
+      <div id="admin-auth-gate" style="display: none; max-width: 560px; margin: 2rem auto;">
+        <div class="card" style="border-top: 5px solid var(--danger); box-shadow: var(--shadow-lg); padding: 2rem;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: #fee2e2; color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 0.75rem auto; border: 2px solid #fca5a5;">
+              🔒
+            </div>
+            <h3 style="font-size: 1.35rem; color: var(--primary); font-weight: 700;">Restricted Security Access: Employee Management</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Employee Management, Node Database Configuration, and Access Control are restricted. Only Central IIT Kharagpur Administrators with verified Admin ID and Password may access this section.
+            </p>
+          </div>
+
+          <div id="admin-gate-alert"></div>
+
+          <form id="admin-gate-form" onsubmit="handleAdminGateLogin(event)">
+            <div class="form-group">
+              <label for="admin-gate-id" class="label-required">Admin User ID or Registered Email</label>
+              <input type="text" id="admin-gate-id" required placeholder="e.g. ADMIN01 or admin@iitkgp.ac.in" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="admin-gate-pass" class="label-required">Admin Password</label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="admin-gate-pass" required placeholder="Enter master administration password" autocomplete="current-password" style="padding-right: 4.5rem;">
+                <button type="button" class="password-toggle-btn" onclick="toggleAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">IIT Kharagpur Central Coordination • Authorized Admin Personnel Only</span>
+            </div>
+
+            <button type="submit" id="btn-admin-unlock" class="btn btn-danger btn-lg" style="width: 100%; justify-content: center;">
+              <span>🔓</span> Verify Admin & Unlock Employee Management
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- UNLOCKED EMPLOYEE MANAGEMENT WORKSPACE (REQUIRES ADMIN ROLE) -->
+      <div id="admin-employee-content" style="display: none;">
+        <!-- Banner with Lock option -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="pill pill-success">● Admin Authenticated</span>
+            <span style="font-size: 0.85rem; color: #166534;">Verified access to Employee Roster, Node Provisioning, and Access Control.</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="lockAdminSection()" style="color: #166534; border-color: #86efac;">
+            🔒 Lock Section
+          </button>
+        </div>
+
+        <!-- Add New Employee Card -->
+        <div class="card" style="border-top: 4px solid var(--accent);">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Add New Employee (Single-Click Provisioning)</h3>
+              <p class="card-subtitle">Automatically generates new employee credentials, dedicated CSV node database, and regional interface.</p>
+            </div>
+            <span class="pill pill-warning">Admin Provisioning</span>
+          </div>
+
+          <form id="create-employee-form" onsubmit="handleCreateEmployee(event)">
+            <div class="grid-3">
+              <div class="form-group">
+                <label for="new-emp-id" class="label-required">Employee ID</label>
+                <input type="text" id="new-emp-id" required placeholder="e.g. EMP08">
+              </div>
+              <div class="form-group">
+                <label for="new-emp-name" class="label-required">Full Name</label>
+                <input type="text" id="new-emp-name" required placeholder="e.g. Ramesh Chandra">
+              </div>
+              <div class="form-group">
+                <label for="new-emp-email" class="label-required">Official Email (User ID)</label>
+                <input type="email" id="new-emp-email" required placeholder="e.g. emp.south3@ndli.edu.in">
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label for="new-emp-pass" class="label-required">Pre-Generated Password</label>
+                <input type="password" id="new-emp-pass" required placeholder="Min 8 characters">
+              </div>
+              <div class="form-group">
+                <label for="new-emp-zone" class="label-required">Regional Zone</label>
+                <select id="new-emp-zone" required>
+                  <option value="North">North Zone</option>
+                  <option value="Central">Central Zone</option>
+                  <option value="West">West Zone</option>
+                  <option value="East">East Zone</option>
+                  <option value="North East">North East Zone</option>
+                  <option value="South">South Zone</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="new-emp-states" class="label-required">Assigned States</label>
+                <input type="text" id="new-emp-states" required placeholder="e.g. Kerala, Tamil Nadu">
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-accent">
+                <span>+</span> Provision Employee & Dedicated Node DB
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Master Employee Credential Roster -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Employee Credential Database & Access Control</h3>
+              <p class="card-subtitle">View, edit, block, or unblock employee access. Blocked users cannot log in.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="loadEmployeesRoster()">Refresh Roster</button>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Zone</th>
+                  <th>Clubs Approved</th>
+                  <th>Support Logs</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                  <th>Interface</th>
+                </tr>
+              </thead>
+              <tbody id="employee-roster-tbody">
+                <tr>
+                  <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading employee roster...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: GOOGLE DRIVE & NODE SYNC HEALTH -->
+    <div class="tab-panel" id="tab-sync">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Google Drive Deployment Layer</h3>
+              <p class="card-subtitle">Single-folder Drive cloud synchronization architecture</p>
+            </div>
+            <span class="pill pill-success" id="sync-mode-pill">LOCAL_SYNC</span>
+          </div>
+
+          <div style="font-size: 0.9rem; color: #334155;">
+            <p style="margin-bottom: 0.75rem;">
+              <strong>Deployment Mode:</strong> <span id="drive-mode-text">Google Drive for Desktop Mirror</span>
+            </p>
+            <p style="margin-bottom: 0.75rem;">
+              <strong>Target Drive Folder:</strong> <code>data/</code> (Single root deployment folder)
+            </p>
+            <p style="margin-bottom: 0.75rem;">
+              <strong>Replication Architecture:</strong> Real-time dual-write (Node CSVs & Master CSVs)
+            </p>
+            <p style="margin-bottom: 0.75rem;">
+              <strong>Conflict Resolution:</strong> POSIX/NT atomic file swap (<code>os.replace</code>) + RLock
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Master DB Reconciliation</h3>
+              <p class="card-subtitle">Scan all 7+ employee node CSVs and rebuild master records without data loss.</p>
+            </div>
+            <span class="pill pill-primary">Reconciliation</span>
+          </div>
+
+          <p style="font-size: 0.875rem; color: #475569; margin-bottom: 1.25rem;">
+            Clicking reconcile initiates a full scan across all employee node folders (<code>data/employees/emp*/</code>) and verifies that every approved club and activity log is mirrored in the Master Database.
+          </p>
+
+          <button class="btn btn-primary btn-lg" onclick="triggerReconcile()" style="width: 100%;">
+            <span>🔄</span> Run Full Node-to-Master Reconciliation
+          </button>
+        </div>
+
+        <!-- FEATURE 2: AUTOMATED 7-DAY DATABASE BACKUP CARD -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 1.25rem;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Automated Database Backup Engine (7-Day Schedule)</h3>
+              <p class="card-subtitle">Auto-backups both Admin end (Master DB) and Employee end (7 Regional Nodes) every 7 days. Strictly retains only the last 2 backups and deletes all previous backups.</p>
+            </div>
+            <span class="pill pill-success" id="backup-status-pill">Active (7-Day Cycle)</span>
+          </div>
+
+          <div class="grid-3" style="margin-bottom: 1.25rem;">
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Backup Cycle</span>
+              <strong style="display: block; font-size: 1.1rem; color: var(--primary); margin-top: 0.2rem;">Every 7 Days</strong>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Next: <span id="backup-next-due">Checking...</span></small>
+            </div>
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Retention Policy</span>
+              <strong style="display: block; font-size: 1.1rem; color: #0D7751; margin-top: 0.2rem;">Last 2 Backups Stored</strong>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Previous backups pruned automatically</small>
+            </div>
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Stored Backups</span>
+              <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.2rem;" id="backup-count-display">0 / 2 Backups</strong>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Last: <span id="backup-last-time">Never</span></small>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <strong style="font-size: 0.9rem; color: var(--text);">Retained Backup Archives (Max 2):</strong>
+            <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
+          </div>
+
+          <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem;">
+            <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading backup archives...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>National Digital Library of India (NDLI) Club Project • Central Office: Indian Institute of Technology Kharagpur</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let GLOBAL_METRICS = null;
+    let CURRENT_TABLE_STATE_FILTER = null;
+
+    async function loadDashboardData() {
+      const res = await apiRequest("/api/admin/metrics");
+      if (res.ok && res.data) {
+        GLOBAL_METRICS = res.data;
+        renderKPIs(res.data);
+        renderStatisticalAnalytics(res.data);
+        renderZoneDonutChart(res.data.zone_wise_clubs, res.data.state_wise_clubs);
+        renderTrajectoryAreaChart(res.data.month_wise_clubs);
+        renderSupportBreakdown(res.data.support_type_breakdown);
+        renderRenewalHealthGauge(res.data.renewal_health);
+        renderEmployeeBars(res.data.summary.quotas);
+        renderStateBreakdown(res.data.state_wise_clubs);
+      }
+      // Trigger live updates for automated backups and 30-day escalation reminders
+      loadAdminBackupStatus();
+      loadAdminEscalationReminders();
+    }
+
+    // =========================================================================
+    // FEATURE 1: DOWNLOAD MASTER CSV (master_clubs.csv)
+    // =========================================================================
+    function downloadMasterCSV() {
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+      let url = "/api/admin/download/master-clubs";
+      if (adminToken) {
+        url += `?token=${encodeURIComponent(adminToken)}`;
+      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "master_clubs.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // =========================================================================
+    // FEATURE 2: 7-DAY AUTOMATED DATABASE BACKUP STATUS & TRIGGER
+    // =========================================================================
+    async function loadAdminBackupStatus() {
+      try {
+        const res = await apiRequest("/api/admin/backup/status");
+        if (res.ok && res.data) {
+          const d = res.data;
+          const countEl = document.getElementById("backup-count-display");
+          if (countEl) countEl.innerText = `${d.total_stored_backups || 0} / ${d.max_retained_backups || 2} Backups`;
+
+          const lastEl = document.getElementById("backup-last-time");
+          if (lastEl) {
+            if (d.last_backup_time) {
+              const dt = new Date(d.last_backup_time);
+              lastEl.innerText = dt.toLocaleString();
+            } else {
+              lastEl.innerText = "Never";
+            }
+          }
+
+          const nextEl = document.getElementById("backup-next-due");
+          if (nextEl) {
+            if (d.next_backup_due) {
+              const dt = new Date(d.next_backup_due);
+              nextEl.innerText = dt.toLocaleDateString();
+            } else {
+              nextEl.innerText = "Pending";
+            }
+          }
+
+          const listEl = document.getElementById("backup-archives-list");
+          if (listEl) {
+            if (!d.backups || d.backups.length === 0) {
+              listEl.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 0.75rem;">No stored backups yet. Initial backup will run automatically.</div>';
+            } else {
+              let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+              d.backups.forEach((b, idx) => {
+                const dateStr = b.created_at ? new Date(b.created_at).toLocaleString() : b.backup_id;
+                const adminCount = b.admin_files ? b.admin_files.length : (b.admin_files_count || 0);
+                const empCount = b.employee_nodes ? b.employee_nodes.length : (b.employee_nodes_count || 0);
+                html += `
+                  <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.6rem 0.85rem; border-radius: 4px; border-left: 3px solid #0D7751;">
+                    <div>
+                      <strong style="color: var(--primary); font-size: 0.85rem;">📦 ${escapeHtml(b.backup_id)}</strong>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">${dateStr}</span>
+                      <div style="font-size: 0.75rem; color: #475569; margin-top: 0.15rem;">
+                        Admin Master Files: <strong>${adminCount}</strong> • Employee Nodes: <strong>${empCount}</strong>
+                      </div>
+                    </div>
+                    <span class="pill pill-success" style="font-size: 0.7rem;">Backup #${idx + 1} Stored</span>
+                  </div>
+                `;
+              });
+              html += '</div>';
+              listEl.innerHTML = html;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load backup status:", err);
+      }
+    }
+
+    async function triggerManualBackup() {
+      try {
+        const res = await apiRequest("/api/admin/backup/trigger", "POST", { note: "Manual Admin Trigger" });
+        if (res.ok && res.data && res.data.success) {
+          alert(`Backup completed successfully!\nBackup ID: ${res.data.backup_id}\nRetained Backups: ${res.data.retained_backups.join(', ')}`);
+          loadAdminBackupStatus();
+        } else {
+          alert("Backup failed: " + (res.data?.message || "Unknown error"));
+        }
+      } catch (e) {
+        alert("Error triggering backup: " + e.message);
+      }
+    }
+
+    // =========================================================================
+    // FEATURE 5: 30+ DAYS UNRESOLVED ISSUES ADMIN ESCALATION & REMINDERS
+    // =========================================================================
+    let CURRENT_ADMIN_REMINDERS = [];
+    let SELECTED_ADMIN_ISSUE_ID = null;
+    let CURRENT_ADMIN_ESCALATIONS_QUERY = "";
+
+    async function loadAdminEscalationReminders() {
+      try {
+        const res = await apiRequest("/api/issues/admin-reminders");
+        const container = document.getElementById("admin-issues-escalation-container");
+        const kpiVal = document.getElementById("kpi-admin-escalations");
+        const kpiDesc = document.getElementById("kpi-admin-escalations-desc");
+        const cardEl = document.getElementById("card-admin-escalations");
+
+        if (res.ok && res.data && res.data.reminders) {
+          CURRENT_ADMIN_REMINDERS = res.data.reminders;
+          const count = CURRENT_ADMIN_REMINDERS.length;
+
+          if (kpiVal) kpiVal.innerText = count;
+          if (kpiDesc) kpiDesc.innerText = count > 0 ? `${count} critical unresolved (Click to inspect)` : "0 pending (All clear)";
+
+          if (cardEl) {
+            if (count > 0) {
+              cardEl.style.boxShadow = "0 0 0 2px #ef4444, 0 4px 12px rgba(239, 68, 68, 0.18)";
+            } else {
+              cardEl.style.boxShadow = "";
+            }
+          }
+
+          if (container) {
+            if (count > 0) {
+              container.innerHTML = `
+                <div class="escalation-kpi-stack" id="admin-escalations-kpi-card" onclick="openAdminEscalationsListModal()" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border: 2px solid #ef4444; border-left: 6px solid #dc2626; border-radius: var(--radius); padding: 0.9rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);" title="Click to open the 30-day escalated issues list">
+                  <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div style="background: #dc2626; color: #ffffff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);">
+                      🚨
+                    </div>
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <strong style="color: #991b1b; font-size: 1.05rem;">30-Day Unresolved Issue Escalations</strong>
+                        <span style="background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 12px;">
+                          ${count} CRITICAL ESCALATED
+                        </span>
+                      </div>
+                      <p style="color: #b91c1c; font-size: 0.82rem; margin: 0.2rem 0 0 0;">
+                        ${count} regional club issue${count > 1 ? 's' : ''} unresolved for 30+ days. Click this KPI card to open the escalated issues list.
+                      </p>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="text-align: right;">
+                      <div style="font-size: 1.45rem; font-weight: 800; color: #dc2626; line-height: 1;">${count}</div>
+                      <div style="font-size: 0.7rem; color: #991b1b; font-weight: 700; text-transform: uppercase;">Escalations</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger" style="font-weight: 700; padding: 0.45rem 0.95rem; pointer-events: none;">
+                      Open Escalations List ↗
+                    </button>
+                  </div>
+                </div>
+              `;
+            } else {
+              container.innerHTML = "";
+            }
+          }
+
+          // If list modal is active, update list view
+          const listModal = document.getElementById("admin-escalations-list-modal");
+          if (listModal && (listModal.classList.contains("active") || listModal.style.display === "flex")) {
+            renderAdminEscalationsList();
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load admin escalation reminders:", err);
+      }
+    }
+
+    function openAdminEscalationsListModal() {
+      const modal = document.getElementById("admin-escalations-list-modal");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.add("active");
+        modal.classList.add("open");
+      }
+      const searchInput = document.getElementById("admin-escalations-search-input");
+      if (searchInput) searchInput.value = "";
+      CURRENT_ADMIN_ESCALATIONS_QUERY = "";
+      renderAdminEscalationsList();
+    }
+
+    function closeAdminEscalationsListModal() {
+      const modal = document.getElementById("admin-escalations-list-modal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+      }
+    }
+
+    function handleAdminEscalationsSearch(q) {
+      CURRENT_ADMIN_ESCALATIONS_QUERY = (q || "").trim().toLowerCase();
+      renderAdminEscalationsList();
+    }
+
+    function renderAdminEscalationsList() {
+      const tbody = document.getElementById("admin-escalations-tbody");
+      const countEl = document.getElementById("admin-escalations-modal-count");
+      if (!tbody) return;
+
+      const total = CURRENT_ADMIN_REMINDERS.length;
+      if (countEl) countEl.innerText = `${total} Escalated`;
+
+      let filtered = CURRENT_ADMIN_REMINDERS;
+      if (CURRENT_ADMIN_ESCALATIONS_QUERY) {
+        const q = CURRENT_ADMIN_ESCALATIONS_QUERY;
+        filtered = filtered.filter(i =>
+          (i.club_id || "").toLowerCase().includes(q) ||
+          (i.institution_name || "").toLowerCase().includes(q) ||
+          (i.state || "").toLowerCase().includes(q) ||
+          (i.zone || "").toLowerCase().includes(q) ||
+          (i.emp_id || "").toLowerCase().includes(q) ||
+          (i.issue_note || "").toLowerCase().includes(q)
+        );
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div>
+              <strong>${CURRENT_ADMIN_ESCALATIONS_QUERY ? 'No escalated issues match your search.' : 'No 30-day escalated issues pending.'}</strong>
+              <div style="font-size: 0.85rem; margin-top: 0.35rem; color: var(--text-muted);">
+                ${CURRENT_ADMIN_ESCALATIONS_QUERY ? 'Try clearing or changing your search terms.' : 'All regional club issues have been resolved or are within their 30-day timeline.'}
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(issue => {
+        const days = issue.days_unresolved !== undefined ? issue.days_unresolved : 30;
+        const idSafe = escapeHtml(issue.issue_id);
+        return `
+          <tr style="cursor: pointer; transition: background 0.12s;" onclick="selectAdminEscalatedIssue('${idSafe}')">
+            <td><code style="font-weight: 700; color: #b91c1c;">${escapeHtml(issue.club_id)}</code></td>
+            <td><strong>${escapeHtml(issue.institution_name)}</strong></td>
+            <td>${escapeHtml(issue.state)} <span class="pill pill-primary" style="font-size: 0.72rem;">${escapeHtml(issue.zone)}</span></td>
+            <td><span class="pill pill-outline" style="font-weight: 700;">${escapeHtml(issue.emp_id)}</span></td>
+            <td><span class="pill pill-danger" style="font-weight: 800;">🔴 ${days} Days</span></td>
+            <td style="max-width: 320px; font-size: 0.85rem; color: #334155; line-height: 1.35;">${escapeHtml(issue.issue_note)}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); selectAdminEscalatedIssue('${idSafe}')" style="font-weight: 700; padding: 3px 10px; font-size: 0.78rem;">
+                Review & Decide ↗
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function selectAdminEscalatedIssue(issueId) {
+      closeAdminEscalationsListModal();
+      openAdminIssueResolutionModal(issueId);
+    }
+
+    async function openAdminIssueResolutionModal(issueId) {
+      SELECTED_ADMIN_ISSUE_ID = issueId;
+      let issue = CURRENT_ADMIN_REMINDERS.find(i => i.issue_id === issueId);
+      const contentEl = document.getElementById("admin-issue-details-content");
+      if (!contentEl) return;
+
+      const renderDetails = (data) => {
+        const days = data.days_unresolved !== undefined ? data.days_unresolved : 30;
+        contentEl.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.75rem;">
+            <div><strong>Club ID:</strong> <span style="font-family: monospace; color: var(--primary);">${escapeHtml(data.club_id)}</span></div>
+            <div><strong>Institution:</strong> ${escapeHtml(data.institution_name)}</div>
+            <div><strong>Assigned Employee:</strong> ${escapeHtml(data.emp_id)} (${escapeHtml(data.zone)} Zone)</div>
+            <div><strong>State:</strong> ${escapeHtml(data.state)}</div>
+            <div><strong>Reported Timestamp:</strong> ${new Date(data.created_at).toLocaleString()}</div>
+            <div><strong>Unresolved Duration:</strong> <span style="color: #dc2626; font-weight: 700;">${days} Days</span></div>
+          </div>
+          <div style="background: #fee2e2; border-left: 3px solid #dc2626; padding: 0.65rem 0.85rem; border-radius: 4px;">
+            <strong style="color: #991b1b; font-size: 0.82rem; display: block; margin-bottom: 0.2rem;">Brief Note of Reported Issue:</strong>
+            <p style="color: #7f1d1d; font-size: 0.85rem; margin: 0; line-height: 1.4;">${escapeHtml(data.issue_note)}</p>
+          </div>
+        `;
+      };
+
+      if (issue) {
+        renderDetails(issue);
+      } else {
+        contentEl.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem;">Loading issue details from database...</p>`;
+        try {
+          const fetchRes = await apiRequest(`/api/issues/details?issue_id=${encodeURIComponent(issueId)}`);
+          if (fetchRes.ok && fetchRes.data && fetchRes.data.issue) {
+            issue = fetchRes.data.issue;
+            renderDetails(issue);
+          } else {
+            contentEl.innerHTML = `<p style="color: #dc2626;">Unable to load issue details.</p>`;
+          }
+        } catch (e) {
+          contentEl.innerHTML = `<p style="color: #dc2626;">Network error loading issue details.</p>`;
+        }
+      }
+
+      const notesEl = document.getElementById("admin-issue-resolution-notes");
+      if (notesEl) notesEl.value = "";
+
+      const modal = document.getElementById("admin-issue-resolution-modal");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.classList.add("active");
+      }
+    }
+
+    function closeAdminIssueModal() {
+      SELECTED_ADMIN_ISSUE_ID = null;
+      const modal = document.getElementById("admin-issue-resolution-modal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+      }
+    }
+
+    async function submitAdminIssueResolution(statusChoice) {
+      if (!SELECTED_ADMIN_ISSUE_ID) return;
+      const notesEl = document.getElementById("admin-issue-resolution-notes");
+      const resolutionNotes = notesEl ? notesEl.value.trim() : "";
+      const adminEmail = sessionStorage.getItem("ndli_admin_email") || "admin@iitkgp.ac.in";
+
+      try {
+        const payload = {
+          issue_id: SELECTED_ADMIN_ISSUE_ID,
+          status: statusChoice,
+          resolved_by: adminEmail,
+          role: "ADMIN",
+          resolution_notes: resolutionNotes
+        };
+        const res = await apiRequest("/api/issues/resolve", "POST", payload);
+        if (res.ok && res.data && res.data.success) {
+          closeAdminIssueModal();
+          if (statusChoice === "Resolved") {
+            alert(`✓ Success: Issue ${SELECTED_ADMIN_ISSUE_ID} has been marked as Resolved.`);
+          } else {
+            alert(`⚠ Issue kept as Not Resolved: Next reminder automatically scheduled in 7 days.`);
+          }
+          loadAdminEscalationReminders();
+          loadDashboardData();
+        } else {
+          alert("Error: " + (res.data?.message || "Failed to update issue status."));
+        }
+      } catch (e) {
+        alert("Network error updating issue status: " + e.message);
+      }
+    }
+
+    function renderKPIs(data) {
+      document.getElementById("kpi-clubs").innerText = data.summary.total_clubs || 0;
+      document.getElementById("kpi-activities").innerText = data.summary.total_activities || 0;
+      document.getElementById("kpi-nodes").innerText = data.summary.total_employees || 7;
+      if (data.summary.renewal_attention_count !== undefined) {
+        document.getElementById("kpi-renewals").innerText = data.summary.renewal_attention_count;
+      }
+    }
+
+    // 1. Detailed Statistical Analytics Metric Cards
+    function renderStatisticalAnalytics(data) {
+      // Coverage Index
+      const cov = data.coverage_index || {};
+      const repCount = cov.represented_count !== undefined ? cov.represented_count : 0;
+      const totalStates = cov.total_states || 36;
+      const covPct = cov.coverage_percentage !== undefined ? cov.coverage_percentage : 0;
+
+      const covBadge = document.getElementById("badge-coverage-ratio");
+      if (covBadge) covBadge.innerText = `${repCount} / ${totalStates} States`;
+      const covVal = document.getElementById("stat-coverage-pct");
+      if (covVal) covVal.innerText = `${covPct}%`;
+      const covDesc = document.getElementById("stat-coverage-desc");
+      if (covDesc) covDesc.innerText = `${cov.deficit_count || 0} States/UTs in deficit`;
+
+      // Retention Health
+      const ren = data.renewal_health || {};
+      const retRate = ren.retention_rate_pct !== undefined ? ren.retention_rate_pct : 100;
+      const retVal = document.getElementById("stat-retention-rate");
+      if (retVal) retVal.innerText = `${retRate}%`;
+      const retDesc = document.getElementById("stat-retention-desc");
+      if (retDesc) retDesc.innerText = `${ren.active_validity_count || 0} active, ${ren.overdue_count || 0} overdue`;
+
+      // Support Density Ratio
+      const totalClubs = data.summary?.total_clubs || 0;
+      const totalActs = data.summary?.total_activities || 0;
+      const density = totalClubs > 0 ? (totalActs / totalClubs).toFixed(1) : "0.0";
+      const supVal = document.getElementById("stat-support-ratio");
+      if (supVal) supVal.innerText = `${density}`;
+
+      // Leading Regional Zone
+      const zCounts = data.zone_wise_clubs || {};
+      let topZone = "North";
+      let topCount = -1;
+      for (const [z, c] of Object.entries(zCounts)) {
+        if (c > topCount) {
+          topCount = c;
+          topZone = z;
+        }
+      }
+      const zlVal = document.getElementById("stat-zone-leader");
+      if (zlVal) zlVal.innerText = `${topZone} Zone`;
+      const zlDesc = document.getElementById("stat-zone-leader-desc");
+      if (zlDesc) zlDesc.innerText = `${topCount} clubs approved (${totalClubs > 0 ? Math.round((topCount/totalClubs)*100) : 0}% share)`;
+    }
+
+    // 2. Zone Donut Chart SVG
+    function renderZoneDonutChart(zoneWiseClubs, stateWiseClubs) {
+      const container = document.getElementById("zone-donut-container");
+      if (!container) return;
+
+      const zoneTotals = { "North": 0, "Central": 0, "West": 0, "East": 0, "North East": 0, "South": 0 };
+      if (zoneWiseClubs && Object.keys(zoneWiseClubs).length > 0) {
+        for (const [z, c] of Object.entries(zoneWiseClubs)) {
+          if (zoneTotals[z] !== undefined) zoneTotals[z] = c;
+        }
+      } else {
+        for (const [st, cnt] of Object.entries(stateWiseClubs || {})) {
+          const z = clientGetZoneForState(st) || "Other";
+          if (zoneTotals[z] !== undefined) zoneTotals[z] += cnt;
+        }
+      }
+
+      const total = Object.values(zoneTotals).reduce((a, b) => a + b, 0) || 1;
+      const colors = {
+        "North": "#103125",
+        "Central": "#1A503E",
+        "West": "#0D7751",
+        "East": "#10b981",
+        "North East": "#059669",
+        "South": "#34d399"
+      };
+
+      const radius = 70;
+      const cx = 95;
+      const cy = 95;
+      const circumference = 2 * Math.PI * radius;
+
+      let accumulatedAngle = 0;
+      let paths = "";
+      let legendHtml = "";
+
+      for (const [zone, val] of Object.entries(zoneTotals)) {
+        const pct = val / total;
+        const strokeDash = pct * circumference;
+        const offset = -accumulatedAngle;
+        accumulatedAngle += strokeDash;
+        const color = colors[zone] || "#64748b";
+
+        paths += `
+          <circle
+            cx="${cx}"
+            cy="${cy}"
+            r="${radius}"
+            fill="transparent"
+            stroke="${color}"
+            stroke-width="26"
+            stroke-dasharray="${strokeDash} ${circumference - strokeDash}"
+            stroke-dashoffset="${offset}"
+            style="transition: all 0.5s ease; cursor: pointer;"
+            title="${zone} Zone: ${val} clubs (${Math.round(pct * 100)}%)"
+          />
+        `;
+
+        legendHtml += `
+          <div class="donut-legend-item">
+            <div style="display: flex; align-items: center;">
+              <span class="donut-legend-dot" style="background: ${color};"></span>
+              <strong>${zone}</strong>
+            </div>
+            <span><strong>${val}</strong> (${Math.round(pct * 100)}%)</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="donut-svg-wrapper">
+          <svg class="donut-svg" viewBox="0 0 190 190">
+            ${paths}
+          </svg>
+          <div class="donut-center-text">
+            <div class="donut-center-number">${total}</div>
+            <div class="donut-center-label">Clubs</div>
+          </div>
+        </div>
+        <div class="donut-legend-col">
+          ${legendHtml}
+        </div>
+      `;
+    }
+
+    // 3. Monthly Registration Trajectory Area Graph
+    function renderTrajectoryAreaChart(monthWiseClubs) {
+      const container = document.getElementById("trajectory-svg-container");
+      if (!container) return;
+
+      const entries = Object.entries(monthWiseClubs || {});
+      if (entries.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 3rem;">No registration timeline data captured yet.</div>`;
+        return;
+      }
+
+      const labels = entries.map(e => e[0]);
+      const values = entries.map(e => e[1]);
+      const maxVal = Math.max(...values, 1);
+
+      const width = 500;
+      const height = 180;
+      const padLeft = 40;
+      const padRight = 20;
+      const padTop = 20;
+      const padBottom = 30;
+
+      const plotW = width - padLeft - padRight;
+      const plotH = height - padTop - padBottom;
+
+      const pts = values.map((v, i) => {
+        const x = padLeft + (i / Math.max(1, values.length - 1)) * plotW;
+        const y = padTop + plotH - (v / maxVal) * plotH;
+        return { x, y, val: v, label: labels[i] };
+      });
+
+      // Construct SVG curve path
+      let dLine = `M ${pts[0].x},${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        dLine += ` L ${pts[i].x},${pts[i].y}`;
+      }
+      const dArea = `${dLine} L ${pts[pts.length - 1].x},${padTop + plotH} L ${pts[0].x},${padTop + plotH} Z`;
+
+      // Data dots and labels
+      let dotsHtml = "";
+      let labelsHtml = "";
+      pts.forEach(p => {
+        dotsHtml += `
+          <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: pointer;">
+            <title>${p.label}: ${p.val} clubs approved</title>
+          </circle>
+          <text x="${p.x}" y="${p.y - 10}" font-size="11" font-weight="700" fill="#103125" text-anchor="middle">${p.val}</text>
+        `;
+        const shortLabel = p.label.length > 7 ? p.label.substring(2) : p.label;
+        labelsHtml += `
+          <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">${shortLabel}</text>
+        `;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+          <defs>
+            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0D7751" stop-opacity="0.38"/>
+              <stop offset="100%" stop-color="#0D7751" stop-opacity="0.02"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid line -->
+          <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" stroke="#e2e8f0" stroke-width="1"/>
+          <!-- Gradient Area -->
+          <path d="${dArea}" fill="url(#areaGradient)"/>
+          <!-- Trajectory Line -->
+          <path d="${dLine}" fill="none" stroke="#0D7751" stroke-width="3" stroke-linecap="round"/>
+          <!-- Data Points & Labels -->
+          ${dotsHtml}
+          ${labelsHtml}
+        </svg>
+      `;
+    }
+
+    // 4. Support Activity Types Breakdown
+    function renderSupportBreakdown(supportTypeBreakdown) {
+      const container = document.getElementById("support-split-grid");
+      if (!container) return;
+
+      const types = [
+        { key: "Phone call and remote assistance", title: "Phone & Remote Assistance", icon: "📞", style: "primary" },
+        { key: "Closing of OS Ticket", title: "OS Ticket Resolutions", icon: "🎫", style: "accent" },
+        { key: "Online training", title: "Online Workshops / Webinars", icon: "💻", style: "info" },
+        { key: "Offline training", title: "On-Premises / Offline Training", icon: "🏫", style: "warning" }
+      ];
+
+      const counts = supportTypeBreakdown || {};
+      const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+
+      container.innerHTML = types.map(t => {
+        const count = counts[t.key] || 0;
+        const pct = Math.round((count / total) * 100);
+
+        return `
+          <div class="support-type-tile ${t.style}">
+            <div class="tile-icon">${t.icon}</div>
+            <div class="tile-title">${t.title}</div>
+            <div class="tile-value-row">
+              <span class="tile-count">${count}</span>
+              <span class="tile-pct">${pct}%</span>
+            </div>
+            <div class="bar-track" style="height: 6px;">
+              <div class="bar-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 5. Renewal Health Pie Chart & Color Scale Gauge
+    function generateRenewalPieSvg(active, expiring, overdue) {
+      const slices = [
+        { label: "Active Validity", value: active, color: "#0D7751" },
+        { label: "Expiring Soon", value: expiring, color: "#f59e0b" },
+        { label: "Overdue", value: overdue, color: "#e11d48" }
+      ];
+      const total = slices.reduce((sum, s) => sum + s.value, 0);
+      const cx = 65, cy = 65, r = 52;
+
+      if (total === 0) {
+        return `<svg width="130" height="130" viewBox="0 0 130 130">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
+          <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" fill="#64748b" font-weight="600">No Clubs</text>
+        </svg>`;
+      }
+
+      const nonZero = slices.filter(s => s.value > 0);
+      if (nonZero.length === 1) {
+        return `<svg width="130" height="130" viewBox="0 0 130 130" class="retention-pie-svg" style="filter: drop-shadow(0 3px 8px rgba(16,49,37,0.14));">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${nonZero[0].color}" stroke="#ffffff" stroke-width="2.5">
+            <title>${nonZero[0].label}: ${nonZero[0].value} (100%)</title>
+          </circle>
+          <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">100%</text>
+        </svg>`;
+      }
+
+      let currentAngle = -Math.PI / 2;
+      let pathElements = [];
+
+      slices.forEach(slice => {
+        if (slice.value <= 0) return;
+        const sliceAngle = (slice.value / total) * 2 * Math.PI;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + sliceAngle;
+
+        const x1 = cx + r * Math.cos(startAngle);
+        const y1 = cy + r * Math.sin(startAngle);
+        const x2 = cx + r * Math.cos(endAngle);
+        const y2 = cy + r * Math.sin(endAngle);
+
+        const largeArc = sliceAngle > Math.PI ? 1 : 0;
+        const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+
+        const pct = Math.round((slice.value / total) * 100);
+        pathElements.push(`
+          <path d="${d}" fill="${slice.color}" stroke="#ffffff" stroke-width="2" class="pie-slice">
+            <title>${slice.label}: ${slice.value} (${pct}%)</title>
+          </path>
+        `);
+        currentAngle = endAngle;
+      });
+
+      return `
+        <svg width="130" height="130" viewBox="0 0 130 130" class="retention-pie-svg" style="overflow: visible; filter: drop-shadow(0 3px 8px rgba(16,49,37,0.14));">
+          ${pathElements.join("")}
+          <circle cx="${cx}" cy="${cy}" r="14" fill="#ffffff" stroke="rgba(16,49,37,0.08)" stroke-width="1.5" />
+          <circle cx="${cx}" cy="${cy}" r="6" fill="#1A503E" />
+        </svg>
+      `;
+    }
+
+    function renderRenewalHealthGauge(renewalHealth) {
+      const container = document.getElementById("retention-gauge-container");
+      if (!container) return;
+
+      const rh = renewalHealth || {};
+      const total = rh.total_clubs || 1;
+      const active = rh.active_validity_count || 0;
+      const expiring = rh.expiring_soon_count || 0;
+      const overdue = rh.overdue_count || 0;
+
+      const actPct = Math.round((active / total) * 100);
+      const expPct = Math.round((expiring / total) * 100);
+      const ovdPct = Math.round((overdue / total) * 100);
+
+      const pieSvg = generateRenewalPieSvg(active, expiring, overdue);
+
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+          <!-- SVG Pie Chart Visualization -->
+          <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 130px;">
+            ${pieSvg}
+            <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.45rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;">Status Distribution</span>
+          </div>
+
+          <!-- Color Scale Bar & Numerical Indicators -->
+          <div style="flex: 1; min-width: 230px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary);">Color Scale Spectrum</span>
+              <span class="pill pill-primary" style="font-size: 0.72rem;">${active} / ${total} Active Validity</span>
+            </div>
+
+            <!-- Existing Color Scale Stacked Bar -->
+            <div class="stacked-gauge-bar" style="margin-bottom: 0.75rem;">
+              <div class="gauge-segment active" style="width: ${actPct}%;" title="Active Validity: ${active} clubs (${actPct}%)"></div>
+              <div class="gauge-segment expiring" style="width: ${expPct}%;" title="Expiring Soon: ${expiring} clubs (${expPct}%)"></div>
+              <div class="gauge-segment overdue" style="width: ${ovdPct}%;" title="Overdue: ${overdue} clubs (${ovdPct}%)"></div>
+            </div>
+
+            <!-- Existing Color Scale Legend Indicators -->
+            <div class="retention-legend-row" style="margin-bottom: 0.85rem; font-size: 0.78rem;">
+              <span style="color: #0D7751; font-weight: 600;">🟢 Active: <strong>${active}</strong> (${actPct}%)</span>
+              <span style="color: #d97706; font-weight: 600;">🟡 Expiring (&le;90d): <strong>${expiring}</strong> (${expPct}%)</span>
+              <span style="color: #e11d48; font-weight: 600;">🔴 Overdue: <strong>${overdue}</strong> (${ovdPct}%)</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border);">
+              <span style="font-size: 0.82rem; color: var(--text-muted);">
+                Retention Rate: <strong style="color: var(--primary-light); font-size: 1.05rem;">${rh.retention_rate_pct || 100}%</strong>
+              </span>
+              <button type="button" class="btn btn-outline btn-sm" onclick="openRenewalAttentionModal()" style="font-size: 0.78rem; border-color: #f59e0b; color: #b45309;">
+                ⚡ Inspect Attention (${expiring + overdue}) &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 6. Employee Quotas Performance Bars
+    function renderEmployeeBars(quotas) {
+      const container = document.getElementById("employee-bars-container");
+      if (!container) return;
+      container.innerHTML = "";
+      if (!quotas || quotas.length === 0) {
+        container.innerHTML = "<p style='color: var(--text-muted);'>No quotas recorded yet.</p>";
+        return;
+      }
+
+      const maxClubs = Math.max(...quotas.map(q => parseInt(q.clubs_approved_count || 0)), 1);
+
+      quotas.forEach(q => {
+        const clubs = parseInt(q.clubs_approved_count || 0);
+        const support = parseInt(q.support_logs_count || 0);
+        const pct = Math.round((clubs / maxClubs) * 100);
+
+        const row = document.createElement("div");
+        row.className = "bar-chart-row";
+        row.innerHTML = `
+          <div class="bar-chart-header">
+            <span><strong>${q.employee_name || q.emp_id}</strong> (${q.emp_id})</span>
+            <span><strong>${clubs}</strong> approved | <strong>${support}</strong> support</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill accent" style="width: ${Math.max(pct, 4)}%;"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // 7. Interactive State-Wise Table with Map Filter Binding
+    // 7. National State-Wise Penetration & Density Roster
+    function getPenetrationStatus(cnt) {
+      if (cnt >= 4) return { text: "High Density", pillClass: "pill-primary" };
+      if (cnt >= 2) return { text: "Moderate Density", pillClass: "pill-accent" };
+      if (cnt === 1) return { text: "Initial Presence", pillClass: "pill-success" };
+      return { text: "Deficit (0 clubs)", pillClass: "pill-danger" };
+    }
+
+    function filterTableByState(stateName) {
+      CURRENT_TABLE_STATE_FILTER = stateName;
+      const badge = document.getElementById("table-filter-badge");
+      if (badge) {
+        if (stateName) {
+          badge.style.display = "inline-block";
+          badge.innerText = `Filtered: ${stateName} (Click to reset)`;
+          badge.onclick = () => filterTableByState(null);
+          badge.style.cursor = "pointer";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      if (GLOBAL_METRICS) {
+        renderStateBreakdown(GLOBAL_METRICS.state_wise_clubs);
+      }
+
+      const tblCard = document.getElementById("state-breakdown-container");
+      if (tblCard && stateName) {
+        tblCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function renderStateBreakdown(stateCounts) {
+      const tbody = document.getElementById("state-breakdown-tbody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const filterZ = document.getElementById("filter-zone") ? document.getElementById("filter-zone").value : "ALL";
+
+      // Consolidate all 36+ Indian States & UTs
+      const allStatesSet = new Set(Object.keys(CLIENT_ZONE_MAP).flatMap(z => CLIENT_ZONE_MAP[z]));
+      for (const st of Object.keys(stateCounts || {})) { allStatesSet.add(st); }
+
+      const sortedStates = Array.from(allStatesSet).map(st => ({
+        state: st,
+        count: (stateCounts && stateCounts[st]) || 0,
+        zone: clientGetZoneForState(st) || "Unknown"
+      })).sort((a, b) => b.count - a.count || a.state.localeCompare(b.state));
+
+      const totalClubs = (GLOBAL_METRICS && GLOBAL_METRICS.summary && GLOBAL_METRICS.summary.total_clubs) || 1;
+      const maxCount = Math.max(1, ...sortedStates.map(s => s.count));
+
+      sortedStates.forEach(item => {
+        const st = item.state;
+        const cnt = item.count;
+        const zone = item.zone;
+
+        // Zone filter
+        if (filterZ !== "ALL" && zone !== filterZ) return;
+
+        // Single State filter
+        if (CURRENT_TABLE_STATE_FILTER && st.toLowerCase() !== CURRENT_TABLE_STATE_FILTER.toLowerCase()) return;
+
+        const isFilteredState = CURRENT_TABLE_STATE_FILTER && st.toLowerCase() === CURRENT_TABLE_STATE_FILTER.toLowerCase();
+        const tr = document.createElement("tr");
+        if (isFilteredState) {
+          tr.style.background = "#edfcf4";
+          tr.style.borderLeft = "4px solid var(--primary-light)";
+        }
+
+        const pen = getPenetrationStatus(cnt);
+        const pctOfMax = Math.round((cnt / maxCount) * 100);
+        const sharePct = totalClubs > 0 ? ((cnt / totalClubs) * 100).toFixed(1) : "0.0";
+
+        let densityMeterHtml = "";
+        if (cnt > 0) {
+          densityMeterHtml = `
+            <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 140px;">
+              <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div style="width: ${Math.max(12, pctOfMax)}%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #0D7751 55%, #103125 100%); border-radius: 999px;"></div>
+              </div>
+              <span style="font-size: 0.76rem; font-weight: 700; color: var(--primary-dark); min-width: 42px;">${sharePct}%</span>
+            </div>
+          `;
+        } else {
+          densityMeterHtml = `
+            <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 140px;">
+              <div style="flex: 1; height: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 999px;"></div>
+              <span style="font-size: 0.74rem; color: #94a3b8; min-width: 42px;">0.0%</span>
+            </div>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(st)}</strong></td>
+          <td><span class="pill pill-primary">${escapeHtml(zone)}</span></td>
+          <td><strong style="font-size: 1.05rem; color: var(--primary);">${cnt}</strong></td>
+          <td>${densityMeterHtml}</td>
+          <td><span class="pill ${pen.pillClass}">${pen.text}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function applyFilters() {
+      if (GLOBAL_METRICS) {
+        renderStateBreakdown(GLOBAL_METRICS.state_wise_clubs);
+      }
+    }
+
+    // AI Decision Module
+    async function loadAIDecisions() {
+      const container = document.getElementById("ai-recommendations-list");
+      container.innerHTML = "<p style='text-align: center; color: #c7d2fe;'>Synthesizing AI roadmap insights...</p>";
+
+      const res = await apiRequest("/api/admin/ai-insights");
+      if (res.ok && res.data) {
+        const ai = res.data;
+        document.getElementById("kpi-renewals").innerText = (ai.metrics.expiring_soon_count || 0) + (ai.metrics.overdue_count || 0);
+
+        const recs = ai.strategic_recommendations || [];
+        container.innerHTML = recs.map(r => `
+          <div class="ai-rec-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span class="pill ${r.priority === 'High' ? 'pill-danger' : 'pill-warning'}">${r.priority} Priority • ${r.category}</span>
+              <span style="font-size: 0.75rem; color: #cbd5e1;">Target Action</span>
+            </div>
+            <h4 style="font-size: 1.05rem; font-weight: 700; color: #ffffff; margin-bottom: 0.25rem;">${r.title}</h4>
+            <p style="font-size: 0.85rem; color: #e0e7ff; margin-bottom: 0.4rem;"><strong>Analysis:</strong> ${r.insight}</p>
+            <p style="font-size: 0.85rem; color: #fde68a;"><strong>Recommended Policy:</strong> ${r.action}</p>
+            ${r.category === 'Retention & Renewal' ? `
+              <div style="margin-top: 0.65rem;">
+                <button type="button" class="btn btn-accent btn-sm" onclick="openRenewalAttentionModal()" style="font-weight: 600;">
+                  ⚡ View Attention Clubs (${(ai.metrics.expiring_soon_count || 0) + (ai.metrics.overdue_count || 0)}) &rarr;
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `).join("");
+
+        // Render deficit table
+        const pTbody = document.getElementById("penetration-tbody");
+        const unrep = ai.unrepresented_states || [];
+        pTbody.innerHTML = `
+          <tr>
+            <td><span class="pill pill-danger">Zero Representation</span></td>
+            <td><strong>${unrep.length}</strong> States/UTs</td>
+            <td style="font-size: 0.85rem;">${unrep.slice(0, 10).join(", ")}${unrep.length > 10 ? ' ...' : ''}</td>
+            <td style="font-size: 0.85rem;">Initiate Higher Education Directorate contact campaigns.</td>
+          </tr>
+          <tr style="cursor: pointer;" onclick="openRenewalAttentionModal('Overdue')" title="Click to view clubs past renewal validity">
+            <td><span class="pill pill-danger">Renewal Risk</span></td>
+            <td><strong>${ai.metrics.overdue_count || 0}</strong> Overdue <span style="font-size: 0.72rem; color: var(--danger); font-weight: 700;">↗ View</span></td>
+            <td style="font-size: 0.85rem;">Clubs past renewal validity deadline</td>
+            <td style="font-size: 0.85rem;">
+              Trigger automated email reminders to Presidents & Secretaries.
+              <button type="button" class="btn btn-outline btn-sm" style="margin-left: 0.5rem; padding: 2px 8px; font-size: 0.75rem;" onclick="event.stopPropagation(); openRenewalAttentionModal('Overdue')">Inspect Overdue</button>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // =============================================================
+    // ADMIN AUTHENTICATION GATE & ACCESS CONTROL (EMPLOYEE MANAGEMENT)
+    // =============================================================
+    let IS_ADMIN_AUTHENTICATED = false;
+    let CURRENT_ROSTER = [];
+
+    async function checkAdminAuth() {
+      const token = sessionStorage.getItem("ndli_admin_token");
+      if (!token) {
+        showAdminGateView(false);
+        return false;
+      }
+
+      try {
+        const res = await apiRequest("/api/auth/me", "GET", null, token);
+        if (res.ok && res.data && res.data.user && res.data.user.role === "ADMIN") {
+          IS_ADMIN_AUTHENTICATED = true;
+          sessionStorage.setItem("ndli_admin_token", token);
+          sessionStorage.setItem("ndli_token", token);
+          showAdminGateView(true, res.data.user);
+          loadEmployeesRoster();
+          return true;
+        } else {
+          sessionStorage.removeItem("ndli_admin_token");
+          IS_ADMIN_AUTHENTICATED = false;
+          showAdminGateView(false);
+          return false;
+        }
+      } catch (err) {
+        IS_ADMIN_AUTHENTICATED = false;
+        showAdminGateView(false);
+        return false;
+      }
+    }
+
+    function showAdminGateView(isAuthenticated, user = null) {
+      const gateEl = document.getElementById("admin-auth-gate");
+      const contentEl = document.getElementById("admin-employee-content");
+      const badgeEl = document.getElementById("nav-admin-badge");
+      const userEl = document.getElementById("nav-admin-user");
+      const btnEl = document.getElementById("nav-admin-auth-btn");
+
+      if (isAuthenticated) {
+        if (gateEl) gateEl.style.display = "none";
+        if (contentEl) contentEl.style.display = "block";
+        if (badgeEl) {
+          badgeEl.innerText = "ADMIN VERIFIED";
+          badgeEl.style.background = "var(--success)";
+        }
+        if (userEl) userEl.innerText = user?.email || "admin@iitkgp.ac.in";
+        if (btnEl) {
+          btnEl.innerText = "Lock Admin";
+          btnEl.className = "btn btn-sm btn-outline";
+          btnEl.style.color = "#ffffff";
+        }
+      } else {
+        if (gateEl) gateEl.style.display = "block";
+        if (contentEl) contentEl.style.display = "none";
+        if (badgeEl) {
+          badgeEl.innerText = "ADMIN LOCKED 🔒";
+          badgeEl.style.background = "#dc2626";
+        }
+        if (userEl) userEl.innerText = "Access Restricted";
+        if (btnEl) {
+          btnEl.innerText = "Admin Sign-In";
+          btnEl.className = "btn btn-sm btn-accent";
+          btnEl.style.color = "#ffffff";
+        }
+      }
+    }
+
+    async function handleAdminGateLogin(e) {
+      e.preventDefault();
+      const id = document.getElementById("admin-gate-id").value.trim();
+      const pass = document.getElementById("admin-gate-pass").value;
+      const alertEl = document.getElementById("admin-gate-alert");
+      const unlockBtn = document.getElementById("btn-admin-unlock");
+
+      if (!id || !pass) {
+        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>Admin User ID and Password are required.</div></div>`;
+        return;
+      }
+
+      unlockBtn.disabled = true;
+      unlockBtn.innerHTML = `<span>⏳</span> Verifying Admin Credentials...`;
+
+      try {
+        const res = await apiRequest("/api/auth/login", "POST", { email: id, password: pass });
+        if (res.ok && res.data.success && res.data.session) {
+          if (res.data.session.role !== "ADMIN") {
+            if (alertEl) alertEl.innerHTML = `
+              <div class="alert alert-danger">
+                <span>🚫</span>
+                <div><strong>Access Denied:</strong> Employee credentials detected. Only Central IIT Kharagpur Administrators (admin@iitkgp.ac.in / ADMIN01) have permission to unlock Employee Management.</div>
+              </div>
+            `;
+            return;
+          }
+          const token = res.data.session.token;
+          sessionStorage.setItem("ndli_admin_token", token);
+          sessionStorage.setItem("ndli_token", token);
+          IS_ADMIN_AUTHENTICATED = true;
+          showAdminGateView(true, res.data.session);
+          showAlert("admin-alert", "✓ Central Administrator authenticated. Master Employee Management unlocked!", "success");
+          loadEmployeesRoster();
+        } else {
+          const msg = res.data?.message || "Invalid Admin User ID or Password.";
+          if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>${msg}</div></div>`;
+        }
+      } catch (err) {
+        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>Network error connecting to authentication server.</div></div>`;
+      } finally {
+        unlockBtn.disabled = false;
+        unlockBtn.innerHTML = `<span>🔓</span> Verify Admin & Unlock Employee Management`;
+      }
+    }
+
+
+    function toggleAdminPassVisibility() {
+      const input = document.getElementById("admin-gate-pass");
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+    }
+
+    function lockAdminSection() {
+      sessionStorage.removeItem("ndli_admin_token");
+      sessionStorage.removeItem("ndli_token");
+      IS_ADMIN_AUTHENTICATED = false;
+      showAdminGateView(false);
+      const formEl = document.getElementById("admin-gate-form");
+      if (formEl) formEl.reset();
+      const alertEl = document.getElementById("admin-gate-alert");
+      if (alertEl) alertEl.innerHTML = "";
+      showAlert("admin-alert", "Employee Management section has been locked. Admin authentication required to re-enter.", "info");
+    }
+
+    function toggleAdminAuthAction() {
+      if (IS_ADMIN_AUTHENTICATED) {
+        lockAdminSection();
+      } else {
+        const tabBtn = document.getElementById("tab-btn-employees");
+        if (tabBtn) tabBtn.click();
+        const gate = document.getElementById("admin-auth-gate");
+        if (gate) gate.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
+    // =============================================================
+    // EMPLOYEE MANAGEMENT ROSTER, MODAL EDIT & ACTIONS
+    // =============================================================
+    async function loadEmployeesRoster() {
+      const tbody = document.getElementById("employee-roster-tbody");
+      if (!IS_ADMIN_AUTHENTICATED) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--danger); padding: 2rem;">🔒 Authentication required. Unlock above to view employee roster.</td></tr>';
+        return;
+      }
+
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+      const res = await apiRequest("/api/admin/employees", "GET", null, adminToken);
+      if (res.ok && res.data.employees) {
+        CURRENT_ROSTER = res.data.employees;
+        tbody.innerHTML = res.data.employees.map(emp => {
+          const isActive = String(emp.is_active) === "1";
+          return `
+            <tr>
+              <td><code>${emp.id}</code></td>
+              <td><strong>${emp.full_name}</strong></td>
+              <td>${emp.email}</td>
+              <td><span class="pill pill-primary">${emp.zone || '-'}</span></td>
+              <td><strong>${emp.clubs_approved_count || 0}</strong></td>
+              <td>${emp.support_logs_count || 0}</td>
+              <td>
+                ${isActive ? '<span class="pill pill-success">Active</span>' : '<span class="pill pill-danger">Blocked</span>'}
+              </td>
+              <td>
+                <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                  <button class="btn btn-outline btn-sm" onclick="openEditEmployeeModalById('${emp.id}')" title="Edit employee credentials & regional zone">
+                    ✏️ Edit
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="handleBlockEmployee('${emp.id}', '${escapeHtml(emp.full_name || emp.id)}')" ${!isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${isActive ? 'Block employee access' : 'Employee is already blocked'}">
+                    🚫 Block
+                  </button>
+                  <button class="btn btn-success btn-sm" onclick="handleUnblockEmployee('${emp.id}', '${escapeHtml(emp.full_name || emp.id)}')" ${isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${!isActive ? 'Unblock employee and restore access' : 'Employee is already active'}">
+                    🔓 Unblock
+                  </button>
+                </div>
+              </td>
+              <td>
+                <a href="/employee/${emp.id}" target="_blank" class="btn btn-outline btn-sm">Open UI ↗</a>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } else if (res.status === 403 || res.status === 401) {
+        IS_ADMIN_AUTHENTICATED = false;
+        showAdminGateView(false);
+      }
+    }
+
+    function openEditEmployeeModalById(empId) {
+      const emp = CURRENT_ROSTER.find(e => e.id === empId);
+      if (!emp) return;
+      openEditEmployeeModal(emp);
+    }
+
+    function openEditEmployeeModal(emp) {
+      document.getElementById("edit-emp-original-id").value = emp.id;
+      document.getElementById("edit-emp-id").value = emp.id;
+      document.getElementById("edit-emp-name").value = emp.full_name;
+      document.getElementById("edit-emp-email").value = emp.email;
+      document.getElementById("edit-emp-pass").value = "";
+
+      // Normalize zone for select matching
+      let cleanZone = (emp.zone || "North").replace(/ Zone.*/i, "").replace(/ \d+/, "").trim();
+      if (cleanZone === "NE" || cleanZone === "North-East") cleanZone = "North East";
+      const zoneSelect = document.getElementById("edit-emp-zone");
+      if (zoneSelect) {
+        let matched = false;
+        for (let opt of zoneSelect.options) {
+          if (opt.value.toLowerCase() === cleanZone.toLowerCase()) {
+            zoneSelect.value = opt.value;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) zoneSelect.value = "North";
+      }
+
+      document.getElementById("edit-emp-states").value = emp.assigned_states || "";
+      document.getElementById("edit-emp-active").value = String(emp.is_active) === "0" ? "0" : "1";
+      document.getElementById("modal-edit-alert").innerHTML = "";
+      document.getElementById("edit-employee-modal").classList.add("active");
+    }
+
+    function closeEditEmployeeModal() {
+      document.getElementById("edit-employee-modal").classList.remove("active");
+    }
+
+    async function handleUpdateEmployee(e) {
+      e.preventDefault();
+      const oldId = document.getElementById("edit-emp-original-id").value.trim().toUpperCase();
+      const newId = document.getElementById("edit-emp-id").value.trim().toUpperCase();
+      const name = document.getElementById("edit-emp-name").value.trim();
+      const email = document.getElementById("edit-emp-email").value.trim().toLowerCase();
+      const pass = document.getElementById("edit-emp-pass").value;
+      const zone = document.getElementById("edit-emp-zone").value;
+      const states = document.getElementById("edit-emp-states").value.trim();
+      const active = document.getElementById("edit-emp-active").value;
+      const submitBtn = document.getElementById("btn-save-emp-update");
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+
+      const payload = {
+        old_emp_id: oldId,
+        new_emp_id: newId,
+        full_name: name,
+        email: email,
+        zone: zone,
+        assigned_states: states,
+        is_active: active
+      };
+      if (pass.trim()) {
+        payload.password = pass.trim();
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>⏳</span> Synchronizing DB...`;
+
+      try {
+        const res = await apiRequest("/api/admin/employees/update", "POST", payload, adminToken);
+        if (res.ok && res.data.success) {
+          showAlert("admin-alert", `✓ Employee ${name} (${newId}) updated and synchronized across backend node DB!`, "success");
+          closeEditEmployeeModal();
+          loadEmployeesRoster();
+          loadDashboardData();
+        } else {
+          const msg = res.data?.message || "Failed to update employee.";
+          const c = document.getElementById("modal-edit-alert");
+          if (c) {
+            c.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>${msg}</div></div>`;
+          }
+        }
+      } catch (err) {
+        const c = document.getElementById("modal-edit-alert");
+        if (c) {
+          c.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>Network error while updating employee.</div></div>`;
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>✓</span> Save & Sync with Backend DB`;
+      }
+    }
+
+    async function handleBlockEmployee(userId, name) {
+      if (!confirm(`Are you sure you want to BLOCK ${name || userId}?\n\nTheir active sessions will be terminated immediately and they will not be able to log into the NDLI portal.`)) {
+        return;
+      }
+      await toggleEmployeeStatus(userId, false);
+    }
+
+    async function handleUnblockEmployee(userId, name) {
+      if (!confirm(`UNBLOCK ${name || userId}?\n\nThis will immediately restore their full portal access and permit them to log in again.`)) {
+        return;
+      }
+      await toggleEmployeeStatus(userId, true);
+    }
+
+    async function toggleEmployeeStatus(userId, newActiveStatus) {
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+      const res = await apiRequest("/api/admin/employees/status", "POST", {
+        user_id: userId,
+        is_active: newActiveStatus
+      }, adminToken);
+      if (res.ok) {
+        const actionText = newActiveStatus ? "UNBLOCKED and access restored" : "BLOCKED";
+        showAlert("admin-alert", `✓ Employee ${userId} successfully ${actionText}!`, "success");
+        loadEmployeesRoster();
+      } else {
+        showAlert("admin-alert", `Error: ${res.data?.message || 'Failed to update status.'}`, "danger");
+      }
+    }
+
+    // Handle Create Employee
+    async function handleCreateEmployee(e) {
+      e.preventDefault();
+      const empId = document.getElementById("new-emp-id").value.trim().toUpperCase();
+      const name = document.getElementById("new-emp-name").value.trim();
+      const email = document.getElementById("new-emp-email").value.trim().toLowerCase();
+      const pass = document.getElementById("new-emp-pass").value;
+      const zone = document.getElementById("new-emp-zone").value;
+      const states = document.getElementById("new-emp-states").value.trim();
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+
+      const payload = {
+        emp_id: empId,
+        full_name: name,
+        email: email,
+        password: pass,
+        zone: zone,
+        assigned_states: states
+      };
+
+      const res = await apiRequest("/api/admin/employees/create", "POST", payload, adminToken);
+      if (res.ok) {
+        showAlert("admin-alert", `✓ Employee ${name} (${empId}) provisioned with dedicated node database and credentials!`, "success");
+        document.getElementById("create-employee-form").reset();
+        loadEmployeesRoster();
+        loadDashboardData();
+      } else {
+        showAlert("admin-alert", `Error: ${res.data?.message || 'Could not provision employee.'}`, "danger");
+      }
+    }
+
+    // Trigger Node Reconcile
+    async function triggerReconcile() {
+      const res = await apiRequest("/api/sync/reconcile", "POST", {});
+      if (res.ok) {
+        const s = res.data.summary;
+        showAlert("admin-alert", `✓ Master Reconciliation Complete! Synced ${s.employees_synced} nodes, verified ${s.total_master_clubs} clubs & ${s.total_master_activities} activities.`, "success");
+        loadDashboardData();
+      } else {
+        showAlert("admin-alert", "Reconciliation failed.", "danger");
+      }
+    }
+
+    // =============================================================
+    // RENEWAL ATTENTION & CLUB DETAILS MODALS CONTROLLER
+    // =============================================================
+    var RENEWAL_ATTENTION_DATA = null;
+    var CURRENT_ATTENTION_FILTER = "ALL";
+    var CURRENT_ATTENTION_QUERY = "";
+
+    async function openRenewalAttentionModal(initialFilter = "ALL") {
+      CURRENT_ATTENTION_FILTER = initialFilter;
+      CURRENT_ATTENTION_QUERY = "";
+
+      updateAttentionFilterButtons(initialFilter);
+
+      const searchInput = document.getElementById("attn-search-input");
+      if (searchInput) searchInput.value = "";
+
+      const modal = document.getElementById("renewal-attention-modal");
+      if (modal) {
+        modal.classList.add("active");
+        modal.classList.add("open");
+        modal.style.display = "flex";
+      }
+
+      const tbody = document.getElementById("renewal-attention-tbody");
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Loading renewal attention records...</td></tr>';
+      }
+
+      try {
+        const res = await apiRequest("/api/admin/renewal-attention");
+        if (res.ok && res.data) {
+          RENEWAL_ATTENTION_DATA = res.data;
+          updateAttentionCountsUI(res.data);
+          renderRenewalAttentionList();
+        } else {
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Failed to fetch renewal attention records.</td></tr>';
+          }
+        }
+      } catch (err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Network error fetching renewal attention records.</td></tr>';
+        }
+      }
+    }
+
+    function closeRenewalAttentionModal() {
+      const modal = document.getElementById("renewal-attention-modal");
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+      }
+    }
+
+    function updateAttentionCountsUI(data) {
+      const total = data.total_attention_count || 0;
+      const overdue = data.overdue_count || 0;
+      const expiring = data.expiring_soon_count || 0;
+
+      const totalBadge = document.getElementById("attn-total-count");
+      const overdueBadge = document.getElementById("attn-overdue-count");
+      const expiringBadge = document.getElementById("attn-expiring-count");
+
+      if (totalBadge) totalBadge.innerText = `${total} Total Attention`;
+      if (overdueBadge) overdueBadge.innerText = `${overdue} Overdue`;
+      if (expiringBadge) expiringBadge.innerText = `${expiring} Expiring Soon`;
+
+      const btnAll = document.getElementById("btn-count-all");
+      const btnOvd = document.getElementById("btn-count-overdue");
+      const btnExp = document.getElementById("btn-count-expiring");
+
+      if (btnAll) btnAll.innerText = total;
+      if (btnOvd) btnOvd.innerText = overdue;
+      if (btnExp) btnExp.innerText = expiring;
+
+      const kpiEl = document.getElementById("kpi-renewals");
+      if (kpiEl) kpiEl.innerText = total;
+    }
+
+    function updateAttentionFilterButtons(activeFilter) {
+      document.querySelectorAll(".attn-filter-btn").forEach(btn => {
+        const f = btn.getAttribute("data-filter");
+        const isActive = f.toLowerCase() === activeFilter.toLowerCase() || (f === "ALL" && activeFilter === "ALL");
+        if (isActive) {
+          btn.classList.remove("btn-outline");
+          btn.classList.add("btn-primary");
+        } else {
+          btn.classList.remove("btn-primary");
+          btn.classList.add("btn-outline");
+        }
+      });
+    }
+
+    function filterAttentionList(filterType) {
+      CURRENT_ATTENTION_FILTER = filterType;
+      updateAttentionFilterButtons(filterType);
+      renderRenewalAttentionList();
+    }
+
+    function handleAttentionSearch(query) {
+      CURRENT_ATTENTION_QUERY = (query || "").trim().toLowerCase();
+      renderRenewalAttentionList();
+    }
+
+    function renderRenewalAttentionList() {
+      const tbody = document.getElementById("renewal-attention-tbody");
+      if (!tbody || !RENEWAL_ATTENTION_DATA) return;
+
+      let list = RENEWAL_ATTENTION_DATA.clubs || [];
+
+      // Filter by attention type
+      if (CURRENT_ATTENTION_FILTER.toLowerCase() === "overdue") {
+        list = list.filter(c => c.attention_type === "Overdue");
+      } else if (CURRENT_ATTENTION_FILTER.toLowerCase().includes("expiring")) {
+        list = list.filter(c => c.attention_type === "Expiring Soon");
+      }
+
+      // Filter by search query
+      if (CURRENT_ATTENTION_QUERY) {
+        const q = CURRENT_ATTENTION_QUERY;
+        list = list.filter(c =>
+          (c.club_id || "").toLowerCase().includes(q) ||
+          (c.institution_name || "").toLowerCase().includes(q) ||
+          (c.state || "").toLowerCase().includes(q) ||
+          (c.zone || "").toLowerCase().includes(q) ||
+          (c.reg_no || "").toLowerCase().includes(q) ||
+          (c.patron_email || "").toLowerCase().includes(q)
+        );
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+              <strong>No clubs found matching filter criteria.</strong>
+              <div style="font-size: 0.85rem; margin-top: 0.35rem; color: var(--text-muted);">
+                ${CURRENT_ATTENTION_QUERY ? 'Try clearing or changing your search terms.' : 'All club renewal statuses in this category are up-to-date.'}
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map(c => {
+        const isOverdue = c.attention_type === "Overdue";
+        const badgeClass = isOverdue ? "pill-danger" : "pill-warning";
+        const urgencyText = c.badge_label || (isOverdue ? `${c.days_overdue || Math.abs(c.days_diff)} days overdue` : `${c.days_left || c.days_diff} days left`);
+        const statusType = isOverdue ? "🔴 Overdue" : "🟡 Expiring Soon";
+        const cid = c.club_id || "";
+        const cidSafe = cid.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+        const doaVal = c.date_of_approval || c.submission_timestamp || "";
+        const doaDisplay = doaVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : doaVal.split("T")[0]) : "-";
+        const lrdVal = c.last_renewal_date || "";
+        const lrdDisplay = lrdVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(lrdVal) : lrdVal.split("T")[0]) : "None (Initial)";
+        const renDisplay = c.renewal_date || c.next_renewal_date || c.effective_renewal_date || "-";
+
+        return `
+          <tr style="cursor: pointer; transition: background 0.12s;" onclick="openClubDetailsModal('${cidSafe}')" title="Click to view full club properties">
+            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(cid)}</code></td>
+            <td><strong>${escapeHtml(c.institution_name)}</strong></td>
+            <td>${escapeHtml(c.state)}</td>
+            <td><span class="pill pill-primary" style="font-size: 0.75rem;">${escapeHtml(c.zone)}</span></td>
+            <td style="font-family: monospace; font-size: 0.85rem;">${escapeHtml(doaDisplay)}</td>
+            <td style="font-family: monospace; font-size: 0.85rem; color: #b45309;">${escapeHtml(lrdDisplay)}</td>
+            <td style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #15803d;">${escapeHtml(renDisplay)}</td>
+            <td><span class="pill ${badgeClass}">${escapeHtml(urgencyText)}</span></td>
+            <td><span class="pill ${badgeClass}">${statusType}</span></td>
+            <td>
+              <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openClubDetailsModal('${cidSafe}')" style="padding: 3px 8px; font-size: 0.78rem;">
+                View Details ↗
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // =============================================================
+    // HTML ESCAPING UTILITY
+    // =============================================================
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    // =============================================================
+    // LOCAL TIMESTAMP FORMATTER (IST - ASIA/KOLKATA)
+    // =============================================================
+    function formatLocalTimestamp(ts) {
+      if (!ts) return "-";
+      try {
+        let d = new Date(ts);
+        if (isNaN(d.getTime())) {
+          if (typeof ts === "string" && !ts.includes("Z") && !ts.includes("+")) {
+            d = new Date(ts.replace(" ", "T") + "Z");
+          }
+        }
+        if (isNaN(d.getTime())) return String(ts);
+
+        const parts = new Intl.DateTimeFormat('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        }).formatToParts(d);
+        const m = {};
+        for (const p of parts) m[p.type] = p.value;
+        const monthClean = (m.month || "").replace(".", "");
+        return `${m.day} ${monthClean} ${m.year}, ${m.hour}:${m.minute}:${m.second} ${(m.dayPeriod || '').toUpperCase()} IST`;
+      } catch (e) {
+        return String(ts);
+      }
+    }
+
+    // =============================================================
+    // NEXT RENEWAL DATE CALCULATOR (1-YEAR CYCLE)
+    // =============================================================
+    function calculateNextRenewalDate(estDateStr, lastRenDateStr) {
+      function parseDate(s) {
+        if (!s || s === "-" || !String(s).trim()) return null;
+        const clean = String(s).split("T")[0].split(" ")[0].trim();
+        let m = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+        if (m) {
+          const dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+          return isNaN(dt.getTime()) ? null : dt;
+        }
+        m = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (m) {
+          const dt = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+          return isNaN(dt.getTime()) ? null : dt;
+        }
+        const dt = new Date(clean);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+
+      const est = parseDate(estDateStr);
+      const ren = parseDate(lastRenDateStr);
+
+      let latest = null;
+      if (est && ren) {
+        latest = est.getTime() >= ren.getTime() ? est : ren;
+      } else if (ren) {
+        latest = ren;
+      } else if (est) {
+        latest = est;
+      } else {
+        latest = new Date();
+      }
+
+      let nextYear = latest.getFullYear() + 1;
+      let nextMonth = latest.getMonth();
+      let nextDay = latest.getDate();
+
+      if (nextMonth === 1 && nextDay === 29) {
+        const isLeap = (nextYear % 4 === 0 && nextYear % 100 !== 0) || (nextYear % 400 === 0);
+        if (!isLeap) nextDay = 28;
+      }
+
+      const next = new Date(nextYear, nextMonth, nextDay);
+      const yr = next.getFullYear();
+      const mo = String(next.getMonth() + 1).padStart(2, "0");
+      const day = String(next.getDate()).padStart(2, "0");
+      return `${yr}-${mo}-${day}`;
+    }
+
+    // =============================================================
+    // CLUB DETAILS VIEW MODAL CONTROLLER
+    // =============================================================
+    async function openClubDetailsModal(clubId) {
+      if (!clubId) return;
+      const cleanId = String(clubId).trim();
+      if (!cleanId) return;
+
+      const modal = document.getElementById("club-details-modal");
+      const attnModal = document.getElementById("renewal-attention-modal");
+
+      // Instantly show the Club Details Modal with all active classes and flex display
+      if (modal) {
+        modal.classList.add("active");
+        modal.classList.add("open");
+        modal.style.display = "flex";
+      }
+
+      // Temporarily hide attention list to prevent modal overlap
+      if (attnModal) {
+        attnModal.classList.remove("active");
+        attnModal.classList.remove("open");
+        attnModal.style.display = "none";
+      }
+
+      let cachedClub = null;
+      if (RENEWAL_ATTENTION_DATA && Array.isArray(RENEWAL_ATTENTION_DATA.clubs)) {
+        cachedClub = RENEWAL_ATTENTION_DATA.clubs.find(c => (c.club_id || "").trim().toUpperCase() === cleanId.toUpperCase());
+      }
+
+      // If cached club record is available from attention dataset, render immediately for instant feedback
+      if (cachedClub) {
+        renderClubDetailsView(cachedClub);
+      } else {
+        const body = document.getElementById("club-details-body");
+        if (body) {
+          body.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
+              <p>Loading full properties for Club <strong>${escapeHtml(cleanId)}</strong>...</p>
+            </div>
+          `;
+        }
+      }
+
+      // Fetch latest synced details from API
+      try {
+        const res = await apiRequest(`/api/clubs/details?club_id=${encodeURIComponent(cleanId)}`);
+        if (res.ok && res.data && res.data.club) {
+          renderClubDetailsView(res.data.club);
+        } else if (!cachedClub) {
+          const body = document.getElementById("club-details-body");
+          if (body) {
+            body.innerHTML = `
+              <div style="padding: 1.5rem;">
+                <div class="alert alert-danger">
+                  <span>⚠️</span>
+                  <div>Could not load club details for Club ID: <strong>${escapeHtml(cleanId)}</strong></div>
+                </div>
+                <div style="margin-top: 1rem; text-align: right;">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
+                </div>
+              </div>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching club details:", err);
+        if (!cachedClub) {
+          const body = document.getElementById("club-details-body");
+          if (body) {
+            body.innerHTML = `
+              <div style="padding: 1.5rem;">
+                <div class="alert alert-danger">
+                  <span>⚠️</span>
+                  <div>Network error fetching club properties.</div>
+                </div>
+                <div style="margin-top: 1rem; text-align: right;">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
+                </div>
+              </div>
+            `;
+          }
+        }
+      }
+    }
+
+    function closeClubDetailsModal(returnToList = false) {
+      const modal = document.getElementById("club-details-modal");
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+      }
+      if (returnToList) {
+        const attnModal = document.getElementById("renewal-attention-modal");
+        if (attnModal) {
+          attnModal.classList.add("active");
+          attnModal.classList.add("open");
+          attnModal.style.display = "flex";
+        }
+      }
+    }
+
+    function backToAttentionList() {
+      closeClubDetailsModal(true);
+    }
+
+    function renderClubDetailsView(club) {
+      const body = document.getElementById("club-details-body");
+      if (!body || !club) return;
+
+      try {
+        const isOverdue = (club.days_diff !== null && club.days_diff !== undefined && club.days_diff < 0) || club.attention_type === "Overdue";
+        const isExpiring = (club.days_diff !== null && club.days_diff !== undefined && club.days_diff >= 0 && club.days_diff <= 90) || club.attention_type === "Expiring Soon";
+
+        let urgencyBadge = '<span class="pill pill-success">Normal Validity</span>';
+        if (isOverdue) {
+          const dOver = club.days_overdue || (club.days_diff !== null && club.days_diff !== undefined ? Math.abs(club.days_diff) : 0);
+          urgencyBadge = `<span class="pill pill-danger">🔴 Overdue by ${dOver} days</span>`;
+        } else if (isExpiring) {
+          const dLeft = club.days_left !== undefined ? club.days_left : (club.days_diff !== null && club.days_diff !== undefined ? club.days_diff : 0);
+          urgencyBadge = `<span class="pill pill-warning">🟡 ${dLeft === 0 ? 'Expires today' : `Expiring in ${dLeft} days`}</span>`;
+        }
+
+        const doaVal = club.date_of_approval || club.submission_timestamp || "";
+        const estDateFormatted = (doaVal && typeof formatLocalTimestamp === "function")
+          ? formatLocalTimestamp(doaVal)
+          : (doaVal || "-");
+        const estDateShort = doaVal
+          ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : String(doaVal).split("T")[0].split(" ")[0])
+          : "-";
+
+        const lrdVal = club.last_renewal_date || "";
+        const lastRenFormatted = (lrdVal && typeof formatLocalTimestamp === "function")
+          ? formatLocalTimestamp(lrdVal)
+          : (lrdVal || "None (Initial Inception)");
+        const lastRenShort = lrdVal
+          ? (typeof formatDateDisplay === "function" ? formatDateDisplay(lrdVal) : String(lrdVal).split("T")[0].split(" ")[0])
+          : "None (Initial)";
+
+        let nextRenewalDue = club.renewal_date || club.next_renewal_date || club.next_renewal_due_date || club.effective_renewal_date;
+        if (!nextRenewalDue && typeof calculateNextRenewalDate === "function") {
+          nextRenewalDue = calculateNextRenewalDate(doaVal, lrdVal);
+        }
+        if (!nextRenewalDue) nextRenewalDue = "-";
+
+        const emailRecipients = [club.president_email, club.secretary_email].filter(Boolean).join(",");
+        const mailtoUrl = emailRecipients
+          ? `mailto:${emailRecipients}?subject=NDLI%20Club%20Renewal%20Notice%20-%20${encodeURIComponent(club.institution_name || '')}&body=Dear%20Club%20Officers,%0A%0AYour%20NDLI%20Club%20registration%20validity%20is%20${isOverdue ? 'overdue' : 'due%20soon'}%20(Expiry:%20${club.effective_renewal_date || nextRenewalDue}).%20Please%20log%20in%20to%20the%20NDLI%20Portal%20or%20contact%20your%20regional%20nodal%20officer%20for%20the%201-year%20annual%20renewal.%0A%0AOffice%20of%20NDLI,%20IIT%20Kharagpur`
+          : "#";
+
+        body.innerHTML = `
+          <!-- Header -->
+          <div style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                  <span class="badge-tag" style="background: var(--primary);">NDLI Club Profile</span>
+                  <code style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">${escapeHtml(club.club_id || '-')}</code>
+                </div>
+                <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--primary); line-height: 1.3;">
+                  ${escapeHtml(club.institution_name || '-')}
+                </h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                  ${escapeHtml(club.state || '-')} • ${escapeHtml(club.zone || '-')} Zone
+                </p>
+              </div>
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                ${urgencyBadge}
+                <span class="pill pill-primary">${escapeHtml(club.status || 'Approved')}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2-Column Property Grid -->
+          <div class="grid-2" style="gap: 1rem; margin-bottom: 1.25rem;">
+            <!-- Identification Card -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+              <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🆔</span> Club Identification & Geography
+              </h4>
+              <table style="width: 100%; font-size: 0.85rem;">
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0; width: 45%;">Club ID:</td>
+                  <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(club.club_id || '-')}</code></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Registration No:</td>
+                  <td><strong style="font-family: monospace;">${escapeHtml(club.reg_no || '-')}</strong></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Institution Name:</td>
+                  <td><strong>${escapeHtml(club.institution_name || '-')}</strong></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">State / UT:</td>
+                  <td><strong>${escapeHtml(club.state || '-')}</strong></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Regional Zone:</td>
+                  <td><span class="pill pill-primary" style="font-size: 0.75rem;">${escapeHtml(club.zone || '-')} Zone</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Account Status:</td>
+                  <td><span class="pill pill-success" style="font-size: 0.75rem;">${escapeHtml(club.status || 'Approved')}</span></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Administration & Officers Card -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem;">
+              <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>👤</span> Official Contacts & Approver
+              </h4>
+              <table style="width: 100%; font-size: 0.85rem;">
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0; width: 45%;">Approved By:</td>
+                  <td><code>${escapeHtml(club.approved_by_emp_id || 'IIT KGP Master')}</code></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Patron E-Mail:</td>
+                  <td>
+                    ${club.patron_email ? `<a href="mailto:${encodeURIComponent(club.patron_email)}" style="color: var(--primary); text-decoration: underline; word-break: break-all;">${escapeHtml(club.patron_email)}</a>` : '-'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">President E-Mail:</td>
+                  <td>
+                    ${club.president_email ? `<a href="mailto:${encodeURIComponent(club.president_email)}" style="color: var(--primary); text-decoration: underline; word-break: break-all;">${escapeHtml(club.president_email)}</a>` : '-'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-muted); padding: 0.35rem 0;">Secretary E-Mail:</td>
+                  <td>
+                    ${club.secretary_email ? `<a href="mailto:${encodeURIComponent(club.secretary_email)}" style="color: var(--primary); text-decoration: underline; word-break: break-all;">${escapeHtml(club.secretary_email)}</a>` : '-'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Renewal & Registration Lifecycle Card -->
+          <div style="background: #fffdf5; border: 1px solid #fde68a; border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.25rem;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: #92400e; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📅</span> Renewal Lifecycle (Automated 1-Year Cycle)
+            </h4>
+
+            <div class="grid-3" style="gap: 1rem;">
+              <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #fef3c7;">
+                <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Date of Approval</span>
+                <strong style="font-size: 0.95rem; color: var(--primary); margin-top: 0.25rem; display: block; font-family: monospace;">
+                  ${escapeHtml(estDateShort)}
+                </strong>
+                <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">${escapeHtml(estDateFormatted)}</small>
+              </div>
+
+              <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #fef3c7;">
+                <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Last Renewal Date</span>
+                <strong style="font-size: 0.95rem; color: #b45309; margin-top: 0.25rem; display: block; font-family: monospace;">
+                  ${escapeHtml(lastRenShort)}
+                </strong>
+                <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">${escapeHtml(lastRenFormatted)}</small>
+              </div>
+
+              <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #bbf7d0;">
+                <span style="font-size: 0.72rem; text-transform: uppercase; color: #166534; font-weight: 700; display: block;">Upcoming Renewal Due Date (Next Renewal Due Date)</span>
+                <strong style="font-size: 1rem; color: #15803d; margin-top: 0.25rem; display: block; font-family: monospace;" id="club-details-next-renewal">
+                  ${escapeHtml(nextRenewalDue)}
+                </strong>
+                <small style="font-size: 0.72rem; color: #15803d; display: block; margin-top: 0.2rem;">+1 Year automatically computed</small>
+              </div>
+            </div>
+
+            <p style="font-size: 0.78rem; color: #78350f; margin-top: 0.85rem;">
+              ℹ️ <em>Rule Applied: Initial 1-year registration validity is logged upon club creation (Date of Approval). On renewal approval, the employee checks conditions and clicks "Renewal Approved", instantly logging the timestamp as Last Renewal Date and calculating the upcoming renewal date (+1 year).</em>
+            </p>
+          </div>
+
+          <!-- Modal Footer Actions -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <button type="button" class="btn btn-outline" onclick="backToAttentionList()">
+              ← Back to Renewal Attention List
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              ${emailRecipients ? `
+                <a href="${mailtoUrl}" class="btn btn-accent btn-sm" style="text-decoration: none;">
+                  📧 Send Renewal Notice E-Mail
+                </a>
+              ` : ''}
+              <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">
+                Close Details
+              </button>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        console.error("Error rendering club details view:", err);
+        body.innerHTML = `
+          <div style="padding: 1.5rem;">
+            <div class="alert alert-danger">
+              <span>⚠️</span>
+              <div>An unexpected error occurred while displaying club properties.</div>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.openClubDetailsModal = openClubDetailsModal;
+      window.closeClubDetailsModal = closeClubDetailsModal;
+      window.backToAttentionList = backToAttentionList;
+      window.openRenewalAttentionModal = openRenewalAttentionModal;
+      window.closeRenewalAttentionModal = closeRenewalAttentionModal;
+      window.renderRenewalAttentionList = renderRenewalAttentionList;
+      window.filterAttentionList = filterAttentionList;
+      window.handleAttentionSearch = handleAttentionSearch;
+      window.formatLocalTimestamp = formatLocalTimestamp;
+      window.calculateNextRenewalDate = calculateNextRenewalDate;
+      window.escapeHtml = escapeHtml;
+      window.renderClubDetailsView = renderClubDetailsView;
+      window.openAdminEscalationsListModal = openAdminEscalationsListModal;
+      window.closeAdminEscalationsListModal = closeAdminEscalationsListModal;
+      window.handleAdminEscalationsSearch = handleAdminEscalationsSearch;
+      window.renderAdminEscalationsList = renderAdminEscalationsList;
+      window.selectAdminEscalatedIssue = selectAdminEscalatedIssue;
+      window.openAdminIssueResolutionModal = openAdminIssueResolutionModal;
+      window.closeAdminIssueModal = closeAdminIssueModal;
+      window.submitAdminIssueResolution = submitAdminIssueResolution;
+    }
+
+    function initModalEventListeners() {
+      // Escape key listener for closing modals
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          const detailsModal = document.getElementById("club-details-modal");
+          const attnModal = document.getElementById("renewal-attention-modal");
+          const editEmpModal = document.getElementById("edit-employee-modal");
+          const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
+          const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
+
+          if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
+            closeAdminIssueModal();
+          } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
+            closeAdminEscalationsListModal();
+          } else if (detailsModal && (detailsModal.classList.contains("active") || detailsModal.classList.contains("open"))) {
+            backToAttentionList();
+          } else if (attnModal && (attnModal.classList.contains("active") || attnModal.classList.contains("open"))) {
+            closeRenewalAttentionModal();
+          } else if (editEmpModal && (editEmpModal.classList.contains("active") || editEmpModal.classList.contains("open"))) {
+            closeEditEmployeeModal();
+          }
+        }
+      });
+
+      // Click outside modal content to close
+      document.querySelectorAll(".modal-overlay").forEach(overlay => {
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) {
+            if (overlay.id === "club-details-modal") {
+              backToAttentionList();
+            } else if (overlay.id === "renewal-attention-modal") {
+              closeRenewalAttentionModal();
+            } else if (overlay.id === "edit-employee-modal") {
+              closeEditEmployeeModal();
+            } else if (overlay.id === "admin-escalations-list-modal") {
+              closeAdminEscalationsListModal();
+            } else if (overlay.id === "admin-issue-resolution-modal") {
+              closeAdminIssueModal();
+            }
+          }
+        });
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initModalEventListeners);
+    } else {
+      initModalEventListeners();
+    }
+
+    window.onload = async () => {
+      loadDashboardData();
+      loadAIDecisions();
+      await checkAdminAuth();
+      document.getElementById("tab-btn-employees")?.addEventListener("click", () => {
+        checkAdminAuth();
+      });
+
+      // Periodic refresh of dashboard, roster, backup status, and escalation reminders
+      setInterval(() => {
+        if (IS_ADMIN_AUTHENTICATED) {
+          loadEmployeesRoster();
+        }
+        loadAdminEscalationReminders();
+        loadAdminBackupStatus();
+      }, 10000);
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          loadDashboardData();
+          loadAdminEscalationReminders();
+          loadAdminBackupStatus();
+          if (IS_ADMIN_AUTHENTICATED) loadEmployeesRoster();
+        }
+      });
+    };
+  </script>
+
+  <!-- EDIT EMPLOYEE MODAL -->
+  <div class="modal-overlay" id="edit-employee-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeEditEmployeeModal()">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title">✏️ Edit Employee Details</h3>
+          <p class="card-subtitle">Changes sync dynamically with that individual's backend node database and credentials.</p>
+        </div>
+        <span class="pill pill-primary" id="modal-edit-emp-badge">EMPLOYEE</span>
+      </div>
+
+      <div id="modal-edit-alert"></div>
+
+      <form id="edit-employee-form" onsubmit="handleUpdateEmployee(event)">
+        <input type="hidden" id="edit-emp-original-id">
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit-emp-id" class="label-required">Employee Code / ID</label>
+            <input type="text" id="edit-emp-id" required placeholder="e.g. EMP01">
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Changing ID automatically renames the node folder (<code>data/employees/&lt;id&gt;</code>) and syncs activity logs & clubs.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-emp-name" class="label-required">Full Name</label>
+            <input type="text" id="edit-emp-name" required placeholder="e.g. Rohan Sharma">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit-emp-email" class="label-required">Official Email (User ID)</label>
+            <input type="email" id="edit-emp-email" required placeholder="e.g. emp.north@ndli.edu.in">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-emp-pass">New Password (Optional)</label>
+            <input type="password" id="edit-emp-pass" placeholder="Leave blank to keep existing password">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit-emp-zone" class="label-required">Regional Zone</label>
+            <select id="edit-emp-zone" required>
+              <option value="North">North Zone</option>
+              <option value="Central">Central Zone</option>
+              <option value="West">West Zone</option>
+              <option value="East">East Zone</option>
+              <option value="North East">North East Zone</option>
+              <option value="South">South Zone</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-emp-active" class="label-required">Account Status</label>
+            <select id="edit-emp-active" required>
+              <option value="1">Active / Unblocked (Permit Login)</option>
+              <option value="0">Blocked (Suspend Access)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-emp-states" class="label-required">Assigned States & UTs</label>
+          <input type="text" id="edit-emp-states" required placeholder="e.g. Delhi, Punjab, Haryana, Uttar Pradesh">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+          <button type="button" class="btn btn-outline" onclick="closeEditEmployeeModal()">Cancel</button>
+          <button type="submit" id="btn-save-emp-update" class="btn btn-primary">
+            <span>✓</span> Save & Sync with Backend DB
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RENEWAL ATTENTION LIST MODAL -->
+  <div class="modal-overlay modal" id="renewal-attention-modal" style="z-index: 1000;">
+    <div class="modal-content modal-lg" style="max-width: 1040px; width: 95%;">
+      <button class="modal-close" onclick="closeRenewalAttentionModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 0.75rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+            <span class="badge-tag" style="background: var(--danger);">Admin Action Required</span>
+            <span class="pill pill-danger" id="attn-overdue-count">0 Overdue</span>
+            <span class="pill pill-warning" id="attn-expiring-count">0 Expiring Soon</span>
+            <span class="pill pill-primary" id="attn-total-count">0 Total Attention</span>
+          </div>
+          <h3 class="card-title" style="color: var(--danger); font-size: 1.25rem;">
+            ⚠️ NDLI Clubs Requiring Renewal Attention
+          </h3>
+          <p class="card-subtitle">
+            Clubs that are past renewal validity or expiring within 90 days. Click any club row to view full properties.
+          </p>
+        </div>
+      </div>
+
+      <!-- Controls & Filter Toolbar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 0.85rem;">
+        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Filter:</span>
+          <button type="button" class="btn btn-sm btn-primary attn-filter-btn" data-filter="ALL" onclick="filterAttentionList('ALL')">
+            All (<span id="btn-count-all">0</span>)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Overdue" onclick="filterAttentionList('Overdue')" style="color: var(--danger); border-color: var(--danger);">
+            🔴 Overdue (<span id="btn-count-overdue">0</span>)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Expiring Soon" onclick="filterAttentionList('Expiring Soon')" style="color: var(--warning); border-color: var(--warning);">
+            🟡 Expiring Soon (<span id="btn-count-expiring">0</span>)
+          </button>
+        </div>
+
+        <div style="flex: 1; min-width: 240px; max-width: 380px;">
+          <input type="text" id="attn-search-input" placeholder="Search by Club ID, Institution, State, Zone..." oninput="handleAttentionSearch(this.value)" style="padding: 0.35rem 0.65rem; font-size: 0.85rem; width: 100%;">
+        </div>
+      </div>
+
+      <!-- Table of Attention Clubs -->
+      <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Club ID</th>
+              <th>Institution Name</th>
+              <th>State</th>
+              <th>Zone</th>
+              <th>Date of Approval</th>
+              <th>Last Renewal Date</th>
+              <th>Upcoming Renewal Date</th>
+              <th>Days Overdue / Left</th>
+              <th>Status Badge</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="renewal-attention-tbody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeRenewalAttentionModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLUB DETAILS MODAL -->
+  <div class="modal-overlay modal" id="club-details-modal" style="z-index: 1100;">
+    <div class="modal-content modal-lg" style="max-width: 840px; width: 95%;">
+      <button class="modal-close" onclick="backToAttentionList()" title="Back to Renewal Attention List">×</button>
+      <div id="club-details-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 5: ADMIN ESCALATED ISSUES LIST MODAL (STACK POPUP) -->
+  <div class="modal-overlay modal" id="admin-escalations-list-modal" style="z-index: 1150; display: none;">
+    <div class="modal-content modal-lg" style="max-width: 980px; width: 95%;">
+      <button class="modal-close" onclick="closeAdminEscalationsListModal()" title="Close Escalations List">×</button>
+
+      <!-- Modal Header -->
+      <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid #fee2e2; padding-bottom: 0.85rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="background: #dc2626; color: #ffffff; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);">
+            🚨
+          </div>
+          <div>
+            <h3 class="card-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
+              30-Day Unresolved Issue Escalations Queue
+            </h3>
+            <p class="card-subtitle" style="margin: 0.2rem 0 0 0; color: #b91c1c;">
+              Central Admin Review for regional club issues unresolved for 30+ days.
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="pill pill-danger" id="admin-escalations-modal-count" style="font-weight: 800; font-size: 0.82rem;">0 Escalated</span>
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #fff5f5; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: 0.85rem;">
+        <div style="font-size: 0.85rem; color: #991b1b; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+          <span>🔍</span> Filter Escalated Queue:
+        </div>
+        <div style="flex: 1; min-width: 260px; max-width: 420px;">
+          <input type="text" id="admin-escalations-search-input" placeholder="Search by Club ID, Institution, State, Zone, Officer..." oninput="handleAdminEscalationsSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: 4px;">
+        </div>
+      </div>
+
+      <!-- Table of Escalated Issues -->
+      <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr style="background: #fef2f2;">
+              <th style="color: #991b1b;">Club ID</th>
+              <th style="color: #991b1b;">Institution Name</th>
+              <th style="color: #991b1b;">State & Zone</th>
+              <th style="color: #991b1b;">Assigned Officer</th>
+              <th style="color: #991b1b;">Days Unresolved</th>
+              <th style="color: #991b1b;">Reported Issue Note</th>
+              <th style="color: #991b1b;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-escalations-tbody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeAdminEscalationsListModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE 5: ADMIN UNRESOLVED ISSUE RESOLUTION MODAL -->
+  <div class="modal-overlay modal" id="admin-issue-resolution-modal" style="z-index: 1200; display: none;">
+    <div class="modal-content" style="max-width: 620px; width: 95%;">
+      <button class="modal-close" onclick="closeAdminIssueModal()">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🚨</span> Admin Escalation: Unresolved Issue
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Review unresolved club issue pending for 30+ days.</p>
+        </div>
+        <span class="pill pill-danger" id="admin-issue-badge">30+ Days Unresolved</span>
+      </div>
+
+      <div id="admin-issue-details-content" style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1.25rem;">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label for="admin-issue-resolution-notes" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Admin Remarks / Action Notes (Optional):</label>
+        <textarea id="admin-issue-resolution-notes" rows="2" placeholder="Enter notes or instructions for the regional employee..." style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-warning" id="btn-admin-mark-not-resolved" onclick="submitAdminIssueResolution('Not Resolved')">
+          <span>⚠</span> Not Resolved (Auto-generate Reminder after 7 Days)
+        </button>
+        <button type="button" class="btn btn-success" id="btn-admin-mark-resolved" onclick="submitAdminIssueResolution('Resolved')">
+          <span>✓</span> Resolved
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
+  <footer class="system-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-card">
+          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
+        </div>
+        <div class="footer-meta">
+          <div class="footer-title">National Digital Library of India Club Management System</div>
+          <div class="footer-sub">IIT Kharagpur — Central Administration Office • 7 Regional Nodal Zones</div>
+        </div>
+      </div>
+      <div class="footer-credit-box">
+        <span class="dev-role">Lead System Architect & Full-Stack Developer</span>
+        <span class="dev-name">Dr. Anirban Mukherjee</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

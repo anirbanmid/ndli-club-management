@@ -1,0 +1,1409 @@
+"""
+NDLI Club Management and Employee Activity Tracking System
+Core Web Application Server (Zero-Dependency Python Standard Library HTTP Server)
+Supports full REST API, Sessions, Authentication, State-Zone Mapping, and Drive Sync.
+"""
+import os
+import json
+import base64
+import urllib.parse
+from http import HTTPStatus
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+from config import (
+    SERVER_HOST,
+    SERVER_PORT,
+    BASE_DIR,
+    DATA_DIR,
+    MASTER_CLUBS_CSV,
+    MASTER_ACTIVITIES_CSV,
+    MASTER_QUOTAS_CSV,
+    MASTER_USERS_CSV,
+    MASTER_ISSUES_CSV,
+    SUPPORT_TYPES,
+    DEFAULT_ADMIN_EMAIL,
+    EMPLOYEE_NODES_DIR,
+    BACKUP_DIR
+)
+from db.schemas import (
+    CLUB_FIELDS,
+    ACTIVITY_FIELDS,
+    QUOTA_FIELDS,
+    USER_FIELDS,
+    ISSUE_FIELDS,
+    validate_club_payload
+)
+from db.csv_engine import CSVEngine
+from db.sync_engine import SyncEngine, parse_iso_or_date, calculate_next_renewal_date
+from db.storage_adapter import get_storage_adapter
+from db.backup_engine import BackupEngine
+from db.issue_manager import IssueManager
+from auth import AuthService
+from state_zone_mapper import (
+    get_zone_for_state,
+    get_all_states,
+    get_all_zones,
+    ZONE_STATE_MAP
+)
+from ai.decision_module import AIDecisionEngine
+
+
+class NDLIRequestHandler(BaseHTTPRequestHandler):
+    """Custom HTTP Request Handler with REST routing, JSON parsing, and CORS support."""
+
+    def _set_headers(self, status: int = 200, content_type: str = "application/json"):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.end_headers()
+
+    def _serve_file(self, file_path: Path, content_type: str = "text/html; charset=utf-8"):
+        """Serves a static or template file with correct MIME type."""
+        if not file_path.exists():
+            self._send_error(f"File not found: {file_path.name}", status=404)
+            return
+        try:
+            with open(file_path, "rb") as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self._send_error(f"Error serving file: {str(e)}", status=500)
+
+    def do_OPTIONS(self):
+        """Handle CORS pre-flight requests."""
+        self._set_headers(HTTPStatus.NO_CONTENT)
+
+    def _send_json(self, data: Any, status: int = 200):
+        self._set_headers(status, "application/json; charset=utf-8")
+        payload = json.dumps(data, indent=2, default=str)
+        self.wfile.write(payload.encode("utf-8"))
+
+    def _send_error(self, message: str, status: int = 400):
+        self._send_json({"success": False, "error": True, "message": message}, status=status)
+
+    def _parse_json_body(self) -> Dict[str, Any]:
+        """Parses incoming JSON body safely."""
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            if content_length <= 0:
+                return {}
+            raw_body = self.rfile.read(content_length).decode("utf-8")
+            return json.loads(raw_body)
+        except Exception as e:
+            return {}
+
+    def _get_auth_session(self) -> Optional[Dict[str, Any]]:
+        """Extracts and validates Bearer token from Authorization header."""
+        auth_header = self.headers.get("Authorization", "")
+        token = ""
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+        elif "x-session-token" in self.headers:
+            token = self.headers.get("x-session-token", "").strip()
+
+        if not token:
+            try:
+                parsed_q = urllib.parse.urlparse(self.path)
+                qs = urllib.parse.parse_qs(parsed_q.query)
+                token = qs.get("token", [""])[0].strip()
+            except Exception:
+                pass
+
+        if not token:
+            return None
+        return AuthService.validate_session(token)
+
+    def _check_admin_access(self) -> bool:
+        """
+        Validates Admin role for protected administrative endpoints.
+        Strictly requires an authenticated Admin role (admin@iitkgp.ac.in or role == 'ADMIN').
+        Rejects unauthenticated requests (401) and non-admin employee accounts (403).
+        """
+        auth_header = self.headers.get("Authorization", "")
+        token_hdr = self.headers.get("x-session-token", "")
+        if not auth_header and not token_hdr:
+            self._send_error("Admin authorization required. Please provide a valid admin session token.", status=401)
+            return False
+
+        session = self._get_auth_session()
+        if not session:
+            self._send_error("Invalid or expired session token. Admin authorization required.", status=401)
+            return False
+
+        if session.get("role") != "ADMIN" and session.get("email") != DEFAULT_ADMIN_EMAIL:
+            self._send_error("Access denied. Administrator privileges required. Employees cannot access employee management.", status=403)
+            return False
+
+        return True
+
+    def _is_employee_active(self, emp_id: str) -> bool:
+        """Checks if the employee ID exists and has active status (is_active == '1')."""
+        if not emp_id:
+            return False
+        clean_id = emp_id.strip().upper()
+        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+        for u in users:
+            if u.get("id", "").strip().upper() == clean_id:
+                return str(u.get("is_active", "1")).strip() == "1"
+        return False
+
+    def do_GET(self):
+        """Routing for GET requests."""
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+
+        # Static assets serving
+        if path.startswith("/static/"):
+            rel_path = path.lstrip("/")
+            file_path = BASE_DIR / rel_path
+            content_type = "application/octet-stream"
+            if path.endswith(".css"):
+                content_type = "text/css; charset=utf-8"
+            elif path.endswith(".js"):
+                content_type = "application/javascript; charset=utf-8"
+            elif path.endswith(".html"):
+                content_type = "text/html; charset=utf-8"
+            elif path.endswith(".svg"):
+                content_type = "image/svg+xml"
+            elif path.endswith(".png"):
+                content_type = "image/png"
+            elif path.endswith(".jpg") or path.endswith(".jpeg"):
+                content_type = "image/jpeg"
+            elif path.endswith(".json"):
+                content_type = "application/json; charset=utf-8"
+            self._serve_file(file_path, content_type)
+            return
+
+        # HTML Portal Routes
+        if path in ["/portal", "/index.html"]:
+            self._serve_file(BASE_DIR / "templates" / "index.html")
+            return
+
+        if path == "/admin":
+            self._serve_file(BASE_DIR / "templates" / "admin.html")
+            return
+
+        if path in ["/login", "/employee/login"]:
+            self._serve_file(BASE_DIR / "templates" / "employee.html")
+            return
+
+        if path == "/employee" or path.startswith("/employee/"):
+            self._serve_file(BASE_DIR / "templates" / "employee.html")
+            return
+
+        # Health / Root endpoint
+        if path in ["/", "/api/health"]:
+            accept_header = self.headers.get("Accept", "")
+            if path == "/" and "text/html" in accept_header:
+                self._serve_file(BASE_DIR / "templates" / "index.html")
+                return
+
+            storage_info = get_storage_adapter().get_info()
+            self._send_json({
+                "system": "NDLI Club Management and Employee Activity Tracking System",
+                "organization": "IIT Kharagpur",
+                "developer": "Dr. Anirban Mukherjee",
+                "status": "online",
+                "version": "1.0.0 (Phase 1 Foundational Architecture)",
+                "storage": storage_info,
+                "endpoints": [
+                    "POST /api/auth/login",
+                    "GET  /api/auth/me",
+                    "POST /api/auth/logout",
+                    "GET  /api/state-zone/map",
+                    "GET  /api/state-zone/lookup?state=<name>",
+                    "GET  /api/clubs/search?q=<query>",
+                    "POST /api/clubs/create",
+                    "POST /api/clubs/update",
+                    "POST /api/clubs/renew",
+                    "POST /api/activity/log",
+                    "GET  /api/activity/list",
+                    "GET  /api/admin/metrics",
+                    "GET  /api/admin/renewal-attention",
+                    "GET  /api/admin/ai-insights",
+                    "GET  /api/admin/employees",
+                    "POST /api/admin/employees/create",
+                    "POST /api/admin/employees/update",
+                    "POST /api/admin/employees/status",
+                    "GET  /api/employees/roster",
+                    "GET  /api/employees/profile?id=<emp_id>",
+                    "GET  /api/admin/download/master-clubs",
+                    "GET  /api/admin/backup/status",
+                    "POST /api/admin/backup/trigger",
+                    "GET  /api/employee/download/activity-log",
+                    "GET  /api/employee/download/clubs-log",
+                    "POST /api/issues/create",
+                    "POST /api/issues/resolve",
+                    "GET  /api/issues/employee-reminders",
+                    "GET  /api/issues/admin-reminders",
+                    "GET  /api/issues/list",
+                    "POST /api/sync/reconcile"
+                ]
+            })
+            return
+
+        # State and Zone Mapping
+        if path == "/api/state-zone/map":
+            self._send_json({
+                "zones": get_all_zones(),
+                "zone_to_states": ZONE_STATE_MAP,
+                "all_states": get_all_states(),
+                "support_types": SUPPORT_TYPES
+            })
+            return
+
+        if path == "/api/state-zone/lookup":
+            state_param = query_params.get("state", [""])[0]
+            zone = get_zone_for_state(state_param)
+            self._send_json({
+                "state": state_param,
+                "zone": zone or "Unknown",
+                "found": zone is not None
+            })
+            return
+
+        # Current User Session (Dynamically Synced with Master DB)
+        if path == "/api/auth/me":
+            session = self._get_auth_session()
+            if not session:
+                self._send_error("Unauthorized. Please log in.", status=401)
+                return
+
+            # Live sync with master_users.csv
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            found_user = None
+            for u in users:
+                if u.get("id", "").strip().upper() == session.get("user_id", "").strip().upper():
+                    found_user = u
+                    break
+
+            auth_token = session.get("token", "")
+            if not auth_token:
+                auth_hdr = self.headers.get("Authorization", "")
+                if auth_hdr.startswith("Bearer "):
+                    auth_token = auth_hdr.split(" ", 1)[1].strip()
+
+            if not found_user:
+                if auth_token:
+                    AuthService.logout(auth_token)
+                self._send_error("User account no longer exists.", status=401)
+                return
+
+            if str(found_user.get("is_active", "1")).strip() != "1":
+                if auth_token:
+                    AuthService.logout(auth_token)
+                self._send_error("This account has been disabled or blocked by the Administrator.", status=401)
+                return
+
+            session["full_name"] = found_user.get("full_name", "")
+            session["email"] = found_user.get("email", "")
+            session["zone"] = found_user.get("zone", "")
+            session["assigned_states"] = found_user.get("assigned_states", "")
+            session["role"] = found_user.get("role", "EMPLOYEE")
+
+            self._send_json({"authenticated": True, "user": session})
+            return
+
+        # Public / Regional Directory of Active Employees (No Passwords or Hashes)
+        if path == "/api/employees/roster":
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            roster = []
+            for u in users:
+                if u.get("role") == "EMPLOYEE":
+                    roster.append({
+                        "id": u.get("id"),
+                        "full_name": u.get("full_name"),
+                        "email": u.get("email"),
+                        "zone": u.get("zone"),
+                        "assigned_states": u.get("assigned_states"),
+                        "is_active": str(u.get("is_active", "1"))
+                    })
+            self._send_json({"count": len(roster), "employees": roster})
+            return
+
+        # Individual Employee Live Profile (Dynamic Node & Master Sync)
+        if path == "/api/employees/profile":
+            emp_id = query_params.get("id", [""])[0] or query_params.get("emp_id", [""])[0]
+            clean_id = emp_id.strip().upper()
+            if not clean_id:
+                self._send_error("emp_id or id parameter is required.")
+                return
+
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            target = None
+            for u in users:
+                if u.get("id", "").strip().upper() == clean_id:
+                    target = u
+                    break
+
+            if not target:
+                self._send_error(f"Employee with ID '{clean_id}' not found.", status=404)
+                return
+
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            q = next((item for item in quotas if item.get("emp_id", "").strip().upper() == clean_id), {})
+
+            self._send_json({
+                "found": True,
+                "employee": {
+                    "id": target.get("id"),
+                    "full_name": target.get("full_name"),
+                    "email": target.get("email"),
+                    "zone": target.get("zone"),
+                    "assigned_states": target.get("assigned_states"),
+                    "is_active": str(target.get("is_active", "1")),
+                    "created_at": target.get("created_at"),
+                    "clubs_approved_count": int(q.get("clubs_approved_count", "0") or "0"),
+                    "support_logs_count": int(q.get("support_logs_count", "0") or "0"),
+                    "last_activity_timestamp": q.get("last_activity_timestamp", "")
+                }
+            })
+            return
+
+        # Universal Search for Clubs
+        if path == "/api/clubs/search":
+            query = query_params.get("q", [""])[0]
+            emp_id = query_params.get("emp_id", [""])[0]
+
+            # If emp_id specified, search that node first or fall back to master
+            if emp_id:
+                node_clubs_path = SyncEngine.get_employee_clubs_path(emp_id)
+                results = CSVEngine.search(node_clubs_path, query) if node_clubs_path.exists() else []
+            else:
+                results = CSVEngine.search(MASTER_CLUBS_CSV, query)
+
+            normalized_results = []
+            for r in results:
+                r_copy = dict(r)
+                doa = r_copy.get("date_of_approval", "").strip() or r_copy.get("submission_timestamp", "").strip()
+                r_copy["date_of_approval"] = doa
+                r_copy["submission_timestamp"] = doa
+                lrd = r_copy.get("last_renewal_date", "").strip()
+                r_copy["last_renewal_date"] = lrd
+                ren = r_copy.get("renewal_date", "").strip() or r_copy.get("next_renewal_date", "").strip()
+                if not ren:
+                    if lrd:
+                        ren = calculate_next_renewal_date(last_renewal_date=lrd)
+                    elif doa:
+                        ren = calculate_next_renewal_date(date_of_approval=doa)
+                r_copy["renewal_date"] = ren
+                r_copy["next_renewal_date"] = ren
+                normalized_results.append(r_copy)
+
+            self._send_json({"query": query, "count": len(normalized_results), "results": normalized_results})
+            return
+
+        # Activity List
+        if path == "/api/activity/list":
+            emp_id = query_params.get("emp_id", [""])[0]
+            if emp_id:
+                node_act_path = SyncEngine.get_employee_activities_path(emp_id)
+                acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS)
+            else:
+                acts = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            self._send_json({"count": len(acts), "activities": list(reversed(acts))})
+            return
+
+        # Admin Performance Dashboard Metrics
+        if path == "/api/admin/metrics":
+            session = self._get_auth_session()
+            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+
+            # Calculate breakdown metrics
+            state_counts: Dict[str, int] = {}
+            zone_counts: Dict[str, int] = {}
+            year_counts: Dict[str, int] = {}
+            month_counts: Dict[str, int] = {}
+            status_counts: Dict[str, int] = {}
+
+            for c in clubs:
+                st = c.get("state", "Unknown")
+                zn = c.get("zone", "Unknown")
+                stat = c.get("status", "Approved")
+                ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+
+                state_counts[st] = state_counts.get(st, 0) + 1
+                zone_counts[zn] = zone_counts.get(zn, 0) + 1
+                status_counts[stat] = status_counts.get(stat, 0) + 1
+
+                if ts:
+                    d_parsed = parse_iso_or_date(ts)
+                    if d_parsed:
+                        yr = str(d_parsed.year)
+                        mo = f"{d_parsed.year:04d}-{d_parsed.month:02d}"
+                        year_counts[yr] = year_counts.get(yr, 0) + 1
+                        month_counts[mo] = month_counts.get(mo, 0) + 1
+
+            attention_data = AIDecisionEngine.get_renewal_attention_data()
+
+            # Detailed Analytics: 1. Support Type Breakdown
+            support_type_counts = {st: 0 for st in SUPPORT_TYPES}
+            for a in activities:
+                stype = a.get("support_type", "")
+                if stype in support_type_counts:
+                    support_type_counts[stype] += 1
+                elif stype:
+                    support_type_counts[stype] = support_type_counts.get(stype, 0) + 1
+
+            # Detailed Analytics: 2. Renewal & Retention Health
+            total_clubs_count = len(clubs)
+            overdue_count = attention_data.get("overdue_count", 0)
+            expiring_soon_count = attention_data.get("expiring_soon_count", 0)
+            active_validity_count = max(0, total_clubs_count - overdue_count)
+            retention_rate_pct = round(((total_clubs_count - overdue_count) / max(1, total_clubs_count)) * 100, 1) if total_clubs_count > 0 else 100.0
+            renewal_health = {
+                "total_clubs": total_clubs_count,
+                "active_validity_count": active_validity_count,
+                "expiring_soon_count": expiring_soon_count,
+                "overdue_count": overdue_count,
+                "retention_rate_pct": retention_rate_pct
+            }
+
+            # Detailed Analytics: 3. National State Coverage Index
+            all_india_states = get_all_states()
+            total_states = len(all_india_states)
+            represented_states = [s for s in all_india_states if state_counts.get(s, 0) > 0]
+            deficit_states = [s for s in all_india_states if state_counts.get(s, 0) == 0]
+            coverage_pct = round((len(represented_states) / max(1, total_states)) * 100, 1)
+            coverage_index = {
+                "total_states": total_states,
+                "represented_count": len(represented_states),
+                "deficit_count": len(deficit_states),
+                "coverage_percentage": coverage_pct,
+                "deficit_states": deficit_states,
+                "represented_states": represented_states
+            }
+
+            # Detailed Analytics: 4. Zone Efficiency & Activity Distribution
+            all_zones = get_all_zones()
+            emp_to_zone = {u.get("id"): u.get("zone", "Other") for u in users if u.get("role") == "EMPLOYEE"}
+            zone_support_counts: Dict[str, int] = {z: 0 for z in all_zones}
+            for a in activities:
+                emp_id = a.get("emp_id")
+                z = emp_to_zone.get(emp_id)
+                if z and z in zone_support_counts:
+                    zone_support_counts[z] += 1
+                elif z:
+                    zone_support_counts[z] = zone_support_counts.get(z, 0) + 1
+
+            zone_efficiency = {}
+            for z in all_zones:
+                c_cnt = zone_counts.get(z, 0)
+                s_cnt = zone_support_counts.get(z, 0)
+                zone_efficiency[z] = {
+                    "clubs": c_cnt,
+                    "support_logs": s_cnt,
+                    "ratio": round(s_cnt / max(1, c_cnt), 2)
+                }
+
+            self._send_json({
+                "summary": {
+                    "total_clubs": len(clubs),
+                    "total_activities": len(activities),
+                    "total_employees": len([u for u in users if u.get("role") == "EMPLOYEE"]),
+                    "quotas": quotas,
+                    "renewal_attention_count": attention_data["total_attention_count"]
+                },
+                "state_wise_clubs": state_counts,
+                "zone_wise_clubs": zone_counts,
+                "year_wise_clubs": dict(sorted(year_counts.items())),
+                "month_wise_clubs": dict(sorted(month_counts.items())),
+                "status_wise_clubs": status_counts,
+                "support_type_breakdown": support_type_counts,
+                "renewal_health": renewal_health,
+                "coverage_index": coverage_index,
+                "zone_efficiency": zone_efficiency,
+                "users": [{k: v for k, v in u.items() if k not in ["password_hash", "salt"]} for u in users]
+            })
+            return
+
+        # Admin Renewal Attention Clubs List
+        if path == "/api/admin/renewal-attention":
+            attention_data = AIDecisionEngine.get_renewal_attention_data()
+            self._send_json({"success": True, **attention_data})
+            return
+
+        # Single Club Full Details View
+        if path == "/api/clubs/details":
+            club_id = query_params.get("club_id", [""])[0] or query_params.get("id", [""])[0]
+            clean_cid = club_id.strip().upper()
+            if not clean_cid:
+                self._send_error("club_id parameter is required.")
+                return
+
+            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            target = next((c for c in clubs if c.get("club_id", "").strip().upper() == clean_cid), None)
+            if not target and EMPLOYEE_NODES_DIR.exists():
+                for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
+                    if emp_dir.is_dir():
+                        node_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS)
+                        found = next((c for c in node_clubs if c.get("club_id", "").strip().upper() == clean_cid), None)
+                        if found:
+                            target = found
+                            break
+
+            if not target:
+                self._send_error(f"Club with ID '{clean_cid}' not found.", status=404)
+                return
+
+            today = datetime.now(timezone.utc).date()
+            est_ts = target.get("date_of_approval", "") or target.get("submission_timestamp", "")
+            last_ren = target.get("last_renewal_date", "")
+            ren_date = target.get("renewal_date", "") or target.get("next_renewal_date", "")
+
+            if not ren_date:
+                ren_date = calculate_next_renewal_date(date_of_approval=est_ts, last_renewal_date=last_ren)
+            parsed_ren = parse_iso_or_date(ren_date)
+
+            days_diff = None
+            urgency = "Normal"
+            attention_type = "Normal"
+            badge_class = "pill-success"
+            days_overdue = 0
+            days_left = 0
+            if parsed_ren:
+                days_diff = (parsed_ren - today).days
+                if days_diff < 0:
+                    days_overdue = abs(days_diff)
+                    urgency = f"Overdue by {abs(days_diff)} days"
+                    attention_type = "Overdue"
+                    badge_class = "pill-danger"
+                elif days_diff <= 90:
+                    days_left = days_diff
+                    urgency = f"Expiring in {days_diff} days" if days_diff > 0 else "Expires today"
+                    attention_type = "Expiring Soon"
+                    badge_class = "pill-warning"
+                else:
+                    days_left = days_diff
+
+            c_info = dict(target)
+            c_info["date_of_approval"] = est_ts
+            c_info["submission_timestamp"] = est_ts
+            c_info["last_renewal_date"] = last_ren
+            c_info["renewal_date"] = ren_date
+            c_info["next_renewal_date"] = ren_date
+            c_info["effective_renewal_date"] = ren_date
+            c_info["next_renewal_due_date"] = ren_date
+            c_info["days_diff"] = days_diff
+            c_info["days_overdue"] = days_overdue
+            c_info["days_left"] = days_left
+            c_info["urgency"] = urgency
+            c_info["attention_type"] = attention_type
+            c_info["badge_class"] = badge_class
+
+            self._send_json({
+                "success": True,
+                "found": True,
+                "club": c_info
+            })
+            return
+
+        # Admin Employee Roster & Status
+        if path == "/api/admin/employees":
+            if not self._check_admin_access():
+                return
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            quota_map = {q.get("emp_id"): q for q in quotas}
+
+            employees = []
+            for u in users:
+                if u.get("role") == "EMPLOYEE":
+                    q = quota_map.get(u.get("id"), {})
+                    employees.append({
+                        "id": u.get("id"),
+                        "full_name": u.get("full_name"),
+                        "email": u.get("email"),
+                        "zone": u.get("zone"),
+                        "assigned_states": u.get("assigned_states"),
+                        "is_active": str(u.get("is_active", "1")),
+                        "created_at": u.get("created_at"),
+                        "clubs_approved_count": int(q.get("clubs_approved_count", "0") or "0"),
+                        "support_logs_count": int(q.get("support_logs_count", "0") or "0"),
+                        "last_activity_timestamp": q.get("last_activity_timestamp", "")
+                    })
+            self._send_json({"count": len(employees), "employees": employees})
+            return
+
+        # AI Strategic Decision Module
+        if path == "/api/admin/ai-insights":
+            insights = AIDecisionEngine.generate_strategic_report()
+            self._send_json(insights)
+            return
+
+        # Sync Status
+        if path == "/api/sync/status":
+            master_clubs = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
+            master_acts = len(CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS))
+            self._send_json({
+                "status": "synchronized",
+                "master_clubs_count": master_clubs,
+                "master_activities_count": master_acts,
+                "storage_mode": get_storage_adapter().get_info()["mode"]
+            })
+            return
+
+        # FEATURE 1: Download Master CSV (master_clubs.csv) from Admin Dashboard
+        if path in ["/api/admin/download/master-clubs", "/api/admin/download/master_clubs.csv"]:
+            if not MASTER_CLUBS_CSV.exists():
+                CSVEngine.ensure_file(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            try:
+                with open(MASTER_CLUBS_CSV, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="master_clubs.csv"')
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                self._send_error(f"Error serving master CSV: {str(e)}", status=500)
+            return
+
+        # FEATURE 2: 7-Day Auto Backup Status Check (Admin End & Employee End)
+        if path == "/api/admin/backup/status":
+            BackupEngine.check_and_run_auto_backup()
+            status_data = BackupEngine.get_backup_status()
+            self._send_json({"success": True, **status_data})
+            return
+
+        # FEATURE 3: Download Activity Log (activity_log.csv for Employee)
+        if path in ["/api/employee/download/activity-log", "/api/employee/download/activity_log.csv"]:
+            emp_id = query_params.get("emp_id", [""])[0]
+            if not emp_id:
+                session = self._get_auth_session()
+                if session:
+                    emp_id = session.get("user_id", "")
+            if not emp_id:
+                self._send_error("Employee ID (emp_id) is required.", status=400)
+                return
+            clean_emp = emp_id.strip().upper()
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            emp_user = next((u for u in users if u.get("id", "").strip().upper() == clean_emp), None)
+            if not emp_user:
+                self._send_error(f"Employee account '{emp_id}' does not exist.", status=404)
+                return
+            if str(emp_user.get("is_active", "1")).strip() == "0":
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Download access denied.", status=403)
+                return
+
+            act_path = SyncEngine.get_employee_activities_path(clean_emp)
+            if not act_path.exists():
+                CSVEngine.ensure_file(act_path, ACTIVITY_FIELDS)
+            try:
+                with open(act_path, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="activity_log.csv"')
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                self._send_error(f"Error serving employee activity log: {str(e)}", status=500)
+            return
+
+        # FEATURE 3: Download Clubs Log (clubs.csv for Employee)
+        if path in ["/api/employee/download/clubs-log", "/api/employee/download/clubs.csv"]:
+            emp_id = query_params.get("emp_id", [""])[0]
+            if not emp_id:
+                session = self._get_auth_session()
+                if session:
+                    emp_id = session.get("user_id", "")
+            if not emp_id:
+                self._send_error("Employee ID (emp_id) is required.", status=400)
+                return
+            clean_emp = emp_id.strip().upper()
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            emp_user = next((u for u in users if u.get("id", "").strip().upper() == clean_emp), None)
+            if not emp_user:
+                self._send_error(f"Employee account '{emp_id}' does not exist.", status=404)
+                return
+            if str(emp_user.get("is_active", "1")).strip() == "0":
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Download access denied.", status=403)
+                return
+
+            clubs_path = SyncEngine.get_employee_clubs_path(clean_emp)
+            if not clubs_path.exists():
+                CSVEngine.ensure_file(clubs_path, CLUB_FIELDS)
+            try:
+                with open(clubs_path, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="clubs.csv"')
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                self._send_error(f"Error serving employee clubs log: {str(e)}", status=500)
+            return
+
+        # FEATURE 4: Employee Reminders Query (Appears after 72 hours, or +7 days if not resolved)
+        if path == "/api/issues/employee-reminders":
+            emp_id = query_params.get("emp_id", [""])[0]
+            if not emp_id:
+                session = self._get_auth_session()
+                if session and session.get("role") == "EMPLOYEE":
+                    emp_id = session.get("user_id", "")
+            reminders = IssueManager.get_employee_reminders(emp_id=emp_id if emp_id else None)
+            self._send_json({"success": True, "count": len(reminders), "reminders": reminders})
+            return
+
+        # FEATURE 5: Admin Escalation Reminders Query (Unresolved for 30 days, or +7 days if not resolved)
+        if path == "/api/issues/admin-reminders":
+            reminders = IssueManager.get_admin_reminders()
+            self._send_json({"success": True, "count": len(reminders), "reminders": reminders})
+            return
+
+        # Issues List Query
+        if path == "/api/issues/list":
+            emp_id = query_params.get("emp_id", [""])[0]
+            club_id = query_params.get("club_id", [""])[0]
+            status_param = query_params.get("status", [""])[0]
+            issues = IssueManager.get_issues(emp_id=emp_id or None, club_id=club_id or None, status=status_param or None)
+            self._send_json({"success": True, "count": len(issues), "issues": issues})
+            return
+
+        # Single Issue Details
+        if path == "/api/issues/details":
+            issue_id = query_params.get("issue_id", [""])[0] or query_params.get("id", [""])[0]
+            if not issue_id:
+                self._send_error("issue_id parameter is required.", status=400)
+                return
+            issue = IssueManager.get_issue_by_id(issue_id)
+            if not issue:
+                self._send_error(f"Issue with ID '{issue_id}' not found.", status=404)
+                return
+            self._send_json({"success": True, "found": True, "issue": issue})
+            return
+
+        # Certificate Settings Query
+        if path == "/api/certificate/settings":
+            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = sig_dir / "settings.json"
+            sig_png = sig_dir / "pi_signature.png"
+            sig_jpg = sig_dir / "pi_signature.jpg"
+            sig_exists = sig_png.exists() or sig_jpg.exists()
+
+            settings_data = {
+                "pi_name": "Prof. Partha Pratim Chakrabarti",
+                "pi_affiliation": "Principal Investigator, NDLI Project, Central Library, IIT Kharagpur",
+                "has_signature": sig_exists,
+                "signature_url": "/api/certificate/signature" if sig_exists else None
+            }
+            if settings_file.exists():
+                try:
+                    with open(settings_file, "r", encoding="utf-8") as f:
+                        saved = json.load(f)
+                        settings_data.update(saved)
+                        settings_data["has_signature"] = sig_exists
+                        settings_data["signature_url"] = "/api/certificate/signature" if sig_exists else None
+                except Exception:
+                    pass
+            self._send_json({"success": True, "settings": settings_data})
+            return
+
+        # Serve Uploaded PI Signature Image
+        if path == "/api/certificate/signature":
+            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_path = sig_dir / "pi_signature.png"
+            if not sig_path.exists():
+                sig_path = sig_dir / "pi_signature.jpg"
+            if sig_path.exists():
+                ext = sig_path.suffix.lower()
+                ctype = "image/png" if ext == ".png" else "image/jpeg"
+                self._serve_file(sig_path, ctype)
+            else:
+                self._send_error("No PI signature uploaded yet.", status=404)
+            return
+
+        # Trigger Immediate Google Drive Sync
+        if path == "/api/admin/drive/sync-now":
+            adapter = get_storage_adapter()
+            if hasattr(adapter, "sync_all_now"):
+                res = adapter.sync_all_now()
+                self._send_json(res)
+            else:
+                self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
+            return
+
+        self._send_error(f"Endpoint not found: {path}", status=404)
+
+    def do_POST(self):
+        """Routing for POST requests."""
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        body = self._parse_json_body()
+
+        # Authentication: Login
+        if path == "/api/auth/login":
+            identifier = str(body.get("email", "") or body.get("user_id", "") or body.get("identifier", "")).strip()
+            password = str(body.get("password", "")).strip()
+            success, err, session_data = AuthService.authenticate(identifier, password)
+            if not success:
+                self._send_error(err or "Authentication failed.", status=401)
+                return
+            self._send_json({
+                "success": True,
+                "message": "Login successful.",
+                "session": session_data
+            })
+            return
+
+        # Authentication: Logout
+        if path == "/api/auth/logout":
+            token = body.get("token", "")
+            if not token:
+                auth_hdr = self.headers.get("Authorization", "")
+                if auth_hdr.startswith("Bearer "):
+                    token = auth_hdr.split(" ", 1)[1].strip()
+            AuthService.logout(token)
+            self._send_json({"success": True, "message": "Logged out successfully."})
+            return
+
+        # Security Verification: Verify Login Password (Renewal Confirmation Second Layer)
+        if path == "/api/auth/verify-password":
+            identifier = str(body.get("user_id", "") or body.get("emp_id", "") or body.get("email", "") or body.get("identifier", "")).strip()
+            password = str(body.get("password", "")).strip()
+
+            if not identifier:
+                session = self._get_auth_session()
+                if session:
+                    identifier = session.get("user_id") or session.get("email", "")
+
+            if not identifier:
+                self._send_error("Employee identifier (user_id / email) is required.", status=400)
+                return
+            if not password:
+                self._send_error("Password is required for verification.", status=400)
+                return
+
+            success, err, user_dict = AuthService.authenticate(identifier, password)
+            if success and user_dict:
+                self._send_json({
+                    "success": True,
+                    "valid": True,
+                    "message": "Password verified successfully.",
+                    "user_id": user_dict.get("user_id") or user_dict.get("id"),
+                    "role": user_dict.get("role")
+                })
+            else:
+                self._send_error(err or "Incorrect password. Verification failed.", status=401)
+            return
+
+        # SEC A: Log Daily Support Activity
+        if path == "/api/activity/log":
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            support_type = str(body.get("support_type", "")).strip()
+            notes = str(body.get("notes", "")).strip()
+            club_id = str(body.get("club_id", "")).strip()
+            raw_count = body.get("count", 1) or body.get("entry_count", 1) or body.get("call_count", 1)
+            try:
+                count = int(raw_count)
+                if count < 1:
+                    count = 1
+            except (ValueError, TypeError):
+                count = 1
+
+            if not emp_id:
+                self._send_error("Employee ID (emp_id) is required.")
+                return
+            if not support_type:
+                self._send_error("Support type is required.")
+                return
+
+            if not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+
+            # Bulk entry facility is made available for Phone Call and Remote Assistance only
+            if support_type != "Phone call and remote assistance":
+                count = 1
+            elif count > 100:
+                count = 100
+
+            act_row = SyncEngine.log_support_activity(
+                emp_id=emp_id,
+                support_type=support_type,
+                notes=notes,
+                club_id=club_id,
+                count=count
+            )
+            msg = (
+                f"{count} Phone call & remote assistance entries recorded in bulk successfully."
+                if count > 1
+                else "Support activity recorded successfully."
+            )
+            self._send_json({
+                "success": True,
+                "message": msg,
+                "count": count,
+                "activity": act_row
+            })
+            return
+
+        # SEC C: Approve New Club Details
+        if path == "/api/clubs/create":
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            if not emp_id:
+                self._send_error("Approving Employee ID (emp_id) is required.")
+                return
+
+            if not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+
+            errors = validate_club_payload(body)
+            if errors:
+                self._send_json({
+                    "error": True,
+                    "validation_errors": errors,
+                    "message": "Form validation failed. Please correct the highlighted fields."
+                }, status=422)
+                return
+
+            # Auto-map zone if not provided or to ensure strict compliance
+            state = str(body.get("state", "")).strip()
+            body["zone"] = get_zone_for_state(state) or "Unknown"
+
+            created_club = SyncEngine.approve_new_club(emp_id=emp_id, club_data=body)
+            self._send_json({
+                "success": True,
+                "message": f"NDLI Club {created_club['club_id']} approved successfully.",
+                "club": created_club
+            })
+            return
+
+        # Update Club Details (Universal Search Edit)
+        if path == "/api/clubs/update":
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            club_id = str(body.get("club_id", "")).strip().upper()
+            if not club_id:
+                self._send_error("club_id is required.")
+                return
+
+            if emp_id and not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+
+            updated = SyncEngine.update_club(emp_id=emp_id, club_id=club_id, updated_fields=body)
+            if not updated:
+                self._send_error(f"Club with ID '{club_id}' not found.", status=404)
+                return
+
+            self._send_json({
+                "success": True,
+                "message": f"Club {club_id} updated successfully.",
+                "club": updated
+            })
+            return
+
+        # Registration Renewal ("Renewal Approved")
+        if path == "/api/clubs/renew":
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            club_id = str(body.get("club_id", "")).strip().upper()
+            renewal_date = str(body.get("renewal_date", "")).strip()
+            last_renewal_date = str(body.get("last_renewal_date", "")).strip()
+
+            if not emp_id or not club_id:
+                self._send_error("emp_id and club_id are required.")
+                return
+
+            if not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+
+            updated = SyncEngine.renew_club_registration(
+                emp_id=emp_id,
+                club_id=club_id,
+                renewal_date=renewal_date if renewal_date else None,
+                last_renewal_date=last_renewal_date if last_renewal_date else None
+            )
+            if not updated:
+                self._send_error(f"Club with ID '{club_id}' not found.", status=404)
+                return
+
+            final_renewal_date = updated.get("renewal_date", renewal_date)
+            final_last_renewal = updated.get("last_renewal_date", "")
+            self._send_json({
+                "success": True,
+                "message": f"Renewal Approved for club {club_id}. Last Renewal Date logged as {final_last_renewal}, upcoming renewal valid until {final_renewal_date}.",
+                "club": updated
+            })
+            return
+
+        # Block / Unblock Employee Access (Admin Only)
+        if path == "/api/admin/employees/status":
+            if not self._check_admin_access():
+                return
+
+            user_id = str(body.get("user_id", "")).strip().upper()
+            is_active_val = body.get("is_active", True)
+            if not user_id:
+                self._send_error("user_id is required.")
+                return
+
+            success = AuthService.set_user_status(user_id=user_id, is_active=is_active_val)
+            if not success:
+                self._send_error(f"User '{user_id}' not found.", status=404)
+                return
+
+            status_str = "active" if str(is_active_val).lower() in ["1", "true", "yes"] else "blocked"
+            self._send_json({
+                "success": True,
+                "message": f"User {user_id} status updated to {status_str}.",
+                "user_id": user_id,
+                "is_active": "1" if status_str == "active" else "0"
+            })
+            return
+
+        # Single-Click Provision New Employee (Admin Only)
+        if path == "/api/admin/employees/create":
+            if not self._check_admin_access():
+                return
+
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            email = str(body.get("email", "")).strip().lower()
+            password = str(body.get("password", "")).strip()
+            full_name = str(body.get("full_name", "")).strip()
+            zone = str(body.get("zone", "")).strip()
+            assigned_states = str(body.get("assigned_states", "")).strip()
+
+            if not emp_id or not email or not password or not full_name:
+                self._send_error("emp_id, email, password, and full_name are required.")
+                return
+
+            # Check duplicate ID or email before creation
+            existing_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            for u in existing_users:
+                if u.get("id", "").strip().upper() == emp_id:
+                    self._send_error(f"Employee ID '{emp_id}' already exists. Use Edit to modify existing employees.", status=400)
+                    return
+                if u.get("email", "").strip().lower() == email:
+                    self._send_error(f"Email '{email}' is already in use by another user.", status=400)
+                    return
+
+            user_record = AuthService.register_or_update_user(
+                user_id=emp_id,
+                email=email,
+                password=password,
+                full_name=full_name,
+                role="EMPLOYEE",
+                zone=zone,
+                assigned_states=assigned_states,
+                is_active="1"
+            )
+            self._send_json({
+                "success": True,
+                "message": f"Employee {emp_id} provisioned with dedicated node database.",
+                "employee": {k: v for k, v in user_record.items() if k not in ["password_hash", "salt"]}
+            })
+            return
+
+        # Update Existing Employee Details & Synchronize Node DB (Admin Only)
+        if path == "/api/admin/employees/update":
+            if not self._check_admin_access():
+                return
+
+            old_emp_id = str(body.get("old_emp_id", "") or body.get("emp_id", "")).strip().upper()
+            new_emp_id = str(body.get("new_emp_id", "") or body.get("emp_id", "")).strip().upper()
+            email = str(body.get("email", "")).strip().lower()
+            password = str(body.get("password", "") or "").strip()
+            full_name = str(body.get("full_name", "")).strip()
+            zone = str(body.get("zone", "")).strip()
+            assigned_states = str(body.get("assigned_states", "")).strip()
+            is_active = body.get("is_active")
+
+            if not old_emp_id:
+                self._send_error("old_emp_id is required.")
+                return
+            if not new_emp_id:
+                self._send_error("new_emp_id (or emp_id) is required.")
+                return
+            if not email:
+                self._send_error("email is required.")
+                return
+            if not full_name:
+                self._send_error("full_name is required.")
+                return
+
+            success, err_msg, updated_user = AuthService.update_employee(
+                old_emp_id=old_emp_id,
+                new_emp_id=new_emp_id,
+                email=email,
+                full_name=full_name,
+                zone=zone,
+                assigned_states=assigned_states,
+                password=password if password else None,
+                is_active=is_active
+            )
+
+            if not success:
+                self._send_error(err_msg or "Failed to update employee.", status=400)
+                return
+
+            safe_emp = {k: v for k, v in updated_user.items() if k not in ["password_hash", "salt"]}
+            self._send_json({
+                "success": True,
+                "message": f"Employee {new_emp_id} updated successfully and synchronized across node database.",
+                "employee": safe_emp
+            })
+            return
+
+        # Trigger Manual Reconcile
+        if path == "/api/sync/reconcile":
+            summary = SyncEngine.reconcile_all_nodes()
+            self._send_json({
+                "success": True,
+                "message": "Reconciliation completed successfully.",
+                "summary": summary
+            })
+            return
+
+        # FEATURE 2: Trigger Database Backup Manually (Admin)
+        if path in ["/api/admin/backup/trigger", "/api/admin/backup/create"]:
+            note_param = body.get("note", "Manual Admin Trigger")
+            res = BackupEngine.create_backup(note=note_param)
+            self._send_json(res)
+            return
+
+        # FEATURE 4: Log Unresolved Issue & Set 72-Hour Reminder
+        if path == "/api/issues/create":
+            club_id = str(body.get("club_id", "")).strip().upper()
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            issue_note = str(body.get("issue_note", "")).strip()
+            created_at = body.get("created_at")
+            reminder_due_at = body.get("reminder_due_at")
+            admin_reminder_due_at = body.get("admin_reminder_due_at")
+
+            if not club_id:
+                self._send_error("club_id is required.", status=400)
+                return
+            if not emp_id:
+                session = self._get_auth_session()
+                if session:
+                    emp_id = session.get("user_id", "")
+            if not emp_id:
+                self._send_error("emp_id is required.", status=400)
+                return
+            if not issue_note:
+                self._send_error("issue_note (brief note of the issue) is required.", status=400)
+                return
+
+            issue = IssueManager.create_issue(
+                club_id=club_id,
+                emp_id=emp_id,
+                issue_note=issue_note,
+                created_at=created_at,
+                reminder_due_at=reminder_due_at,
+                admin_reminder_due_at=admin_reminder_due_at
+            )
+            self._send_json({
+                "success": True,
+                "message": f"Unresolved issue logged for {club_id}. Reminder scheduled to appear on dashboard after 72 hours.",
+                "issue": issue
+            })
+            return
+
+        # FEATURES 4 & 5: Mark Issue Resolved or Not Resolved (Auto-generate 7-day recurrent reminder)
+        if path == "/api/issues/resolve":
+            issue_id = str(body.get("issue_id", "")).strip()
+            status_val = str(body.get("status", "")).strip()
+            resolved_by = str(body.get("resolved_by", "")).strip()
+            resolution_notes = str(body.get("resolution_notes", "")).strip()
+            role_param = str(body.get("role", "")).strip().upper()
+
+            if not issue_id:
+                self._send_error("issue_id is required.", status=400)
+                return
+            if not status_val:
+                self._send_error("status ('Resolved' or 'Not Resolved') is required.", status=400)
+                return
+
+            session = self._get_auth_session()
+            if not resolved_by:
+                if session:
+                    resolved_by = session.get("email") or session.get("user_id", "")
+                else:
+                    resolved_by = "Portal User"
+
+            if not role_param and session:
+                role_param = session.get("role", "").strip().upper()
+
+            updated_issue = IssueManager.resolve_issue(
+                issue_id=issue_id,
+                status=status_val,
+                resolved_by=resolved_by,
+                resolution_notes=resolution_notes,
+                role=role_param if role_param else None
+            )
+            if not updated_issue:
+                self._send_error(f"Issue with ID '{issue_id}' not found.", status=404)
+                return
+
+            is_resolved = updated_issue.get("status") == "Resolved"
+            msg = (
+                f"Issue {issue_id} marked as Resolved."
+                if is_resolved
+                else f"Issue {issue_id} marked as Not Resolved. Next reminder scheduled in 7 days."
+            )
+            self._send_json({
+                "success": True,
+                "message": msg,
+                "issue": updated_issue
+            })
+            return
+
+        # Certificate Signature Upload
+        if path == "/api/certificate/signature":
+            image_data = body.get("image_data", "")
+            if not image_data:
+                self._send_error("image_data (base64 string or data URL) is required.", status=400)
+                return
+
+            ext = ".png"
+            b64_str = image_data
+            if "," in image_data:
+                header, b64_str = image_data.split(",", 1)
+                if "image/jpeg" in header or "image/jpg" in header:
+                    ext = ".jpg"
+            elif body.get("extension") in [".jpg", ".jpeg"]:
+                ext = ".jpg"
+
+            try:
+                raw_bytes = base64.b64decode(b64_str)
+            except Exception as e:
+                self._send_error(f"Invalid base64 image data: {e}", status=400)
+                return
+
+            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir.mkdir(parents=True, exist_ok=True)
+            # Remove any alternate format to avoid confusion
+            alt_ext = ".jpg" if ext == ".png" else ".png"
+            alt_file = sig_dir / f"pi_signature{alt_ext}"
+            if alt_file.exists():
+                try:
+                    alt_file.unlink()
+                except Exception:
+                    pass
+
+            target_file = sig_dir / f"pi_signature{ext}"
+            with open(target_file, "wb") as f:
+                f.write(raw_bytes)
+
+            settings_file = sig_dir / "settings.json"
+            saved = {}
+            if settings_file.exists():
+                try:
+                    with open(settings_file, "r", encoding="utf-8") as f:
+                        saved = json.load(f)
+                except Exception:
+                    pass
+            saved["has_signature"] = True
+            saved["signature_filename"] = f"pi_signature{ext}"
+            if body.get("pi_name"):
+                saved["pi_name"] = str(body.get("pi_name")).strip()
+            if body.get("pi_affiliation"):
+                saved["pi_affiliation"] = str(body.get("pi_affiliation")).strip()
+
+            with open(settings_file, "w", encoding="utf-8") as f:
+                json.dump(saved, f, indent=2)
+
+            self._send_json({
+                "success": True,
+                "message": "PI signature uploaded and saved successfully.",
+                "signature_url": f"/api/certificate/signature?t={int(datetime.now().timestamp())}",
+                "filename": f"pi_signature{ext}"
+            })
+            return
+
+        # Certificate Settings Update
+        if path == "/api/certificate/settings":
+            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = sig_dir / "settings.json"
+            saved = {
+                "pi_name": "Prof. Partha Pratim Chakrabarti",
+                "pi_affiliation": "Principal Investigator, NDLI Project, Central Library, IIT Kharagpur"
+            }
+            if settings_file.exists():
+                try:
+                    with open(settings_file, "r", encoding="utf-8") as f:
+                        saved.update(json.load(f))
+                except Exception:
+                    pass
+
+            if "pi_name" in body and body["pi_name"] is not None:
+                saved["pi_name"] = str(body["pi_name"]).strip()
+            if "pi_affiliation" in body and body["pi_affiliation"] is not None:
+                saved["pi_affiliation"] = str(body["pi_affiliation"]).strip()
+
+            with open(settings_file, "w", encoding="utf-8") as f:
+                json.dump(saved, f, indent=2)
+
+            sig_png = sig_dir / "pi_signature.png"
+            sig_jpg = sig_dir / "pi_signature.jpg"
+            sig_exists = sig_png.exists() or sig_jpg.exists()
+
+            saved["has_signature"] = sig_exists
+            saved["signature_url"] = "/api/certificate/signature" if sig_exists else None
+
+            self._send_json({
+                "success": True,
+                "message": "Certificate settings updated successfully.",
+                "settings": saved
+            })
+            return
+
+        # Trigger Immediate Google Drive Sync
+        if path == "/api/admin/drive/sync-now":
+            adapter = get_storage_adapter()
+            if hasattr(adapter, "sync_all_now"):
+                res = adapter.sync_all_now()
+                self._send_json(res)
+            else:
+                self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
+            return
+
+        self._send_error(f"Endpoint not found: {path}", status=404)
+
+
+def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
+    """Starts the NDLI HTTP server."""
+    # Ensure backup schedule and baseline check
+    try:
+        BackupEngine.start_scheduler()
+    except Exception as e:
+        print(f"[!] Warning: Could not start backup scheduler: {e}")
+
+    server_address = (host, port)
+    httpd = HTTPServer(server_address, NDLIRequestHandler)
+    print(f"[*] NDLI Club Management Server listening on http://{host}:{port}")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n[*] Server stopping...")
+        httpd.server_close()
+
+
+if __name__ == "__main__":
+    run_server()
