@@ -7,15 +7,26 @@
   <title>NDLI Club Management System | IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
+    /* Prevent any horizontal body overflow */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
     /* =========================================================================
-       PAGE 1 USER MANUAL COVER-INSPIRED MASTER LOCK SCREEN GATEWAY
+       COMPACT, ZERO-SCROLLBAR MASTER LOGIN SCREEN GATEWAY
+       Aesthetics follow Page 1 Cover of User Manual
        ========================================================================= */
     .lock-screen-overlay {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
+      width: 100%;
+      max-width: 100vw;
       height: 100vh;
+      height: 100dvh;
       z-index: 99999;
       background: linear-gradient(145deg, #071912 0%, #103125 42%, #1A503E 78%, #0D7751 100%);
       color: #FFFFFF;
@@ -23,20 +34,20 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      padding: 0.75rem 1rem;
       box-sizing: border-box;
-      overflow-y: auto;
-      transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.65s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.65s;
+      overflow: hidden; /* ELIMINATES HORIZONTAL & VERTICAL SCROLLBARS */
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
     }
 
     .lock-screen-overlay::before {
       content: "";
       position: absolute;
-      top: -80px;
-      right: -80px;
-      width: 420px;
-      height: 420px;
-      background: radial-gradient(circle, rgba(217, 119, 6, 0.28) 0%, rgba(217, 119, 6, 0) 70%);
+      top: -60px;
+      right: -60px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, rgba(217, 119, 6, 0) 70%);
       border-radius: 50%;
       pointer-events: none;
     }
@@ -44,11 +55,11 @@
     .lock-screen-overlay::after {
       content: "";
       position: absolute;
-      bottom: -100px;
-      left: -100px;
-      width: 480px;
-      height: 480px;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 70%);
+      bottom: -60px;
+      left: -60px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0) 70%);
       border-radius: 50%;
       pointer-events: none;
     }
@@ -65,14 +76,14 @@
       position: relative;
       z-index: 2;
       width: 100%;
-      max-width: 520px;
-      background: rgba(16, 49, 37, 0.78);
+      max-width: 480px;
+      background: rgba(16, 49, 37, 0.82);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 20px;
-      padding: 2.25rem 2rem;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 40px rgba(13, 119, 81, 0.25);
+      border-radius: 18px;
+      padding: 1.25rem 1.75rem;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 32px rgba(13, 119, 81, 0.25);
       box-sizing: border-box;
       text-align: center;
     }
@@ -81,25 +92,25 @@
     .lock-header-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: rgba(217, 119, 6, 0.28);
       border: 1px solid #F59E0B;
       color: #FDE68A;
-      font-size: 0.76rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      padding: 4px 14px;
+      padding: 3px 12px;
       border-radius: 20px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.65rem;
     }
 
-    /* PROMINENT CENTRAL LOGO WITH SUBTLE GLOWING LIGHT TRAIL (REQ 1.B & 1.B.1) */
+    /* PROMINENT CENTRAL LOGO WITH SUBTLE GLOWING LIGHT TRAIL */
     .logo-trail-container {
       position: relative;
-      width: 154px;
-      height: 154px;
-      margin: 0 auto 1.25rem auto;
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 0.65rem auto;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -109,8 +120,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 154px;
-      height: 154px;
+      width: 96px;
+      height: 96px;
       pointer-events: none;
       overflow: visible;
     }
@@ -124,11 +135,11 @@
     .trail-light-runner {
       fill: none;
       stroke: url(#lightTrailGrad);
-      stroke-width: 3px;
+      stroke-width: 2.5px;
       stroke-linecap: round;
-      stroke-dasharray: 65 435;
+      stroke-dasharray: 60 440;
       stroke-dashoffset: 0;
-      filter: drop-shadow(0 0 6px #34d399) drop-shadow(0 0 12px #10b981) drop-shadow(0 0 18px rgba(253, 230, 138, 0.7));
+      filter: drop-shadow(0 0 5px #34d399) drop-shadow(0 0 10px #10b981) drop-shadow(0 0 15px rgba(253, 230, 138, 0.7));
       animation: orbitLightTrail 3.2s linear infinite;
     }
 
@@ -142,15 +153,15 @@
     }
 
     .logo-white-card {
-      width: 134px;
-      height: 134px;
+      width: 82px;
+      height: 82px;
       background: #FFFFFF;
-      border-radius: 16px;
-      padding: 10px;
+      border-radius: 12px;
+      padding: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
       z-index: 1;
       box-sizing: border-box;
     }
@@ -162,52 +173,59 @@
     }
 
     .lock-title {
-      font-size: 1.55rem;
+      font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #FFFFFF;
-      margin: 0 0 0.35rem 0;
+      margin: 0 0 0.15rem 0;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
     .lock-org-line {
-      font-size: 0.86rem;
+      font-size: 0.78rem;
       color: #FCD34D;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.15rem;
     }
 
     .lock-sub {
-      font-size: 0.82rem;
+      font-size: 0.75rem;
       color: #cbd5e1;
-      margin: 0 0 1.5rem 0;
-      line-height: 1.4;
+      margin: 0 0 0.75rem 0;
+      line-height: 1.35;
     }
 
-    /* Lock Form Styles */
+    /* Lock Form Styles with Space-Optimized Grid */
+    .lock-fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      margin-bottom: 0.55rem;
+    }
+
     .lock-form-group {
       text-align: left;
-      margin-bottom: 1rem;
+      margin-bottom: 0.55rem;
     }
 
     .lock-form-group label {
       display: block;
-      font-size: 0.82rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: #e2e8f0;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.25rem;
     }
 
     .lock-input {
       width: 100%;
-      background: rgba(7, 25, 18, 0.7);
+      background: rgba(7, 25, 18, 0.75);
       border: 1.5px solid rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-      padding: 0.75rem 0.95rem;
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
       color: #FFFFFF;
-      font-size: 0.95rem;
+      font-size: 0.88rem;
       outline: none;
       box-sizing: border-box;
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -222,16 +240,15 @@
       color: #64748b;
     }
 
-    /* Anti-Bot Alphanumeric Captcha Widget (REQ 1.C) */
+    /* Compact Anti-Bot Alphanumeric Captcha Widget */
     .captcha-container {
       background: rgba(7, 25, 18, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      padding: 0.4rem 0.6rem;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
+      gap: 0.55rem;
     }
 
     #lock-captcha-canvas {
@@ -246,12 +263,12 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #FCD34D;
       border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.78rem;
+      padding: 5px 8px;
+      font-size: 0.74rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       font-weight: 600;
       transition: background 0.15s;
     }
@@ -264,23 +281,23 @@
       width: 100%;
       background: linear-gradient(135deg, #059669 0%, #10b981 100%);
       color: #FFFFFF;
-      font-size: 1rem;
+      font-size: 0.92rem;
       font-weight: 700;
       border: none;
-      border-radius: 10px;
-      padding: 0.85rem;
+      border-radius: 8px;
+      padding: 0.65rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
       transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
     }
 
     .btn-unlock:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.55);
       filter: brightness(1.08);
     }
 
@@ -289,12 +306,12 @@
     }
 
     .lock-footer-info {
-      font-size: 0.76rem;
+      font-size: 0.7rem;
       color: #94a3b8;
-      margin-top: 1.25rem;
+      margin-top: 0.65rem;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding-top: 0.85rem;
-      line-height: 1.4;
+      padding-top: 0.5rem;
+      line-height: 1.3;
     }
 
     .shake-anim {
@@ -307,6 +324,18 @@
       40%, 80% { transform: translateX(8px); }
     }
 
+    /* Responsive adjustment for small mobile screens */
+    @media (max-width: 520px) {
+      .lock-card {
+        padding: 1.15rem 1rem;
+        max-width: 95%;
+      }
+      .lock-fields-grid {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+      }
+    }
+
     /* =========================================================================
        MAIN UNLOCKED PORTAL VIEW STYLING & FLUIDIC TRANSITION
        ========================================================================= */
@@ -315,14 +344,14 @@
     }
 
     #main-portal-content.content-locked {
+      display: none;
       opacity: 0;
       filter: blur(8px);
       pointer-events: none;
-      height: 100vh;
-      overflow: hidden;
     }
 
     #main-portal-content.content-unlocked {
+      display: block;
       opacity: 1;
       filter: blur(0);
       pointer-events: auto;
@@ -409,6 +438,7 @@
   <!-- =========================================================================
        1. FULL-VIEWPORT MASTER PASSWORD PROTECTED LOGIN SCREEN (REQ 1)
        Follows Cover Page Aesthetics of the User Manual (1.A)
+       Compact Height & Width with Zero Scrollbars
        ========================================================================= -->
   <div id="app-lock-gate" class="lock-screen-overlay">
     <div class="lock-card" id="lock-card-box">
@@ -416,9 +446,9 @@
         <span>🔒</span> Secure Enterprise Access Gateway
       </span>
 
-      <!-- PROMINENT CENTRAL NDLI CLUB LOGO WITH GLOWING LIGHT TRAIL (REQ 1.B & 1.B.1) -->
+      <!-- PROMINENT CENTRAL NDLI CLUB LOGO WITH GLOWING LIGHT TRAIL -->
       <div class="logo-trail-container">
-        <svg class="logo-trail-svg" viewBox="0 0 154 154">
+        <svg class="logo-trail-svg" viewBox="0 0 96 96">
           <defs>
             <linearGradient id="lightTrailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#FFFFFF"/>
@@ -428,9 +458,9 @@
             </linearGradient>
           </defs>
           <!-- Static subtle track -->
-          <rect x="3" y="3" width="148" height="148" rx="18" class="trail-track" pathLength="500"/>
+          <rect x="2" y="2" width="92" height="92" rx="14" class="trail-track" pathLength="500"/>
           <!-- Animated Running Glowing Light Trail -->
-          <rect x="3" y="3" width="148" height="148" rx="18" class="trail-light-runner" pathLength="500"/>
+          <rect x="2" y="2" width="92" height="92" rx="14" class="trail-light-runner" pathLength="500"/>
         </svg>
         <div class="logo-white-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
@@ -440,38 +470,39 @@
       <div class="lock-org-line">National Digital Library of India</div>
       <h1 class="lock-title">NDLI Club Management System</h1>
       <p class="lock-sub">
-        IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones<br>
-        <span style="color: #94a3b8; font-size: 0.76rem;">Protected by multi-tier encryption & session verification</span>
+        IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones
       </p>
 
-      <div id="lock-alert" style="display: none; margin-bottom: 1rem;"></div>
+      <div id="lock-alert" style="display: none; margin-bottom: 0.65rem;"></div>
 
-      <!-- UNIFIED LOGIN FORM ACCEPTING EMPLOYEE & ADMIN CREDENTIALS (REQ 1.C) -->
+      <!-- UNIFIED LOGIN FORM ACCEPTING EMPLOYEE & ADMIN CREDENTIALS -->
       <form id="master-lock-form" onsubmit="handleMasterLogin(event)">
-        <div class="lock-form-group">
-          <label for="lock-identifier">User ID or Official Email</label>
-          <input type="text" id="lock-identifier" class="lock-input" placeholder="e.g., EMP01 or admin@iitkgp.ac.in" required autocomplete="username">
-        </div>
-
-        <div class="lock-form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <label for="lock-password" style="margin: 0;">Password</label>
-            <button type="button" onclick="toggleLockPassword()" style="background: none; border: none; color: #34d399; font-size: 0.75rem; cursor: pointer; padding: 0;">
-              Show / Hide
-            </button>
+        <div class="lock-fields-grid">
+          <div class="lock-form-group">
+            <label for="lock-identifier">User ID / Email</label>
+            <input type="text" id="lock-identifier" class="lock-input" placeholder="e.g. EMP01 or admin@iitkgp.ac.in" required autocomplete="username">
           </div>
-          <input type="password" id="lock-password" class="lock-input" placeholder="Enter your authorized password" required autocomplete="current-password">
+
+          <div class="lock-form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label for="lock-password" style="margin: 0;">Password</label>
+              <button type="button" onclick="toggleLockPassword()" style="background: none; border: none; color: #34d399; font-size: 0.72rem; cursor: pointer; padding: 0;">
+                Show/Hide
+              </button>
+            </div>
+            <input type="password" id="lock-password" class="lock-input" placeholder="Enter password" required autocomplete="current-password">
+          </div>
         </div>
 
-        <!-- ANTI-BOT CAPTCHA VERIFICATION WIDGET (REQ 1.C) -->
-        <div class="lock-form-group">
+        <!-- ANTI-BOT CAPTCHA VERIFICATION WIDGET -->
+        <div class="lock-form-group" style="margin-bottom: 0.65rem;">
           <label for="lock-captcha-input">Security Verification (Anti-Bot Captcha)</label>
           <div class="captcha-container">
-            <canvas id="lock-captcha-canvas" width="130" height="38" title="Click reload if not clearly visible"></canvas>
+            <canvas id="lock-captcha-canvas" width="120" height="34" title="Click reload if not clearly visible"></canvas>
             <button type="button" class="btn-captcha-refresh" onclick="generateNewCaptcha()" title="Generate New Captcha">
               ↻ Refresh
             </button>
-            <input type="text" id="lock-captcha-input" class="lock-input" style="flex: 1; padding: 0.5rem 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;" placeholder="Code" maxlength="6" required autocomplete="off">
+            <input type="text" id="lock-captcha-input" class="lock-input" style="flex: 1; padding: 0.45rem 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;" placeholder="Enter Code" maxlength="6" required autocomplete="off">
           </div>
         </div>
 
@@ -488,7 +519,7 @@
 
   <!-- =========================================================================
        2. MAIN APPLICATION LANDING PAGE CONTENT (LOCKED BEHIND LOGIN SCREEN)
-       FLUIDIC TRANSITION REVEALS THIS UPON AUTHENTICATION (REQ 1.D)
+       FLUIDIC TRANSITION REVEALS THIS UPON AUTHENTICATION
        ========================================================================= -->
   <div id="main-portal-content" class="content-locked">
     <header class="navbar">
@@ -810,12 +841,12 @@
 
       // Render distorted alphanumeric characters
       const charColors = ["#FCD34D", "#34D399", "#FDE68A", "#A7F3D0", "#FFFFFF"];
-      ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
+      ctx.font = "bold 18px 'Segoe UI', Arial, sans-serif";
       ctx.textBaseline = "middle";
 
       for (let i = 0; i < code.length; i++) {
         ctx.save();
-        const x = 16 + i * 22;
+        const x = 14 + i * 20;
         const y = canvas.height / 2 + (Math.random() * 4 - 2);
         const angle = (Math.random() - 0.5) * 0.3;
         ctx.translate(x, y);
@@ -823,7 +854,7 @@
         ctx.fillStyle = charColors[i % charColors.length];
         ctx.shadowColor = "rgba(0,0,0,0.6)";
         ctx.shadowBlur = 3;
-        ctx.fillText(code[i], -6, 0);
+        ctx.fillText(code[i], -5, 0);
         ctx.restore();
       }
 
@@ -841,7 +872,7 @@
       if (!box) return;
       box.style.display = "block";
       box.innerHTML = `
-        <div style="background: ${type === 'danger' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; border: 1px solid ${type === 'danger' ? '#ef4444' : '#10b981'}; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: ${type === 'danger' ? '#fca5a5' : '#6ee7b7'};">
+        <div style="background: ${type === 'danger' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; border: 1px solid ${type === 'danger' ? '#ef4444' : '#10b981'}; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: ${type === 'danger' ? '#fca5a5' : '#6ee7b7'};">
           ${msg}
         </div>
       `;
@@ -912,6 +943,10 @@
       const lockGate = document.getElementById("app-lock-gate");
       const mainContent = document.getElementById("main-portal-content");
 
+      // Prepare main portal in DOM flow before transitioning
+      mainContent.style.display = "block";
+      void mainContent.offsetWidth; // Reflow
+
       // Apply fluidic exit animation on lock gate
       lockGate.classList.add("unlocked-exit");
 
@@ -921,6 +956,13 @@
 
       // Update navbar session indicator
       updateNavbarSessionState(session);
+
+      // Hide lockGate after fade to completely free viewport
+      setTimeout(() => {
+        if (lockGate.classList.contains("unlocked-exit")) {
+          lockGate.style.display = "none";
+        }
+      }, 620);
 
       // Load health/status
       loadStatus();
@@ -945,8 +987,12 @@
       const lockGate = document.getElementById("app-lock-gate");
       const mainContent = document.getElementById("main-portal-content");
 
+      lockGate.style.display = "flex";
+      void lockGate.offsetWidth; // Reflow
+
       mainContent.classList.remove("content-unlocked");
       mainContent.classList.add("content-locked");
+      mainContent.style.display = "none";
 
       lockGate.classList.remove("unlocked-exit");
 
@@ -970,7 +1016,9 @@
             // Already logged in - immediately unlock
             const lockGate = document.getElementById("app-lock-gate");
             const mainContent = document.getElementById("main-portal-content");
+            lockGate.style.display = "none";
             lockGate.classList.add("unlocked-exit");
+            mainContent.style.display = "block";
             mainContent.classList.remove("content-locked");
             mainContent.classList.add("content-unlocked");
             updateNavbarSessionState(session);
