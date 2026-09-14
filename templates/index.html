@@ -7,6 +7,329 @@
   <title>NDLI Club Management System | IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
+    /* =========================================================================
+       PAGE 1 USER MANUAL COVER-INSPIRED MASTER LOCK SCREEN GATEWAY
+       ========================================================================= */
+    .lock-screen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      background: linear-gradient(145deg, #071912 0%, #103125 42%, #1A503E 78%, #0D7751 100%);
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      box-sizing: border-box;
+      overflow-y: auto;
+      transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.65s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.65s;
+    }
+
+    .lock-screen-overlay::before {
+      content: "";
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.28) 0%, rgba(217, 119, 6, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .lock-screen-overlay::after {
+      content: "";
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .lock-screen-overlay.unlocked-exit {
+      opacity: 0;
+      transform: scale(1.03);
+      filter: blur(8px);
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 520px;
+      background: rgba(16, 49, 37, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      padding: 2.25rem 2rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 40px rgba(13, 119, 81, 0.25);
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    /* Cover Page Header Section */
+    .lock-header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(217, 119, 6, 0.28);
+      border: 1px solid #F59E0B;
+      color: #FDE68A;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+
+    /* PROMINENT CENTRAL LOGO WITH SUBTLE GLOWING LIGHT TRAIL (REQ 1.B & 1.B.1) */
+    .logo-trail-container {
+      position: relative;
+      width: 154px;
+      height: 154px;
+      margin: 0 auto 1.25rem auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-trail-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 154px;
+      height: 154px;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .trail-track {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.16);
+      stroke-width: 2px;
+    }
+
+    .trail-light-runner {
+      fill: none;
+      stroke: url(#lightTrailGrad);
+      stroke-width: 3px;
+      stroke-linecap: round;
+      stroke-dasharray: 65 435;
+      stroke-dashoffset: 0;
+      filter: drop-shadow(0 0 6px #34d399) drop-shadow(0 0 12px #10b981) drop-shadow(0 0 18px rgba(253, 230, 138, 0.7));
+      animation: orbitLightTrail 3.2s linear infinite;
+    }
+
+    @keyframes orbitLightTrail {
+      from {
+        stroke-dashoffset: 500;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .logo-white-card {
+      width: 134px;
+      height: 134px;
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      z-index: 1;
+      box-sizing: border-box;
+    }
+
+    .logo-white-card img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .lock-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+      margin: 0 0 0.35rem 0;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .lock-org-line {
+      font-size: 0.86rem;
+      color: #FCD34D;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+
+    .lock-sub {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      margin: 0 0 1.5rem 0;
+      line-height: 1.4;
+    }
+
+    /* Lock Form Styles */
+    .lock-form-group {
+      text-align: left;
+      margin-bottom: 1rem;
+    }
+
+    .lock-form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 0.4rem;
+    }
+
+    .lock-input {
+      width: 100%;
+      background: rgba(7, 25, 18, 0.7);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 0.75rem 0.95rem;
+      color: #FFFFFF;
+      font-size: 0.95rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .lock-input:focus {
+      border-color: #34d399;
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+    }
+
+    .lock-input::placeholder {
+      color: #64748b;
+    }
+
+    /* Anti-Bot Alphanumeric Captcha Widget (REQ 1.C) */
+    .captcha-container {
+      background: rgba(7, 25, 18, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    #lock-captcha-canvas {
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: #071912;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .btn-captcha-refresh {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FCD34D;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    .btn-captcha-refresh:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-unlock {
+      width: 100%;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: #FFFFFF;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      padding: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+    }
+
+    .btn-unlock:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+      filter: brightness(1.08);
+    }
+
+    .btn-unlock:active {
+      transform: translateY(0);
+    }
+
+    .lock-footer-info {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      margin-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .shake-anim {
+      animation: shakeForm 0.4s ease-in-out;
+    }
+
+    @keyframes shakeForm {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    /* =========================================================================
+       MAIN UNLOCKED PORTAL VIEW STYLING & FLUIDIC TRANSITION
+       ========================================================================= */
+    #main-portal-content {
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1), filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #main-portal-content.content-locked {
+      opacity: 0;
+      filter: blur(8px);
+      pointer-events: none;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #main-portal-content.content-unlocked {
+      opacity: 1;
+      filter: blur(0);
+      pointer-events: auto;
+      height: auto;
+      overflow: visible;
+    }
+
     .hero-banner {
       background: var(--gradient-nav);
       color: #ffffff;
@@ -82,291 +405,599 @@
   </style>
 </head>
 <body>
-  <header class="navbar">
-    <div class="nav-container">
-      <a href="/" class="brand">
-        <div class="brand-logo-card">
+
+  <!-- =========================================================================
+       1. FULL-VIEWPORT MASTER PASSWORD PROTECTED LOGIN SCREEN (REQ 1)
+       Follows Cover Page Aesthetics of the User Manual (1.A)
+       ========================================================================= -->
+  <div id="app-lock-gate" class="lock-screen-overlay">
+    <div class="lock-card" id="lock-card-box">
+      <span class="lock-header-badge">
+        <span>🔒</span> Secure Enterprise Access Gateway
+      </span>
+
+      <!-- PROMINENT CENTRAL NDLI CLUB LOGO WITH GLOWING LIGHT TRAIL (REQ 1.B & 1.B.1) -->
+      <div class="logo-trail-container">
+        <svg class="logo-trail-svg" viewBox="0 0 154 154">
+          <defs>
+            <linearGradient id="lightTrailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF"/>
+              <stop offset="30%" stop-color="#FDE68A"/>
+              <stop offset="70%" stop-color="#34D399"/>
+              <stop offset="100%" stop-color="#059669"/>
+            </linearGradient>
+          </defs>
+          <!-- Static subtle track -->
+          <rect x="3" y="3" width="148" height="148" rx="18" class="trail-track" pathLength="500"/>
+          <!-- Animated Running Glowing Light Trail -->
+          <rect x="3" y="3" width="148" height="148" rx="18" class="trail-light-runner" pathLength="500"/>
+        </svg>
+        <div class="logo-white-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
         </div>
-        <div class="brand-text">
-          <h1>NDLI Club Management System</h1>
-          <p>Central Administration & Regional Operations • IIT Kharagpur</p>
+      </div>
+
+      <div class="lock-org-line">National Digital Library of India</div>
+      <h1 class="lock-title">NDLI Club Management System</h1>
+      <p class="lock-sub">
+        IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones<br>
+        <span style="color: #94a3b8; font-size: 0.76rem;">Protected by multi-tier encryption & session verification</span>
+      </p>
+
+      <div id="lock-alert" style="display: none; margin-bottom: 1rem;"></div>
+
+      <!-- UNIFIED LOGIN FORM ACCEPTING EMPLOYEE & ADMIN CREDENTIALS (REQ 1.C) -->
+      <form id="master-lock-form" onsubmit="handleMasterLogin(event)">
+        <div class="lock-form-group">
+          <label for="lock-identifier">User ID or Official Email</label>
+          <input type="text" id="lock-identifier" class="lock-input" placeholder="e.g., EMP01 or admin@iitkgp.ac.in" required autocomplete="username">
         </div>
-      </a>
-      <div class="nav-links">
-        <a href="/promo-video" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.45); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;" target="_blank" title="Watch High-Definition Highlights Video">
-          <span>🎬</span> Highlights Video
-        </a>
-        <a href="/api/download/user-manual" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.45); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;" target="_blank" title="Download Official NDLI User Manual (PDF)">
-          <span>📖</span> User Manual (PDF)
-        </a>
-        <a href="/admin" class="nav-link"><span class="badge-tag" style="background: var(--primary-light);">Admin</span> Master Office</a>
-        <a href="/login" class="nav-link"><span class="badge-tag" style="background: var(--primary);">🔐 Login</span> Employee Login</a>
-        <a href="/employee" class="nav-link">Employee Portal</a>
-        <a href="/api/health" target="_blank" class="nav-link">REST API Status</a>
+
+        <div class="lock-form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label for="lock-password" style="margin: 0;">Password</label>
+            <button type="button" onclick="toggleLockPassword()" style="background: none; border: none; color: #34d399; font-size: 0.75rem; cursor: pointer; padding: 0;">
+              Show / Hide
+            </button>
+          </div>
+          <input type="password" id="lock-password" class="lock-input" placeholder="Enter your authorized password" required autocomplete="current-password">
+        </div>
+
+        <!-- ANTI-BOT CAPTCHA VERIFICATION WIDGET (REQ 1.C) -->
+        <div class="lock-form-group">
+          <label for="lock-captcha-input">Security Verification (Anti-Bot Captcha)</label>
+          <div class="captcha-container">
+            <canvas id="lock-captcha-canvas" width="130" height="38" title="Click reload if not clearly visible"></canvas>
+            <button type="button" class="btn-captcha-refresh" onclick="generateNewCaptcha()" title="Generate New Captcha">
+              ↻ Refresh
+            </button>
+            <input type="text" id="lock-captcha-input" class="lock-input" style="flex: 1; padding: 0.5rem 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;" placeholder="Code" maxlength="6" required autocomplete="off">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-unlock" id="btn-master-unlock">
+          <span>🔓</span> Unlock System Access →
+        </button>
+      </form>
+
+      <div class="lock-footer-info">
+        National Digital Library of India Club Management System • Designed by Dr. Anirban Mukherjee
       </div>
     </div>
-  </header>
+  </div>
 
-  <main class="container">
-    <section class="hero-banner">
-      <div style="margin-bottom: 1.25rem; display: inline-flex; background: #ffffff; padding: 6px 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);">
-        <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 48px; width: auto; object-fit: contain;">
-      </div>
-      <span class="badge-tag" style="background: var(--primary-light); margin-bottom: 0.75rem; font-size: 0.75rem; padding: 0.25rem 0.75rem;">National Operational Platform</span>
-      <h2>NDLI Club Management System</h2>
-      <p>Integrated Web Portal & Node Synchronization Architecture connecting IIT Kharagpur Central Master Administration with 7 Regional Operational Zones across India.</p>
-      <div style="margin: 0.75rem 0; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-        <a href="/login" class="btn btn-accent btn-lg" style="box-shadow: 0 4px 16px rgba(13, 119, 81, 0.4);">
-          🔐 Employee Sign-In (User ID & Password) →
+  <!-- =========================================================================
+       2. MAIN APPLICATION LANDING PAGE CONTENT (LOCKED BEHIND LOGIN SCREEN)
+       FLUIDIC TRANSITION REVEALS THIS UPON AUTHENTICATION (REQ 1.D)
+       ========================================================================= -->
+  <div id="main-portal-content" class="content-locked">
+    <header class="navbar">
+      <div class="nav-container">
+        <a href="/" class="brand">
+          <div class="brand-logo-card">
+            <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
+          </div>
+          <div class="brand-text">
+            <h1>NDLI Club Management System</h1>
+            <p>Central Administration & Regional Operations • IIT Kharagpur</p>
+          </div>
         </a>
-        <a href="/api/download/user-manual" class="btn btn-outline btn-lg" style="color: #ffffff; border-color: rgba(255,255,255,0.6); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;" target="_blank" title="Download Official NDLI User Manual (PDF)">
-          <span>📖</span> Download User Manual (PDF) 📥
-        </a>
-      </div>
-      <div class="drive-status-badge">
-        <span class="pulse-dot"></span>
-        <span id="drive-mode-label">Drive Storage: LOCAL_SYNC / Google Drive Mirror</span>
-        <span>•</span>
-        <span id="nodes-count-label">7 Regional Nodes Synced</span>
-      </div>
-    </section>
-
-    <!-- Master Admin Card -->
-    <section style="margin-bottom: 2rem;">
-      <div class="portal-card admin-master-card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-          <div>
-            <span class="pill pill-warning" style="margin-bottom: 0.5rem;">IIT Kharagpur HQ</span>
-            <h3 style="font-size: 1.4rem; color: var(--primary); font-weight: 700;">Admin Master Control Center</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 700px; margin-top: 0.25rem;">
-              Central oversight office for all NDLI clubs across India. Features interactive infographics, team/individual performance metrics, AI strategic decision engine, and one-click employee provisioning & access control.
-            </p>
+        <div class="nav-links">
+          <!-- REQ 2: SHORTCUT TO NDLI MAIN SITE -->
+          <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal">
+            <span class="badge-tag" style="background:#0284c7; color:#ffffff;">🏛️ NDLI</span> Main Site ↗
+          </a>
+          <a href="/promo-video" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.45); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;" target="_blank" title="Watch High-Definition Highlights Video">
+            <span>🎬</span> Highlights Video
+          </a>
+          <a href="/api/download/user-manual" class="btn btn-sm btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.45); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;" target="_blank" title="Download Official NDLI User Manual (PDF)">
+            <span>📖</span> User Manual (PDF)
+          </a>
+          <a href="/admin" class="nav-link"><span class="badge-tag" style="background: var(--primary-light);">Admin</span> Master Office</a>
+          <a href="/login" class="nav-link"><span class="badge-tag" style="background: var(--primary);">🔐 Login</span> Employee Login</a>
+          <a href="/employee" class="nav-link">Employee Portal</a>
+          <div id="nav-session-chip" style="display: none; align-items: center; gap: 0.5rem;">
+            <span class="badge-tag" id="nav-session-badge" style="background: #059669; color: #ffffff;">Active Session</span>
+            <button class="btn btn-sm btn-outline" onclick="lockApplication()" style="color: #ffffff; border-color: rgba(255,255,255,0.5); padding: 0.25rem 0.6rem; font-size: 0.75rem;" title="Lock Entire Web Application">
+              🔒 Lock
+            </button>
           </div>
-          <div style="display: flex; gap: 0.75rem; align-items: center;">
-            <a href="/admin" class="btn btn-accent btn-lg">Launch Master Admin UI →</a>
-          </div>
+          <a href="/api/health" target="_blank" class="nav-link">REST API Status</a>
         </div>
       </div>
-    </section>
+    </header>
 
-    <!-- Official User Manual & Operational Documentation Card -->
-    <section style="margin-bottom: 2rem;">
-      <div class="portal-card" style="border-top: 5px solid #0D7751; background: linear-gradient(180deg, #ffffff 0%, #f4f9f6 100%);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div style="max-width: 680px;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-              <span class="pill pill-success" style="font-weight: 700;">Official Handbook (14 Pages)</span>
-              <span class="pill pill-primary" style="font-size: 0.72rem;">Central Admin & Regional Operations</span>
+    <main class="container">
+      <section class="hero-banner">
+        <div style="margin-bottom: 1.25rem; display: inline-flex; background: #ffffff; padding: 6px 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);">
+          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 48px; width: auto; object-fit: contain;">
+        </div>
+        <span class="badge-tag" style="background: var(--primary-light); margin-bottom: 0.75rem; font-size: 0.75rem; padding: 0.25rem 0.75rem;">National Operational Platform</span>
+        <h2>NDLI Club Management System</h2>
+        <p>Integrated Web Portal & Node Synchronization Architecture connecting IIT Kharagpur Central Master Administration with 7 Regional Operational Zones across India.</p>
+        <div style="margin: 0.75rem 0; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+          <a href="/login" class="btn btn-accent btn-lg" style="box-shadow: 0 4px 16px rgba(13, 119, 81, 0.4);">
+            🔐 Employee Sign-In (User ID & Password) →
+          </a>
+          <a href="/api/download/user-manual" class="btn btn-outline btn-lg" style="color: #ffffff; border-color: rgba(255,255,255,0.6); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;" target="_blank" title="Download Official NDLI User Manual (PDF)">
+            <span>📖</span> Download User Manual (PDF) 📥
+          </a>
+        </div>
+        <div class="drive-status-badge">
+          <span class="pulse-dot"></span>
+          <span id="drive-mode-label">Drive Storage: LOCAL_SYNC / Google Drive Mirror</span>
+          <span>•</span>
+          <span id="nodes-count-label">7 Regional Nodes Synced</span>
+        </div>
+      </section>
+
+      <!-- Master Admin Card -->
+      <section style="margin-bottom: 2rem;">
+        <div class="portal-card admin-master-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <span class="pill pill-warning" style="margin-bottom: 0.5rem;">IIT Kharagpur HQ</span>
+              <h3 style="font-size: 1.4rem; color: var(--primary); font-weight: 700;">Admin Master Control Center</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 700px; margin-top: 0.25rem;">
+                Central oversight office for all NDLI clubs across India. Features interactive infographics, team/individual performance metrics, AI strategic decision engine, and one-click employee provisioning & access control.
+              </p>
             </div>
-            <h3 style="font-size: 1.25rem; color: var(--primary); font-weight: 700; margin: 0 0 0.35rem 0;">
-              NDLI Club Management System User Manual &amp; Standard Operating Procedures
-            </h3>
-            <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0; line-height: 1.5;">
-              Comprehensive guide covering Regional Employee Portals, Master Admin Office, Automated 7-Day Rolling Backups, Master DB Reconciliation, One-Click Emergency Database Restoration with 2-layer security, and operational workflows.
-            </p>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <a href="/admin" class="btn btn-accent btn-lg">Launch Master Admin UI →</a>
+            </div>
           </div>
-          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-            <a href="/api/download/user-manual" class="btn btn-primary" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;" title="Download Official NDLI User Manual (PDF)">
-              <span>📥</span> Download PDF (14 Pages)
-            </a>
-            <a href="/promo-video" class="btn btn-outline" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;" title="Watch Highlights Video">
-              <span>🎬</span> Video
-            </a>
+        </div>
+      </section>
+
+      <!-- Official User Manual & Operational Documentation Card -->
+      <section style="margin-bottom: 2rem;">
+        <div class="portal-card" style="border-top: 5px solid #0D7751; background: linear-gradient(180deg, #ffffff 0%, #f4f9f6 100%);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div style="max-width: 680px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                <span class="pill pill-success" style="font-weight: 700;">Official Handbook (14 Pages)</span>
+                <span class="pill pill-primary" style="font-size: 0.72rem;">Central Admin & Regional Operations</span>
+              </div>
+              <h3 style="font-size: 1.25rem; color: var(--primary); font-weight: 700; margin: 0 0 0.35rem 0;">
+                NDLI Club Management System User Manual &amp; Standard Operating Procedures
+              </h3>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0; line-height: 1.5;">
+                Comprehensive guide covering Regional Employee Portals, Master Admin Office, Automated 7-Day Rolling Backups, Master DB Reconciliation, One-Click Emergency Database Restoration with 2-layer security, and operational workflows.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+              <a href="/api/download/user-manual" class="btn btn-primary" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;" title="Download Official NDLI User Manual (PDF)">
+                <span>📥</span> Download PDF (14 Pages)
+              </a>
+              <a href="/promo-video" class="btn btn-outline" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;" title="Watch Highlights Video">
+                <span>🎬</span> Video
+              </a>
+            </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 7 Employee Interfaces Across India -->
+      <section>
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">7 Regional Employee Portals</h3>
+            <p class="card-subtitle">Dedicated portals for 7 zonal nodal officers. Employees log in with User ID (e.g. EMP01) and password to manage activity logs, club approvals, and renewals.</p>
+          </div>
+          <a href="/login" class="btn btn-primary btn-sm">🔐 Regional Officer Sign-In</a>
+        </div>
+
+        <div class="grid-3" id="employee-portals-grid">
+          <!-- EMP01 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP01</span>
+                <span class="pill pill-success">North Zone</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Rohan Sharma</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Delhi, UP, Punjab, Haryana, J&K, Ladakh, Uttarakhand, HP, Chandigarh
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp01/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP01" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP01 (North Zone) →</a>
+            </div>
+          </div>
+
+          <!-- EMP02 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP02</span>
+                <span class="pill pill-success">Central Zone</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Pooja Verma</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Madhya Pradesh, Chhattisgarh
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp02/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP02" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP02 (Central Zone) →</a>
+            </div>
+          </div>
+
+          <!-- EMP03 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP03</span>
+                <span class="pill pill-success">West Zone</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Amit Patel</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Rajasthan, Gujarat, Maharashtra, Goa, Daman & Diu, Dadar & Nagar Haveli
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp03/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP03" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP03 (West Zone) →</a>
+            </div>
+          </div>
+
+          <!-- EMP04 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP04</span>
+                <span class="pill pill-success">East Zone</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Debabrata Ghosh</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Bihar, Jharkhand, West Bengal, Odisha
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp04/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP04" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP04 (East Zone) →</a>
+            </div>
+          </div>
+
+          <!-- EMP05 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP05</span>
+                <span class="pill pill-success">North East Zone</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Mayanglambam Singh</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp05/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP05" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP05 (North East) →</a>
+            </div>
+          </div>
+
+          <!-- EMP06 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP06</span>
+                <span class="pill pill-success">South Zone 1</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">K. Venkatesh</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Andhra Pradesh, Telangana, Karnataka
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp06/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP06" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP06 (South Zone 1) →</a>
+            </div>
+          </div>
+
+          <!-- EMP07 -->
+          <div class="portal-card employee-node-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="pill pill-primary">EMP07</span>
+                <span class="pill pill-success">South Zone 2</span>
+              </div>
+              <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Ananya Nair</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
+                <strong>States:</strong> Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep
+              </p>
+              <p style="font-size: 0.78rem; color: #475569;">
+                Node DB: <code>data/employees/emp07/</code>
+              </p>
+            </div>
+            <div style="margin-top: 1.25rem;">
+              <a href="/employee/EMP07" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP07 (South Zone 2) →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
+    <footer class="system-footer">
+      <div class="footer-container">
+        <div class="footer-brand">
+          <div class="footer-logo-card">
+            <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
+          </div>
+          <div class="footer-meta">
+            <div class="footer-title">National Digital Library of India Club Management System</div>
+            <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones</div>
+          </div>
+        </div>
+        <div class="footer-credit-box">
+          <span class="dev-role">Lead System Architect & Full-Stack Developer</span>
+          <span class="dev-name">Dr. Anirban Mukherjee</span>
         </div>
       </div>
-    </section>
-
-    <!-- 7 Employee Interfaces Across India -->
-    <section>
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">7 Regional Employee Portals</h3>
-          <p class="card-subtitle">Dedicated portals for 7 zonal nodal officers. Employees log in with User ID (e.g. EMP01) and password to manage activity logs, club approvals, and renewals.</p>
-        </div>
-        <a href="/login" class="btn btn-primary btn-sm">🔐 Regional Officer Sign-In</a>
-      </div>
-
-      <div class="grid-3" id="employee-portals-grid">
-        <!-- EMP01 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP01</span>
-              <span class="pill pill-success">North Zone</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Rohan Sharma</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Delhi, UP, Punjab, Haryana, J&K, Ladakh, Uttarakhand, HP, Chandigarh
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp01/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP01" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP01 (North Zone) →</a>
-          </div>
-        </div>
-
-        <!-- EMP02 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP02</span>
-              <span class="pill pill-success">Central Zone</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Pooja Verma</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Madhya Pradesh, Chhattisgarh
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp02/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP02" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP02 (Central Zone) →</a>
-          </div>
-        </div>
-
-        <!-- EMP03 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP03</span>
-              <span class="pill pill-success">West Zone</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Amit Patel</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Rajasthan, Gujarat, Maharashtra, Goa, Daman & Diu, Dadar & Nagar Haveli
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp03/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP03" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP03 (West Zone) →</a>
-          </div>
-        </div>
-
-        <!-- EMP04 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP04</span>
-              <span class="pill pill-success">East Zone</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Debabrata Ghosh</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Bihar, Jharkhand, West Bengal, Odisha
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp04/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP04" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP04 (East Zone) →</a>
-          </div>
-        </div>
-
-        <!-- EMP05 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP05</span>
-              <span class="pill pill-success">North East Zone</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Mayanglambam Singh</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp05/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP05" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP05 (North East) →</a>
-          </div>
-        </div>
-
-        <!-- EMP06 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP06</span>
-              <span class="pill pill-success">South Zone 1</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">K. Venkatesh</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Andhra Pradesh, Telangana, Karnataka
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp06/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP06" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP06 (South Zone 1) →</a>
-          </div>
-        </div>
-
-        <!-- EMP07 -->
-        <div class="portal-card employee-node-card">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span class="pill pill-primary">EMP07</span>
-              <span class="pill pill-success">South Zone 2</span>
-            </div>
-            <h4 style="font-size: 1.1rem; color: var(--primary); font-weight: 700;">Ananya Nair</h4>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0;">
-              <strong>States:</strong> Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep
-            </p>
-            <p style="font-size: 0.78rem; color: #475569;">
-              Node DB: <code>data/employees/emp07/</code>
-            </p>
-          </div>
-          <div style="margin-top: 1.25rem;">
-            <a href="/employee/EMP07" class="btn btn-primary btn-sm" style="width: 100%;">🔐 Sign In as EMP07 (South Zone 2) →</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
-  <footer class="system-footer">
-    <div class="footer-container">
-      <div class="footer-brand">
-        <div class="footer-logo-card">
-          <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
-        </div>
-        <div class="footer-meta">
-          <div class="footer-title">National Digital Library of India Club Management System</div>
-          <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones</div>
-        </div>
-      </div>
-      <div class="footer-credit-box">
-        <span class="dev-role">Lead System Architect & Full-Stack Developer</span>
-        <span class="dev-name">Dr. Anirban Mukherjee</span>
-      </div>
-    </div>
-  </footer>
+    </footer>
+  </div>
 
   <script src="/static/js/app.js"></script>
   <script>
+    // Global Captcha Store
+    let currentCaptchaCode = "";
+
+    // Generate Alphanumeric Captcha (REQ 1.C)
+    function generateNewCaptcha() {
+      const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      currentCaptchaCode = code;
+
+      const canvas = document.getElementById("lock-captcha-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background gradient matching manual cover
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, "#071912");
+      grad.addColorStop(0.5, "#103125");
+      grad.addColorStop(1, "#1A503E");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Distortive lines
+      for (let i = 0; i < 3; i++) {
+        ctx.strokeStyle = "rgba(52, 211, 153, 0.35)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.stroke();
+      }
+
+      // Render distorted alphanumeric characters
+      const charColors = ["#FCD34D", "#34D399", "#FDE68A", "#A7F3D0", "#FFFFFF"];
+      ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
+      ctx.textBaseline = "middle";
+
+      for (let i = 0; i < code.length; i++) {
+        ctx.save();
+        const x = 16 + i * 22;
+        const y = canvas.height / 2 + (Math.random() * 4 - 2);
+        const angle = (Math.random() - 0.5) * 0.3;
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.fillStyle = charColors[i % charColors.length];
+        ctx.shadowColor = "rgba(0,0,0,0.6)";
+        ctx.shadowBlur = 3;
+        ctx.fillText(code[i], -6, 0);
+        ctx.restore();
+      }
+
+      const input = document.getElementById("lock-captcha-input");
+      if (input) input.value = "";
+    }
+
+    function toggleLockPassword() {
+      const p = document.getElementById("lock-password");
+      if (p) p.type = p.type === "password" ? "text" : "password";
+    }
+
+    function showLockAlert(msg, type = "danger") {
+      const box = document.getElementById("lock-alert");
+      if (!box) return;
+      box.style.display = "block";
+      box.innerHTML = `
+        <div style="background: ${type === 'danger' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; border: 1px solid ${type === 'danger' ? '#ef4444' : '#10b981'}; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: ${type === 'danger' ? '#fca5a5' : '#6ee7b7'};">
+          ${msg}
+        </div>
+      `;
+      const card = document.getElementById("lock-card-box");
+      if (card && type === "danger") {
+        card.classList.remove("shake-anim");
+        void card.offsetWidth;
+        card.classList.add("shake-anim");
+      }
+    }
+
+    // Authenticate Master Gateway (REQ 1.C & 1.D)
+    async function handleMasterLogin(e) {
+      e.preventDefault();
+      const identifier = document.getElementById("lock-identifier").value.trim();
+      const password = document.getElementById("lock-password").value.trim();
+      const captchaEntered = document.getElementById("lock-captcha-input").value.trim().toUpperCase();
+
+      if (captchaEntered !== currentCaptchaCode) {
+        showLockAlert("Security Captcha verification failed. Please enter the code shown.");
+        generateNewCaptcha();
+        return;
+      }
+
+      const unlockBtn = document.getElementById("btn-master-unlock");
+      const originalText = unlockBtn.innerHTML;
+      unlockBtn.innerHTML = "<span>⏳</span> Verifying Access Credentials...";
+      unlockBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showLockAlert(data.message || "Invalid credentials. Please verify your User ID and password.");
+          generateNewCaptcha();
+          unlockBtn.innerHTML = originalText;
+          unlockBtn.disabled = false;
+          return;
+        }
+
+        // Save session locally
+        const session = data.session || {};
+        sessionStorage.setItem("ndli_auth_session", JSON.stringify(session));
+        sessionStorage.setItem("ndli_token", session.token || "");
+        sessionStorage.setItem("ndli_user_id", session.user_id || "");
+        sessionStorage.setItem("ndli_role", session.role || "");
+        if (session.role === "ADMIN") {
+          sessionStorage.setItem("ndli_admin_token", session.token || "");
+        }
+
+        // Smooth Fluidic Transition to Main Landing Page (REQ 1.D)
+        unlockSystemFluidTransition(session);
+
+      } catch (err) {
+        showLockAlert("Network or server error connecting to authentication service.");
+        unlockBtn.innerHTML = originalText;
+        unlockBtn.disabled = false;
+      }
+    }
+
+    // Fluidic Transition Animation (REQ 1.D)
+    function unlockSystemFluidTransition(session) {
+      const lockGate = document.getElementById("app-lock-gate");
+      const mainContent = document.getElementById("main-portal-content");
+
+      // Apply fluidic exit animation on lock gate
+      lockGate.classList.add("unlocked-exit");
+
+      // Smoothly unveil main landing page
+      mainContent.classList.remove("content-locked");
+      mainContent.classList.add("content-unlocked");
+
+      // Update navbar session indicator
+      updateNavbarSessionState(session);
+
+      // Load health/status
+      loadStatus();
+    }
+
+    function updateNavbarSessionState(session) {
+      const chip = document.getElementById("nav-session-chip");
+      const badge = document.getElementById("nav-session-badge");
+      if (chip && badge) {
+        chip.style.display = "flex";
+        badge.innerText = `${session.name || session.user_id || "User"} (${session.role || "Active"})`;
+      }
+    }
+
+    function lockApplication() {
+      sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_token");
+      sessionStorage.removeItem("ndli_user_id");
+      sessionStorage.removeItem("ndli_role");
+      sessionStorage.removeItem("ndli_admin_token");
+
+      const lockGate = document.getElementById("app-lock-gate");
+      const mainContent = document.getElementById("main-portal-content");
+
+      mainContent.classList.remove("content-unlocked");
+      mainContent.classList.add("content-locked");
+
+      lockGate.classList.remove("unlocked-exit");
+
+      document.getElementById("master-lock-form").reset();
+      const chip = document.getElementById("nav-session-chip");
+      if (chip) chip.style.display = "none";
+      const alertBox = document.getElementById("lock-alert");
+      if (alertBox) alertBox.style.display = "none";
+
+      generateNewCaptcha();
+    }
+
+    // Initial check on load
+    document.addEventListener("DOMContentLoaded", () => {
+      generateNewCaptcha();
+      const savedSession = sessionStorage.getItem("ndli_auth_session");
+      if (savedSession) {
+        try {
+          const session = JSON.parse(savedSession);
+          if (session && session.token) {
+            // Already logged in - immediately unlock
+            const lockGate = document.getElementById("app-lock-gate");
+            const mainContent = document.getElementById("main-portal-content");
+            lockGate.classList.add("unlocked-exit");
+            mainContent.classList.remove("content-locked");
+            mainContent.classList.add("content-unlocked");
+            updateNavbarSessionState(session);
+            loadStatus();
+            return;
+          }
+        } catch (e) {
+          sessionStorage.removeItem("ndli_auth_session");
+        }
+      }
+    });
+
     // Live health fetch
     async function loadStatus() {
       try {
         const res = await fetch("/api/sync/status");
         if (res.ok) {
           const data = await res.json();
-          document.getElementById("drive-mode-label").innerText = "Drive Storage: " + data.storage_mode;
-          document.getElementById("nodes-count-label").innerText = "Master Clubs: " + data.master_clubs_count + " | Activities: " + data.master_activities_count;
+          const modeEl = document.getElementById("drive-mode-label");
+          const countEl = document.getElementById("nodes-count-label");
+          if (modeEl) modeEl.innerText = "Drive Storage: " + data.storage_mode;
+          if (countEl) countEl.innerText = "Master Clubs: " + data.master_clubs_count + " | Activities: " + data.master_activities_count;
         }
       } catch (e) {
         console.warn("Status check:", e);
       }
     }
-    loadStatus();
   </script>
 </body>
 </html>
