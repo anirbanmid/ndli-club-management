@@ -759,13 +759,13 @@ class TestFeatures1To5(unittest.TestCase):
         self.assertIn("Main Site", idx_content)
 
     def test_employee_dashboard_toolbox_tab_and_seven_tools(self):
-        """Verify Employee Dashboard has a Tool Box tab providing access to all 7 tools with clickable links."""
+        """Verify Employee Dashboard has a Tool Box tab providing access to all 11 tools with clickable links."""
         emp_content = (BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
         self.assertIn('data-target="tab-toolbox"', emp_content)
         self.assertIn('id="tab-toolbox"', emp_content)
         self.assertIn("Regional Officer Operational Tool Box", emp_content)
 
-        # 7 Tools verification
+        # 11 Tools verification
         tools = [
             ("Google Meet", "https://meet.google.com"),
             ("Google Drive", "https://drive.google.com"),
@@ -773,7 +773,11 @@ class TestFeatures1To5(unittest.TestCase):
             ("Google Sheets", "https://sheets.google.com"),
             ("Zoom Meeting", "https://zoom.us"),
             ("Microsoft Teams", "https://teams.microsoft.com"),
-            ("StreamYard", "https://streamyard.com")
+            ("StreamYard", "https://streamyard.com"),
+            ("Gmail", "https://mail.google.com"),
+            ("Google Slides", "https://slides.google.com"),
+            ("Google Keep", "https://keep.google.com"),
+            ("YouTube (NDL India)", "https://www.youtube.com/@NDLIndia")
         ]
         for name, url in tools:
             self.assertIn(name, emp_content)
