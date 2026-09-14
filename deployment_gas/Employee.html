@@ -1489,6 +1489,7 @@ tbody tr:hover {
         <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.6rem;">
           <!-- Dynamically populated by updateNavAuth() -->
         </div>
+        <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span class="badge-tag" style="background:#0284c7; color:#ffffff;">🏛️ NDLI</span> Main Site ↗</a>
         <a href="https://ndli-club-management.onrender.com/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span class="badge-tag" style="background:#0D7751; color:#ffffff;">📖 Manual</span> User Manual (PDF)</a>
         <a href="?page=landing" class="nav-link">Main Portal</a>
       </div>
@@ -1649,6 +1650,7 @@ tbody tr:hover {
       <button class="tab-btn active" data-target="tab-activity">Daily Activity Tracker (SEC A, B, C)</button>
       <button class="tab-btn" data-target="tab-search">Universal Club Search & Edit</button>
       <button class="tab-btn" data-target="tab-history">My Node Activity History</button>
+      <button class="tab-btn" data-target="tab-toolbox">🧰 Tool Box</button>
     </div>
 
     <!-- TAB 1: DAILY ACTIVITY TRACKER -->
@@ -1899,6 +1901,219 @@ tbody tr:hover {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: OPERATIONAL TOOL BOX -->
+    <div class="tab-panel" id="tab-toolbox">
+      <div class="card" style="border-top: 4px solid var(--primary); margin-bottom: 1.5rem;">
+        <div class="card-header" style="margin-bottom: 0.5rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+              <span class="pill pill-success" style="font-weight: 700;">Zonal Operations Hub</span>
+              <span class="pill pill-primary">7 Integrated Utilities</span>
+            </div>
+            <h3 class="card-title" style="font-size: 1.35rem; color: var(--primary);">🧰 Regional Officer Operational Tool Box</h3>
+            <p class="card-subtitle">
+              Single-click access to video conferencing, cloud storage, collaborative document creation, quota sheets, and broadcasting platforms for regional NDLI club operations.
+            </p>
+          </div>
+          <span class="badge-tag" style="background: var(--primary); color: #ffffff; padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+            Authorized External Workspaces
+          </span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem;">
+        <!-- 1. Google Meet -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #e6f4ea; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#f8fafc"/>
+                  <path fill="#00832d" d="M12 28l5.5-5.5L12 17v11z"/>
+                  <path fill="#0066da" d="M28 34H14a2 2 0 01-2-2V28l6 4 10 2z"/>
+                  <path fill="#e51c23" d="M28 14H14a2 2 0 00-2 2v6l6-4 10-2z"/>
+                  <path fill="#ffba00" d="M28 14l-10 10 10 10V14z"/>
+                  <path fill="#00ac47" d="M28 20.5l8-6.5v20l-8-6.5v-7z"/>
+                </svg>
+              </div>
+              <span class="pill pill-success" style="font-size: 0.72rem;">Online Training & Meetings</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Google Meet</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Conduct 1-on-1 remote assistance, screen sharing, and online club onboarding sessions across regional institutions.
+            </p>
+          </div>
+          <div>
+            <a href="https://meet.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #00832d; color: #00832d;">
+              <span>📹</span> Launch Google Meet ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 2. Google Drive -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #fef7e0; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#f8fafc"/>
+                  <path fill="#ffba00" d="M19.5 11l-9 15.5 5.5 9.5 9-15.5H19.5z"/>
+                  <path fill="#0066da" d="M37.5 36H16l4.5-8h21.5l-4.5 8z"/>
+                  <path fill="#00ac47" d="M37.5 36L28.5 20.5 24 12.5h9l9 15.5-4.5 8z"/>
+                </svg>
+              </div>
+              <span class="pill pill-warning" style="font-size: 0.72rem;">Database & Storage Mirror</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Google Drive</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Direct cloud repository access for synchronized CSV databases, institutional MoUs, official club logos, and backup archives.
+            </p>
+          </div>
+          <div>
+            <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #f59e0b; color: #b45309;">
+              <span>📁</span> Open Google Drive ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 3. Google Docs -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #e8f0fe; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#f8fafc"/>
+                  <path fill="#4285f4" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
+                  <path fill="#a1c2fa" d="M29 10v6a2 2 0 002 2h6l-8-8z"/>
+                  <rect x="17" y="22" width="14" height="2" rx="1" fill="#ffffff"/>
+                  <rect x="17" y="26" width="14" height="2" rx="1" fill="#ffffff"/>
+                  <rect x="17" y="30" width="10" height="2" rx="1" fill="#ffffff"/>
+                </svg>
+              </div>
+              <span class="pill pill-primary" style="font-size: 0.72rem;">SOPs & MoUs</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Google Docs</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Draft and review institutional agreements, standard operating procedures, support memos, and regional event minutes.
+            </p>
+          </div>
+          <div>
+            <a href="https://docs.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #4285f4; color: #1d4ed8;">
+              <span>📄</span> Open Google Docs ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 4. Google Sheets -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #e6f4ea; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#f8fafc"/>
+                  <path fill="#0f9d58" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
+                  <path fill="#87ceac" d="M29 10v6a2 2 0 002 2h6l-8-8z"/>
+                  <path fill="#ffffff" d="M17 21h14v12H17z"/>
+                  <path fill="#0f9d58" d="M18 22h5v4h-5v-4zm6 0h6v4h-6v-4zm-6 5h5v4h-5v-4zm6 0h6v4h-6v-4z"/>
+                </svg>
+              </div>
+              <span class="pill pill-success" style="font-size: 0.72rem;">CSV Analytics & Quotas</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Google Sheets</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Analyze regional club registration datasets, monthly quota logs, and external CSV data extracts with powerful spreadsheets.
+            </p>
+          </div>
+          <div>
+            <a href="https://sheets.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #0f9d58; color: #15803d;">
+              <span>📊</span> Open Google Sheets ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 5. Zoom Meeting -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #eff6ff; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#2d8cff"/>
+                  <path fill="#ffffff" d="M12 18a4 4 0 014-4h11a4 4 0 014 4v12a4 4 0 01-4 4H16a4 4 0 01-4-4V18zm20 3.5l5.5-4a1 1 0 011.5.8v11.4a1 1 0 01-1.5.8l-5.5-4v-5z"/>
+                </svg>
+              </div>
+              <span class="pill" style="background: #e0f2fe; color: #0284c7; font-size: 0.72rem; font-weight: 700;">National Webinars</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Zoom Meeting</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Host large-capacity national club orientation workshops, inter-state patron conferences, and online training seminars.
+            </p>
+          </div>
+          <div>
+            <a href="https://zoom.us" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #2d8cff; color: #0284c7;">
+              <span>🌐</span> Open Zoom Meeting ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 6. Microsoft Teams -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #f5f3ff; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#464eb8"/>
+                  <circle cx="31" cy="17" r="3.5" fill="#c3c7fc"/>
+                  <path fill="#c3c7fc" d="M26 23h10a3 3 0 013 3v4h-13v-7z"/>
+                  <circle cx="21" cy="15" r="4.5" fill="#ffffff"/>
+                  <rect x="14" y="22" width="14" height="14" rx="4" fill="#ffffff"/>
+                  <path fill="#464eb8" d="M18 26h6v2.5h-1.8V33h-2.4v-4.5H18V26z"/>
+                </svg>
+              </div>
+              <span class="pill" style="background: #ede9fe; color: #6d28d9; font-size: 0.72rem; font-weight: 700;">Team Chat & Channels</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">Microsoft Teams</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Inter-nodal team chat, IIT Kharagpur central office coordination channels, and institutional committee meetings.
+            </p>
+          </div>
+          <div>
+            <a href="https://teams.microsoft.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #464eb8; color: #4338ca;">
+              <span>💬</span> Open Microsoft Teams ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- 7. StreamYard -->
+        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1.4rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+              <div style="background: #f1f5f9; padding: 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                <svg width="40" height="40" viewBox="0 0 48 48">
+                  <rect width="48" height="48" rx="10" fill="#1e293b"/>
+                  <circle cx="24" cy="24" r="13" fill="#2563eb"/>
+                  <path fill="#facc15" d="M24 14c-4.5 0-8 3-8 6.5 0 2.2 1.4 4.2 3.5 5.3-.2.8-.7 2-1.8 2.8 1.8.1 3.5-.7 4.5-1.8.6.1 1.2.2 1.8.2 4.5 0 8-3 8-6.5s-3.5-6.5-8-6.5z"/>
+                  <circle cx="22" cy="19" r="1.2" fill="#1e293b"/>
+                  <circle cx="27" cy="19" r="1.2" fill="#1e293b"/>
+                  <ellipse cx="24.5" cy="22.5" rx="3.5" ry="1.8" fill="#f97316"/>
+                  <path fill="#ffffff" d="M18 31h12a1.5 1.5 0 011.5 1.5v1.5a1 1 0 01-1 1H17.5a1 1 0 01-1-1v-1.5A1.5 1.5 0 0118 31z"/>
+                </svg>
+              </div>
+              <span class="pill pill-danger" style="font-size: 0.72rem;">Live Streaming Studio</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: var(--primary); font-weight: 700; margin: 0 0 0.4rem 0;">StreamYard</h4>
+            <p style="font-size: 0.84rem; color: #64748b; line-height: 1.45; margin: 0 0 1.2rem 0;">
+              Produce professional broadcast live streams to YouTube, Facebook, and LinkedIn for national NDLI events and announcements.
+            </p>
+          </div>
+          <div>
+            <a href="https://streamyard.com" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="width: 100%; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; border-color: #2563eb; color: #1d4ed8;">
+              <span>📡</span> Launch StreamYard Studio ↗
+            </a>
+          </div>
         </div>
       </div>
     </div>

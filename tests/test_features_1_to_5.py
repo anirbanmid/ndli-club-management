@@ -713,6 +713,80 @@ class TestFeatures1To5(unittest.TestCase):
         self.assertIn('download === "user-manual"', gas_code)
         self.assertNotIn("Read Online", gas_code)
 
+    def test_master_lock_screen_cover_aesthetics_and_glowing_logo(self):
+        """Verify templates/index.html has master lock screen matching user manual cover page aesthetics, glowing light trail, and captcha."""
+        idx_content = (BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8")
+        # Cover aesthetics & Gate elements
+        self.assertIn('id="app-lock-gate"', idx_content)
+        self.assertIn("Secure Enterprise Access Gateway", idx_content)
+        self.assertIn("National Digital Library of India", idx_content)
+        self.assertIn("IIT Kharagpur Central Master Administration Office", idx_content)
+        
+        # Central Logo with Glowing Light Trail
+        self.assertIn("logo-trail-container", idx_content)
+        self.assertIn("trail-light-runner", idx_content)
+        self.assertIn("orbitLightTrail", idx_content)
+        self.assertIn("lightTrailGrad", idx_content)
+        self.assertIn("/static/img/ndli_club_logo.png", idx_content)
+
+        # Credentials and Anti-bot Captcha Form
+        self.assertIn('id="master-lock-form"', idx_content)
+        self.assertIn('id="lock-identifier"', idx_content)
+        self.assertIn('id="lock-password"', idx_content)
+        self.assertIn('id="lock-captcha-canvas"', idx_content)
+        self.assertIn('id="lock-captcha-input"', idx_content)
+        self.assertIn("handleMasterLogin", idx_content)
+
+        # Fluidic Transition logic
+        self.assertIn("unlocked-exit", idx_content)
+        self.assertIn("content-locked", idx_content)
+        self.assertIn("content-unlocked", idx_content)
+        self.assertIn("unlockSystemFluidTransition", idx_content)
+        self.assertIn("lockApplication", idx_content)
+
+    def test_ndli_main_site_shortcut_on_navbars(self):
+        """Verify NDLI Main Site shortcut link (https://ndl.iitkgp.ac.in) is present on Admin, Employee, and Index navbars."""
+        admin_content = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
+        self.assertIn("https://ndl.iitkgp.ac.in", admin_content)
+        self.assertIn("Main Site", admin_content)
+
+        emp_content = (BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
+        self.assertIn("https://ndl.iitkgp.ac.in", emp_content)
+        self.assertIn("Main Site", emp_content)
+
+        idx_content = (BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("https://ndl.iitkgp.ac.in", idx_content)
+        self.assertIn("Main Site", idx_content)
+
+    def test_employee_dashboard_toolbox_tab_and_seven_tools(self):
+        """Verify Employee Dashboard has a Tool Box tab providing access to all 7 tools with clickable links."""
+        emp_content = (BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
+        self.assertIn('data-target="tab-toolbox"', emp_content)
+        self.assertIn('id="tab-toolbox"', emp_content)
+        self.assertIn("Regional Officer Operational Tool Box", emp_content)
+
+        # 7 Tools verification
+        tools = [
+            ("Google Meet", "https://meet.google.com"),
+            ("Google Drive", "https://drive.google.com"),
+            ("Google Docs", "https://docs.google.com"),
+            ("Google Sheets", "https://sheets.google.com"),
+            ("Zoom Meeting", "https://zoom.us"),
+            ("Microsoft Teams", "https://teams.microsoft.com"),
+            ("StreamYard", "https://streamyard.com")
+        ]
+        for name, url in tools:
+            self.assertIn(name, emp_content)
+            self.assertIn(url, emp_content)
+
+        # Also verify GAS Employee.html
+        gas_emp = (BASE_DIR / "deployment_gas" / "Employee.html").read_text(encoding="utf-8")
+        self.assertIn('data-target="tab-toolbox"', gas_emp)
+        self.assertIn('id="tab-toolbox"', gas_emp)
+        for name, url in tools:
+            self.assertIn(name, gas_emp)
+            self.assertIn(url, gas_emp)
+
 
 if __name__ == "__main__":
     unittest.main()
