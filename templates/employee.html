@@ -3242,7 +3242,8 @@
       }
 
       // Check for active authentication session
-      const urlParams = new URLSearchParams(window.location.search);
+      const searchStr = (typeof window !== "undefined" && window.location && window.location.search) ? window.location.search : "";
+      const urlParams = new URLSearchParams(searchStr);
       const urlToken = urlParams.get("token");
       if (urlToken) {
         sessionStorage.setItem("ndli_token", urlToken);
@@ -3336,7 +3337,6 @@
       window.openEmployeeIssueResolutionModal = openEmployeeIssueResolutionModal;
       window.closeEmployeeIssueModal = closeEmployeeIssueModal;
       window.submitEmployeeIssueResolution = submitEmployeeIssueResolution;
-      window.handleSetClubIssueReminder = handleSetClubIssueReminder;
     }
 
     window.onload = initEmployeePortal;
