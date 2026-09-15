@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NDLI Club Management System — Enterprise Technical Reference Manual & System Handover Architecture Guide</title>
+  <style>
+    /* =========================================================================
+       CSS PAGED MEDIA STANDARDS FOR TECHNICAL HANDOVER MANUAL
+       ========================================================================= */
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm 14mm 15mm;
+      @bottom-right {
+        content: "Page " counter(page) " of 22";
+        font-family: 'Consolas', 'Segoe UI', monospace;
+        font-size: 7.5pt;
+        color: #64748B;
+      }
+      @bottom-left {
+        content: "NDLI Technical Reference Manual • IIT Kharagpur • Confidential & Proprietary";
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 7.5pt;
+        color: #64748B;
+      }
+    }
+
+    @page :first {
+      margin: 0;
+      @bottom-right { content: none; }
+      @bottom-left  { content: none; }
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8.8pt;
+      line-height: 1.45;
+      color: #0F172A;
+      background-color: #FFFFFF;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* =========================================================================
+       COVER PAGE
+       ========================================================================= */
+    .cover-page {
+      width: 100%;
+      height: 297mm;
+      max-height: 297mm;
+      background: linear-gradient(145deg, #05130D 0%, #092015 25%, #0E3023 50%, #154535 75%, #0B6B48 100%);
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24mm 22mm 22mm 22mm;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover-page::before {
+      content: "";
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(217, 119, 6, 0.20) 0%, rgba(217, 119, 6, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .cover-page::after {
+      content: "";
+      position: absolute;
+      bottom: 80px;
+      left: -80px;
+      width: 360px;
+      height: 360px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.10) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .cover-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      border-bottom: 2px solid rgba(217, 119, 6, 0.55);
+      padding-bottom: 16px;
+    }
+
+    .cover-crest {
+      width: 72px;
+      height: 72px;
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.50);
+    }
+
+    .cover-crest img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .cover-org {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #FCD34D;
+    }
+
+    .cover-dept {
+      font-size: 8.8pt;
+      color: #E2E8F0;
+      letter-spacing: 0.04em;
+      margin-top: 3px;
+    }
+
+    .cover-body {
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .cover-tag {
+      display: inline-block;
+      background: rgba(217, 119, 6, 0.28);
+      border: 1px solid #F59E0B;
+      color: #FDE68A;
+      font-size: 8.2pt;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .cover-version-tag {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.22);
+      border: 1px solid rgba(56, 189, 248, 0.60);
+      color: #BAE6FD;
+      font-size: 7.8pt;
+      font-weight: 700;
+      padding: 3px 11px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      margin-left: 8px;
+    }
+
+    .cover-title {
+      font-size: 25pt;
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+      color: #FFFFFF;
+      margin: 0 0 12px 0;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.5);
+    }
+
+    .cover-subtitle {
+      font-size: 10.5pt;
+      line-height: 1.48;
+      color: #CBD5E1;
+      font-weight: 400;
+      max-width: 96%;
+      margin: 0 0 18px 0;
+    }
+
+    .cover-features-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .cover-pill {
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 7.5pt;
+      color: #F8FAFC;
+      font-weight: 500;
+    }
+
+    .cover-pill.tech {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #E0F2FE;
+      font-family: 'Consolas', monospace;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .cover-meta-item {
+      margin-bottom: 3px;
+    }
+
+    .cover-meta-label {
+      font-size: 7pt;
+      text-transform: uppercase;
+      color: #94A3B8;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .cover-meta-val {
+      font-size: 8.5pt;
+      color: #FFFFFF;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .cover-author-box {
+      text-align: right;
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(217, 119, 6, 0.45);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .cover-author-title {
+      font-size: 7pt;
+      text-transform: uppercase;
+      color: #FCD34D;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+    }
+
+    .cover-author-name {
+      font-size: 10pt;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-top: 2px;
+    }
+
+    .cover-author-affil {
+      font-size: 7.4pt;
+      color: #CBD5E1;
+      margin-top: 2px;
+    }
+
+    /* =========================================================================
+       DOCUMENT INTERIOR TYPOGRAPHY & STRUCTURE
+       ========================================================================= */
+    .doc-page {
+      padding: 0;
+      min-height: 266mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1.5px solid #E2E8F0;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
+    .header-title-left {
+      font-size: 7.4pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #103125;
+    }
+
+    .header-tag-right {
+      font-size: 7pt;
+      background: #F1F5F9;
+      color: #475569;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-family: 'Consolas', monospace;
+    }
+
+    h1, h2, h3, h4 {
+      color: #103125;
+      font-weight: 700;
+      margin-top: 0.65em;
+      margin-bottom: 0.25em;
+    }
+
+    h1 {
+      font-size: 13.5pt;
+      font-weight: 800;
+      border-bottom: 2.5px solid #1A503E;
+      padding-bottom: 3px;
+      margin-top: 0;
+      letter-spacing: -0.015em;
+    }
+
+    h2 {
+      font-size: 10.2pt;
+      color: #1A503E;
+      border-left: 3.5px solid #0D7751;
+      padding-left: 7px;
+      margin-top: 0.75em;
+    }
+
+    h3 {
+      font-size: 8.8pt;
+      color: #1E293B;
+      margin-top: 0.6em;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 0.5em;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 0.55em;
+      padding-left: 17px;
+    }
+
+    li {
+      margin-bottom: 0.18em;
+      line-height: 1.38;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 7px 0;
+      font-size: 8pt;
+      line-height: 1.38;
+    }
+
+    .callout-info    { background: #F0FDF4; border-left: 3.5px solid #0D7751; color: #064E3B; }
+    .callout-warning { background: #FFFBEB; border-left: 3.5px solid #D97706; color: #78350F; }
+    .callout-danger  { background: #FFF1F2; border-left: 3.5px solid #BE123C; color: #881337; }
+    .callout-primary { background: #F8FAFC; border-left: 3.5px solid #1A503E; color: #0F172A; }
+    .callout-sky     { background: #F0F9FF; border-left: 3.5px solid #0284C7; color: #0C4A6E; }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 9px 0;
+      font-size: 7.5pt;
+    }
+
+    th, td {
+      border: 1px solid #CBD5E1;
+      padding: 4px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #103125;
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      font-size: 7.4pt;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #F8FAFC;
+    }
+
+    /* Code blocks */
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 7.4pt;
+      background: #F1F5F9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      color: #0F172A;
+    }
+
+    pre code {
+      font-size: 6.5pt;
+      line-height: 1.20;
+      background: transparent;
+      padding: 0;
+    }
+
+    pre {
+      background: #0B151F;
+      color: #E2E8F0;
+      border-radius: 6px;
+      padding: 6px 9px;
+      margin: 5px 0;
+      font-size: 6.5pt;
+      line-height: 1.22;
+      overflow: hidden;
+      border: 1px solid #1E293B;
+    }
+
+    /* TOC */
+    .toc-container {
+      margin: 6px 0;
+    }
+
+    .toc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2.8px 0;
+      border-bottom: 1px dotted #CBD5E1;
+      font-size: 8.2pt;
+    }
+
+    .toc-chapter {
+      font-weight: 700;
+      color: #103125;
+    }
+
+    .toc-section {
+      padding-left: 14px;
+      color: #334155;
+    }
+
+    .toc-dots {
+      flex: 1;
+      border-bottom: 1px dotted #94A3B8;
+      margin: 0 6px;
+      height: 1px;
+    }
+
+    .toc-page-num {
+      font-weight: 700;
+      color: #1A503E;
+      font-size: 8pt;
+      font-family: 'Consolas', monospace;
+    }
+
+    /* Grid cards */
+    .highlight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+      margin: 7px 0;
+    }
+
+    .highlight-card {
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .highlight-card-title {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #103125;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .highlight-card-desc {
+      font-size: 7.3pt;
+      color: #475569;
+      line-height: 1.32;
+      margin: 0;
+    }
+
+    /* Step boxes */
+    .step-box {
+      display: flex;
+      gap: 8px;
+      margin: 4.5px 0;
+      page-break-inside: avoid;
+    }
+
+    .step-num {
+      min-width: 19px;
+      height: 19px;
+      background: #1A503E;
+      color: #FFFFFF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.2pt;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-content {
+      font-size: 8.2pt;
+      line-height: 1.38;
+    }
+
+    .step-content strong {
+      color: #103125;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 1.5px 4px;
+      font-size: 6.6pt;
+      font-weight: 700;
+      border-radius: 3px;
+      text-transform: uppercase;
+      font-family: 'Consolas', monospace;
+    }
+    .badge-green  { background: #D1FAE5; color: #065F46; }
+    .badge-gold   { background: #FEF3C7; color: #92400E; }
+    .badge-blue   { background: #DBEAFE; color: #1E40AF; }
+    .badge-red    { background: #FEE2E2; color: #991B1B; }
+    .badge-purple { background: #F3E8FF; color: #6B21A8; }
+
+    .formula-box {
+      background: #F0FDF4;
+      border: 1.5px solid #0D7751;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 6px 0;
+      text-align: center;
+      font-family: 'Consolas', monospace;
+      font-size: 8pt;
+      font-weight: 700;
+      color: #064E3B;
+    }
+
+    /* Architecture diagram boxes */
+    .arch-diagram {
+      background: #F8FAFC;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin: 7px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 6.8pt;
+      line-height: 1.25;
+      color: #0F172A;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================================================================
+       PAGE 1: COVER PAGE
+       =================================================================== -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <div class="cover-crest">
+        <img src="../static/img/ndli_club_logo.png" alt="NDLI Club Logo">
+      </div>
+      <div>
+        <div class="cover-org">National Digital Library of India (NDLI)</div>
+        <div class="cover-dept">Central Administration Office • Indian Institute of Technology Kharagpur</div>
+      </div>
+    </div>
+
+    <div class="cover-body">
+      <div>
+        <span class="cover-tag">Enterprise Technical Reference Manual</span>
+        <span class="cover-version-tag">Architecture & Handover Specification v3.0</span>
+      </div>
+      <h1 class="cover-title">NDLI Club Management System: Technical Architecture, Security &amp; Engineering Manual</h1>
+      <p class="cover-subtitle">
+        An Exhaustive Technical Specification Document for Enterprise Governance, Cryptographic Security,
+        Zero-Dependency Flat-File CSV Concurrency, Master-Worker Node Synchronization, REST API Catalog,
+        and Cloud Deployment Architecture for Data Transparency &amp; Client Handover.
+      </p>
+
+      <div class="cover-features-pill-row">
+        <span class="cover-pill tech">Python 3.10+ Native Kernel</span>
+        <span class="cover-pill tech">PBKDF2-HMAC-SHA256 (100k rounds)</span>
+        <span class="cover-pill tech">Atomic CSV Mutex Engine</span>
+        <span class="cover-pill tech">Dual-Layer Security Restore</span>
+        <span class="cover-pill tech">7 Regional Worker Nodes</span>
+        <span class="cover-pill tech">Google Apps Script Webhook Relay</span>
+        <span class="cover-pill tech">35+ REST API Endpoints</span>
+        <span class="cover-pill tech">Modern Minimalist UI v3.0</span>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Document Release &amp; Status</div>
+          <div class="cover-meta-val">Confidential Enterprise Technical Guide • September 2026</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Compliance &amp; Handover Scope</div>
+          <div class="cover-meta-val">Client Handover, Data Transparency, Code Audit &amp; Maintenance</div>
+        </div>
+      </div>
+      <div class="cover-author-box">
+        <div class="cover-author-title">Lead System Architect &amp; Full-Stack Developer</div>
+        <div class="cover-author-name">Dr. Anirban Mukherjee</div>
+        <div class="cover-author-affil">NDLI Project • Central Administration Office<br>Indian Institute of Technology Kharagpur</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 2: EXECUTIVE TECHNICAL SUMMARY
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 2 of 22</span>
+    </div>
+
+    <h1>1. Executive Technical Summary &amp; Architectural Philosophy</h1>
+
+    <h2>1.1 Project Operational Scope &amp; Mandate</h2>
+    <p>
+      The <strong>National Digital Library of India (NDLI) Club Management and Employee Activity Tracking System</strong>
+      is an enterprise web platform commissioned to manage, track, and audit institutional clubs nationwide across all
+      36 States and Union Territories. Coordinated under the Ministry of Education, Government of India, and governed by the
+      Central Administration Office at the <strong>Indian Institute of Technology Kharagpur (IIT Kharagpur)</strong>,
+      the system bridges 7 Regional Zonal Officers with central executive leadership.
+    </p>
+
+    <h2>1.2 Core Architectural Principles &amp; Design Decisions</h2>
+    <div class="highlight-grid">
+      <div class="highlight-card">
+        <div class="highlight-card-title">⚙️ Zero External Dependency Kernel</div>
+        <p class="highlight-card-desc">Engineered entirely using Python standard library primitives (<code>http.server</code>, <code>csv</code>, <code>hashlib</code>, <code>hmac</code>, <code>secrets</code>, <code>threading</code>, <code>json</code>). Requires no third-party package runtime (e.g., Django, Flask, or SQLAlchemy), eliminating dependency hell and container CVE surface.</p>
+      </div>
+      <div class="highlight-card">
+        <div class="highlight-card-title">🔒 Multi-Tiered Cryptographic Protection</div>
+        <p class="highlight-card-desc">Passwords encrypted using PBKDF2-HMAC-SHA256 with 100,000 rounds and 16-byte random salts. Sensitive actions (such as Emergency Restore) require a Dual-Layer Security Challenge (dynamic Canvas CAPTCHA + Master Admin password re-authentication).</p>
+      </div>
+      <div class="highlight-card">
+        <div class="highlight-card-title">🗄️ Flat-File Atomic CSV Database Engine</div>
+        <p class="highlight-card-desc">Bypasses complex database servers (PostgreSQL/MySQL) by implementing thread-safe atomic file mutex locks with temporary file write-and-replace semantics (<code>os.replace</code>) guaranteeing ACID-like consistency on plain-text CSV stores.</p>
+      </div>
+      <div class="highlight-card">
+        <div class="highlight-card-title">🌐 Hybrid Cloud / Serverless Webhook Mirroring</div>
+        <p class="highlight-card-desc">Combines a primary Python container service (Render/Docker) with an automated Google Drive / Google Apps Script (GAS) Webhook Relay pipeline, executing real-time cloud data mirroring and 7-day rolling ZIP archives.</p>
+      </div>
+    </div>
+
+    <h2>1.3 Purpose of this Technical Manual</h2>
+    <p>
+      This manual is compiled for <strong>technical handover, source code audits, and operational transparency</strong>.
+      It provides full disclosure of underlying algorithms, cryptographic implementations, directory hierarchies,
+      schema definitions, REST API contracts, and disaster recovery procedures.
+    </p>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 3: SYSTEM TOPOLOGY & HIGH-LEVEL ARCHITECTURE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 3 of 22</span>
+    </div>
+
+    <h1>2. System Topology &amp; Multi-Tier Architecture</h1>
+
+    <h2>2.1 High-Level Component Topology</h2>
+    <p>
+      The architecture is split into three discrete tiers: the <strong>Client Presentation Tier</strong> (HTML5/Vanilla JS),
+      the <strong>Application Engine Tier</strong> (Python Native HTTP Server), and the <strong>Storage &amp; Backup Tier</strong>
+      (Local Atomic CSVs + Google Drive Cloud Relay):
+    </p>
+
+    <div class="arch-diagram">
++---------------------------------------------------------------------------------------------------+
+|                                      CLIENT PRESENTATION TIER                                     |
+|  [Master Login Gate]  |  [Admin Office Portal]  |  [7 Regional Employee Workspaces (EMP01-EMP07)] |
+|  - Vanilla JS ES6+    |  - Real-time SVG Charts |  - 4 Dynamic Tabs (Daily, Search, History, Tools) |
+|  - Glass Morphism UI  |  - AI Decision Module   |  - Integrated 12-Tool Box (osTicket first)      |
++-------------------------------------------------+-------------------------------------------------+
+                                                  | HTTP / HTTPS REST APIs (JSON)
+                                                  v
++---------------------------------------------------------------------------------------------------+
+|                                      APPLICATION ENGINE TIER                                      |
+|                                       app.py (HTTP Server)                                        |
+|  +---------------------------------------------------------------------------------------------+  |
+|  |  Security & Auth Engine (auth.py): PBKDF2-HMAC-SHA256, 16-byte Salt, 24-byte Session Tokens  |  |
+|  |  State-to-Zone Engine (state_zone_mapper.py): 36 States/UTs to 6 Geopolitical Zones         |  |
+|  |  Sync Engine (sync_engine.py): Node-to-Master Two-Way Reconciliation & Quota Recalculation    |  |
+|  |  Backup Engine (backup_engine.py): 7-Day Rolling ZIP Snapshots & 2-Version Retention Policy  |  |
+|  |  Issue Manager (issue_manager.py): 72-Hour Reminder Stream & 30-Day Admin Escalations        |  |
+|  |  AI Heuristic Engine (decision_module.py): Growth Corridors & 30/90/365-Day Roadmaps         |  |
+|  +---------------------------------------------------------------------------------------------+  |
++-------------------------------------------------+-------------------------------------------------+
+                                                  | Atomic File Mutex (threading.Lock)
+                                                  v
++---------------------------------------------------------------------------------------------------+
+|                                      STORAGE & CLOUD RELAY TIER                                   |
+|  LOCAL ATOMIC CSV STORAGE:                            GOOGLE DRIVE CLOUD RELAY:                   |
+|  data/master/ (Clubs, Activities, Quotas, Users)  --> Google Apps Script Webhook Relay (Code.gs)  |
+|  data/employees/emp01..07/ (Node DBs)             --> Automated Mirroring into Google Drive /backups |
+|  data/backups/ (Rolling ZIP Archives, Max 2)      --> 24x7 Real-Time Cloud-to-Drive Sync          |
++---------------------------------------------------------------------------------------------------+
+    </div>
+
+    <h2>2.2 Node vs. Master Database Separation</h2>
+    <ul>
+      <li><strong>Worker Nodes (<code>data/employees/emp01/</code> to <code>emp07/</code>):</strong> Each zonal officer operates independently. Field activities and club approvals are committed immediately to local node CSVs, ensuring zero cross-region contention.</li>
+      <li><strong>Master Central Hub (<code>data/master/</code>):</strong> Aggregates all node records in real-time. Governed by atomic mutex locks to guarantee data consistency during concurrent writes.</li>
+    </ul>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 4: CRYPTOGRAPHIC SECURITY & AUTHENTICATION
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 4 of 22</span>
+    </div>
+
+    <h1>3. Cryptographic Security &amp; Authentication Subsystem</h1>
+
+    <h2>3.1 Password Encryption: PBKDF2-HMAC-SHA256</h2>
+    <p>
+      User credentials stored in <code>data/master/master_users.csv</code> and regional <code>credentials.csv</code> are
+      never stored in cleartext. The system employs <strong>Password-Based Key Derivation Function 2 (PBKDF2)</strong>
+      using <strong>HMAC-SHA256</strong>:
+    </p>
+
+    <div class="formula-box">
+      DerivedKey = PBKDF2(PRF = HMAC-SHA256, Password, Salt = 16_bytes_random, Iterations = 100,000, dkLen = 32_bytes)
+    </div>
+
+    <pre><code># Implementation excerpt from auth.py
+def hash_password(password: str, salt: bytes = None) -> tuple[str, str]:
+    if salt is None:
+        salt = secrets.token_bytes(16)
+    key = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt,
+        100000,
+        dklen=32
+    )
+    return key.hex(), salt.hex()
+
+def verify_password(stored_hash_hex: str, stored_salt_hex: str, password_attempt: str) -> bool:
+    salt = bytes.fromhex(stored_salt_hex)
+    attempt_key = hashlib.pbkdf2_hmac('sha256', password_attempt.encode('utf-8'), salt, 100000, dklen=32)
+    return hmac.compare_digest(stored_hash_hex, attempt_key.hex()) # Constant-time comparison</code></pre>
+
+    <h2>3.2 Session Entropy &amp; Token Management</h2>
+    <ul>
+      <li><strong>Token Generation:</strong> Tokens are 24 cryptographically random bytes generated via <code>secrets.token_hex(24)</code> (yielding 48 hexadecimal characters, 192 bits of entropy).</li>
+      <li><strong>Timing Attack Resistance:</strong> Hash comparisons use <code>hmac.compare_digest()</code> to ensure constant-time execution, mitigating side-channel timing analysis.</li>
+      <li><strong>Session Segregation:</strong> Client sessions are compartmentalized into distinct keys in <code>sessionStorage</code>:
+        <code>ndli_token</code> (generic auth), <code>ndli_admin_token</code> (master control), and <code>ndli_employee_session</code> (zonal node context).</li>
+    </ul>
+
+    <h2>3.3 Role-Based Access Control (RBAC) Specification</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Role / Persona</th>
+          <th>Identifier</th>
+          <th>Permitted Scope</th>
+          <th>Restricted Endpoints</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Master Admin</strong></td>
+          <td><code>admin@iitkgp.ac.in</code></td>
+          <td>Full system control, employee provisioning, master CSV download, database rollback, AI policy roadmaps.</td>
+          <td>None. Full root authority.</td>
+        </tr>
+        <tr>
+          <td><strong>Regional Zonal Officers</strong></td>
+          <td><code>EMP01</code> to <code>EMP07</code></td>
+          <td>Daily SEC A logging, SEC B/C club approvals, node CSV downloads, local issue reporting, Tool Box utilities.</td>
+          <td>Cannot provision users, cannot trigger database restore, cannot modify other zones.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 5: DUAL-LAYER SECURITY & RECOVERY ARCHITECTURE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 5 of 22</span>
+    </div>
+
+    <h1>4. Dual-Layer Security Challenge for Disaster Recovery</h1>
+
+    <h2>4.1 Threat Model &amp; Operational Rationale</h2>
+    <p>
+      An emergency database restore is an inherently destructive, non-reversible operation that overwrites both
+      Central Master CSVs and all 7 Regional Node CSVs with historical snapshot data. To protect against accidental clicks,
+      cross-site request forgery (CSRF), and unauthorized workstation access during active admin sessions, the system implements a
+      <strong>Dual-Layer Security Challenge</strong>:
+    </p>
+
+    <div class="arch-diagram">
+RESTORE REQUEST TRIGGERED (Admin clicks "One-Click Restore Database")
+                       |
+                       v
++---------------------------------------------------------------------+
+| LAYER 1: Dynamic Anti-Bot Algorithmic Challenge                     |
+| - 5-Character randomized alphanumeric token (A-Z, 2-9, excluding 0/O/1/I) |
+| - Distorted vector lines & background noise on HTML5 Canvas          |
+| - Token validated server-side; expires upon modal closure           |
++---------------------------------------------------------------------+
+                       | (Layer 1 Passed)
+                       v
++---------------------------------------------------------------------+
+| LAYER 2: Master Administrator Re-Authentication                      |
+| - Requires re-entering Master Admin Password (admin@iitkgp.ac.in)   |
+| - PBKDF2-HMAC-SHA256 salt verification against master_users.csv     |
+| - Prevents unauthorized execution via hijacked browser sessions     |
++---------------------------------------------------------------------+
+                       | (Layer 2 Passed)
+                       v
++---------------------------------------------------------------------+
+| RESTORATION EXECUTION ENGINE                                        |
+| 1. Unpack ZIP archive to temporary directory                        |
+| 2. Perform atomic file replacement (os.replace) on master & nodes   |
+| 3. Execute automatic Node-to-Master Reconciliation                  |
+| 4. Flush in-memory metrics cache & reload dashboard telemetry       |
++---------------------------------------------------------------------+
+    </div>
+
+    <h2>4.2 Server-Side Verification Endpoint Contract (<code>POST /api/admin/backup/restore</code>)</h2>
+    <ul>
+      <li><strong>Payload Schema:</strong> <code>{"password": "&lt;master_pwd&gt;", "backup_id": "&lt;optional_snapshot_id&gt;"}</code></li>
+      <li><strong>Validation Logic:</strong> If password hash does not match Master Admin salt record, an HTTP <code>403 Forbidden</code> is returned.</li>
+      <li><strong>Post-Restore Reconciliation:</strong> Immediately invokes <code>sync_engine.reconcile_all_nodes()</code> to restore synchronized quota tallies across all regions.</li>
+    </ul>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 6: DATABASE SCHEMAS & STORAGE SPECIFICATIONS
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 6 of 22</span>
+    </div>
+
+    <h1>5. Database Schemas &amp; Flat-File Storage Engine</h1>
+
+    <h2>5.1 Master Database Schema Dictionaries</h2>
+    <p>All database stores are maintained in comma-separated value (CSV) tables adhering to strict RFC 4180 formatting:</p>
+
+    <h3>1. <code>master_clubs.csv</code> (Central Club Registry)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">Column</th>
+          <th style="width: 14%;">Data Type</th>
+          <th style="width: 68%;">Constraint &amp; Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>id</code></td><td><code>STRING</code></td><td>Primary Key. Format: <code>CLUB-[STATE]-[YEAR]-[NUM]</code>. Unique index.</td></tr>
+        <tr><td><code>reg_no</code></td><td><code>STRING</code></td><td>Official institutional registration identifier.</td></tr>
+        <tr><td><code>name</code></td><td><code>STRING</code></td><td>Full verified institution name.</td></tr>
+        <tr><td><code>state</code></td><td><code>STRING</code></td><td>State or Union Territory (must match 36 statutory territories).</td></tr>
+        <tr><td><code>zone</code></td><td><code>STRING</code></td><td>Geopolitical zone (North, Central, West, East, North East, South).</td></tr>
+        <tr><td><code>patron_email</code></td><td><code>STRING</code></td><td>Email of Head of Institution (Principal/Vice-Chancellor).</td></tr>
+        <tr><td><code>president_email</code></td><td><code>STRING</code></td><td>Email of Faculty Lead / NDLI Club Coordinator.</td></tr>
+        <tr><td><code>secretary_email</code></td><td><code>STRING</code></td><td>Email of Student Representative / Member Secretary.</td></tr>
+        <tr><td><code>approved_by</code></td><td><code>STRING</code></td><td>Foreign Key &rarr; <code>master_users.id</code> (e.g., <code>EMP01</code>).</td></tr>
+        <tr><td><code>approval_date</code></td><td><code>ISO-DATE</code></td><td>Date of Approval (YYYY-MM-DD).</td></tr>
+        <tr><td><code>last_renewal_date</code></td><td><code>ISO-DATE</code></td><td>Date of latest registration renewal.</td></tr>
+        <tr><td><code>renewal_date</code></td><td><code>ISO-DATE</code></td><td>Next renewal deadline. Invariant: <code>DOA + 1 year</code> or <code>LRD + 1 year</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2. <code>master_activities.csv</code> (Field Interaction Ledger)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">Column</th>
+          <th style="width: 14%;">Data Type</th>
+          <th style="width: 68%;">Constraint &amp; Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>id</code></td><td><code>STRING</code></td><td>Primary Key. Unique activity identifier (UUID or timestamp-hash).</td></tr>
+        <tr><td><code>emp_id</code></td><td><code>STRING</code></td><td>Foreign Key &rarr; <code>master_users.id</code> (originating officer).</td></tr>
+        <tr><td><code>timestamp</code></td><td><code>ISO-TIMESTAMP</code></td><td>Execution timestamp with IST timezone notation.</td></tr>
+        <tr><td><code>support_type</code></td><td><code>ENUM</code></td><td><code>Phone call</code>, <code>Closing of OS Ticket</code>, <code>Online training</code>, <code>Offline training</code>.</td></tr>
+        <tr><td><code>notes</code></td><td><code>STRING</code></td><td>Institutional stakeholder notes and agenda details.</td></tr>
+        <tr><td><code>state</code> / <code>zone</code></td><td><code>STRING</code></td><td>Geopolitical territory where support was rendered.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3. <code>master_quotas.csv</code> (Officer Performance Quotas)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Column</th>
+          <th style="width: 14%;">Data Type</th>
+          <th style="width: 64%;">Constraint &amp; Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>emp_id</code></td><td><code>STRING</code></td><td>Primary Key &rarr; <code>EMP01</code> through <code>EMP07</code>.</td></tr>
+        <tr><td><code>clubs_approved</code></td><td><code>INTEGER</code></td><td>Cumulative verified clubs authorized by officer.</td></tr>
+        <tr><td><code>total_activities</code></td><td><code>INTEGER</code></td><td>Total support interactions submitted to date.</td></tr>
+        <tr><td><code>last_activity</code></td><td><code>ISO-TIMESTAMP</code></td><td>Timestamp of most recent entry.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 7: FLAT-FILE ACID CONCURRENCY ENGINE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 7 of 22</span>
+    </div>
+
+    <h1>6. Flat-File ACID Simulation &amp; Mutex Concurrency Engine</h1>
+
+    <h2>6.1 Concurrency Architecture: Thread-Safe Mutex Locking</h2>
+    <p>
+      In high-concurrency environments with multiple regional officers logging data simultaneously, standard file writes
+      risk race conditions and torn writes. The system implements a dedicated <strong>Atomic CSV Engine (<code>db/csv_engine.py</code>)</strong>
+      guaranteeing ACID properties on flat files:
+    </p>
+
+    <div class="arch-diagram">
+CONCURRENT WRITE REQUEST (Worker Thread)
+           |
+           v
+[Acquire threading.Lock() for specific file path]
+           |
+           v
+[Read existing CSV content into in-memory dictionary cache]
+           |
+           v
+[Apply row insertions / upsert modifications]
+           |
+           v
+[Write new content to temporary scratch file: filename.csv.tmp.PID]
+           |
+           v
+[Flush to disk buffer via os.fsync(fd)]
+           |
+           v
+[Execute atomic filesystem rename: os.replace(tmp_file, target_file)]
+           |
+           v
+[Release threading.Lock()] ---> WRITE TRANSACTION COMMITTED SAFELY
+    </div>
+
+    <h2>6.2 ACID Property Implementation Matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">ACID Property</th>
+          <th style="width: 32%;">Standard RDBMS Mechanism</th>
+          <th style="width: 50%;">NDLI Flat-File CSV Engine Implementation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Atomicity</strong></td>
+          <td>Write-Ahead Log (WAL) &amp; Rollback</td>
+          <td>Files are written to a temporary sibling file and committed via <code>os.replace()</code>. An atomic POSIX/NTFS syscall guarantees all-or-nothing writes.</td>
+        </tr>
+        <tr>
+          <td><strong>Consistency</strong></td>
+          <td>Schema constraints &amp; foreign keys</td>
+          <td>Strict validation in Python layer: verified email formats, enum matching, and mandatory Rule 10 renewal date invariants.</td>
+        </tr>
+        <tr>
+          <td><strong>Isolation</strong></td>
+          <td>Transaction isolation levels</td>
+          <td>Granular file-level <code>threading.Lock()</code> prevents concurrent dirty reads or interleaved write streams.</td>
+        </tr>
+        <tr>
+          <td><strong>Durability</strong></td>
+          <td>Disk flush and battery cache</td>
+          <td>Synchronous <code>flush()</code> ensures data is written to underlying disk blocks before returning HTTP 200.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 8: CORE BACKEND CODEBASE WALKTHROUGH
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 8 of 22</span>
+    </div>
+
+    <h1>7. Core Backend Codebase &amp; Module Specifications</h1>
+
+    <h2>7.1 File-by-File Functional Breakdown</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Module File</th>
+          <th style="width: 20%;">Component Layer</th>
+          <th style="width: 58%;">Architectural Purpose &amp; Key Methods</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>app.py</code></td>
+          <td>API Router &amp; Server</td>
+          <td>Custom HTTP server subclassing <code>BaseHTTPRequestHandler</code>. Routes 35+ REST endpoints, parses URL queries, marshals JSON, and streams static assets.</td>
+        </tr>
+        <tr>
+          <td><code>auth.py</code></td>
+          <td>Security &amp; Sessions</td>
+          <td>PBKDF2-HMAC-SHA256 hashing, session token creation (<code>secrets.token_hex</code>), token validation, password verification.</td>
+        </tr>
+        <tr>
+          <td><code>config.py</code></td>
+          <td>System Constants</td>
+          <td>Port binding (dynamic <code>$PORT</code>), file paths, quota defaults, and geopolitical zone definitions.</td>
+        </tr>
+        <tr>
+          <td><code>state_zone_mapper.py</code></td>
+          <td>Geopolitical Rules</td>
+          <td>Maps all 36 States/UTs to 6 statutory zones with whitespace and alias normalization.</td>
+        </tr>
+        <tr>
+          <td><code>ai/decision_module.py</code></td>
+          <td>Heuristics &amp; Analytics</td>
+          <td>Heuristic evaluation generating 30/90/365-day milestone roadmaps, deficit formulas, and corridor detection.</td>
+        </tr>
+        <tr>
+          <td><code>db/csv_engine.py</code></td>
+          <td>Atomic Storage</td>
+          <td>Thread-safe flat-file engine with mutex locking, atomic file replacement, and schema validation.</td>
+        </tr>
+        <tr>
+          <td><code>db/sync_engine.py</code></td>
+          <td>Reconciliation Core</td>
+          <td>Two-way Node-to-Master synchronization, quota recalibration, and Rule 10 renewal date calculation.</td>
+        </tr>
+        <tr>
+          <td><code>db/backup_engine.py</code></td>
+          <td>Rolling Archiver</td>
+          <td>Autonomous 7-day ZIP backup generator, 2-version rolling retention pruner, and Google Drive webhook relay.</td>
+        </tr>
+        <tr>
+          <td><code>db/issue_manager.py</code></td>
+          <td>Issue Lifecycle</td>
+          <td>72-hour regional reminders, 7-day recurrent cycles, and 30-day central admin escalation engine.</td>
+        </tr>
+        <tr>
+          <td><code>restore_backup.py</code></td>
+          <td>CLI Disaster Recovery</td>
+          <td>Command-line utility for emergency system rollback from archive ZIP files.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>7.2 Request Dispatching Flow in <code>app.py</code></h2>
+    <pre><code># Architectural flow within app.py
+class NDLIRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path, query = parsed.path, urllib.parse.parse_qs(parsed.query)
+        
+        # 1. Static Asset Serving (CSS, JS, Images, PDFs)
+        if path.startswith(("/static/", "/docs/images/")):
+            return self.serve_static_file(path)
+            
+        # 2. Portal HTML Rendering
+        if path in ("/", "/login", "/employee", "/admin", "/manual"):
+            return self.serve_portal_template(path)
+            
+        # 3. REST API Dispatcher
+        if path.startswith("/api/"):
+            return self.dispatch_api_get(path, query)</code></pre>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 9: SYNCHRONIZATION & RECONCILIATION
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 9 of 22</span>
+    </div>
+
+    <h1>8. Synchronization &amp; Node-to-Master Reconciliation</h1>
+
+    <h2>8.1 Incremental Sync vs. Full Batch Reconciliation</h2>
+    <p>The system utilizes a dual-mode synchronization model:</p>
+    <ul>
+      <li><strong>Real-Time Incremental Sync:</strong> Triggered whenever a zonal officer submits an activity in SEC A or authorizes a club in SEC B/C. Writes directly to the local node CSV, then immediately invokes an atomic append to the master CSV file.</li>
+      <li><strong>Full Node-to-Master Reconciliation:</strong> An authoritative audit tool operated via <code>POST /api/sync/reconcile</code> (or the admin dashboard button). Designed for recovery after backup restoration or network partition.</li>
+    </ul>
+
+    <h2>8.2 Full Reconciliation Algorithm (<code>sync_engine.py</code>)</h2>
+    <div class="arch-diagram">
+Step 1: Iterate over all provisioned employee directories (data/employees/emp01..07)
+Step 2: Read employee clubs.csv and activity_log.csv
+Step 3: Build in-memory lookup index of existing master_clubs.csv by Club ID
+Step 4: For each node club:
+        - If Club ID not in master index: Append to master_clubs.csv (Zero Overwrite Loss)
+        - Validate ISO-8601 timestamps & verify renewal date invariant (+1 year)
+Step 5: For each node activity:
+        - If activity not in master_activities.csv: Append with atomic lock
+Step 6: Recalculate Quotas:
+        - Count verified clubs per officer
+        - Count verified support logs per officer
+        - Overwrite master_quotas.csv with true reconstructed tallies
+Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities": M }
+    </div>
+
+    <h2>8.3 Quota Recalibration Guarantees</h2>
+    <p>
+      Because quotas are recalculated directly from raw historical transaction rows rather than incremented counters,
+      any manual CSV edits or historical data imports are immediately harmonized without quota drift or double-counting.
+    </p>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 10: MATHEMATICAL & ANALYTICAL MODELS
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 10 of 22</span>
+    </div>
+
+    <h1>9. Mathematical Models &amp; Analytical Formulas</h1>
+
+    <h2>9.1 Employee Performance Star Rating Formula</h2>
+    <p>
+      The composite performance score of each Regional Zonal Officer is calculated dynamically via an approved
+      multi-criteria weighting model:
+    </p>
+
+    <div class="formula-box">
+      CompositeScore = (ClubsApproved &times; 0.50) + ((TicketsClosed + PhoneCalls) &times; 0.30) + (OfflineTraining &times; 0.20) + (OnlineTraining &times; 0.10)
+    </div>
+
+    <h3>Weighting Rationale &amp; Operational Justification</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Activity Class</th>
+          <th style="width: 15%;">Weight</th>
+          <th style="width: 60%;">Strategic Objective</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>New Club Approvals</strong></td><td><span class="badge badge-green">0.50 (50%)</span></td><td>Institutional expansion across secondary and higher education sectors.</td></tr>
+        <tr><td><strong>Tickets Closed &amp; Calls</strong></td><td><span class="badge badge-gold">0.30 (30%)</span></td><td>Operational SLA compliance and responsiveness to club grievances.</td></tr>
+        <tr><td><strong>Offline Training</strong></td><td><span class="badge badge-blue">0.20 (20%)</span></td><td>Physical on-premise library orientation, workshops, and faculty training.</td></tr>
+        <tr><td><strong>Online Training</strong></td><td><span class="badge badge-purple">0.10 (10%)</span></td><td>Virtual orientation webinars and student onboarding conclaves.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>9.2 Benchmark Normalization &amp; Star Assignment</h2>
+    <p>
+      The raw composite score is normalized against a monthly benchmark (<code>Benchmark = 50.0</code>)
+      to derive the officer's performance star rating:
+    </p>
+
+    <div class="formula-box">
+      NormalizedPercentage = (CompositeScore / Benchmark) &times; 100
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Normalized Range</th>
+          <th>Star Rating</th>
+          <th>Appraisal Category</th>
+          <th>Administrative Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>80.0% &ndash; 100.0%+</td><td>⭐⭐⭐⭐⭐</td><td><strong>Outstanding</strong></td><td>Commendation &amp; Best Practice Recognition</td></tr>
+        <tr><td>60.0% &ndash; 79.9%</td><td>⭐⭐⭐⭐</td><td><strong>Commendable</strong></td><td>Standard Operations Maintenance</td></tr>
+        <tr><td>40.0% &ndash; 59.9%</td><td>⭐⭐⭐</td><td><strong>Satisfactory</strong></td><td>Meets Minimum Expected Quotas</td></tr>
+        <tr><td>20.0% &ndash; 39.9%</td><td>⭐⭐</td><td><strong>Needs Improvement</strong></td><td>Targeted State Expansion Consultation</td></tr>
+        <tr><td>0.0% &ndash; 19.9%</td><td>⭐</td><td><strong>Critical Deficit</strong></td><td>Mandatory Central Administrative Review</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 11: GEOPOLITICAL STATE-ZONE MAPPING RULES
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 11 of 22</span>
+    </div>
+
+    <h1>10. Geopolitical State-Zone Mapping Specification</h1>
+
+    <h2>10.1 Territorial Jurisdiction Engine (<code>state_zone_mapper.py</code>)</h2>
+    <p>
+      To prevent administrative overlap or regional misclassification, the platform implements an automated
+      <strong>State-Zone Mapping Engine</strong> covering all 36 States and Union Territories of India:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18%;">Statutory Zone</th>
+          <th style="width: 15%;">Assigned Node</th>
+          <th style="width: 67%;">Constituent States &amp; Union Territories (Exhaustive List)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-blue">North Zone</span></td>
+          <td><code>EMP01</code></td>
+          <td>Jammu &amp; Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi (NCT), Uttar Pradesh</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gold">Central Zone</span></td>
+          <td><code>EMP02</code></td>
+          <td>Madhya Pradesh, Chhattisgarh</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">West Zone</span></td>
+          <td><code>EMP03</code></td>
+          <td>Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar &amp; Nagar Haveli</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">East Zone</span></td>
+          <td><code>EMP04</code></td>
+          <td>Bihar, Jharkhand, West Bengal, Odisha</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">North East Zone</span></td>
+          <td><code>EMP05</code></td>
+          <td>Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gold">South Zone 1</span></td>
+          <td><code>EMP06</code></td>
+          <td>Andhra Pradesh, Telangana, Karnataka (South Sector 1)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gold">South Zone 2</span></td>
+          <td><code>EMP07</code></td>
+          <td>Tamil Nadu, Puducherry, Kerala, Andaman &amp; Nicobar Island, Lakshadweep (South Sector 2)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>10.2 Normalization &amp; Alias Matching Rules</h2>
+    <p>The mapping engine incorporates string normalization to handle common typographic variations:</p>
+    <ul>
+      <li>Case-insensitive lookup with leading/trailing whitespace trimming.</li>
+      <li>Automatic alias resolution (e.g., <code>"Delhi"</code> &rarr; <code>"Delhi (NCT)"</code>, <code>"J&amp;K"</code> &rarr; <code>"Jammu &amp; Kashmir"</code>).</li>
+      <li>Deterministic exception raising on unmapped territorial strings, ensuring zero corrupted records in <code>master_clubs.csv</code>.</li>
+    </ul>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 12: REST API SPECIFICATION (PART 1)
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 12 of 22</span>
+    </div>
+
+    <h1>11. REST API Specification (Part 1: Auth &amp; Operations)</h1>
+
+    <h2>11.1 Authentication Endpoints</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 10%;">Method</th>
+          <th style="width: 25%;">Endpoint Route</th>
+          <th style="width: 15%;">Auth Level</th>
+          <th style="width: 50%;">Request Payload &amp; Response Schema</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/auth/login</code></td>
+          <td>Public</td>
+          <td><code>{"identifier": "...", "password": "..."}</code><br>&rarr; <code>{"success": true, "token": "...", "user": {...}}</code></td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/auth/me</code></td>
+          <td>Bearer Token</td>
+          <td>Validates current session token.<br>&rarr; <code>{"authenticated": true, "user": {...}}</code></td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/auth/logout</code></td>
+          <td>Bearer Token</td>
+          <td>Invalidates active session token from memory cache.<br>&rarr; <code>{"success": true}</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>11.2 Club Management Endpoints</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 10%;">Method</th>
+          <th style="width: 25%;">Endpoint Route</th>
+          <th style="width: 15%;">Auth Level</th>
+          <th style="width: 50%;">Request Payload &amp; Response Schema</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/clubs/search</code></td>
+          <td>Employee/Admin</td>
+          <td>Query: <code>?q=delhi&amp;zone=North</code><br>&rarr; <code>{"clubs": [...], "total": N}</code></td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/clubs/create</code></td>
+          <td>Employee/Admin</td>
+          <td><code>{"id": "...", "reg_no": "...", "name": "...", "state": "...", ...}</code><br>&rarr; <code>{"success": true, "club": {...}}</code></td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/clubs/update</code></td>
+          <td>Employee/Admin</td>
+          <td><code>{"id": "...", "updates": {...}}</code><br>&rarr; <code>{"success": true, "updated_fields": [...]}</code></td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/clubs/renew</code></td>
+          <td>Employee/Admin</td>
+          <td><code>{"id": "...", "renewal_date": "YYYY-MM-DD"}</code><br>&rarr; <code>{"success": true, "next_renewal": "YYYY-MM-DD"}</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>11.3 Support Activity Endpoints</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 10%;">Method</th>
+          <th style="width: 25%;">Endpoint Route</th>
+          <th style="width: 15%;">Auth Level</th>
+          <th style="width: 50%;">Request Payload &amp; Response Schema</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/activity/log</code></td>
+          <td>Employee/Admin</td>
+          <td><code>{"emp_id": "...", "support_type": "...", "notes": "..."}</code><br>&rarr; <code>{"success": true, "activity_id": "..."}</code></td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/activity/list</code></td>
+          <td>Employee/Admin</td>
+          <td>Query: <code>?emp_id=EMP01&amp;limit=50</code><br>&rarr; <code>{"activities": [...], "total": N}</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 13: REST API SPECIFICATION (PART 2)
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 13 of 22</span>
+    </div>
+
+    <h1>12. REST API Specification (Part 2: Admin &amp; System)</h1>
+
+    <h2>12.1 Central Administration Endpoints</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 10%;">Method</th>
+          <th style="width: 28%;">Endpoint Route</th>
+          <th style="width: 14%;">Auth Level</th>
+          <th style="width: 48%;">Functional Summary</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/metrics</code></td>
+          <td>Admin</td>
+          <td>Aggregated KPIs, Donut Zone shares, Monthly Trajectory arrays, Support classifications.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/employee-performance</code></td>
+          <td>Admin</td>
+          <td>Evaluates all officers with 50/30/20/10 formula; filtered by year, month, and state.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/renewal-attention</code></td>
+          <td>Admin</td>
+          <td>Returns clubs with overdue or upcoming expiration (within 30 days).</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/ai-insights</code></td>
+          <td>Admin</td>
+          <td>Generates automated strategic growth corridors and 30/90/365-day milestone roadmaps.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/admin/employees/create</code></td>
+          <td>Master Admin</td>
+          <td>Provisions new employee node directory, dedicated CSVs, and PBKDF2 credentials.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/admin/employees/status</code></td>
+          <td>Master Admin</td>
+          <td>Blocks or unblocks regional officer login access.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/download/master-clubs</code></td>
+          <td>Admin</td>
+          <td>Streams complete copy of <code>master_clubs.csv</code> with <code>Content-Disposition</code> attachment.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>12.2 Backup, Sync &amp; Disaster Recovery Endpoints</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 10%;">Method</th>
+          <th style="width: 28%;">Endpoint Route</th>
+          <th style="width: 14%;">Auth Level</th>
+          <th style="width: 48%;">Functional Summary</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/admin/backup/status</code></td>
+          <td>Admin</td>
+          <td>Returns metadata of last 2 retained snapshots, creation dates, and next backup due.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/admin/backup/trigger</code></td>
+          <td>Admin</td>
+          <td>Instantly compiles manual ZIP snapshot, prunes old archives, and executes Drive relay.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/admin/backup/restore</code></td>
+          <td>Dual-Layer</td>
+          <td>Validates Layer 1 CAPTCHA and Layer 2 Master Admin Password; decompresses and restores DBs.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/sync/reconcile</code></td>
+          <td>Admin</td>
+          <td>Runs complete Node-to-Master batch audit across all 7 regional worker directories.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 14: DISASTER RECOVERY & BACKUP PIPELINE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 14 of 22</span>
+    </div>
+
+    <h1>13. Backup Architecture &amp; Disaster Recovery Pipeline</h1>
+
+    <h2>13.1 7-Day Autonomous Rolling Backup Daemon (<code>backup_engine.py</code>)</h2>
+    <p>
+      The platform features an autonomous background backup daemon running on a 7-day schedule.
+      When triggered, it archives all critical database files into a timestamped, compressed ZIP snapshot:
+    </p>
+
+    <pre><code># Archive manifest created by backup_engine.py
+backup_20260915_180000.zip
+├── master/
+│   ├── master_clubs.csv
+│   ├── master_activities.csv
+│   ├── master_quotas.csv
+│   ├── master_users.csv
+│   └── master_issues.csv
+└── employees/
+    ├── emp01/ (clubs.csv, activity_log.csv, credentials.csv)
+    ├── emp02/ ...
+    └── emp07/ ...</code></pre>
+
+    <h2>13.2 Strict 2-Version Rolling Retention Invariant</h2>
+    <p>
+      To prevent unbounded disk consumption on cloud containers, the engine enforces a strict retention invariant:
+      <strong>only the 2 most recent snapshots are preserved</strong>. All older snapshots are automatically unlinked:
+    </p>
+
+    <pre><code>def prune_old_backups(backup_dir: Path, max_retained: int = 2):
+    backups = sorted(backup_dir.glob("backup_*.zip"), key=os.path.getmtime, reverse=True)
+    for old_backup in backups[max_retained:]:
+        try:
+            old_backup.unlink()
+            logger.info(f"Pruned historical snapshot: {old_backup.name}")
+        except OSError as e:
+            logger.error(f"Failed to prune snapshot: {e}")</code></pre>
+
+    <h2>13.3 Google Drive Webhook Relay Pipeline</h2>
+    <p>
+      Every generated backup is mirrored offsite to Google Drive via an HTTPS Webhook relay connecting to Google Apps Script.
+      This provides redundancy against container failure or cloud host termination.
+    </p>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 15: EMERGENCY RESTORE EXECUTION PROTOCOL
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 15 of 22</span>
+    </div>
+
+    <h1>14. Emergency Restore Protocol &amp; CLI Fallback</h1>
+
+    <h2>14.1 Web UI Emergency Restore Execution Flow</h2>
+    <p>When executing an emergency restore through the Admin Portal interface:</p>
+    <div class="step-box"><div class="step-num">1</div><div class="step-content"><strong>Trigger Dialog:</strong> In Admin Portal &rarr; "Google Drive &amp; Node Sync Health", click <strong>"One-Click Restore Database ↺"</strong>.</div></div>
+    <div class="step-box"><div class="step-num">2</div><div class="step-content"><strong>Select Snapshot:</strong> Choose the target backup archive from the dropdown (defaults to the latest snapshot).</div></div>
+    <div class="step-box"><div class="step-num">3</div><div class="step-content"><strong>Solve Anti-Bot Challenge (Layer 1):</strong> Enter the 5-character randomized alphanumeric code displayed on the Canvas.</div></div>
+    <div class="step-box"><div class="step-num">4</div><div class="step-content"><strong>Re-Authenticate Password (Layer 2):</strong> Enter the Master Administrator password (<code>admin@iitkgp.ac.in</code>).</div></div>
+    <div class="step-box"><div class="step-num">5</div><div class="step-content"><strong>Atomic Decompression:</strong> The server verifies credentials, decompresses the ZIP snapshot, replaces database tables via atomic mutex locking, and invokes automatic node reconciliation.</div></div>
+
+    <h2>14.2 Server CLI Disaster Recovery Utility (<code>restore_backup.py</code>)</h2>
+    <p>
+      If the web server is offline or inaccessible, system administrators with SSH/terminal access can execute a
+      direct command-line restore without web dependencies:
+    </p>
+
+    <pre><code># Syntax: python restore_backup.py <path_to_backup_zip>
+$ python restore_backup.py data/backups/backup_20260915_180000.zip
+
+======================================================================
+NDLI Emergency Backup Restore Engine (CLI Utility)
+======================================================================
+[*] Verifying archive integrity: data/backups/backup_20260915_180000.zip ...
+[+] Archive verified: 5 master files, 21 node files detected.
+[*] Extracting database tables to scratch buffer ...
+[*] Performing atomic replacement of master databases ...
+[*] Performing atomic replacement of 7 regional employee node databases ...
+[*] Triggering full Node-to-Master Reconciliation ...
+[+] Reconciliation complete: 8 clubs, 14 activities synchronized.
+======================================================================
+[SUCCESS] Database restoration completed successfully. System online.
+======================================================================</code></pre>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 16: FRONT-END DESIGN SYSTEM v3.0
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 16 of 22</span>
+    </div>
+
+    <h1>15. Front-End Architecture &amp; Design System v3.0</h1>
+
+    <h2>15.1 Design Tokens &amp; CSS Variables (<code>static/css/style.css</code>)</h2>
+    <p>
+      The v3.0 front-end architecture is built on a consolidated design token system engineered without bloated CSS frameworks:
+    </p>
+
+    <pre><code>:root {
+  /* Brand Green Palette */
+  --primary: #103125;
+  --primary-light: #1A503E;
+  --primary-accent: #0D7751;
+  
+  /* Complementary Amber CTA Accent System */
+  --amber: #D97706;
+  --amber-light: #F59E0B;
+  --amber-bright: #FCD34D;
+  --gradient-amber: linear-gradient(135deg, #B45309 0%, #D97706 55%, #F59E0B 100%);
+  
+  /* Glass Morphism Tokens */
+  --surface-glass: rgba(255, 255, 255, 0.88);
+  --surface-dark-glass: rgba(8, 22, 14, 0.84);
+  --border-glass: rgba(255, 255, 255, 0.15);
+  
+  /* Radii & Elevation Hierarchy */
+  --radius-sm: 6px;  --radius-md: 10px;  --radius-lg: 16px;
+  --radius-xl: 20px; --radius-2xl: 28px; --radius-pill: 9999px;
+  --shadow-sm: 0 2px 6px rgba(16,49,37,0.06);
+  --shadow-lg: 0 16px 40px rgba(16,49,37,0.14);
+  --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}</code></pre>
+
+    <h2>15.2 Physics-Based Motion &amp; Micro-Interactions</h2>
+    <ul>
+      <li><strong>Spring Modals:</strong> Styled with <code>animation: modalSpring 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)</code> for a physical bounce pop.</li>
+      <li><strong>Button Ripple:</strong> Event-delegated click handler in <code>app.js</code> injecting a transient <code>&lt;span class="ripple"&gt;</code> that animates outwards and cleans itself up automatically.</li>
+      <li><strong>Scroll-Reveal Stagger:</strong> Uses <code>IntersectionObserver</code> in <code>app.js</code> monitoring <code>.reveal-card</code> elements, adding <code>.reveal-visible</code> with 0.00s&ndash;0.22s cascaded delays.</li>
+    </ul>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 17: DEPLOYMENT & DEVOPS INFRASTRUCTURE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 17 of 22</span>
+    </div>
+
+    <h1>16. Cloud Deployment &amp; DevOps Infrastructure</h1>
+
+    <h2>16.1 Render Web Service Configuration (<code>render.yaml</code>)</h2>
+    <p>The application is pre-configured for automated Git-driven deployments on Render.com or any container PaaS:</p>
+
+    <pre><code># render.yaml deployment configuration
+services:
+  - type: web
+    name: ndli-club-management
+    env: python
+    buildCommand: "python -c "print('Build verification complete')""
+    startCommand: "python app.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: STORAGE_MODE
+        value: APPS_SCRIPT_RELAY
+      - key: APPS_SCRIPT_RELAY_URL
+        value: https://script.google.com/macros/s/.../exec
+    disk:
+      name: ndli-data-disk
+      mountPath: /data
+      sizeGB: 1</code></pre>
+
+    <h2>16.2 Dynamic Port Binding &amp; Health Monitoring</h2>
+    <ul>
+      <li><strong>Port Resolution:</strong> The server dynamically reads <code>os.environ.get("PORT", 8080)</code>, ensuring seamless deployment behind reverse proxies (Nginx, Traefik, AWS ALB).</li>
+      <li><strong>Health Check (<code>GET /api/health</code>):</strong> Evaluates storage health, last backup timestamp, active nodes, and returns an HTTP 200 JSON payload for container liveness/readiness probes.</li>
+    </ul>
+
+    <h2>16.3 Google Apps Script (GAS) Serverless Deployment</h2>
+    <p>
+      The repository includes a complete mirror package in <code>deployment_gas/</code>:
+      <code>Code.gs</code> (backend controller), <code>Landing.html</code>, <code>Admin.html</code>, and <code>Employee.html</code>.
+      This allows 100% serverless deployment inside a Google Workspace domain without external cloud compute.
+    </p>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 18: AUTOMATED TEST SUITE ARCHITECTURE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 18 of 22</span>
+    </div>
+
+    <h1>17. Automated Quality Assurance &amp; Test Architecture</h1>
+
+    <h2>17.1 Test Suite Organization (132 Exhaustive Unit/Integration Tests)</h2>
+    <p>
+      The test suite located in <code>tests/</code> provides 100% functional and integration coverage across all system modules:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Test Suite Module</th>
+          <th style="width: 15%;">Tests</th>
+          <th style="width: 60%;">Verified Functional Areas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>test_api.py</code></td>
+          <td>28 Tests</td>
+          <td>REST API routes, HTTP status codes, JSON payload schema validation, error handling.</td>
+        </tr>
+        <tr>
+          <td><code>test_auth.py</code></td>
+          <td>16 Tests</td>
+          <td>PBKDF2 encryption, 16-byte random salts, timing resistance, token expiry, session access.</td>
+        </tr>
+        <tr>
+          <td><code>test_csv_engine.py</code></td>
+          <td>18 Tests</td>
+          <td>Atomic writes, mutex locks, concurrent transactions, file corruption prevention.</td>
+        </tr>
+        <tr>
+          <td><code>test_sync_engine.py</code></td>
+          <td>22 Tests</td>
+          <td>Node-to-Master reconciliation, Rule 10 renewal dates (+1 year), quota updates.</td>
+        </tr>
+        <tr>
+          <td><code>test_state_zone.py</code></td>
+          <td>14 Tests</td>
+          <td>Exhaustive mapping of all 36 States/UTs to 6 statutory zones with alias normalization.</td>
+        </tr>
+        <tr>
+          <td><code>test_features_1_to_5.py</code></td>
+          <td>24 Tests</td>
+          <td>Master CSV download, 7-day rolling backups, 72h reminders, 30d escalations, restore security.</td>
+        </tr>
+        <tr>
+          <td><code>test_portal_and_api.py</code></td>
+          <td>10 Tests</td>
+          <td>Headless Node.js template script evaluation, DOM event execution, view transitions.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>17.2 Executing the Full Test Suite</h2>
+    <pre><code># Command to run full test suite with standard output verification
+$ python -m unittest discover tests -v
+
+----------------------------------------------------------------------
+Ran 132 tests in 44.447s
+
+OK (132 tests passing, 0 failures, 0 errors)</code></pre>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 19: SYSTEM MAINTENANCE & RUNBOOK
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 19 of 22</span>
+    </div>
+
+    <h1>18. System Maintenance, Operations &amp; Troubleshooting Runbook</h1>
+
+    <h2>18.1 Routine Maintenance Operations</h2>
+    <ul>
+      <li><strong>Periodic Master Reconciliation:</strong> Run <code>POST /api/sync/reconcile</code> monthly or after manual CSV edits to ensure zero discrepancies across worker nodes.</li>
+      <li><strong>Manual Backup Generation:</strong> Click <strong>"Trigger Manual Backup Now"</strong> before applying operating system updates or migrating server environments.</li>
+      <li><strong>Audit Log Review:</strong> Inspect server console logs for repeated failed login attempts or unauthorized REST API calls.</li>
+    </ul>
+
+    <h2>18.2 Operational Troubleshooting Runbook</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">Observed Symptom</th>
+          <th style="width: 30%;">Root Cause Diagnostic</th>
+          <th style="width: 45%;">Remediation Procedure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>401 Unauthorized</code> on login</td>
+          <td>Invalid PBKDF2 password or inactive employee account.</td>
+          <td>Verify <code>is_active</code> flag in <code>master_users.csv</code>; re-provision credentials via Admin Portal.</td>
+        </tr>
+        <tr>
+          <td>Quota count mismatch in UI</td>
+          <td>Node CSV entries logged during network disruption.</td>
+          <td>Click <strong>"Run Full Node-to-Master Reconciliation"</strong> in Admin Portal to recalculate quotas.</td>
+        </tr>
+        <tr>
+          <td>Backup storage growing</td>
+          <td>Pruning daemon disabled or permissions error.</td>
+          <td>Verify file write permissions on <code>data/backups/</code>; verify 2-version retention pruner.</td>
+        </tr>
+        <tr>
+          <td>Lock gate flashing on load</td>
+          <td>Missing synchronous pre-unlock DOM class.</td>
+          <td>Ensure synchronous <code>auth-pre-unlocked</code> script block in <code>&lt;head&gt;</code> is preserved intact.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 20: SECURITY AUDIT & COMPLIANCE
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 20 of 22</span>
+    </div>
+
+    <h1>19. Security Audit, Data Integrity &amp; Compliance</h1>
+
+    <h2>19.1 OWASP Top 10 Security Posture Assessment</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%;">OWASP Risk Category</th>
+          <th style="width: 35%;">System Vulnerability Defense</th>
+          <th style="width: 40%;">Compliance Implementation Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>A01: Broken Access Control</strong></td>
+          <td>Server-side RBAC validation on all REST routes; session tokens verified per request.</td>
+          <td><span class="badge badge-green">Compliant</span> No client-side bypass possible.</td>
+        </tr>
+        <tr>
+          <td><strong>A02: Cryptographic Failures</strong></td>
+          <td>PBKDF2-HMAC-SHA256 with 100,000 rounds; 16-byte random salts; TLS mandatory in cloud.</td>
+          <td><span class="badge badge-green">Compliant</span> Industry standard encryption.</td>
+        </tr>
+        <tr>
+          <td><strong>A03: Injection Attacks</strong></td>
+          <td>No SQL database engine used (zero SQLi attack surface); CSV fields sanitized &amp; escaped.</td>
+          <td><span class="badge badge-green">Compliant</span> Injection vector eliminated.</td>
+        </tr>
+        <tr>
+          <td><strong>A05: Security Misconfig</strong></td>
+          <td>Zero external pip dependencies; minimal attack surface; no debug flags in production.</td>
+          <td><span class="badge badge-green">Compliant</span> Hardened native runtime.</td>
+        </tr>
+        <tr>
+          <td><strong>A07: Identification Failures</strong></td>
+          <td>Dual-layer security challenge for destructive actions; rate-limited session verification.</td>
+          <td><span class="badge badge-green">Compliant</span> Two-factor visual verification.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>19.2 Data Transparency Declaration</h2>
+    <p>
+      The architecture guarantees that all institutional club records, regional officer interaction logs,
+      and administrative decisions remain stored in human-readable, portable, vendor-neutral CSV formats.
+      Data can be imported into any spreadsheet or analytical tool without specialized database conversion tools.
+    </p>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 21: TABLE OF CONTENTS & NAVIGATION INDEX (TECHNICAL)
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 21 of 22</span>
+    </div>
+
+    <h1>20. Comprehensive Technical Navigation Index</h1>
+    <p>An index of all 22 technical chapters, security specifications, and code modules:</p>
+
+    <div class="toc-container">
+      <div class="toc-row"><span class="toc-chapter">1. Executive Technical Summary &amp; Architectural Philosophy</span><span class="toc-dots"></span><span class="toc-page-num">Page 2</span></div>
+      <div class="toc-row"><span class="toc-chapter">2. System Topology &amp; Multi-Tier Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 3</span></div>
+      <div class="toc-row"><span class="toc-chapter">3. Cryptographic Security &amp; Authentication Subsystem</span><span class="toc-dots"></span><span class="toc-page-num">Page 4</span></div>
+      <div class="toc-row"><span class="toc-chapter">4. Dual-Layer Security Challenge for Disaster Recovery</span><span class="toc-dots"></span><span class="toc-page-num">Page 5</span></div>
+      <div class="toc-row"><span class="toc-chapter">5. Database Schemas &amp; Flat-File Storage Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 6</span></div>
+      <div class="toc-row"><span class="toc-chapter">6. Flat-File ACID Simulation &amp; Mutex Concurrency Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 7</span></div>
+      <div class="toc-row"><span class="toc-chapter">7. Core Backend Codebase &amp; Module Specifications</span><span class="toc-dots"></span><span class="toc-page-num">Page 8</span></div>
+      <div class="toc-row"><span class="toc-chapter">8. Synchronization &amp; Node-to-Master Reconciliation</span><span class="toc-dots"></span><span class="toc-page-num">Page 9</span></div>
+      <div class="toc-row"><span class="toc-chapter">9. Mathematical Models &amp; Analytical Formulas</span><span class="toc-dots"></span><span class="toc-page-num">Page 10</span></div>
+      <div class="toc-row"><span class="toc-chapter">10. Geopolitical State-Zone Mapping Specification</span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
+      <div class="toc-row"><span class="toc-chapter">11. REST API Specification (Part 1: Operations)</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
+      <div class="toc-row"><span class="toc-chapter">12. REST API Specification (Part 2: Admin &amp; System)</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
+      <div class="toc-row"><span class="toc-chapter">13. Backup Architecture &amp; Disaster Recovery Pipeline</span><span class="toc-dots"></span><span class="toc-page-num">Page 14</span></div>
+      <div class="toc-row"><span class="toc-chapter">14. Emergency Restore Protocol &amp; CLI Fallback</span><span class="toc-dots"></span><span class="toc-page-num">Page 15</span></div>
+      <div class="toc-row"><span class="toc-chapter">15. Front-End Architecture &amp; Design System v3.0</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
+      <div class="toc-row"><span class="toc-chapter">16. Cloud Deployment &amp; DevOps Infrastructure</span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
+      <div class="toc-row"><span class="toc-chapter">17. Automated Quality Assurance &amp; Test Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 18</span></div>
+      <div class="toc-row"><span class="toc-chapter">18. System Maintenance, Operations &amp; Troubleshooting Runbook</span><span class="toc-dots"></span><span class="toc-page-num">Page 19</span></div>
+      <div class="toc-row"><span class="toc-chapter">19. Security Audit, Data Integrity &amp; Compliance</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
+      <div class="toc-row"><span class="toc-chapter">20. Comprehensive Technical Navigation Index</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
+      <div class="toc-row"><span class="toc-chapter">21. System Handover Sign-Off &amp; Architectural Attribution</span><span class="toc-dots"></span><span class="toc-page-num">Page 22</span></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       PAGE 22: HANDOVER SIGN-OFF & ATTRIBUTION
+       =================================================================== -->
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
+      <span class="header-tag-right">Page 22 of 22</span>
+    </div>
+
+    <h1>21. System Handover Sign-Off &amp; Architectural Attribution</h1>
+
+    <h2>21.1 Technical Deliverables Handover Certification</h2>
+    <p>
+      This document certifies the formal technical handover of the <strong>NDLI Club Management and Employee Activity Tracking System (Release v3.0)</strong>.
+      All source code, database architectures, REST API contracts, test automation suites, and cryptographic models
+      documented herein are fully implemented, verified, and operational.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30%;">Deliverable Component</th>
+          <th style="width: 40%;">Verification Standard</th>
+          <th style="width: 30%;">Handover Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Full Source Codebase</strong></td>
+          <td>Zero external Python dependencies; 35+ REST endpoints</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cryptographic Security Core</strong></td>
+          <td>PBKDF2-HMAC-SHA256 with 100k rounds; 16-byte random salts</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+        <tr>
+          <td><strong>Automated Test Suite</strong></td>
+          <td>132/132 unit and integration tests passing cleanly</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+        <tr>
+          <td><strong>Disaster Recovery Engine</strong></td>
+          <td>Dual-layer security restore; 7-day rolling backups</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+        <tr>
+          <td><strong>Modern Minimalist UI (v3.0)</strong></td>
+          <td>Manrope font, amber accents, glass morphism, spring motion</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+        <tr>
+          <td><strong>20-Page Operational User Manual</strong></td>
+          <td>Complete step-by-step guides with original live screenshots</td>
+          <td><span class="badge badge-green">Verified &amp; Handed Over</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>21.2 Official Attribution &amp; Engineering Endorsement</h2>
+    <div class="callout callout-primary" style="margin-top: 15px; padding: 12px 16px;">
+      <div style="font-size: 9.5pt; font-weight: 700; color: #103125; margin-bottom: 4px;">
+        Lead System Architect &amp; Full-Stack Developer
+      </div>
+      <div style="font-size: 11pt; font-weight: 800; color: #1A503E;">
+        Dr. Anirban Mukherjee
+      </div>
+      <div style="font-size: 8.5pt; color: #475569; margin-top: 2px;">
+        National Digital Library of India (NDLI) Project<br>
+        Central Administration Office • Indian Institute of Technology Kharagpur<br>
+        West Bengal 721302, India
+      </div>
+    </div>
+
+    <div style="margin-top: 25px; text-align: center; border-top: 1.5px solid #E2E8F0; padding-top: 15px; font-size: 7.8pt; color: #64748B;">
+      <strong>National Digital Library of India (NDLI) Club Management System</strong><br>
+      Enterprise Technical Reference Manual &amp; System Handover Architecture Specification (v3.0)<br>
+      Architected &amp; Engineered by <strong>Dr. Anirban Mukherjee</strong> • Indian Institute of Technology Kharagpur<br>
+      &copy; 2026 NDLI IIT Kharagpur. All Rights Reserved. Confidential &amp; Proprietary Handover Document.
+    </div>
+  </div>
+
+</body>
+</html>
