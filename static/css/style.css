@@ -105,8 +105,8 @@ body {
 .navbar {
   background: var(--gradient-nav);
   color: #ffffff;
-  padding: 0.55rem 1.25rem;
-  box-shadow: 0 3px 16px rgba(16, 49, 37, 0.15);
+  padding: 0.35rem 1.25rem;
+  box-shadow: 0 2px 12px rgba(16, 49, 37, 0.15);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -122,20 +122,20 @@ body {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   text-decoration: none;
   color: #ffffff;
 }
 
 .brand-logo-card {
   background: #ffffff;
-  padding: 4px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
@@ -150,50 +150,55 @@ body {
 }
 
 .brand-logo-img {
-  height: 32px;
+  height: 28px;
   width: auto;
-  max-width: 130px;
+  max-width: 120px;
   object-fit: contain;
   display: block;
 }
 
 .brand-text h1 {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: -0.015em;
-  line-height: 1.2;
+  line-height: 1.15;
   color: #ffffff;
 }
 
 .brand-text p {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: #c9ded5;
   letter-spacing: 0.02em;
   font-weight: 500;
+  margin: 0;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
 .nav-link {
-  color: #dbe7e1;
+  color: #e2ede7;
   text-decoration: none;
-  padding: 0.35rem 0.65rem;
+  padding: 0.28rem 0.55rem;
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 500;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   transition: all 0.18s ease;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  line-height: 1.2;
 }
 
 .nav-link:hover, .nav-link.active {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #ffffff;
   transform: translateY(-1px);
 }
@@ -232,7 +237,7 @@ body {
    ========================================================================== */
 .container {
   max-width: 1560px;
-  margin: 1rem auto;
+  margin: 0.65rem auto;
   padding: 0 1.25rem;
   flex: 1;
   width: 100%;
@@ -244,10 +249,10 @@ body {
 .hero-banner {
   background: var(--gradient-nav);
   color: #ffffff;
-  border-radius: var(--radius-lg);
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.15rem;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-sm);
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
@@ -265,17 +270,17 @@ body {
 }
 
 .hero-banner h2 {
-  font-size: 1.55rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
 }
 
 .hero-banner p {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: #d1e4dc;
   max-width: 850px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .drive-status-badge {
@@ -284,12 +289,12 @@ body {
   gap: 0.5rem;
   background: rgba(16, 49, 37, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.35rem 0.85rem;
+  padding: 0.3rem 0.75rem;
   border-radius: var(--radius-pill);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #ffffff;
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
   backdrop-filter: blur(4px);
 }
 
@@ -316,8 +321,8 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xs);
-  padding: 1.15rem 1.35rem;
-  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -329,13 +334,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.85rem;
-  padding-bottom: 0.65rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .card-title {
-  font-size: 1.125rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--primary);
   display: flex;
@@ -345,9 +350,9 @@ body {
 }
 
 .card-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  margin-top: 0.15rem;
+  margin-top: 0.12rem;
 }
 
 .portal-card {
@@ -399,15 +404,15 @@ body {
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .stat-card {
   background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.95rem;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-xs);
@@ -433,7 +438,7 @@ body {
 }
 
 .stat-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
@@ -441,16 +446,16 @@ body {
 }
 
 .stat-value {
-  font-size: 1.75rem;
+  font-size: 1.45rem;
   font-weight: 800;
   color: var(--primary-dark);
-  margin: 0.25rem 0;
+  margin: 0.15rem 0;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
 .stat-desc {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 
@@ -500,15 +505,15 @@ body {
    Forms, Inputs & Form Controls - Compact Sizing & Clean Focus
    ========================================================================== */
 .form-group {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.58rem;
 }
 
 label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #273e33;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .label-required::after {
@@ -523,8 +528,8 @@ input[type="date"],
 select,
 textarea {
   width: 100%;
-  padding: 0.48rem 0.75rem;
-  font-size: 0.86rem;
+  padding: 0.42rem 0.68rem;
+  font-size: 0.84rem;
   font-family: inherit;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -653,7 +658,25 @@ input[readonly] {
   background: #ffffff;
   box-shadow: var(--shadow-xs);
   box-sizing: border-box;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.table-scroll-container {
+  max-height: 285px;
+  overflow-y: auto;
+  position: relative;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 0.65rem;
+}
+
+.table-scroll-container thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 table {
@@ -713,10 +736,10 @@ tbody tr:hover {
    Alerts & Notifications
    ========================================================================== */
 .alert {
-  padding: 0.75rem 1.1rem;
+  padding: 0.65rem 1rem;
   border-radius: var(--radius-sm);
-  margin-bottom: 1rem;
-  font-size: 0.86rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.84rem;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -734,7 +757,7 @@ tbody tr:hover {
   display: flex;
   border-bottom: 2px solid var(--border);
   gap: 0.35rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
   overflow-x: auto;
 }
 
@@ -743,8 +766,8 @@ tbody tr:hover {
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
-  padding: 0.5rem 0.95rem;
-  font-size: 0.86rem;
+  padding: 0.38rem 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;

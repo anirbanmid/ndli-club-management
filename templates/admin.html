@@ -95,13 +95,13 @@
         </div>
       </a>
       <div class="nav-links">
-        <span class="badge-tag" id="nav-admin-badge" style="background:#be123c;">ADMIN LOCKED 🔒</span>
-        <span id="nav-admin-user" style="font-size: 0.85rem; color: #cbd5e1;">Access Restricted</span>
-        <button id="nav-admin-auth-btn" class="btn btn-sm btn-accent" style="color:#ffffff; padding:0.25rem 0.65rem; font-size:0.78rem;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
-        <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span class="badge-tag" style="background:#0284c7; color:#ffffff;">🏛️ NDLI</span> Main Site ↗</a>
-        <a href="/login" class="nav-link"><span class="badge-tag" style="background:var(--primary-light);">🔐 Login</span> Employee Login</a>
+        <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem;">ADMIN LOCKED 🔒</span>
+        <span id="nav-admin-user" style="font-size: 0.78rem; color: #cbd5e1;">Access Restricted</span>
+        <button id="nav-admin-auth-btn" class="btn btn-sm btn-accent" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
+        <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
+        <a href="/login" class="nav-link"><span>🔐</span> Employee Login</a>
         <a href="/employee" class="nav-link">Employee Portals</a>
-        <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span class="badge-tag" style="background:#0D7751; color:#ffffff;">📖 Manual</span> User Manual (PDF)</a>
+        <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
         <a href="/" class="nav-link">Main Portal</a>
       </div>
     </div>
@@ -190,10 +190,10 @@
       </div>
 
       <!-- 30+ DAYS UNRESOLVED CLUB ISSUES ESCALATION REMINDERS (FEATURE 5) -->
-      <div id="admin-issues-escalation-container" style="margin-bottom: 1.5rem;"></div>
+      <div id="admin-issues-escalation-container" style="margin-bottom: 0.75rem;"></div>
 
       <!-- 1. DETAILED STATISTICAL ANALYTICS HIGHLIGHT METRICS (4 CARDS) -->
-      <div class="kpi-row" style="margin-bottom: 1.75rem;">
+      <div class="kpi-row" style="margin-bottom: 0.75rem;">
         <!-- Coverage Ratio Card -->
         <div class="stat-card" id="card-coverage-index">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -268,7 +268,7 @@
       </div>
 
       <!-- 4. SUPPORT ACTIVITY BREAKDOWN & RENEWAL HEALTH INFOGRAPHICS -->
-      <div class="grid-2" style="margin-top: 1.5rem;">
+      <div class="grid-2" style="margin-top: 0.75rem;">
         <!-- Support Activity Types Breakdown -->
         <div class="infographic-card" id="support-breakdown-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
@@ -301,7 +301,7 @@
       </div>
 
       <!-- 5. FILTERABLE STATE BREAKDOWN & EMPLOYEE PERFORMANCE -->
-      <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem; width: 100%;">
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; width: 100%;">
         <!-- State-Wise Breakdown Table -->
         <div class="chart-container responsive-matrix-card" id="state-breakdown-container" style="width: 100%;">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
@@ -311,10 +311,10 @@
             </div>
             <span class="pill pill-primary" id="table-filter-badge" style="display: none;">Filtered View</span>
           </div>
-          <div class="table-responsive" style="max-height: 420px; overflow-y: auto; overflow-x: auto; width: 100%;">
+          <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table id="state-breakdown-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase;">
+                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; z-index: 5;">
                   <th style="padding: 0.55rem 0.75rem; width: 28%; white-space: normal;">State / Union Territory</th>
                   <th style="padding: 0.55rem 0.5rem; width: 16%; text-align: center; white-space: normal;">Zone</th>
                   <th style="padding: 0.55rem 0.5rem; width: 12%; text-align: center; white-space: normal;">Clubs</th>
@@ -410,10 +410,10 @@
           </div>
 
           <!-- Performance Scorecard Matrix Table -->
-          <div class="table-responsive" style="overflow-x: auto; width: 100%;">
+          <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px;">
+                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 5;">
                   <th style="padding: 0.5rem 0.35rem; width: 5%; text-align: center; white-space: normal;">Rank</th>
                   <th style="padding: 0.5rem 0.5rem; width: 17%; text-align: left; white-space: normal;">Officer &amp; Zone</th>
                   <th style="padding: 0.5rem 0.5rem; width: 16%; text-align: left; white-space: normal;">Assigned Jurisdiction</th>
