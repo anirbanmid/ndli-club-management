@@ -217,3 +217,79 @@ if (typeof window !== "undefined") {
   window.formatDateDisplay = formatDateDisplay;
 }
 
+// =============================================================================
+// Fluid Page Transition Handler for All Internal Navigation Links
+// =============================================================================
+function initFluidPageTransitions() {
+  if (typeof document === "undefined" || typeof document.addEventListener !== "function") return;
+  if (document.body && document.body.classList) {
+    document.body.classList.remove("page-leaving");
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!e || !e.target || typeof e.target.closest !== "function") return;
+    const link = e.target.closest("a");
+    if (!link) return;
+
+    const href = link.getAttribute ? link.getAttribute("href") : null;
+    if (!href) return;
+
+    // Skip anchor-only, javascript, external links, new window, and downloads
+    if (
+      href.startsWith("#") ||
+      href.startsWith("javascript:") ||
+      link.target === "_blank" ||
+      (typeof link.hasAttribute === "function" && link.hasAttribute("download")) ||
+      href.startsWith("/api/download") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:")
+    ) {
+      return;
+    }
+
+    // Check if same-origin internal route
+    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "";
+    const isInternal = href.startsWith("/") || (origin && href.startsWith(origin));
+    if (!isInternal) return;
+
+    // Check if navigating to exact same URL
+    try {
+      if (typeof window !== "undefined" && window.location) {
+        const targetUrl = new URL(link.href || href, window.location.origin);
+        if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
+          return;
+        }
+      }
+    } catch(err) {}
+
+    // Trigger smooth exit transition
+    if (typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    if (document.body && document.body.classList) {
+      document.body.classList.add("page-leaving");
+    }
+    setTimeout(() => {
+      if (typeof window !== "undefined" && window.location) {
+        window.location.href = link.href || href;
+      }
+    }, 140);
+  });
+
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("pageshow", () => {
+      if (document.body && document.body.classList) {
+        document.body.classList.remove("page-leaving");
+      }
+    });
+  }
+}
+
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading" && typeof document.addEventListener === "function") {
+    document.addEventListener("DOMContentLoaded", initFluidPageTransitions);
+  } else {
+    initFluidPageTransitions();
+  }
+}
+

@@ -6,6 +6,18 @@
   <meta name="author" content="Dr. Anirban Mukherjee">
   <title>NDLI Club Management System | IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    /* Immediate synchronous auth resolution to eliminate jerky lock-screen flash when navigating between portals */
+    (function() {
+      try {
+        var s = sessionStorage.getItem("ndli_auth_session") || sessionStorage.getItem("ndli_employee_session");
+        var t = sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+        if ((s && s.indexOf("token") !== -1) || t) {
+          document.documentElement.classList.add("auth-pre-unlocked");
+        }
+      } catch(e) {}
+    })();
+  </script>
   <style>
     /* Prevent any horizontal body overflow */
     html, body {
@@ -13,6 +25,20 @@
       padding: 0;
       width: 100%;
       overflow-x: hidden;
+    }
+
+    /* Instant Seamless Pre-Unlock state (eliminates jerky flash when navigating from Employee portal) */
+    html.auth-pre-unlocked #app-lock-gate {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    html.auth-pre-unlocked #main-portal-content {
+      display: block !important;
+      opacity: 1 !important;
+      filter: none !important;
+      pointer-events: auto !important;
     }
 
     /* =========================================================================
@@ -989,7 +1015,9 @@
     }
 
     function lockApplication() {
+      document.documentElement.classList.remove("auth-pre-unlocked");
       sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_employee_session");
       sessionStorage.removeItem("ndli_token");
       sessionStorage.removeItem("ndli_user_id");
       sessionStorage.removeItem("ndli_role");
@@ -1016,29 +1044,63 @@
       generateNewCaptcha();
     }
 
+    // Helper to resolve active session from any portal (Master, Employee, or Admin)
+    function resolveActiveSession() {
+      try {
+        const rawAuth = sessionStorage.getItem("ndli_auth_session");
+        if (rawAuth) {
+          const s = JSON.parse(rawAuth);
+          if (s && (s.token || s.user_id)) return s;
+        }
+      } catch (e) {}
+
+      try {
+        const rawEmp = sessionStorage.getItem("ndli_employee_session");
+        if (rawEmp) {
+          const s = JSON.parse(rawEmp);
+          if (s && (s.token || s.user_id)) {
+            sessionStorage.setItem("ndli_auth_session", JSON.stringify(s));
+            return s;
+          }
+        }
+      } catch (e) {}
+
+      const token = sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+      if (token) {
+        const fallback = {
+          token: token,
+          user_id: sessionStorage.getItem("ndli_user_id") || "Zonal Officer",
+          name: sessionStorage.getItem("ndli_user_id") || "Officer",
+          role: sessionStorage.getItem("ndli_role") || "Authenticated"
+        };
+        sessionStorage.setItem("ndli_auth_session", JSON.stringify(fallback));
+        return fallback;
+      }
+      return null;
+    }
+
     // Initial check on load
     document.addEventListener("DOMContentLoaded", () => {
       generateNewCaptcha();
-      const savedSession = sessionStorage.getItem("ndli_auth_session");
-      if (savedSession) {
-        try {
-          const session = JSON.parse(savedSession);
-          if (session && session.token) {
-            // Already logged in - immediately unlock
-            const lockGate = document.getElementById("app-lock-gate");
-            const mainContent = document.getElementById("main-portal-content");
-            lockGate.style.display = "none";
-            lockGate.classList.add("unlocked-exit");
-            mainContent.style.display = "block";
-            mainContent.classList.remove("content-locked");
-            mainContent.classList.add("content-unlocked");
-            updateNavbarSessionState(session);
-            loadStatus();
-            return;
-          }
-        } catch (e) {
-          sessionStorage.removeItem("ndli_auth_session");
+      const session = resolveActiveSession();
+      if (session && (session.token || session.user_id)) {
+        // Already logged in - immediately unlock seamlessly without flash
+        const lockGate = document.getElementById("app-lock-gate");
+        const mainContent = document.getElementById("main-portal-content");
+        if (lockGate) {
+          lockGate.style.display = "none";
+          lockGate.classList.add("unlocked-exit");
         }
+        if (mainContent) {
+          mainContent.style.display = "block";
+          mainContent.classList.remove("content-locked");
+          mainContent.classList.add("content-unlocked");
+        }
+        updateNavbarSessionState(session);
+        loadStatus();
+        return;
+      } else {
+        document.documentElement.classList.remove("auth-pre-unlocked");
       }
     });
 

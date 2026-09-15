@@ -2228,6 +2228,9 @@
           const token = res.data.session.token;
           sessionStorage.setItem("ndli_admin_token", token);
           sessionStorage.setItem("ndli_token", token);
+          sessionStorage.setItem("ndli_auth_session", JSON.stringify(res.data.session));
+          sessionStorage.setItem("ndli_user_id", res.data.session.user_id || "admin@iitkgp.ac.in");
+          sessionStorage.setItem("ndli_role", "ADMIN");
           IS_ADMIN_AUTHENTICATED = true;
           showAdminGateView(true, res.data.session);
           showAlert("admin-alert", "✓ Central Administrator authenticated. Master Employee Management unlocked!", "success");
@@ -2254,6 +2257,9 @@
     function lockAdminSection() {
       sessionStorage.removeItem("ndli_admin_token");
       sessionStorage.removeItem("ndli_token");
+      sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_user_id");
+      sessionStorage.removeItem("ndli_role");
       IS_ADMIN_AUTHENTICATED = false;
       showAdminGateView(false);
       const formEl = document.getElementById("admin-gate-form");

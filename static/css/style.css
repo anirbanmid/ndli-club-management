@@ -87,6 +87,17 @@ html, body {
   padding: 0;
 }
 
+@keyframes fluidPageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 body {
   font-family: var(--font);
   background-color: var(--bg-main);
@@ -97,6 +108,29 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  animation: fluidPageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+body.page-leaving {
+  opacity: 0 !important;
+  transform: translateY(-4px) !important;
+  transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  pointer-events: none !important;
+}
+
+.view-fade-in {
+  animation: fluidViewEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fluidViewEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==========================================================================
@@ -180,6 +214,12 @@ body {
   flex-wrap: wrap;
 }
 
+@media (min-width: 900px) {
+  .nav-links {
+    flex-wrap: nowrap;
+  }
+}
+
 .nav-link {
   color: #e2ede7;
   text-decoration: none;
@@ -194,6 +234,17 @@ body {
   align-items: center;
   gap: 0.3rem;
   line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nav-live-clock-compact {
+  padding: 0.18rem 0.45rem !important;
+  font-size: 0.72rem !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  line-height: 1.2 !important;
+  gap: 0.3rem !important;
 }
 
 .nav-link:hover, .nav-link.active {
@@ -789,6 +840,18 @@ tbody tr:hover {
 }
 .tab-panel.active {
   display: block;
+  animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==========================================================================
