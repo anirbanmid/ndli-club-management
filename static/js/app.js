@@ -58,6 +58,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
+    if (typeof queueOfflineAction === 'function' && method === 'POST' && (path.includes('/activity/') || path.includes('/clubs/'))) {
+      try {
+        await queueOfflineAction(path, method, body);
+        return { ok: true, status: 200, data: { success: true, offline: true, message: 'Saved to local device offline storage. Will automatically sync to Master DB when connected.' } };
+      } catch (qErr) {}
+    }
     return { ok: false, status: 0, data: { error: true, message: err.message || "Network error." } };
   }
 }

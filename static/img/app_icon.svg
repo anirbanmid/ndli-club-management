@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#05130D"/>
+      <stop offset="30%" stop-color="#0D2E21"/>
+      <stop offset="70%" stop-color="#103125"/>
+      <stop offset="100%" stop-color="#1A503E"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="50%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="bookGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Base App Background with Squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bgGrad)"/>
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="none" stroke="url(#amberGrad)" stroke-width="4" stroke-opacity="0.65"/>
+
+  <!-- Orbit Rings -->
+  <circle cx="256" cy="230" r="170" fill="none" stroke="#34D399" stroke-width="1.5" stroke-dasharray="8 8" stroke-opacity="0.25"/>
+  <circle cx="256" cy="230" r="135" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-opacity="0.3"/>
+
+  <!-- Emblem / Open Knowledge Book -->
+  <g filter="url(#glow)" transform="translate(0, 0)">
+    <!-- Central Torch / Spire -->
+    <path d="M256 120 L266 170 L246 170 Z" fill="url(#amberGrad)"/>
+    <circle cx="256" cy="108" r="14" fill="#FCD34D"/>
+    
+    <!-- Left Book Page -->
+    <path d="M250 185 C210 175 160 178 120 195 C115 197 112 202 112 208 L112 300 C112 306 116 311 122 309 C160 292 208 288 248 298 C250 299 252 297 252 295 L252 188 C252 186 251 185 250 185 Z" fill="url(#bookGrad)"/>
+    <path d="M245 205 C210 196 165 200 132 215" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M245 228 C210 219 165 223 132 238" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M245 251 C210 242 165 246 132 261" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+    
+    <!-- Right Book Page -->
+    <path d="M262 185 C302 175 352 178 392 195 C397 197 400 202 400 208 L400 300 C400 306 396 311 390 309 C352 292 304 288 264 298 C262 299 260 297 260 295 L260 188 C260 186 261 185 262 185 Z" fill="url(#bookGrad)"/>
+    <path d="M267 205 C302 196 347 200 380 215" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M267 228 C302 219 347 223 380 238" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M267 251 C302 242 347 246 380 261" stroke="#103125" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+  </g>
+
+  <!-- Typography: NDLI CLUB -->
+  <text x="256" y="375" text-anchor="middle" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="900" font-size="38" fill="#FFFFFF" letter-spacing="3">NDLI CLUB</text>
+  <!-- Typography: MANAGEMENT APP -->
+  <text x="256" y="415" text-anchor="middle" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="800" font-size="22" fill="#FCD34D" letter-spacing="4">MANAGEMENT APP</text>
+  <!-- Subtitle: IIT KHARAGPUR -->
+  <text x="256" y="450" text-anchor="middle" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="600" font-size="14" fill="#94A3B8" letter-spacing="2">IIT KHARAGPUR</text>
+</svg>

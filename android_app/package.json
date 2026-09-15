@@ -1,0 +1,11 @@
+{
+  "name": "ndli-club-management-app",
+  "version": "3.0.0",
+  "description": "NDLI Club Management App - Android Native Wrapper and PWA Engine",
+  "author": "Dr. Anirban Mukherjee",
+  "license": "Proprietary",
+  "scripts": {
+    "build": "echo 'Static web assets ready in ../static'",
+    "android": "echo 'Open android/ in Android Studio to build APK'"
+  }
+}

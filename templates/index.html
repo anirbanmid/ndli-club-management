@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Dr. Anirban Mukherjee">
+  <meta name="theme-color" content="#103125">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NDLI Club Management App">
   <title>NDLI Club Management System | IIT Kharagpur</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/app_icon_192.png">
+  <link rel="apple-touch-icon" href="/static/img/app_icon_192.png">
   <link rel="stylesheet" href="/static/css/style.css">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky lock-screen flash when navigating between portals */
@@ -1130,5 +1137,6 @@
       }
     }
   </script>
+  <script src="/static/js/offline_sync.js"></script>
 </body>
 </html>

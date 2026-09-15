@@ -1,0 +1,54 @@
+{
+  "name": "NDLI Club Management App",
+  "short_name": "NDLI Club Management App",
+  "description": "Official NDLI Club Management and Regional Employee Activity Tracking Application \u2014 Indian Institute of Technology Kharagpur.",
+  "start_url": "/employee",
+  "id": "/employee",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#103125",
+  "background_color": "#05130D",
+  "icons": [
+    {
+      "src": "/static/img/app_icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/app_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/app_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity",
+    "business"
+  ],
+  "shortcuts": [
+    {
+      "name": "Employee Portal",
+      "url": "/employee",
+      "description": "Daily activity logging & club approvals"
+    },
+    {
+      "name": "Admin Office",
+      "url": "/admin",
+      "description": "Central administration & KPI metrics"
+    },
+    {
+      "name": "Tool Box",
+      "url": "/employee?tab=toolbox",
+      "description": "12 integrated operational utilities"
+    }
+  ]
+}

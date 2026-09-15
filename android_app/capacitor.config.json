@@ -1,0 +1,17 @@
+{
+  "appId": "in.gov.ndl.clubmanagement",
+  "appName": "NDLI Club Management App",
+  "webDir": "../static",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://script.google.com/macros/s/AKfycbyyBeTLzjrA018d79S1yvgCDduGtyLlG95oJ5BgThV-bU2GUcoQWudYiBkOL_LADDo3/exec",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#05130D",
+      "showSpinner": false
+    }
+  }
+}
