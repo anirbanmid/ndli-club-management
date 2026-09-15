@@ -210,13 +210,24 @@ window.captureCampusGPS = function(targetInputId) {
   );
 };
 
-// PWA Install Prompt Handler
+// PWA Install Prompt Handler & Mobile Banner
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredInstallPrompt = e;
   renderInstallAppButton();
+  renderMobileInstallBanner();
 });
 
+window.addEventListener('appinstalled', () => {
+  showOfflineToast('🎉 NDLI Club Management App installed successfully on your device!', 'success');
+  const banner = document.getElementById('pwa-mobile-install-banner');
+  if (banner) banner.remove();
+  const navBtn = document.getElementById('btn-pwa-install');
+  if (navBtn) navBtn.remove();
+  deferredInstallPrompt = null;
+});
+
+// Render desktop / navbar install button
 function renderInstallAppButton() {
   if (document.getElementById('btn-pwa-install')) return;
   const navLinks = document.querySelector('.nav-links');
@@ -226,20 +237,60 @@ function renderInstallAppButton() {
     btn.className = 'btn btn-sm btn-amber';
     btn.style.cssText = 'padding: 0.22rem 0.65rem; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;';
     btn.innerHTML = '<span>📲</span> Install App';
-    btn.onclick = () => {
-      if (deferredInstallPrompt) {
-        deferredInstallPrompt.prompt();
-        deferredInstallPrompt.userChoice.then(res => {
-          if (res.outcome === 'accepted') {
-            btn.remove();
-          }
-          deferredInstallPrompt = null;
-        });
-      }
-    };
+    btn.onclick = () => window.triggerPWAInstall();
     navLinks.insertBefore(btn, navLinks.firstChild);
   }
 }
+
+// Render floating mobile install drawer for 1-tap zero-friction installation
+function renderMobileInstallBanner() {
+  if (document.getElementById('pwa-mobile-install-banner')) return;
+  if (sessionStorage.getItem('ndli_pwa_banner_dismissed') === '1') return;
+
+  const banner = document.createElement('div');
+  banner.id = 'pwa-mobile-install-banner';
+  banner.style.cssText = 'position:fixed;bottom:18px;left:14px;right:14px;max-width:440px;margin:0 auto;background:rgba(8,25,18,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1.5px solid rgba(217,119,6,0.65);border-radius:18px;box-shadow:0 16px 48px rgba(0,0,0,0.6),0 0 24px rgba(13,119,81,0.3);padding:10px 14px;z-index:999999;display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:system-ui,-apple-system,sans-serif;animation:pwaBannerSlideUp 0.4s cubic-bezier(0.16,1,0.3,1);';
+
+  banner.innerHTML = `
+    <img src="/static/img/app_icon_192.png" alt="App Icon" style="width:44px;height:44px;border-radius:11px;border:1px solid rgba(255,255,255,0.25);flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:800;font-size:0.84rem;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em;">NDLI Club Management App</div>
+      <div style="font-size:0.72rem;color:#94A3B8;margin-top:2px;">1-Tap Mobile Install & Offline Sync</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <button id="pwa-banner-install-btn" style="background:linear-gradient(135deg,#B45309,#D97706);color:#FFF;border:none;border-radius:10px;padding:7px 12px;font-weight:800;font-size:0.75rem;cursor:pointer;box-shadow:0 4px 14px rgba(217,119,6,0.4);display:inline-flex;align-items:center;gap:4px;"><span>📲</span> Install</button>
+      <button id="pwa-banner-close-btn" style="background:transparent;border:none;color:#94A3B8;font-size:1.1rem;line-height:1;cursor:pointer;padding:4px;" title="Dismiss">✕</button>
+    </div>
+  `;
+
+  document.body.appendChild(banner);
+
+  document.getElementById('pwa-banner-install-btn').onclick = () => window.triggerPWAInstall();
+  document.getElementById('pwa-banner-close-btn').onclick = () => {
+    banner.remove();
+    sessionStorage.setItem('ndli_pwa_banner_dismissed', '1');
+  };
+}
+
+// Global 1-Tap Trigger callable from anywhere in the UI
+window.triggerPWAInstall = function() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        showOfflineToast('📲 Installing NDLI Club Management App to your Home screen...', 'success');
+        const banner = document.getElementById('pwa-mobile-install-banner');
+        if (banner) banner.remove();
+        const navBtn = document.getElementById('btn-pwa-install');
+        if (navBtn) navBtn.remove();
+      }
+      deferredInstallPrompt = null;
+    });
+  } else {
+    // If browser prompt is not active or already installed
+    showOfflineToast('💡 To install: Tap Chrome menu (⋮) and choose "Add to Home screen" or "Install app"');
+  }
+};
 
 // Lifecycle listeners
 window.addEventListener('online', () => {

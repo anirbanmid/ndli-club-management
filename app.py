@@ -163,6 +163,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
+        # PWA Root Aliases (manifest.json, sw.js)
+        if path == "/manifest.json":
+            self._serve_file(BASE_DIR / "static" / "manifest.json", "application/manifest+json; charset=utf-8")
+            return
+
+        if path == "/sw.js":
+            self._serve_file(BASE_DIR / "static" / "js" / "sw.js", "application/javascript; charset=utf-8")
+            return
+
         # Static assets serving (static/ and docs/)
         if path.startswith("/static/") or path.startswith("/docs/"):
             rel_path = path.lstrip("/")
@@ -180,6 +189,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 content_type = "image/png"
             elif path.endswith(".jpg") or path.endswith(".jpeg"):
                 content_type = "image/jpeg"
+            elif path.endswith("manifest.json"):
+                content_type = "application/manifest+json; charset=utf-8"
             elif path.endswith(".json"):
                 content_type = "application/json; charset=utf-8"
             elif path.endswith(".pdf"):
