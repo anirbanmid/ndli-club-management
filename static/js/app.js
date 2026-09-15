@@ -218,7 +218,7 @@ if (typeof window !== "undefined") {
 }
 
 // =============================================================================
-// Fluid Page Transition Handler for All Internal Navigation Links
+// Instant Navigation & Hover Prefetching for Fast Portal Transitions
 // =============================================================================
 function initFluidPageTransitions() {
   if (typeof document === "undefined" || typeof document.addEventListener !== "function") return;
@@ -226,63 +226,38 @@ function initFluidPageTransitions() {
     document.body.classList.remove("page-leaving");
   }
 
-  document.addEventListener("click", (e) => {
-    if (!e || !e.target || typeof e.target.closest !== "function") return;
-    const link = e.target.closest("a");
-    if (!link) return;
-
-    const href = link.getAttribute ? link.getAttribute("href") : null;
-    if (!href) return;
-
-    // Skip anchor-only, javascript, external links, new window, and downloads
-    if (
-      href.startsWith("#") ||
-      href.startsWith("javascript:") ||
-      link.target === "_blank" ||
-      (typeof link.hasAttribute === "function" && link.hasAttribute("download")) ||
-      href.startsWith("/api/download") ||
-      href.startsWith("mailto:") ||
-      href.startsWith("tel:")
-    ) {
-      return;
-    }
-
-    // Check if same-origin internal route
-    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "";
-    const isInternal = href.startsWith("/") || (origin && href.startsWith(origin));
-    if (!isInternal) return;
-
-    // Check if navigating to exact same URL
+  // Pre-warm and prefetch target portals on hover / touchstart for 0ms navigation
+  const prefetchedUrls = new Set();
+  const prefetchTarget = (url) => {
+    if (!url || prefetchedUrls.has(url)) return;
+    prefetchedUrls.add(url);
     try {
-      if (typeof window !== "undefined" && window.location) {
-        const targetUrl = new URL(link.href || href, window.location.origin);
-        if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
-          return;
-        }
-      }
-    } catch(err) {}
+      const linkEl = document.createElement("link");
+      linkEl.rel = "prefetch";
+      linkEl.href = url;
+      document.head.appendChild(linkEl);
+    } catch (err) {}
+  };
 
-    // Trigger smooth exit transition
-    if (typeof e.preventDefault === "function") {
-      e.preventDefault();
+  document.addEventListener("mouseover", (e) => {
+    if (!e || !e.target || typeof e.target.closest !== "function") return;
+    const a = e.target.closest("a");
+    if (!a) return;
+    const href = a.getAttribute ? a.getAttribute("href") : null;
+    if (href && (href === "/" || href === "/admin" || href === "/employee" || href.startsWith("/employee/"))) {
+      prefetchTarget(href);
     }
-    if (document.body && document.body.classList) {
-      document.body.classList.add("page-leaving");
-    }
-    setTimeout(() => {
-      if (typeof window !== "undefined" && window.location) {
-        window.location.href = link.href || href;
-      }
-    }, 140);
-  });
+  }, { passive: true });
 
-  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
-    window.addEventListener("pageshow", () => {
-      if (document.body && document.body.classList) {
-        document.body.classList.remove("page-leaving");
-      }
-    });
-  }
+  document.addEventListener("touchstart", (e) => {
+    if (!e || !e.target || typeof e.target.closest !== "function") return;
+    const a = e.target.closest("a");
+    if (!a) return;
+    const href = a.getAttribute ? a.getAttribute("href") : null;
+    if (href && (href === "/" || href === "/admin" || href === "/employee" || href.startsWith("/employee/"))) {
+      prefetchTarget(href);
+    }
+  }, { passive: true });
 }
 
 if (typeof document !== "undefined") {
