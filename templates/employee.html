@@ -29,12 +29,13 @@
     }
 
     .officer-banner {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      background: linear-gradient(135deg, #ffffff 0%, #f8fdf9 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      border-left: 4px solid var(--primary-light);
       padding: 0.85rem 1.15rem;
-      margin-bottom: 1rem;
-      box-shadow: var(--shadow-xs);
+      margin-bottom: 0.85rem;
+      box-shadow: var(--shadow-sm);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -55,14 +56,14 @@
       margin-top: 1rem;
       padding-top: 1rem;
       border-top: 2px dashed var(--border);
-      animation: fadeIn 0.3s ease-in-out;
+      animation: secCReveal 0.30s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .sec-c-container.open {
       display: block;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes secCReveal {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .live-clock-badge {
       background: #0f172a;
@@ -91,11 +92,11 @@
     }
     .login-card {
       background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem 1.75rem;
-      box-shadow: var(--shadow);
-      border-top: 4px solid var(--primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 1.65rem 1.90rem;
+      box-shadow: var(--shadow-lg);
+      border-top: 3px solid var(--primary-light);
     }
     .login-header {
       text-align: center;
@@ -117,10 +118,10 @@
       box-shadow: var(--shadow-xs);
     }
     .login-header h2 {
-      font-size: 1.25rem;
+      font-size: 1.28rem;
       color: var(--primary);
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      font-weight: 900;
+      letter-spacing: -0.02em;
     }
     .login-header p {
       font-size: 0.78rem;
@@ -135,24 +136,27 @@
     }
     .officer-chip {
       background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      padding: 0.45rem 0.65rem;
-      border-radius: var(--radius);
+      border: 1.5px solid var(--border-subtle);
+      padding: 0.50rem 0.70rem;
+      border-radius: var(--radius-sm);
       font-size: 0.78rem;
       text-align: left;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
+      gap: 0.1rem;
     }
     .officer-chip:hover {
-      background: #eff6ff;
+      background: #edf7f2;
       border-color: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16,49,37,0.10);
     }
     .officer-chip.active {
-      background: #eff6ff;
+      background: #dff0e8;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
+      box-shadow: 0 0 0 2px rgba(13, 119, 81, 0.18);
     }
     .chip-code {
       font-weight: 700;
@@ -185,6 +189,13 @@
     .password-toggle-btn:hover {
       color: var(--primary);
     }
+    /* Tool card hover enhancement */
+    .tool-card-item:hover {
+      transform: translateY(-4px) !important;
+      box-shadow: var(--shadow) !important;
+    }
+    /* Login submit button amber */
+    #btn-login-submit { background: var(--gradient-accent) !important; }
   </style>
 </head>
 <body>
@@ -314,7 +325,7 @@
     <!-- ============================================================= -->
     <section id="employee-portal-view" style="display: none;">
       <!-- Active Officer Banner (Integrated with Action Controls) -->
-      <div class="officer-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 0.65rem;">
+      <div class="officer-banner">
         <div class="officer-details" style="flex: 1; min-width: 260px;">
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem; flex-wrap: wrap;">
             <span class="pill pill-primary" id="current-emp-id">EMP01</span>
@@ -639,7 +650,7 @@
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem;">
         <!-- 1. osTicket -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fff7ed; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -665,7 +676,7 @@
         </div>
 
         <!-- 2. Gmail -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -693,7 +704,7 @@
         </div>
 
         <!-- 3. Google Meet -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -721,7 +732,7 @@
         </div>
 
         <!-- 4. Google Drive -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef7e0; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -747,7 +758,7 @@
         </div>
 
         <!-- 5. Google Docs -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e8f0fe; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -775,7 +786,7 @@
         </div>
 
         <!-- 6. Google Sheets -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -802,7 +813,7 @@
         </div>
 
         <!-- 7. Google Slides -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fffbeb; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -829,7 +840,7 @@
         </div>
 
         <!-- 8. Google Keep -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fefce8; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -855,7 +866,7 @@
         </div>
 
         <!-- 9. YouTube (NDL India) -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -880,7 +891,7 @@
         </div>
 
         <!-- 10. Zoom Meeting -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #eff6ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -904,7 +915,7 @@
         </div>
 
         <!-- 11. Microsoft Teams -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #f5f3ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -932,7 +943,7 @@
         </div>
 
         <!-- 12. StreamYard -->
-        <div class="portal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #f1f5f9; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -1437,8 +1448,15 @@
     </div>
   </div>
 
-  <footer>
-    <p>National Digital Library of India (NDLI) Club Project • Central Office: Indian Institute of Technology Kharagpur</p>
+  <footer class="system-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-meta">
+          <div class="footer-title">National Digital Library of India (NDLI) Club Project</div>
+          <div class="footer-sub">Central Office: Indian Institute of Technology Kharagpur</div>
+        </div>
+      </div>
+    </div>
   </footer>
 
   <script src="/static/js/certificate_engine.js"></script>

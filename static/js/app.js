@@ -107,7 +107,47 @@ function initTabs() {
 // Auto-run on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
+  initRippleEffect();
+  initScrollReveal();
 });
+
+/**
+ * Adds a CSS ripple effect to all .btn elements on click.
+ * Non-destructive: attaches once per button.
+ */
+function initRippleEffect() {
+  if (typeof document === "undefined") return;
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn");
+    if (!btn) return;
+    const ripple = document.createElement("span");
+    ripple.classList.add("ripple");
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + "px";
+    ripple.style.left  = (e.clientX - rect.left - size / 2) + "px";
+    ripple.style.top   = (e.clientY - rect.top  - size / 2) + "px";
+    btn.appendChild(ripple);
+    ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+  }, { passive: true });
+}
+
+/**
+ * Lightweight IntersectionObserver scroll-reveal for .reveal-card elements.
+ * Adds .reveal-visible class when the element enters the viewport.
+ */
+function initScrollReveal() {
+  if (typeof IntersectionObserver === "undefined") return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("reveal-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll(".reveal-card").forEach(el => observer.observe(el));
+}
 
 /**
  * Automatically computes the next renewal date as exactly 1 calendar year (+1 year)

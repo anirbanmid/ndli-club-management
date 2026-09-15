@@ -8,78 +8,75 @@
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
     .ai-card {
-      background: linear-gradient(135deg, #103125 0%, #1A503E 60%, #0c2018 100%);
+      background: linear-gradient(135deg, #0c2018 0%, #103125 55%, #1A503E 100%);
       color: #ffffff;
-      border: 1px solid rgba(13, 119, 81, 0.45);
-      border-radius: var(--radius);
-      padding: 1.15rem 1.35rem;
+      border: 1px solid rgba(13, 119, 81, 0.38);
+      border-radius: var(--radius-xl);
+      padding: 1.40rem 1.60rem;
       margin-bottom: 1rem;
-      box-shadow: var(--shadow);
+      box-shadow: 0 16px 40px rgba(7,25,18,0.35);
+      position: relative;
+      overflow: hidden;
     }
     .ai-rec-box {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: var(--radius-sm);
-      padding: 0.75rem 0.95rem;
-      margin-bottom: 0.55rem;
-      transition: background 0.2s;
+      padding: 0.85rem 1.0rem;
+      margin-bottom: 0.60rem;
+      transition: background 0.18s ease, transform 0.18s ease;
     }
     .ai-rec-box:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.13);
+      transform: translateX(3px);
     }
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.80rem;
       margin-bottom: 1rem;
     }
     .chart-container {
       background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.15rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.15rem 1.35rem;
       box-shadow: var(--shadow-xs);
     }
     .filter-bar {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.80rem;
       align-items: center;
       flex-wrap: wrap;
       background: #ffffff;
-      padding: 0.65rem 0.95rem;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      margin-bottom: 0.85rem;
+      padding: 0.70rem 1.05rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 0.90rem;
       box-shadow: var(--shadow-xs);
     }
     /* Responsive adjustments to eliminate horizontal scroll in analytical matrices */
-    .responsive-matrix-card {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box;
-      grid-column: 1 / -1 !important;
-    }
-    .responsive-matrix-card .table-responsive {
-      width: 100% !important;
-      overflow-x: auto;
-      box-sizing: border-box;
-    }
-    #state-breakdown-table, #employee-performance-table {
-      width: 100% !important;
-      table-layout: auto;
-      border-collapse: collapse;
-    }
+    .responsive-matrix-card { width: 100% !important; max-width: 100% !important; box-sizing: border-box; grid-column: 1 / -1 !important; }
+    .responsive-matrix-card .table-responsive { width: 100% !important; overflow-x: auto; box-sizing: border-box; }
+    #state-breakdown-table, #employee-performance-table { width: 100% !important; table-layout: auto; border-collapse: collapse; }
     #state-breakdown-table th, #state-breakdown-table td,
-    #employee-performance-table th, #employee-performance-table td {
-      white-space: normal !important;
-      word-break: normal;
-      overflow-wrap: break-word;
-      box-sizing: border-box;
+    #employee-performance-table th, #employee-performance-table td { white-space: normal !important; word-break: normal; overflow-wrap: break-word; box-sizing: border-box; }
+    #employee-performance-table th { vertical-align: bottom; line-height: 1.2; }
+    /* Navbar auth badge animations */
+    #nav-admin-badge { transition: background 0.3s ease; }
+    /* Modal overlay enhanced backdrop */
+    .modal-overlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    /* Stat card reveal */
+    .stat-card { animation: statCardIn 0.40s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    @keyframes statCardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    #employee-performance-table th {
-      vertical-align: bottom;
-      line-height: 1.2;
-    }
+    .stat-card:nth-child(1) { animation-delay: 0.00s; }
+    .stat-card:nth-child(2) { animation-delay: 0.06s; }
+    .stat-card:nth-child(3) { animation-delay: 0.12s; }
+    .stat-card:nth-child(4) { animation-delay: 0.18s; }
+    .stat-card:nth-child(5) { animation-delay: 0.22s; }
   </style>
 </head>
 <body>
@@ -89,15 +86,15 @@
         <div class="brand-logo-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
         </div>
-        <div class="brand-text">
+        <div class="brand-text" style="letter-spacing: 0.01em;">
           <h1>NDLI Club IIT Kharagpur — Central Administration Office</h1>
-          <p>NDLI Club Master Control & Strategic Decision System</p>
+          <p>NDLI Club Master Control &amp; Strategic Decision System</p>
         </div>
       </a>
       <div class="nav-links">
         <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem;">ADMIN LOCKED 🔒</span>
         <span id="nav-admin-user" style="font-size: 0.78rem; color: #cbd5e1;">Access Restricted</span>
-        <button id="nav-admin-auth-btn" class="btn btn-sm btn-accent" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
+        <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
         <a href="/login" class="nav-link"><span>🔐</span> Employee Login</a>
         <a href="/employee" class="nav-link">Employee Portals</a>
@@ -110,22 +107,22 @@
   <main class="container">
     <!-- Top KPIs -->
     <div class="kpi-row">
-      <div class="stat-card">
+      <div class="stat-card reveal-card">
         <span class="stat-label">Total NDLI Clubs</span>
         <span class="stat-value" id="kpi-clubs">0</span>
-        <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States & UTs</span>
+        <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States &amp; UTs</span>
       </div>
-      <div class="stat-card accent">
+      <div class="stat-card accent reveal-card">
         <span class="stat-label">Total Daily Support Logs</span>
         <span class="stat-value" id="kpi-activities">0</span>
         <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 7 zones</span>
       </div>
-      <div class="stat-card success">
+      <div class="stat-card success reveal-card">
         <span class="stat-label">Active Regional Nodes</span>
         <span class="stat-value" id="kpi-nodes">7</span>
         <span class="stat-desc" id="kpi-nodes-desc">Dedicated CSV Node DBs</span>
       </div>
-      <div class="stat-card danger" id="card-renewal-attention" onclick="openRenewalAttentionModal()" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention">
+      <div class="stat-card danger reveal-card" id="card-renewal-attention" onclick="openRenewalAttentionModal()" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label">Renewal Attention</span>
           <span style="font-size: 0.72rem; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
@@ -133,7 +130,7 @@
         <span class="stat-value" id="kpi-renewals">0</span>
         <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
       </div>
-      <div class="stat-card danger" id="card-admin-escalations" onclick="openAdminEscalationsListModal()" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues">
+      <div class="stat-card danger reveal-card" id="card-admin-escalations" onclick="openAdminEscalationsListModal()" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
           <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: #ffffff; background: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
@@ -184,8 +181,8 @@
         </div>
         <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
           <button class="btn btn-outline btn-sm" onclick="loadDashboardData()">Refresh Metrics ↻</button>
-          <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: #1A503E; color: #ffffff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" target="_blank"><span>📖</span> User Manual (PDF)</a>
-          <button class="btn btn-primary btn-sm" id="btn-download-master-csv" onclick="downloadMasterCSV()" title="Download master_clubs.csv database copy" style="background: #0D7751; color: #ffffff; font-weight: 600;">Download Master CSV</button>
+          <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-user-manual" title="Download Official NDLI User Manual (PDF)" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" target="_blank"><span>📖</span> User Manual (PDF)</a>
+          <button class="btn btn-amber btn-sm" id="btn-download-master-csv" onclick="downloadMasterCSV()" title="Download master_clubs.csv database copy" style="color: #ffffff; font-weight: 600;">Download Master CSV</button>
         </div>
       </div>
 
@@ -239,7 +236,7 @@
       <!-- 3. STRATEGIC MODERN INFOGRAPHICS GRID (2x2) -->
       <div class="grid-2">
         <!-- Zone Distribution Donut Chart Card -->
-        <div class="infographic-card" id="zone-donut-card">
+        <div class="infographic-card reveal-card" id="zone-donut-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
             <div>
               <h3 class="card-title" id="zone-donut-title">Zone-Wise Club Share</h3>
@@ -253,7 +250,7 @@
         </div>
 
         <!-- Registration Growth Trajectory Area Chart Card -->
-        <div class="infographic-card" id="trajectory-card">
+        <div class="infographic-card reveal-card" id="trajectory-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
             <div>
               <h3 class="card-title">Monthly Registration Trajectory</h3>
@@ -270,7 +267,7 @@
       <!-- 4. SUPPORT ACTIVITY BREAKDOWN & RENEWAL HEALTH INFOGRAPHICS -->
       <div class="grid-2" style="margin-top: 0.75rem;">
         <!-- Support Activity Types Breakdown -->
-        <div class="infographic-card" id="support-breakdown-card">
+        <div class="infographic-card reveal-card" id="support-breakdown-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
             <div>
               <h3 class="card-title">SEC A: Support Activity Breakdown</h3>
@@ -283,11 +280,11 @@
           </div>
         </div>
 
-        <!-- Renewal & Retention Health Gauge -->
-        <div class="infographic-card" id="renewal-health-card">
+        <!-- Renewal &amp; Retention Health Gauge -->
+        <div class="infographic-card reveal-card" id="renewal-health-card">
           <div class="card-header" style="margin-bottom: 0.5rem;">
             <div>
-              <h3 class="card-title">Club Renewal & Retention Health</h3>
+              <h3 class="card-title">Club Renewal &amp; Retention Health</h3>
               <p class="card-subtitle">1-Year Registration lifecycle status and attention tracking</p>
             </div>
             <span class="pill pill-highlight-amber" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="openRenewalAttentionModal()">
@@ -600,8 +597,8 @@
             </div>
 
             <div style="display: flex; justify-content: flex-end;">
-              <button type="submit" class="btn btn-accent">
-                <span>+</span> Provision Employee & Dedicated Node DB
+              <button type="submit" class="btn btn-amber btn-lg">
+                <span>+</span> Provision Employee &amp; Dedicated Node DB
               </button>
             </div>
           </form>
@@ -734,8 +731,15 @@
     </div>
   </main>
 
-  <footer>
-    <p>National Digital Library of India (NDLI) Club Project • Central Office: Indian Institute of Technology Kharagpur</p>
+  <footer class="system-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span>NDLI Club IIT Kharagpur — Central Administration Office</span>
+      </div>
+      <div class="footer-credit-box">
+        National Digital Library of India (NDLI) Club Project • Central Office: Indian Institute of Technology Kharagpur
+      </div>
+    </div>
   </footer>
 
   <script src="/static/js/app.js"></script>
