@@ -1057,27 +1057,35 @@ tbody tr:hover {
 }
 
 .footer-credit-box {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  padding: 0.45rem 0.95rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.2rem 0.6rem;
   border-radius: var(--radius-sm);
   text-align: right;
-  backdrop-filter: blur(4px);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.footer-credit-box:hover {
+  opacity: 0.95;
 }
 
 .footer-credit-box .dev-role {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #9abfb0;
+  letter-spacing: 0.03em;
+  color: #7d9e91;
   display: block;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .footer-credit-box .dev-name {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #34d399;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #9cbdae;
   letter-spacing: 0.01em;
+  line-height: 1.25;
 }
 
 /* ==========================================================================
