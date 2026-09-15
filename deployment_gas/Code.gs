@@ -650,13 +650,13 @@ function doGet(e) {
       '</head><body><div class="card">' +
       '<div style="font-size:2.5rem;margin-bottom:10px;">📖</div>' +
       '<h2 style="margin:0 0 10px 0;color:#103125;">NDLI Club Management System</h2>' +
-      '<h4 style="margin:0 0 15px 0;color:#0D7751;">Official User Manual &amp; Operational Handbook (14 Pages)</h4>' +
+      '<h4 style="margin:0 0 15px 0;color:#0D7751;">Official User Manual &amp; Operational Handbook</h4>' +
       '<p style="color:#64748b;font-size:0.95rem;">IIT Kharagpur Central Master Administration Office &amp; 7 Regional Operational Zones</p>' +
       '<p>Opening the official handbook...</p>' +
       '<div style="margin-top:20px;">' +
-      '<a href=\"' + driveUrl + '\" class=\"btn\" target=\"_blank\">📥 Download PDF (14 Pages)</a>' +
+      '<a href=\"' + driveUrl + '\" class=\"btn\" target=\"_blank\">📥 Download PDF</a>' +
       '</div></div></body></html>';
-    return HtmlService.createHtmlOutput(html).setTitle("NDLI User Manual (14 Pages) - IIT Kharagpur");
+    return HtmlService.createHtmlOutput(html).setTitle("NDLI User Manual - IIT Kharagpur");
   }
 
   // 2. REST API DIRECT GET CALLS (e.g. ?api=1&path=/api/admin/metrics)
