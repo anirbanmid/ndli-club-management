@@ -1482,11 +1482,11 @@ tbody tr:hover {
           <p>Activity Tracker & Club Approval System • NDLI IIT Kharagpur</p>
         </div>
       </a>
-      <div class="nav-links">
-        <div class="live-clock-badge" id="nav-live-clock" title="National Standard System Clock (IST)">
+      <div class="nav-links" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: nowrap;">
+        <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.72rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
           <span>⏰ --:--:--</span>
         </div>
-        <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.6rem;">
+        <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
           <!-- Dynamically populated by updateNavAuth() -->
         </div>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span class="badge-tag" style="background:#0284c7; color:#ffffff;">🏛️ NDLI</span> Main Site ↗</a>
@@ -3731,9 +3731,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const bannerClock = document.getElementById("live-clock");
       if (bannerClock) bannerClock.innerHTML = clockHtml;
 
-      // Update top navbar clock
+      // Update top navbar clock (compact single-row layout)
       const navClock = document.getElementById("nav-live-clock");
-      if (navClock) navClock.innerHTML = clockHtml;
+      if (navClock) {
+        navClock.innerHTML = `<span style="color: #38bdf8; font-family: monospace; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.02em;">⏰ ${istTimeStr || sysTimeStr}</span> <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 600;">IST</span>`;
+        navClock.title = `National Standard System Clock (IST): ${istDateStr || sysDateStr} ${istTimeStr || sysTimeStr} (UTC+5:30)${localDeviceTime ? ` | Device: ${localDeviceTime}` : ''}`;
+      }
 
       // Update login view clock
       const loginClock = document.getElementById("login-live-clock");

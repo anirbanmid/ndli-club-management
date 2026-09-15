@@ -6,7 +6,28 @@
   <meta name="author" content="Dr. Anirban Mukherjee">
   <title>NDLI Club Employee Portal | NDLI IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    /* Immediate synchronous auth resolution to eliminate jerky login-card flash when navigating to employee portal */
+    (function() {
+      try {
+        var path = window.location.pathname.toLowerCase();
+        var isExplicitLogin = path === "/login" || path === "/employee/login";
+        var t = sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_auth_session") || sessionStorage.getItem("ndli_employee_session");
+        if (t && !isExplicitLogin) {
+          document.documentElement.classList.add("auth-portal-unlocked");
+        }
+      } catch(e) {}
+    })();
+  </script>
   <style>
+    /* Instant Seamless Pre-Unlock state (prevents jerky login-screen flash) */
+    html.auth-portal-unlocked #employee-login-view {
+      display: none !important;
+    }
+    html.auth-portal-unlocked #employee-portal-view {
+      display: block !important;
+    }
+
     .officer-banner {
       background: #ffffff;
       border: 1px solid var(--border);
@@ -178,11 +199,11 @@
           <p>Activity Tracker & Club Approval System • NDLI IIT Kharagpur</p>
         </div>
       </a>
-      <div class="nav-links">
-        <div class="live-clock-badge" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.74rem; padding: 0.2rem 0.55rem;">
+      <div class="nav-links" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: nowrap;">
+        <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.72rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
           <span>⏰ --:--:--</span>
         </div>
-        <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.35rem;">
+        <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
           <!-- Dynamically populated by updateNavAuth() -->
         </div>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
@@ -1540,9 +1561,12 @@
       const bannerClock = document.getElementById("live-clock");
       if (bannerClock) bannerClock.innerHTML = clockHtml;
 
-      // Update top navbar clock
+      // Update top navbar clock (sleek compact format to guarantee single-row layout - Observation 1)
       const navClock = document.getElementById("nav-live-clock");
-      if (navClock) navClock.innerHTML = clockHtml;
+      if (navClock) {
+        navClock.innerHTML = `<span style="color: #38bdf8; font-family: monospace; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.02em;">⏰ ${istTimeStr || sysTimeStr}</span> <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 600;">IST</span>`;
+        navClock.title = `National Standard System Clock (IST): ${istDateStr || sysDateStr} ${istTimeStr || sysTimeStr} (UTC+5:30)${localDeviceTime ? ` | Device: ${localDeviceTime}` : ''}`;
+      }
 
       // Update login view clock
       const loginClock = document.getElementById("login-live-clock");
@@ -1700,6 +1724,9 @@
           const session = res.data.session;
           sessionStorage.setItem("ndli_token", session.token);
           sessionStorage.setItem("ndli_employee_session", JSON.stringify(session));
+          sessionStorage.setItem("ndli_auth_session", JSON.stringify(session));
+          sessionStorage.setItem("ndli_user_id", session.user_id);
+          sessionStorage.setItem("ndli_role", session.role || "EMPLOYEE");
 
           CURRENT_USER_SESSION = session;
           if (session.role === "EMPLOYEE") {
@@ -1731,7 +1758,11 @@
       }
       sessionStorage.removeItem("ndli_token");
       sessionStorage.removeItem("ndli_employee_session");
+      sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_user_id");
+      sessionStorage.removeItem("ndli_role");
       localStorage.removeItem("ndli_token");
+      document.documentElement.classList.remove("auth-portal-unlocked");
       CURRENT_USER_SESSION = null;
 
       showLoginView("You have signed out successfully.");
@@ -1745,8 +1776,13 @@
       const loginView = document.getElementById("employee-login-view");
       const portalView = document.getElementById("employee-portal-view");
 
-      if (loginView) loginView.style.display = "block";
       if (portalView) portalView.style.display = "none";
+      if (loginView) {
+        loginView.style.display = "block";
+        loginView.classList.remove("view-fade-in");
+        void loginView.offsetWidth;
+        loginView.classList.add("view-fade-in");
+      }
 
       updateNavAuth(false);
       await fetchLiveRoster();
@@ -1780,7 +1816,12 @@
       const portalView = document.getElementById("employee-portal-view");
 
       if (loginView) loginView.style.display = "none";
-      if (portalView) portalView.style.display = "block";
+      if (portalView) {
+        portalView.style.display = "block";
+        portalView.classList.remove("view-fade-in");
+        void portalView.offsetWidth;
+        portalView.classList.add("view-fade-in");
+      }
 
       await fetchLiveProfile(CURRENT_EMP_ID);
       updateNavAuth(true, session);
@@ -1806,7 +1847,7 @@
 
       if (!isLoggedIn || !session) {
         container.innerHTML = `
-          <a href="/login" class="btn btn-primary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; text-decoration: none;">
+          <a href="/login" class="btn btn-primary btn-sm" style="padding: 0.22rem 0.55rem; font-size: 0.74rem; text-decoration: none; white-space: nowrap;">
             🔐 Sign In
           </a>
         `;
@@ -1814,14 +1855,17 @@
       }
 
       const prof = EMP_PROFILES[CURRENT_EMP_ID] || { name: session.full_name, zone: session.zone };
+      const firstName = (prof.name || session.full_name || 'Officer').split(" ")[0];
+      const zoneStr = prof.zone || session.zone || 'Regional';
       container.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-          <span style="font-size: 0.8rem; color: #cbd5e1;">Logged In:</span>
-          <span class="badge-tag" style="background: var(--accent);">${CURRENT_EMP_ID} • ${prof.name.split(" ")[0]} (${prof.zone || 'Regional'} Zone)</span>
-          <button type="button" class="btn btn-outline btn-sm" onclick="promptSwitchOfficer()" style="color: #ffffff; border-color: rgba(255,255,255,0.5); padding: 0.25rem 0.65rem; font-size: 0.78rem;" title="Sign in as another zonal officer">
-            Switch Officer
+        <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: nowrap; flex-shrink: 0;">
+          <span class="badge-tag" style="background: var(--accent); font-size: 0.7rem; padding: 0.18rem 0.45rem; white-space: nowrap;" title="Authenticated: ${prof.name || session.full_name} (${zoneStr} Zone)">
+            👤 ${CURRENT_EMP_ID} (${firstName})
+          </span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="promptSwitchOfficer()" style="color: #ffffff; border-color: rgba(255,255,255,0.4); padding: 0.18rem 0.45rem; font-size: 0.72rem; white-space: nowrap;" title="Sign in as another zonal officer">
+            Switch
           </button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="handleLogout()" style="color: #ffffff; border-color: rgba(255,255,255,0.5); padding: 0.25rem 0.65rem; font-size: 0.78rem;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="handleLogout()" style="color: #ffffff; border-color: rgba(255,255,255,0.4); padding: 0.18rem 0.45rem; font-size: 0.72rem; white-space: nowrap;" title="Sign Out">
             Sign Out
           </button>
         </div>
