@@ -84,32 +84,32 @@
       font-size: 1rem;
     }
 
-    /* Login Screen Specific Styles - Compact & Centered */
+    /* Login Screen Specific Styles - Ultra-Compact & Centered */
     .login-wrapper {
       max-width: 520px;
-      margin: 0.45rem auto;
+      margin: 0.25rem auto;
       animation: fadeIn 0.3s ease-in-out;
     }
     .login-card {
       background: #ffffff;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 0.85rem 1.25rem;
+      padding: 0.65rem 1.1rem;
       box-shadow: var(--shadow-lg);
       border-top: 3px solid var(--primary-light);
     }
     .login-header {
       text-align: center;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.25rem;
     }
     .login-header .crest {
-      width: 40px;
-      height: 40px;
-      margin: 0 auto 0.35rem auto;
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 0.2rem auto;
       background: var(--primary);
       color: #ffffff;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -118,51 +118,56 @@
       box-shadow: var(--shadow-xs);
     }
     .login-header h2 {
-      font-size: 1.12rem;
+      font-size: 1.02rem;
       color: var(--primary);
       font-weight: 800;
       letter-spacing: -0.015em;
-      margin: 0 0 0.1rem 0;
-      line-height: 1.2;
+      margin: 0 0 0.05rem 0;
+      line-height: 1.15;
     }
     .login-header p {
-      font-size: 0.72rem;
+      font-size: 0.69rem;
       color: var(--text-muted);
       margin: 0;
-      line-height: 1.2;
+      line-height: 1.15;
     }
     .login-card .form-group {
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.25rem;
     }
     .login-card label {
-      font-size: 0.73rem;
-      margin-bottom: 0.12rem;
+      font-size: 0.71rem;
+      margin-bottom: 0.08rem;
       font-weight: 700;
     }
     .login-card input[type="text"],
     .login-card input[type="password"] {
-      padding: 0.32rem 0.6rem;
-      font-size: 0.8rem;
-      height: 33px;
+      padding: 0.22rem 0.55rem;
+      font-size: 0.78rem;
+      height: 31px;
     }
     .officer-chip-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-      gap: 0.3rem;
-      margin-top: 0.25rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.25rem;
+      margin-top: 0.2rem;
+    }
+    @media (max-width: 480px) {
+      .officer-chip-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
     .officer-chip {
       background: #f8fafc;
-      border: 1.5px solid var(--border-subtle);
-      padding: 0.28rem 0.4rem;
+      border: 1px solid var(--border-subtle);
+      padding: 0.2rem 0.35rem;
       border-radius: var(--radius-sm);
-      font-size: 0.72rem;
+      font-size: 0.70rem;
       text-align: left;
       cursor: pointer;
       transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      gap: 0.05rem;
+      gap: 0.02rem;
     }
     .officer-chip:hover {
       background: #edf7f2;
@@ -178,35 +183,35 @@
     .chip-code {
       font-weight: 700;
       color: var(--primary);
-      font-size: 0.73rem;
-      line-height: 1.1;
+      font-size: 0.72rem;
+      line-height: 1.05;
     }
     .chip-name {
       color: #475569;
-      font-size: 0.67rem;
+      font-size: 0.65rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.1;
+      line-height: 1.05;
     }
     .chip-zone {
       color: var(--accent);
-      font-size: 0.62rem;
+      font-size: 0.60rem;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.1;
+      line-height: 1.05;
     }
     .password-toggle-btn {
       position: absolute;
-      right: 6px;
+      right: 5px;
       background: none;
       border: none;
       cursor: pointer;
       color: var(--text-muted);
-      font-size: 0.74rem;
-      padding: 0.2rem 0.4rem;
+      font-size: 0.70rem;
+      padding: 0.15rem 0.35rem;
       font-weight: 600;
     }
     .password-toggle-btn:hover {
@@ -255,19 +260,19 @@
     <section id="employee-login-view" class="login-wrapper">
       <div class="login-card">
         <div class="login-header">
-          <div style="margin: 0 auto 0.35rem auto; display: flex; justify-content: center;">
-            <div style="background: #ffffff; padding: 3px 12px; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: inline-flex; align-items: center;">
-              <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 28px; width: auto; object-fit: contain;">
+          <div style="margin: 0 auto 0.2rem auto; display: flex; justify-content: center;">
+            <div style="background: #ffffff; padding: 2px 10px; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: inline-flex; align-items: center;">
+              <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 24px; width: auto; object-fit: contain;">
             </div>
           </div>
           <h2>Regional Employee Officer Sign-In</h2>
           <p>Activity Tracker & Club Approval System • NDLI IIT Kharagpur</p>
-          <div style="margin-top: 0.25rem; display: flex; justify-content: center; gap: 0.35rem; flex-wrap: wrap;">
-            <span class="badge-tag" style="background: var(--primary); font-size: 0.67rem; padding: 0.12rem 0.45rem;">Nodal Officer Authentication</span>
-            <span class="badge-tag" style="background: var(--primary-light); font-size: 0.67rem; padding: 0.12rem 0.45rem;">Central System</span>
+          <div style="margin-top: 0.2rem; display: flex; justify-content: center; gap: 0.3rem; flex-wrap: wrap;">
+            <span class="badge-tag" style="background: var(--primary); font-size: 0.64rem; padding: 0.1rem 0.4rem;">Nodal Officer Authentication</span>
+            <span class="badge-tag" style="background: var(--primary-light); font-size: 0.64rem; padding: 0.1rem 0.4rem;">Central System</span>
           </div>
           <!-- Live National Standard System Clock on Login Screen -->
-          <div id="login-live-clock" class="live-clock-badge" style="justify-content: center; margin: 0.35rem auto 0 auto; max-width: 400px; padding: 0.16rem 0.5rem; font-size: 0.70rem;" title="Official IIT Kharagpur System Clock (IST)">
+          <div id="login-live-clock" class="live-clock-badge" style="justify-content: center; margin: 0.2rem auto 0 auto; max-width: 380px; padding: 0.12rem 0.45rem; font-size: 0.68rem; line-height: 1.2;" title="Official IIT Kharagpur System Clock (IST)">
             <span>⏰ --:--:--</span>
           </div>
         </div>
@@ -275,7 +280,7 @@
         <div id="login-alert"></div>
 
         <form id="employee-login-form" onsubmit="handleLoginSubmit(event)">
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0.25rem;">
             <label for="login-identifier" class="label-required">Employee User ID or Registered Email</label>
             <input
               type="text"
@@ -284,12 +289,12 @@
               placeholder="e.g., EMP01 or emp.north@ndli.edu.in"
               autocomplete="username"
             >
-            <p style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.12rem; margin-bottom: 0; line-height: 1.2;">
+            <p style="font-size: 0.64rem; color: var(--text-muted); margin-top: 0.08rem; margin-bottom: 0; line-height: 1.15;">
               Enter your Zonal Employee ID (e.g. <code>EMP01</code> to <code>EMP07</code>) or official registered email address.
             </p>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0.25rem;">
             <label for="login-password" class="label-required">Password</label>
             <div style="position: relative; display: flex; align-items: center;">
               <input
@@ -298,7 +303,7 @@
                 required
                 placeholder="Enter your password"
                 autocomplete="current-password"
-                style="padding-right: 4.2rem;"
+                style="padding-right: 3.8rem;"
               >
               <button
                 type="button"
@@ -315,29 +320,26 @@
             type="submit"
             id="btn-login-submit"
             class="btn btn-primary"
-            style="width: 100%; margin-top: 0.35rem; justify-content: center; padding: 0.42rem 0.85rem; font-size: 0.84rem; font-weight: 700; height: 36px;"
+            style="width: 100%; margin-top: 0.25rem; justify-content: center; padding: 0.32rem 0.75rem; font-size: 0.80rem; font-weight: 700; height: 33px;"
           >
             <span>🔐</span> Sign In to Regional Portal →
           </button>
         </form>
 
         <!-- Quick Credential Assistant for 7 Operational Zones -->
-        <div style="margin-top: 0.45rem; border-top: 1px dashed var(--border); padding-top: 0.4rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.1rem;">
-            <span style="font-size: 0.74rem; font-weight: 700; color: var(--primary);">
+        <div style="margin-top: 0.35rem; border-top: 1px dashed var(--border); padding-top: 0.3rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.12rem;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">
               7 Regional Zonal Officers Directory (Click to select):
             </span>
-            <span style="font-size: 0.67rem; color: var(--text-muted);">Quick-Select</span>
+            <span style="font-size: 0.65rem; color: var(--text-muted);">Quick-Select</span>
           </div>
-          <p style="font-size: 0.68rem; color: #64748b; margin-bottom: 0.25rem; line-height: 1.2;">
-            Select your assigned officer profile below to load your User ID into the login form:
-          </p>
           <div class="officer-chip-grid" id="officer-chips-container">
             <!-- Rendered by JS -->
           </div>
         </div>
 
-        <div style="margin-top: 0.45rem; text-align: center; font-size: 0.72rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.35rem;">
+        <div style="margin-top: 0.35rem; text-align: center; font-size: 0.70rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.25rem;">
           IIT Kharagpur Master Administration? <a href="/admin" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">Launch Admin Office →</a>
         </div>
       </div>
@@ -1635,9 +1637,15 @@
         navClock.title = `National Standard System Clock (IST): ${istDateStr || sysDateStr} ${istTimeStr || sysTimeStr} (UTC+5:30)${localDeviceTime ? ` | Device: ${localDeviceTime}` : ''}`;
       }
 
-      // Update login view clock
+      // Update login view clock (compact layout)
       const loginClock = document.getElementById("login-live-clock");
-      if (loginClock) loginClock.innerHTML = clockHtml;
+      if (loginClock) {
+        loginClock.innerHTML = `
+          <span style="color: #94a3b8; font-size: 0.68rem; font-weight: 500;">📅 ${istDateStr || sysDateStr}</span>
+          <span style="color: #38bdf8; font-family: monospace; font-size: 0.76rem; font-weight: 700;">⏰ ${istTimeStr || sysTimeStr}</span>
+          <span style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; font-size: 0.62rem; padding: 1px 4px; border-radius: 3px; font-weight: 600;">IST</span>
+        `;
+      }
 
       // Update SEC C Submission Timestamp live input
       const secCTimestamp = document.getElementById("c-timestamp-display");
