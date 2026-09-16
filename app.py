@@ -157,6 +157,57 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 return str(u.get("is_active", "1")).strip() == "1"
         return False
 
+    def _send_health_status(self):
+        """Sends the system health and REST API endpoints status payload."""
+        storage_info = get_storage_adapter().get_info()
+        self._send_json({
+            "system": "NDLI Club Management and Employee Activity Tracking System",
+            "organization": "IIT Kharagpur",
+            "developer": "Dr. Anirban Mukherjee",
+            "status": "online",
+            "version": "1.0.0 (Phase 1 Foundational Architecture)",
+            "storage": storage_info,
+            "endpoints": [
+                "POST /api/auth/login",
+                "GET  /api/auth/me",
+                "POST /api/auth/logout",
+                "GET  /api/state-zone/map",
+                "GET  /api/state-zone/lookup?state=<name>",
+                "GET  /api/clubs/search?q=<query>",
+                "POST /api/clubs/create",
+                "POST /api/clubs/update",
+                "POST /api/clubs/renew",
+                "POST /api/activity/log",
+                "GET  /api/activity/list",
+                "GET  /api/admin/metrics",
+                "GET  /api/admin/employee-performance",
+                "GET  /api/admin/renewal-attention",
+                "GET  /api/admin/ai-insights",
+                "GET  /api/admin/employees",
+                "POST /api/admin/employees/create",
+                "POST /api/admin/employees/update",
+                "POST /api/admin/employees/status",
+                "GET  /api/employees/roster",
+                "GET  /api/employees/profile?id=<emp_id>",
+                "GET  /manual",
+                "GET  /manual.pdf",
+                "GET  /api/download/user-manual",
+                "GET  /api/download/promo-video",
+                "GET  /promo-video",
+                "GET  /api/admin/download/master-clubs",
+                "GET  /api/admin/backup/status",
+                "POST /api/admin/backup/trigger",
+                "GET  /api/employee/download/activity-log",
+                "GET  /api/employee/download/clubs-log",
+                "POST /api/issues/create",
+                "POST /api/issues/resolve",
+                "GET  /api/issues/employee-reminders",
+                "GET  /api/issues/admin-reminders",
+                "GET  /api/issues/list",
+                "POST /api/sync/reconcile"
+            ]
+        })
+
     def do_GET(self):
         """Routing for GET requests."""
         parsed_url = urllib.parse.urlparse(self.path)
@@ -192,6 +243,22 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self._serve_file(BASE_DIR / "templates" / "index.html")
             return
 
+        if path == "/":
+            accept_header = self.headers.get("Accept", "")
+            user_agent = self.headers.get("User-Agent", "")
+            is_json_requested = (
+                "application/json" in accept_header
+                or query_params.get("format") == ["json"]
+                or query_params.get("api") == ["1"]
+                or (user_agent.startswith("Python-urllib") and "text/html" not in accept_header)
+            )
+            if is_json_requested:
+                self._send_health_status()
+                return
+
+            self._serve_file(BASE_DIR / "templates" / "index.html")
+            return
+
         if path in ["/manual", "/user-manual", "/documentation", "/user_manual", "/manual/view"]:
             self._serve_file(BASE_DIR / "docs" / "user_manual.html", "text/html; charset=utf-8")
             return
@@ -209,60 +276,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             return
 
         # Health / Root endpoint
-        if path in ["/", "/api/health"]:
-            accept_header = self.headers.get("Accept", "")
-            if path == "/" and "text/html" in accept_header:
-                self._serve_file(BASE_DIR / "templates" / "index.html")
-                return
-
-            storage_info = get_storage_adapter().get_info()
-            self._send_json({
-                "system": "NDLI Club Management and Employee Activity Tracking System",
-                "organization": "IIT Kharagpur",
-                "developer": "Dr. Anirban Mukherjee",
-                "status": "online",
-                "version": "1.0.0 (Phase 1 Foundational Architecture)",
-                "storage": storage_info,
-                "endpoints": [
-                    "POST /api/auth/login",
-                    "GET  /api/auth/me",
-                    "POST /api/auth/logout",
-                    "GET  /api/state-zone/map",
-                    "GET  /api/state-zone/lookup?state=<name>",
-                    "GET  /api/clubs/search?q=<query>",
-                    "POST /api/clubs/create",
-                    "POST /api/clubs/update",
-                    "POST /api/clubs/renew",
-                    "POST /api/activity/log",
-                    "GET  /api/activity/list",
-                    "GET  /api/admin/metrics",
-                    "GET  /api/admin/employee-performance",
-                    "GET  /api/admin/renewal-attention",
-                    "GET  /api/admin/ai-insights",
-                    "GET  /api/admin/employees",
-                    "POST /api/admin/employees/create",
-                    "POST /api/admin/employees/update",
-                    "POST /api/admin/employees/status",
-                    "GET  /api/employees/roster",
-                    "GET  /api/employees/profile?id=<emp_id>",
-                    "GET  /manual",
-                    "GET  /manual.pdf",
-                    "GET  /api/download/user-manual",
-                    "GET  /api/download/promo-video",
-                    "GET  /promo-video",
-                    "GET  /api/admin/download/master-clubs",
-                    "GET  /api/admin/backup/status",
-                    "POST /api/admin/backup/trigger",
-                    "GET  /api/employee/download/activity-log",
-                    "GET  /api/employee/download/clubs-log",
-                    "POST /api/issues/create",
-                    "POST /api/issues/resolve",
-                    "GET  /api/issues/employee-reminders",
-                    "GET  /api/issues/admin-reminders",
-                    "GET  /api/issues/list",
-                    "POST /api/sync/reconcile"
-                ]
-            })
+        if path == "/api/health":
+            self._send_health_status()
             return
 
         # State and Zone Mapping
