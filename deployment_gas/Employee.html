@@ -350,6 +350,11 @@ body {
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ==========================================================================
    Cards & Content Surfaces
    ========================================================================== */
@@ -1935,7 +1940,7 @@ tbody tr:hover {
             <p class="card-subtitle">Search existing NDLI clubs by ANY field (Club ID, Reg No, Name, State, Emails). Click a result to edit or renew registration.</p>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button class="btn btn-outline btn-sm" onclick="performUniversalSearch('')">Refresh All</button>
+            <button class="btn btn-outline btn-sm" onclick="performUniversalSearch('', true)">Refresh All</button>
             <button class="btn btn-outline btn-sm" onclick="downloadEmployeeClubsLog()" title="Download a copy of clubs.csv from database of that particular employee account">Download Clubs Log</button>
           </div>
         </div>
@@ -1962,7 +1967,9 @@ tbody tr:hover {
             </thead>
             <tbody id="search-results-tbody">
               <tr>
-                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading clubs database...</td>
+                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  <span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading clubs database...
+                </td>
               </tr>
             </tbody>
           </table>
@@ -3553,6 +3560,10 @@ function initTabs() {
         parent.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
         const targetPanel = document.getElementById(targetId);
         if (targetPanel) targetPanel.classList.add("active");
+
+        if (typeof onTabActivated === "function") {
+          try { onTabActivated(targetId); } catch (e) { console.error(e); }
+        }
       });
     });
   });
@@ -4114,6 +4125,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       if (loginView) loginView.style.display = "none";
       if (portalView) portalView.style.display = "block";
 
+      // Preload clubs database concurrently in background (non-blocking)
+      performUniversalSearch("");
+
       await fetchLiveProfile(CURRENT_EMP_ID);
       updateNavAuth(true, session);
 
@@ -4122,7 +4136,6 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       await renderEmployeeProfile();
       loadEmployeeQuota();
       loadEmployeeActivities();
-      performUniversalSearch("");
       loadEmployeeReminders();
 
       // Set default renewal date in SEC C to 1 year ahead
@@ -4170,13 +4183,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       await renderEmployeeProfile();
       loadEmployeeQuota();
       loadEmployeeActivities();
-      performUniversalSearch(document.getElementById("search-input").value);
+      performUniversalSearch(document.getElementById("search-input").value, true);
       loadEmployeeReminders();
       updateNavAuth(true, CURRENT_USER_SESSION || { full_name: EMP_PROFILES[empId]?.name, zone: EMP_PROFILES[empId]?.zone });
     }
 
     async function renderEmployeeProfile() {
-      const liveProf = await fetchLiveProfile(CURRENT_EMP_ID);
+      const liveProf = (EMP_PROFILES && EMP_PROFILES[CURRENT_EMP_ID]) || await fetchLiveProfile(CURRENT_EMP_ID);
       const prof = liveProf || EMP_PROFILES[CURRENT_EMP_ID] || (CURRENT_USER_SESSION ? {
         name: CURRENT_USER_SESSION.full_name,
         zone: CURRENT_USER_SESSION.zone,
@@ -4689,7 +4702,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         document.getElementById("sec-c-card").classList.remove("open");
         loadEmployeeQuota();
         loadEmployeeActivities();
-        performUniversalSearch("");
+        performUniversalSearch("", true);
       } else {
         const errorMsg = res.data.validation_errors ? res.data.validation_errors.join("<br>") : (res.data.message || "Failed to approve club.");
         showAlert("global-alert", `Validation Error:<br>${errorMsg}`, "danger");
@@ -4745,9 +4758,70 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       }
     }
 
+    let ALL_CLUBS_CACHE = null;
+    let LAST_CLUBS_FETCH_TIME = 0;
+    let IS_CLUBS_FETCHING = false;
+    let PENDING_SEARCH_QUERY = null;
     let CURRENT_SEARCH_RESULTS = [];
+
+    function renderClubsTable(results) {
+      const tbody = document.getElementById("search-results-tbody");
+      if (!tbody) return;
+      if (!results || results.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No clubs found matching your search.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = results.map(c => {
+        const doaVal = c.date_of_approval || c.submission_timestamp || "";
+        const doaDisplay = doaVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : doaVal.split("T")[0]) : "-";
+        const lrdVal = c.last_renewal_date || "";
+        const lrdDisplay = lrdVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(lrdVal) : lrdVal.split("T")[0]) : "None (Initial)";
+        const renDisplay = c.renewal_date || c.next_renewal_date || "-";
+
+        return `
+          <tr>
+            <td><code>${escapeHtml(c.club_id)}</code></td>
+            <td><strong>${escapeHtml(c.institution_name)}</strong></td>
+            <td>${escapeHtml(c.state)}</td>
+            <td><span class="pill pill-primary">${escapeHtml(c.zone)}</span></td>
+            <td style="font-family: monospace; font-size: 0.85rem;">${escapeHtml(doaDisplay)}</td>
+            <td style="font-family: monospace; font-size: 0.85rem; color: #b45309;">${escapeHtml(lrdDisplay)}</td>
+            <td style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #15803d;">${escapeHtml(renDisplay)}</td>
+            <td><span class="pill pill-success">${escapeHtml(c.status || 'Approved')}</span></td>
+            <td>
+              <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-outline btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}')">
+                  Edit / Renew
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}', true)" title="Report unresolved issue and set reminder">
+                  Report Issue
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function filterClubsInMemory(clubs, query) {
+      if (!clubs || !clubs.length) return [];
+      if (!query || !query.trim()) return clubs;
+      const q = query.trim().toLowerCase();
+      return clubs.filter(c => {
+        return (c.club_id && String(c.club_id).toLowerCase().includes(q)) ||
+               (c.institution_name && String(c.institution_name).toLowerCase().includes(q)) ||
+               (c.state && String(c.state).toLowerCase().includes(q)) ||
+               (c.zone && String(c.zone).toLowerCase().includes(q)) ||
+               (c.reg_no && String(c.reg_no).toLowerCase().includes(q)) ||
+               (c.patron_email && String(c.patron_email).toLowerCase().includes(q)) ||
+               (c.president_email && String(c.president_email).toLowerCase().includes(q)) ||
+               (c.secretary_email && String(c.secretary_email).toLowerCase().includes(q));
+      });
+    }
+
     function openEditModalById(clubId, focusIssue = false) {
-      const club = CURRENT_SEARCH_RESULTS.find(c => c.club_id === clubId);
+      const club = (CURRENT_SEARCH_RESULTS && CURRENT_SEARCH_RESULTS.find(c => c.club_id === clubId)) ||
+                   (ALL_CLUBS_CACHE && ALL_CLUBS_CACHE.find(c => c.club_id === clubId));
       if (club) {
         openEditModal(club);
         if (focusIssue) {
@@ -4762,47 +4836,111 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       }
     }
 
-    // Universal Search
-    async function performUniversalSearch(query) {
+    // Tab Activation Hook for Universal Club Search & Edit
+    function onSearchTabActivated() {
+      const currentInput = (document.getElementById("search-input")?.value || "").trim();
+      if (ALL_CLUBS_CACHE && ALL_CLUBS_CACHE.length > 0) {
+        // Instant 0ms cached render!
+        if (currentInput) {
+          const filtered = filterClubsInMemory(ALL_CLUBS_CACHE, currentInput);
+          CURRENT_SEARCH_RESULTS = filtered;
+          renderClubsTable(filtered);
+        } else {
+          CURRENT_SEARCH_RESULTS = ALL_CLUBS_CACHE;
+          renderClubsTable(ALL_CLUBS_CACHE);
+        }
+        // Non-blocking background revalidation if cache is older than 45s
+        if (Date.now() - LAST_CLUBS_FETCH_TIME > 45000) {
+          performUniversalSearch(currentInput, false);
+        }
+      } else {
+        performUniversalSearch(currentInput, false);
+      }
+    }
+
+    function onTabActivated(targetId) {
+      if (targetId === "tab-search") {
+        onSearchTabActivated();
+      }
+    }
+
+    // Universal Search with In-Memory Caching & Instant 0ms Filtering
+    async function performUniversalSearch(query = "", forceRefresh = false) {
       const tbody = document.getElementById("search-results-tbody");
-      const res = await apiRequest(`/api/clubs/search?q=${encodeURIComponent(query)}`);
-      if (res.ok && res.data.results) {
-        const results = res.data.results;
-        CURRENT_SEARCH_RESULTS = results;
-        if (results.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No clubs found matching your search.</td></tr>';
+      const cleanQ = String(query || "").trim();
+
+      if (forceRefresh) {
+        ALL_CLUBS_CACHE = null;
+      }
+
+      // Fast-path: Instant client-side filtering from memory if cache exists
+      if (ALL_CLUBS_CACHE && ALL_CLUBS_CACHE.length > 0 && !forceRefresh) {
+        const filtered = filterClubsInMemory(ALL_CLUBS_CACHE, cleanQ);
+        CURRENT_SEARCH_RESULTS = filtered;
+        renderClubsTable(filtered);
+
+        if (Date.now() - LAST_CLUBS_FETCH_TIME < 45000) {
           return;
         }
-        tbody.innerHTML = results.map(c => {
-          const doaVal = c.date_of_approval || c.submission_timestamp || "";
-          const doaDisplay = doaVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : doaVal.split("T")[0]) : "-";
-          const lrdVal = c.last_renewal_date || "";
-          const lrdDisplay = lrdVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(lrdVal) : lrdVal.split("T")[0]) : "None (Initial)";
-          const renDisplay = c.renewal_date || c.next_renewal_date || "-";
+      }
 
-          return `
-            <tr>
-              <td><code>${escapeHtml(c.club_id)}</code></td>
-              <td><strong>${escapeHtml(c.institution_name)}</strong></td>
-              <td>${escapeHtml(c.state)}</td>
-              <td><span class="pill pill-primary">${escapeHtml(c.zone)}</span></td>
-              <td style="font-family: monospace; font-size: 0.85rem;">${escapeHtml(doaDisplay)}</td>
-              <td style="font-family: monospace; font-size: 0.85rem; color: #b45309;">${escapeHtml(lrdDisplay)}</td>
-              <td style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #15803d;">${escapeHtml(renDisplay)}</td>
-              <td><span class="pill pill-success">${escapeHtml(c.status || 'Approved')}</span></td>
-              <td>
-                <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-                  <button class="btn btn-outline btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}')">
-                    Edit / Renew
-                  </button>
-                  <button class="btn btn-warning btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}', true)" title="Report unresolved issue and set reminder">
-                    Report Issue
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join("");
+      if (IS_CLUBS_FETCHING) {
+        PENDING_SEARCH_QUERY = cleanQ;
+        return;
+      }
+
+      // Show animated spinner only if table currently has no cached rows displayed
+      if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading clubs database...</td></tr>';
+      }
+
+      IS_CLUBS_FETCHING = true;
+      try {
+        const fetchUrl = cleanQ ? `/api/clubs/search?q=${encodeURIComponent(cleanQ)}` : `/api/clubs/search?q=`;
+        const res = await apiRequest(fetchUrl);
+        const data = (res && res.data) || {};
+        const results = data.results || data.clubs || [];
+
+        if (res.ok) {
+          if (!cleanQ) {
+            ALL_CLUBS_CACHE = results;
+            LAST_CLUBS_FETCH_TIME = Date.now();
+            CURRENT_SEARCH_RESULTS = results;
+            renderClubsTable(results);
+          } else {
+            CURRENT_SEARCH_RESULTS = results;
+            renderClubsTable(results);
+            // Also seed full cache in background if missing
+            if (!ALL_CLUBS_CACHE) {
+              setTimeout(() => {
+                apiRequest('/api/clubs/search?q=').then(r => {
+                  if (r.ok) {
+                    const allClubs = (r.data && (r.data.results || r.data.clubs)) || [];
+                    if (allClubs.length) {
+                      ALL_CLUBS_CACHE = allClubs;
+                      LAST_CLUBS_FETCH_TIME = Date.now();
+                    }
+                  }
+                }).catch(() => {});
+              }, 100);
+            }
+          }
+        } else {
+          if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load clubs database.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
+          }
+        }
+      } catch (err) {
+        if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading clubs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
+        }
+      } finally {
+        IS_CLUBS_FETCHING = false;
+        if (PENDING_SEARCH_QUERY !== null) {
+          const nextQ = PENDING_SEARCH_QUERY;
+          PENDING_SEARCH_QUERY = null;
+          performUniversalSearch(nextQ, false);
+        }
       }
     }
 
@@ -4909,7 +5047,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const res = await apiRequest("/api/clubs/update", "POST", payload);
       if (res.ok) {
         showAlert("modal-alert", "Club details updated and synchronized with Master DB!", "success");
-        performUniversalSearch(document.getElementById("search-input").value);
+        performUniversalSearch(document.getElementById("search-input").value, true);
         setTimeout(closeEditModal, 1500);
       } else {
         showAlert("modal-alert", `Update error: ${res.data.message || 'Failed to update club.'}`, "danger");
@@ -5195,7 +5333,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
           loadEmployeeQuota();
           loadEmployeeActivities();
-          performUniversalSearch(document.getElementById("search-input").value);
+          performUniversalSearch(document.getElementById("search-input").value, true);
 
           // AUTOMATICALLY OPEN RENEWAL CERTIFICATE GENERATION & DOWNLOAD TERMINAL
           openCertificateTerminal(updated);
@@ -5590,6 +5728,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           }
         });
       });
+
+      // Tab activation listener for Universal Club Search & Edit
+      document.querySelectorAll('.tab-btn[data-target="tab-search"]').forEach(btn => {
+        btn.addEventListener("click", () => {
+          onSearchTabActivated();
+        });
+      });
     }
 
     if (typeof window !== "undefined") {
@@ -5602,6 +5747,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       window.closeEmployeeIssueModal = closeEmployeeIssueModal;
       window.submitEmployeeIssueResolution = submitEmployeeIssueResolution;
       window.handleSetClubIssueReminder = handleSetClubIssueReminder;
+      window.onTabActivated = onTabActivated;
+      window.onSearchTabActivated = onSearchTabActivated;
+      window.performUniversalSearch = performUniversalSearch;
     }
 
     window.onload = initEmployeePortal;

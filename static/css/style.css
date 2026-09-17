@@ -1042,6 +1042,11 @@ tbody tr:hover { background-color: #f0f7f3; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ==========================================================================
    BAR CHARTS & INFOGRAPHICS
    ========================================================================== */
