@@ -237,6 +237,37 @@
     }
     /* Login submit button amber */
     #btn-login-submit { background: var(--gradient-accent) !important; }
+
+    /* Complementary Highlight Buttons: Admin Office (Warm Amber) & Main Portal (Sky Blue) */
+    .nav-link.nav-link-admin {
+      background: linear-gradient(135deg, #b45309 0%, #d97706 55%, #f59e0b 100%) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border: 1px solid rgba(251, 191, 36, 0.75) !important;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+    .nav-link.nav-link-admin:hover {
+      background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%) !important;
+      border-color: #fde68a !important;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.5) !important;
+      transform: translateY(-1px);
+    }
+
+    .nav-link.nav-link-portal {
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 55%, #38bdf8 100%) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border: 1px solid rgba(56, 189, 248, 0.75) !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+    .nav-link.nav-link-portal:hover {
+      background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0284c7 100%) !important;
+      border-color: #bae6fd !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
@@ -259,9 +290,9 @@
           <!-- Dynamically populated by updateNavAuth() -->
         </div>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
-        <a href="/admin" class="nav-link"><span>⚙️</span> Admin Office</a>
         <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
-        <a href="/" class="nav-link">Main Portal</a>
+        <a href="/admin" class="nav-link nav-link-admin" title="Open Admin Office Dashboard"><span>⚙️</span> Admin Office</a>
+        <a href="/" class="nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
       </div>
     </div>
   </header>
