@@ -2031,7 +2031,7 @@ function apiDispatcher(path, method, body, token) {
           return false;
         });
       }
-      return { ok: true, status: 200, data: { success: true, total: results.length, clubs: results } };
+      return { ok: true, status: 200, data: { success: true, total: results.length, clubs: results, results: results } };
     }
 
     // --- CLUBS: DETAILS ---

@@ -92,6 +92,10 @@ function initTabs() {
         parent.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
         const targetPanel = document.getElementById(targetId);
         if (targetPanel) targetPanel.classList.add("active");
+
+        if (typeof onTabActivated === "function") {
+          try { onTabActivated(targetId); } catch (e) { console.error(e); }
+        }
       });
     });
   });
