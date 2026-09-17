@@ -86,7 +86,7 @@
 
     /* Login Screen Specific Styles - Balanced Comfort & Centered */
     .login-wrapper {
-      max-width: 570px;
+      max-width: 600px;
       margin: 0.60rem auto;
       animation: fadeIn 0.3s ease-in-out;
     }
@@ -149,20 +149,22 @@
     }
     .officer-chip-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.40rem;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.45rem;
       margin-top: 0.35rem;
       margin-bottom: 0.25rem;
+      width: 100%;
+      box-sizing: border-box;
     }
-    @media (max-width: 480px) {
+    @media (max-width: 520px) {
       .officer-chip-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
     .officer-chip {
       background: #f8fafc;
       border: 1px solid var(--border-subtle);
-      padding: 0.32rem 0.45rem;
+      padding: 0.35rem 0.45rem;
       border-radius: var(--radius-sm);
       font-size: 0.72rem;
       text-align: left;
@@ -172,7 +174,10 @@
       flex-direction: column;
       gap: 0.08rem;
       box-sizing: border-box;
-      min-height: 48px;
+      min-height: 50px;
+      min-width: 0;
+      width: 100%;
+      overflow: hidden;
     }
     .officer-chip:hover {
       background: #edf7f2;
@@ -190,6 +195,9 @@
       color: var(--primary);
       font-size: 0.74rem;
       line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .chip-name {
       color: #475569;
@@ -1528,6 +1536,8 @@
         }
       } catch (e) {
         console.warn("Could not fetch live employee roster:", e);
+      } finally {
+        renderOfficerChips();
       }
     }
 
@@ -1724,6 +1734,8 @@
         `;
       }).join("");
     }
+    // Render chips immediately on script execution using default profiles
+    try { renderOfficerChips(); } catch (e) {}
 
     function fillLoginCredentials(empId) {
       const prof = EMP_PROFILES[empId];
@@ -3286,6 +3298,9 @@
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) syncEmployeeWithAdmin();
       });
+
+      // Render cached / default chips immediately for zero delay
+      renderOfficerChips();
 
       // Fetch live employee roster immediately from master database
       await fetchLiveRoster();
