@@ -879,6 +879,174 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         self.assertEqual(non_phone_status, 200)
         self.assertEqual(non_phone_data["count"], 1)
 
+    def test_universal_club_search_external_details_link(self):
+        """
+        Verify feature: Clicking club name within Universal Club Search & Edit of employee portal
+        opens 'https://admin.club.ndl.iitkgp.ac.in/club-details/{club_id}' in a new tab/window.
+        Ensures 100% parity across templates/employee.html and deployment_gas/Employee.html.
+        """
+        with open("templates/employee.html", "r", encoding="utf-8") as f:
+            emp_html = f.read()
+
+        with open("deployment_gas/Employee.html", "r", encoding="utf-8") as f:
+            gas_html = f.read()
+
+        target_base_url = "https://admin.club.ndl.iitkgp.ac.in/club-details/"
+
+        for label, html in [("Local Python template (employee.html)", emp_html),
+                            ("Google Apps Script template (Employee.html)", gas_html)]:
+            with self.subTest(template=label):
+                # 1. Base URL must be present
+                self.assertIn(target_base_url, html)
+
+                # 2. Strict line-scoped checks on the specific anchor tag in renderClubsTable
+                link_lines = [line for line in html.splitlines() if target_base_url in line]
+                self.assertTrue(len(link_lines) > 0, f"Missing link line in {label}")
+                for link_line in link_lines:
+                    self.assertIn('target="_blank"', link_line)
+                    self.assertIn('rel="noopener noreferrer"', link_line)
+                    self.assertIn("encodeURIComponent(c.club_id", link_line)
+                    self.assertIn("event.stopPropagation()", link_line)
+                    self.assertIn('class="club-name-link"', link_line)
+
+                # 3. Styling: accessible link styles (.club-name-link, cursor: pointer, hover underline, focus-visible)
+                self.assertIn(".club-name-link", html)
+                self.assertIn("cursor: pointer", html)
+                self.assertIn("text-decoration: underline", html)
+                self.assertIn("focus-visible", html)
+
+        # 4. Execute headless Node.js verification to test actual render output & edge cases
+        import shutil
+        import subprocess
+        import tempfile
+        node_bin = shutil.which("node")
+        if not node_bin:
+            return
+
+        test_script = r"""
+        const fs = require('fs');
+
+        function testTemplate(filePath) {
+          const content = fs.readFileSync(filePath, 'utf8');
+
+          // Extract escapeHtml
+          const escapeHtmlMatch = content.match(/function escapeHtml\([\s\S]*?^    \}/m);
+          if (!escapeHtmlMatch) throw new Error("Could not find escapeHtml in " + filePath);
+          eval(escapeHtmlMatch[0]);
+
+          // Extract renderClubsTable
+          const renderMatch = content.match(/function renderClubsTable\([\s\S]*?^    \}/m);
+          if (!renderMatch) throw new Error("Could not find renderClubsTable in " + filePath);
+
+          let tbodyHtml = '';
+          global.document = {
+            getElementById: (id) => {
+              if (id === 'search-results-tbody') {
+                return {
+                  set innerHTML(val) { tbodyHtml = val; },
+                  get innerHTML() { return tbodyHtml; },
+                  scrollIntoView: () => {}
+                };
+              }
+              if (id === 'clubs-pagination-bar') {
+                return { style: { display: 'none' }, set innerHTML(v) {} };
+              }
+              return null;
+            }
+          };
+          global.escapeHtml = escapeHtml;
+          global.CLUBS_PAGE_SIZE = 50;
+          global.CURRENT_CLUBS_PAGE = 1;
+
+          eval(renderMatch[0]);
+
+          // Test sample clubs including edge cases (special chars, missing name, quotes)
+          const testClubs = [
+            {
+              club_id: "NDLI-EMP01-001",
+              institution_name: "Delhi Advanced Technical Institute",
+              state: "Delhi",
+              zone: "North Zone",
+              status: "Approved"
+            },
+            {
+              club_id: "NDLI SPECIAL/002",
+              institution_name: "IIT Kharagpur Club",
+              state: "West Bengal",
+              zone: "East Zone",
+              status: "Approved"
+            },
+            {
+              club_id: "NDLI-EDGE-003",
+              institution_name: "St. Xavier's College & Research <Dept>",
+              state: "Goa",
+              zone: "West Zone",
+              status: "Approved"
+            },
+            {
+              club_id: "NDLI-EMPTY-004",
+              institution_name: "",
+              state: "Bihar",
+              zone: "East Zone",
+              status: "Approved"
+            }
+          ];
+
+          renderClubsTable(testClubs);
+
+          // Assertions on rendered HTML
+          if (!tbodyHtml.includes('https://admin.club.ndl.iitkgp.ac.in/club-details/NDLI-EMP01-001')) {
+            throw new Error(filePath + ': Missing formatted URL for standard club_id');
+          }
+          if (!tbodyHtml.includes('https://admin.club.ndl.iitkgp.ac.in/club-details/NDLI%20SPECIAL%2F002')) {
+            throw new Error(filePath + ': Missing properly URL-encoded club_id with special chars');
+          }
+          if (!tbodyHtml.includes('https://admin.club.ndl.iitkgp.ac.in/club-details/NDLI-EDGE-003')) {
+            throw new Error(filePath + ': Missing URL for edge-case club');
+          }
+          if (!tbodyHtml.includes('target="_blank"')) {
+            throw new Error(filePath + ': Missing target="_blank"');
+          }
+          if (!tbodyHtml.includes('rel="noopener noreferrer"')) {
+            throw new Error(filePath + ': Missing rel="noopener noreferrer"');
+          }
+          if (!tbodyHtml.includes('class="club-name-link"')) {
+            throw new Error(filePath + ': Missing class="club-name-link"');
+          }
+          if (!tbodyHtml.includes('event.stopPropagation()')) {
+            throw new Error(filePath + ': Missing event.stopPropagation() handler');
+          }
+          if (!tbodyHtml.includes('Delhi Advanced Technical Institute')) {
+            throw new Error(filePath + ': Missing club institution name text');
+          }
+          // Verify HTML escaping of special characters in title and inner text
+          if (!tbodyHtml.includes('St. Xavier&#39;s College &amp; Research &lt;Dept&gt;')) {
+            throw new Error(filePath + ': HTML escaping failed for special characters in institution name');
+          }
+          // Verify empty institution name falls back gracefully to club_id
+          if (!tbodyHtml.includes('NDLI-EMPTY-004')) {
+            throw new Error(filePath + ': Fallback for empty institution name failed');
+          }
+        }
+
+        testTemplate('templates/employee.html');
+        testTemplate('deployment_gas/Employee.html');
+        console.log('ALL_CLUB_SEARCH_LINK_TESTS_PASSED');
+        """;
+
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tmp:
+            tmp.write(test_script)
+            tmp_path = tmp.name
+
+        try:
+            res = subprocess.run([node_bin, tmp_path], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"JS execution failed: {res.stderr}\nOutput: {res.stdout}")
+            self.assertIn("ALL_CLUB_SEARCH_LINK_TESTS_PASSED", res.stdout)
+        finally:
+            import os
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
 if __name__ == "__main__":
     unittest.main()
 

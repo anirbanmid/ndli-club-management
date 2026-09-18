@@ -937,6 +937,25 @@ tbody tr:nth-child(even) { background-color: #fafcfb; }
 
 tbody tr:hover { background-color: #f0f7f3; }
 
+.club-name-link {
+  color: var(--primary, #1A503E);
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline;
+  transition: color var(--transition-fast, 0.15s ease), text-decoration var(--transition-fast, 0.15s ease);
+}
+.club-name-link:hover,
+.club-name-link:focus {
+  color: var(--primary-light, #0D7751);
+  text-decoration: underline;
+}
+.club-name-link:focus-visible {
+  outline: 2px solid var(--primary-light, #0D7751);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* ==========================================================================
    PILLS & BADGES
    ========================================================================== */
