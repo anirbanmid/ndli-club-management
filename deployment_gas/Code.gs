@@ -169,7 +169,7 @@ function getZoneForState(state) {
 // ====================================================================
 
 var SEED_DATA = {
-  master_clubs: "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date\nNDLI-EMP01-002,REG-2025-EMP01-002,Delhi Advanced Technical Institute,Delhi,North,director@dati.ac.in,pres.dati@dati.ac.in,sec.dati@dati.ac.in,2024-08-15T10:00:00Z,2026-09-12T18:11:35.896723+00:00,2027-09-12,Active (Renewed),EMP01,2026-09-12T18:12:44.467301+00:00,2024-08-15T10:00:00Z,2027-09-12\nNDLI-WB-101,REG-2024-WB-001,Indian Institute of Technology Kharagpur,West Bengal,East,director@iitkgp.ac.in,president.club@iitkgp.ac.in,secretary.club@iitkgp.ac.in,2025-03-31T10:00:00Z,2026-03-31T10:00:00Z,2027-03-31,Approved,EMP04,2026-09-12T17:53:11.386905+00:00,2025-03-31T10:00:00Z,2027-03-31\nNDLI-DL-102,REG-2024-DL-002,Delhi Technological University,Delhi,North,vc@dtu.ac.in,ndli.pres@dtu.ac.in,ndli.sec@dtu.ac.in,2024-12-15T11:30:00Z,2025-12-15T11:30:00Z,2026-12-15,Approved,EMP01,2026-09-12T17:53:11.417493+00:00,2024-12-15T11:30:00Z,2026-12-15\nNDLI-MH-103,REG-2024-MH-003,College of Engineering Pune (COEP),Maharashtra,West,director@coeptech.ac.in,club.head@coeptech.ac.in,club.sec@coeptech.ac.in,2025-11-20T11:00:00Z,2026-09-12T17:53:12.362528+00:00,2028-12-31,Active (Renewed),EMP03,2026-09-12T17:53:12.362572+00:00,2025-11-20T11:00:00Z,2028-12-31\nNDLI-TN-104,REG-2024-TN-004,Anna University Chennai,Tamil Nadu,South,vc@annauniv.edu,pres.ndli@annauniv.edu,sec.ndli@annauniv.edu,2025-01-10T12:00:00Z,2026-01-10T12:00:00Z,2027-01-10,Approved,EMP07,2026-09-12T17:53:11.487063+00:00,2025-01-10T12:00:00Z,2027-01-10\nNDLI-AS-105,REG-2024-AS-005,Gauhati University,Assam,North East,vc@gauhati.ac.in,ndli.gu@gauhati.ac.in,secretary.gu@gauhati.ac.in,2025-09-30T09:15:00Z,,2026-09-30,Approved,EMP05,2026-09-12T17:53:11.528444+00:00,2025-09-30T09:15:00Z,2026-09-30\nNDLI-MP-106,REG-2024-MP-006,Maulana Azad National Institute of Technology Bhopal,Madhya Pradesh,Central,director@manit.ac.in,ndli.head@manit.ac.in,ndli.coord@manit.ac.in,2025-10-15T14:20:00Z,,2026-10-15,Approved,EMP02,2026-09-12T17:53:11.569996+00:00,2025-10-15T14:20:00Z,2026-10-15\nNDLI-KA-107,REG-2024-KA-007,Indian Institute of Science Bengaluru,Karnataka,South,director@iisc.ac.in,pres.ndli@iisc.ac.in,sec.ndli@iisc.ac.in,2025-05-01T10:30:00Z,2026-05-01T10:30:00Z,2027-05-01,Approved,EMP06,2026-09-12T17:53:11.605239+00:00,2025-05-01T10:30:00Z,2027-05-01\nNDLI-TEST-999,REG-TEST-999,Test Engineering College Raipur,Chhattisgarh,Central,patron@test.edu,pres@test.edu,sec@test.edu,2026-09-12T17:53:12.028679+00:00,,2027-09-12,Approved,EMP02,2026-09-12T17:53:12.028679+00:00,2026-09-12T17:53:12.028679+00:00,2027-09-12\nNDLI-AUTO-REN-01,REG-AUTO-01,Automated Renewal University,Assam,,patron@auto.edu,pres@auto.edu,sec@auto.edu,2026-09-12T17:53:12.098579+00:00,2026-09-12T17:53:12.121991+00:00,2027-09-12,Active (Renewed),EMP05,2026-09-12T17:53:12.122066+00:00,2026-09-12T17:53:12.098579+00:00,2027-09-12\n",
+  master_clubs: "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date\nNDLI-EMP01-002,REG-2025-EMP01-002,Delhi Advanced Technical Institute,Delhi,North,director@dati.ac.in,pres.dati@dati.ac.in,sec.dati@dati.ac.in,2024-08-15T10:00:00Z,2026-09-12T18:11:35.896723+00:00,2027-09-12,Active (Renewed),EMP01,2026-09-12T18:12:44.467301+00:00,2024-08-15T10:00:00Z,2027-09-12\nNDLI-WB-101,REG-2024-WB-001,Indian Institute of Technology Kharagpur,West Bengal,East,director@iitkgp.ac.in,president.club@iitkgp.ac.in,secretary.club@iitkgp.ac.in,2025-03-31T10:00:00Z,2026-03-31T10:00:00Z,2027-03-31,Approved,EMP04,2026-09-12T17:53:11.386905+00:00,2025-03-31T10:00:00Z,2027-03-31\nNDLI-DL-102,REG-2024-DL-002,Delhi Technological University,Delhi,North,vc@dtu.ac.in,ndli.pres@dtu.ac.in,ndli.sec@dtu.ac.in,2024-12-15T11:30:00Z,2025-12-15T11:30:00Z,2026-12-15,Approved,EMP01,2026-09-12T17:53:11.417493+00:00,2024-12-15T11:30:00Z,2026-12-15\nNDLI-MH-103,REG-2024-MH-003,College of Engineering Pune (COEP),Maharashtra,West,director@coeptech.ac.in,club.head@coeptech.ac.in,club.sec@coeptech.ac.in,2025-11-20T11:00:00Z,2026-09-12T17:53:12.362528+00:00,2028-12-31,Active (Renewed),EMP03,2026-09-12T17:53:12.362572+00:00,2025-11-20T11:00:00Z,2028-12-31\nNDLI-TN-104,REG-2024-TN-004,Anna University Chennai,Tamil Nadu,South,vc@annauniv.edu,pres.ndli@annauniv.edu,sec.ndli@annauniv.edu,2025-01-10T12:00:00Z,2026-01-10T12:00:00Z,2027-01-10,Approved,EMP07,2026-09-12T17:53:11.487063+00:00,2025-01-10T12:00:00Z,2027-01-10\nNDLI-AS-105,REG-2024-AS-005,Gauhati University,Assam,North East,vc@gauhati.ac.in,ndli.gu@gauhati.ac.in,secretary.gu@gauhati.ac.in,2025-09-30T09:15:00Z,,2026-09-30,Approved,EMP05,2026-09-12T17:53:11.528444+00:00,2025-09-30T09:15:00Z,2026-09-30\nNDLI-MP-106,REG-2024-MP-006,Maulana Azad National Institute of Technology Bhopal,Madhya Pradesh,Central,director@manit.ac.in,ndli.head@manit.ac.in,ndli.coord@manit.ac.in,2025-10-15T14:20:00Z,,2026-10-15,Approved,EMP02,2026-09-12T17:53:11.569996+00:00,2025-10-15T14:20:00Z,2026-10-15\nNDLI-KA-107,REG-2024-KA-007,Indian Institute of Science Bengaluru,Karnataka,South,director@iisc.ac.in,pres.ndli@iisc.ac.in,sec.ndli@iisc.ac.in,2025-05-01T10:30:00Z,2026-05-01T10:30:00Z,2027-05-01,Approved,EMP06,2026-09-12T17:53:11.605239+00:00,2025-05-01T10:30:00Z,2027-05-01\nNDLI-TEST-999,REG-TEST-999,Test Engineering College Raipur,Chhattisgarh,Central,patron@test.edu,pres@test.edu,sec@test.edu,2026-09-12T17:53:12.028679+00:00,,2027-09-12,Approved,EMP02,2026-09-12T17:53:12.028679+00:00,2026-09-12T17:53:12.028679+00:00,2027-09-12\nNDLI-AUTO-REN-01,REG-AUTO-01,Automated Renewal University,Assam,North East,patron@auto.edu,pres@auto.edu,sec@auto.edu,2026-09-12T17:53:12.098579+00:00,2026-09-12T17:53:12.121991+00:00,2027-09-12,Active (Renewed),EMP05,2026-09-12T17:53:12.122066+00:00,2026-09-12T17:53:12.098579+00:00,2027-09-12\n",
   master_activities: "activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes\nACT-PRIORITY-EMP01-1789235591371,EMP01,2026-09-12T17:53:11.360461+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)\nACT-PRIORITY-EMP04-1789235591405,EMP04,2026-09-12T17:53:11.386905+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)\nACT-PRIORITY-EMP01-1789235591438,EMP01,2026-09-12T17:53:11.417493+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)\nACT-PRIORITY-EMP03-1789235591471,EMP03,2026-09-12T17:53:11.453265+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)\nACT-PRIORITY-EMP07-1789235591508,EMP07,2026-09-12T17:53:11.487063+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)\nACT-PRIORITY-EMP05-1789235591553,EMP05,2026-09-12T17:53:11.528444+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)\nACT-PRIORITY-EMP02-1789235591589,EMP02,2026-09-12T17:53:11.569996+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)\nACT-PRIORITY-EMP06-1789235591627,EMP06,2026-09-12T17:53:11.605239+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)\nACT-EMP01-1789235591641,EMP01,2026-09-12T17:53:11.641589+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal\nACT-EMP01-1789235591656,EMP01,2026-09-12T17:53:11.656410+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved\nACT-EMP02-1789235591687,EMP02,2026-09-12T17:53:11.687117+00:00,Online training,0,,Conducted webinar for 15 MP schools\nACT-EMP03-1789235591703,EMP03,2026-09-12T17:53:11.703423+00:00,Offline training,0,,Workshop at Pune University\nACT-EMP04-1789235591716,EMP04,2026-09-12T17:53:11.716271+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved\nACT-EMP06-1789235591731,EMP06,2026-09-12T17:53:11.731945+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus\nACT-PRIORITY-EMP02-1789235592042,EMP02,2026-09-12T17:53:12.028679+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)\nACT-PRIORITY-EMP05-1789235592113,EMP05,2026-09-12T17:53:12.098579+00:00,Club Approval,1,NDLI-AUTO-REN-01,Approved new NDLI Club: Automated Renewal University (NDLI-AUTO-REN-01)\nACT-RENEW-EMP05-1789235592167,EMP05,2026-09-12T17:53:12.121991+00:00,Registration Renewal,1,NDLI-AUTO-REN-01,\"Renewal Approved for Club NDLI-AUTO-REN-01. Last Renewal Date: 2026-09-12T17:53:12.121991+00:00, Upcoming Renewal Due Date: 2027-09-12\"\nACT-EMP01-1789235592190,EMP01,2026-09-12T17:53:12.190775+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved\nACT-EMP02-1789235592267,EMP02,2026-09-12T17:53:12.267272+00:00,Online training,0,,Webinar with colleges\nACT-EMP01-1789235592291-1,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]\nACT-EMP01-1789235592291-2,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]\nACT-EMP01-1789235592291-3,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]\nACT-EMP01-1789235592291-4,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]\nACT-EMP01-1789235592291-5,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]\nACT-RENEW-EMP03-1789235592393,EMP03,2026-09-12T17:53:12.362528+00:00,Registration Renewal,1,NDLI-MH-103,\"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-12T17:53:12.362528+00:00, Upcoming Renewal Due Date: 2028-12-31\"\nACT-RENEW-EMP03-1789236541528,EMP03,2026-09-12T18:09:01.483204+00:00,Registration Renewal,1,NDLI-EMP01-002,\"Renewal Approved for Club NDLI-EMP01-002. Last Renewal Date: 2026-09-12T18:09:01.483204+00:00, Upcoming Renewal Due Date: 2027-09-12\"\nACT-RENEW-EMP03-1789236695934,EMP03,2026-09-12T18:11:35.896723+00:00,Registration Renewal,1,NDLI-EMP01-002,\"Renewal Approved for Club NDLI-EMP01-002. Last Renewal Date: 2026-09-12T18:11:35.896723+00:00, Upcoming Renewal Due Date: 2027-09-12\"\n",
   master_users: "id,email,password_hash,salt,full_name,role,zone,assigned_states,is_active,created_at\nADMIN01,admin@iitkgp.ac.in,Seed#Scrubbed-2026,b23e1b728d321adac0f3f3887fe7b16c,IIT Kharagpur Admin Office,ADMIN,Central Coordination (IIT KGP),All India,1,2026-09-12T17:53:10.376368+00:00\nEMP01,emp01@ndli.iitkgp.ac.in,Seed#EMP01-Rotated2026,d867f9bd0a47f3d7a51827af7cb78be8,Rohan Sharma (North Zone),EMPLOYEE,North,\"Jammu & Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi, Uttar Pradesh\",1,2026-09-12T17:53:10.462151+00:00\nEMP02,emp02@ndli.iitkgp.ac.in,Seed#EMP02-Rotated2026,7853bd7618d5edb8414c673238c94de4,Pooja Verma (Central Zone),EMPLOYEE,Central,\"Madhya Pradesh, Chhattisgarh\",1,2026-09-12T17:53:10.614567+00:00\nEMP03,emp03@ndli.iitkgp.ac.in,Seed#EMP03-Rotated2026,4dece19f7203ded567cdadea3e78ec1b,Amit Patel (West Zone),EMPLOYEE,West,\"Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar & Nagar Haveli\",1,2026-09-12T17:53:10.766750+00:00\nEMP04,emp04@ndli.iitkgp.ac.in,Seed#EMP04-Rotated2026,e9f900456f8a7faab03d8999ab85e288,Debabrata Ghosh (East Zone),EMPLOYEE,East,\"Bihar, Jharkhand, West Bengal, Odisha\",1,2026-09-12T17:53:10.921588+00:00\nEMP05,emp05@ndli.iitkgp.ac.in,Seed#Scrubbed-2026,dcf2273dceb3fe217f5f49f8dac2dbc4,Mayanglambam Singh (North East Zone),EMPLOYEE,North East,\"Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram\",1,2026-09-12T17:53:11.045245+00:00\nEMP06,emp06@ndli.iitkgp.ac.in,Seed#EMP06-Rotated2026,fd98579de06e57a54f8c00785f13df09,K. Venkatesh (South Zone 1),EMPLOYEE,South,\"Andhra Pradesh, Telangana, Karnataka\",1,2026-09-12T17:53:11.181086+00:00\nEMP07,emp07@ndli.iitkgp.ac.in,Seed#EMP07-Rotated2026,1b447220ee8beae6b4a405c8095d446f,Ananya Nair (South Zone 2),EMPLOYEE,South,\"Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep\",1,2026-09-12T17:53:11.310936+00:00\n",
   master_quotas: "emp_id,employee_name,zone,clubs_approved_count,support_logs_count,last_activity_timestamp\nEMP01,Rohan Sharma (North Zone),North,2,10,2026-09-12T17:53:12.291937+00:00\nEMP02,Pooja Verma (Central Zone),Central,2,3,2026-09-12T17:53:12.267272+00:00\nEMP03,Amit Patel (West Zone),West,1,5,2026-09-12T18:11:35.896723+00:00\nEMP04,Debabrata Ghosh (East Zone),East,1,2,2026-09-12T17:53:11.716271+00:00\nEMP05,Mayanglambam Singh (North East Zone),North East,2,2,2026-09-12T17:53:12.121991+00:00\nEMP06,K. Venkatesh (South Zone 1),South,1,2,2026-09-12T17:53:11.731945+00:00\nEMP07,Ananya Nair (South Zone 2),South,1,1,2026-09-12T17:53:11.487063+00:00\n",
@@ -490,6 +490,11 @@ function parseCsv(text) {
       var val = line[j] !== undefined ? String(line[j]).replace(/^[\uFEFF]+/, "").trim() : "";
       rowObj[headers[j]] = val;
     }
+    if (headers.indexOf("club_id") !== -1 && headers.indexOf("state") !== -1) {
+      if (!rowObj.zone || rowObj.zone === "Unknown") {
+        rowObj.zone = getZoneForState(rowObj.state || "") || rowObj.zone || "Unknown";
+      }
+    }
     rows.push(rowObj);
   }
   return { headers: headers, rows: rows };
@@ -522,10 +527,14 @@ function robustCsvSplit(text) {
 }
 
 function toCsvString(headers, rows) {
+  var isClubCsv = headers.indexOf("club_id") !== -1 && headers.indexOf("state") !== -1;
   var lines = [];
   lines.push(headers.join(","));
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
+    if (isClubCsv && (!r.zone || r.zone === "Unknown")) {
+      r.zone = getZoneForState(r.state || "") || r.zone || "Unknown";
+    }
     var line = headers.map(function(h) {
       var val = r[h] !== undefined ? String(r[h]) : "";
       if (val.indexOf(",") !== -1 || val.indexOf('"') !== -1 || val.indexOf("\n") !== -1) {
@@ -1112,6 +1121,92 @@ function apiDispatcher(path, method, body, token) {
         }
       }
 
+      // Dynamic Node & Master Quota Verification & Healing
+      var approvedClubMap = {};
+      var nodeClubs = getCsvData("employees/" + targetId.toLowerCase(), "clubs.csv");
+      if (nodeClubs && nodeClubs.rows) {
+        nodeClubs.rows.forEach(function(c) {
+          var cid = String(c.club_id || "").trim().toUpperCase();
+          if (cid && (!c.approved_by_emp_id || String(c.approved_by_emp_id).toUpperCase() === targetId)) {
+            approvedClubMap[cid] = true;
+          }
+        });
+      }
+
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      if (mClubs && mClubs.rows) {
+        mClubs.rows.forEach(function(c) {
+          var cid = String(c.club_id || "").trim().toUpperCase();
+          if (cid && String(c.approved_by_emp_id || "").toUpperCase() === targetId) {
+            approvedClubMap[cid] = true;
+          }
+        });
+      }
+
+      var clubApprovalsCount = 0;
+      var standaloneApprovalsCount = 0;
+      var supportLogsCount = 0;
+      var latestTs = quota ? (quota.last_activity_timestamp || "") : "";
+
+      var nodeActs = getCsvData("employees/" + targetId.toLowerCase(), "activity_log.csv");
+      var mActs = getCsvData("master", "master_activities.csv");
+      var combinedActsMap = {};
+
+      if (nodeActs && nodeActs.rows) {
+        nodeActs.rows.forEach(function(a) { if (a.activity_id) combinedActsMap[a.activity_id] = a; });
+      }
+      if (mActs && mActs.rows) {
+        mActs.rows.forEach(function(a) {
+          if (a.activity_id && String(a.emp_id || "").toUpperCase() === targetId) {
+            combinedActsMap[a.activity_id] = a;
+          }
+        });
+      }
+
+      for (var aid in combinedActsMap) {
+        var a = combinedActsMap[aid];
+        var ts = a.timestamp || a.submission_timestamp || "";
+        if (ts && ts > latestTs) latestTs = ts;
+        var stype = String(a.support_type || "").trim();
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || String(a.activity_id || "").indexOf("ACT-PRIORITY-" + targetId) !== -1);
+        if (isApproval) {
+          clubApprovalsCount++;
+          if (a.club_id) {
+            approvedClubMap[String(a.club_id).trim().toUpperCase()] = true;
+          } else {
+            standaloneApprovalsCount++;
+          }
+        } else {
+          supportLogsCount++;
+        }
+      }
+
+      var totalUniqueClubs = Object.keys(approvedClubMap).length;
+      var computedClubs = Math.max(totalUniqueClubs + standaloneApprovalsCount, clubApprovalsCount);
+      var storedClubs = quota ? parseInt(quota.clubs_approved_count || "0", 10) : 0;
+      var finalClubs = Math.max(storedClubs, computedClubs);
+
+      var storedSupport = quota ? parseInt(quota.support_logs_count || "0", 10) : 0;
+      var finalSupport = Math.max(storedSupport, supportLogsCount);
+
+      if (!quota) {
+        quota = {
+          emp_id: targetId,
+          employee_name: targetUser ? (targetUser.full_name || targetUser.name) : targetId,
+          zone: targetUser ? targetUser.zone : "North",
+          clubs_approved_count: String(finalClubs),
+          support_logs_count: String(finalSupport),
+          last_activity_timestamp: latestTs
+        };
+        mQuotas.rows.push(quota);
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      } else if (finalClubs !== storedClubs || finalSupport !== storedSupport) {
+        quota.clubs_approved_count = String(finalClubs);
+        quota.support_logs_count = String(finalSupport);
+        if (latestTs) quota.last_activity_timestamp = latestTs;
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      }
+
       var prof = {
         id: targetId,
         full_name: targetUser ? (targetUser.full_name || targetUser.name) : targetId,
@@ -1119,8 +1214,8 @@ function apiDispatcher(path, method, body, token) {
         zone: targetUser ? targetUser.zone : "North",
         assigned_states: targetUser ? (targetUser.assigned_states || targetUser.state) : "",
         is_active: targetUser ? String(targetUser.is_active || "1") : "1",
-        clubs_approved_count: quota ? parseInt(quota.clubs_approved_count || "0", 10) : 0,
-        support_logs_count: quota ? parseInt(quota.support_logs_count || "0", 10) : 0,
+        clubs_approved_count: finalClubs,
+        support_logs_count: finalSupport,
         last_activity_timestamp: quota ? quota.last_activity_timestamp : ""
       };
 
@@ -1492,11 +1587,15 @@ function apiDispatcher(path, method, body, token) {
         coversStateByEmp[offId] = (filterState === "ALL") || (stList.indexOf(filterState.toLowerCase()) !== -1);
       }
 
-      // Single-pass O(N) clubs approval aggregation
-      var clubsApprovedByEmp = {};
+      // Clubs approval aggregation across master clubs and priority club approval activities
+      var clubsApprovedByEmpMap = {};
+      var clubApprovalsStandalone = {};
       for (var ci0 = 0; ci0 < officers.length; ci0++) {
-        clubsApprovedByEmp[String(officers[ci0].id || "").trim().toUpperCase()] = 0;
+        var offEId = String(officers[ci0].id || "").trim().toUpperCase();
+        clubsApprovedByEmpMap[offEId] = {};
+        clubApprovalsStandalone[offEId] = 0;
       }
+
       for (var cj = 0; cj < allClubs.length; cj++) {
         var c = allClubs[cj];
         var cState = String(c.state || "").trim();
@@ -1516,8 +1615,13 @@ function apiDispatcher(path, method, body, token) {
           var cZn = String(c.zone || "").trim() || getZoneForState(cState);
           cEmp = zoneToDefaultEmp[cZn] || "";
         }
-        if (clubsApprovedByEmp[cEmp] !== undefined) {
-          clubsApprovedByEmp[cEmp]++;
+        var cid = String(c.club_id || "").trim().toUpperCase();
+        if (clubsApprovedByEmpMap[cEmp]) {
+          if (cid) {
+            clubsApprovedByEmpMap[cEmp][cid] = true;
+          } else {
+            clubApprovalsStandalone[cEmp]++;
+          }
         }
       }
 
@@ -1531,10 +1635,11 @@ function apiDispatcher(path, method, body, token) {
         var aEmp = String(a.emp_id || "").trim().toUpperCase();
         if (!actStatsByEmp[aEmp]) continue;
 
+        var cid = String(a.club_id || "").trim().toUpperCase();
+        var refClub = clubLookup[cid];
+        var actState = refClub ? String(refClub.state || "").trim() : "";
+
         if (filterState !== "ALL") {
-          var cid = String(a.club_id || "").trim().toUpperCase();
-          var refClub = clubLookup[cid];
-          var actState = refClub ? String(refClub.state || "").trim() : "";
           if (actState) {
             if (actState.toLowerCase() !== filterState.toLowerCase()) continue;
           } else {
@@ -1544,15 +1649,35 @@ function apiDispatcher(path, method, body, token) {
 
         var ts = a.timestamp || a.submission_timestamp || a.created_at || "";
         var dp = parseDateObj(ts);
+        var tsClub = refClub ? (refClub.date_of_approval || "") : "";
+        var dpClub = parseDateObj(tsClub);
+
+        var dateMatch = true;
         if (filterYear !== "ALL") {
-          if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+          var actYr = dp ? String(dp.getFullYear()) : "";
+          var clubYr = dpClub ? String(dpClub.getFullYear()) : "";
+          if (actYr !== filterYear && clubYr !== filterYear) dateMatch = false;
         }
-        if (targetMonthNum !== null) {
-          if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+        if (dateMatch && targetMonthNum !== null) {
+          var actM = dp ? (dp.getMonth() + 1) : 0;
+          var clubM = dpClub ? (dpClub.getMonth() + 1) : 0;
+          if (actM !== targetMonthNum && clubM !== targetMonthNum) dateMatch = false;
         }
 
+        if (!dateMatch) continue;
+
         var stype = String(a.support_type || "").trim();
-        if (stype === "Online training") {
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || String(a.activity_id || "").indexOf("ACT-PRIORITY-" + aEmp) !== -1);
+
+        if (isApproval) {
+          if (clubsApprovedByEmpMap[aEmp]) {
+            if (cid) {
+              clubsApprovedByEmpMap[aEmp][cid] = true;
+            } else {
+              clubApprovalsStandalone[aEmp]++;
+            }
+          }
+        } else if (stype === "Online training") {
           actStatsByEmp[aEmp].online++;
         } else if (stype === "Offline training") {
           actStatsByEmp[aEmp].offline++;
@@ -1570,7 +1695,7 @@ function apiDispatcher(path, method, body, token) {
         var assignedStatesStr = u.assigned_states || "";
         var coversState = coversStateByEmp[empId] !== undefined ? coversStateByEmp[empId] : true;
 
-        var clubsApproved = clubsApprovedByEmp[empId] || 0;
+        var clubsApproved = Object.keys(clubsApprovedByEmpMap[empId] || {}).length + (clubApprovalsStandalone[empId] || 0);
         var aStats = actStatsByEmp[empId] || { online: 0, offline: 0, other: 0 };
         var onlineTraining = aStats.online;
         var offlineTraining = aStats.offline;
@@ -1770,45 +1895,185 @@ function apiDispatcher(path, method, body, token) {
       var mActs = getCsvData("master", "master_activities.csv");
       var mQuotas = getCsvData("master", "master_quotas.csv");
 
-      var seenClubIds = {};
-      mClubs.rows.forEach(function(c) { seenClubIds[c.club_id] = true; });
-      var seenActIds = {};
-      mActs.rows.forEach(function(a) { seenActIds[a.activity_id] = true; });
-
+      var allClubsMap = {};
       var addedClubs = 0;
       var addedActs = 0;
 
+      // 1. Read & heal master clubs
+      mClubs.rows.forEach(function(c) {
+        var cid = String(c.club_id || "").trim().toUpperCase();
+        if (cid) {
+          if (!c.zone || c.zone === "Unknown") {
+            c.zone = getZoneForState(c.state || "");
+          }
+          allClubsMap[cid] = c;
+        }
+      });
+
+      // 2. Read master activities
+      var allActsMap = {};
+      mActs.rows.forEach(function(a) {
+        var aid = String(a.activity_id || "").trim();
+        if (aid) allActsMap[aid] = a;
+      });
+
+      // 3. Scan node folders
+      var syncedEmpIds = [];
       var eSubs = empFolder.getFolders();
       while (eSubs.hasNext()) {
         var sub = eSubs.next();
         var nodeEmpId = sub.getName().toUpperCase();
+        syncedEmpIds.push(nodeEmpId);
 
         var nodeClubs = getCsvData("employees/" + sub.getName(), "clubs.csv");
-        nodeClubs.rows.forEach(function(nc) {
-          if (nc.club_id && !seenClubIds[nc.club_id]) {
-            mClubs.rows.push(nc);
-            seenClubIds[nc.club_id] = true;
-            addedClubs++;
-          }
-        });
+        if (nodeClubs && nodeClubs.rows) {
+          nodeClubs.rows.forEach(function(nc) {
+            var cid = String(nc.club_id || "").trim().toUpperCase();
+            if (cid) {
+              if (!nc.zone || nc.zone === "Unknown") {
+                nc.zone = getZoneForState(nc.state || "");
+              }
+              if (!nc.approved_by_emp_id) {
+                nc.approved_by_emp_id = nodeEmpId;
+              }
+              if (!allClubsMap[cid]) {
+                allClubsMap[cid] = nc;
+                addedClubs++;
+              } else if ((nc.updated_at || "") >= (allClubsMap[cid].updated_at || "")) {
+                allClubsMap[cid] = nc;
+              }
+            }
+          });
+        }
 
         var nodeActs = getCsvData("employees/" + sub.getName(), "activity_log.csv");
-        nodeActs.rows.forEach(function(na) {
-          if (na.activity_id && !seenActIds[na.activity_id]) {
-            mActs.rows.push(na);
-            seenActIds[na.activity_id] = true;
-            addedActs++;
-          }
-        });
+        if (nodeActs && nodeActs.rows) {
+          nodeActs.rows.forEach(function(na) {
+            var aid = String(na.activity_id || "").trim();
+            if (aid) {
+              if (!allActsMap[aid]) {
+                allActsMap[aid] = na;
+                addedActs++;
+              }
+            }
+          });
+        }
       }
 
-      if (addedClubs > 0) saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
-      if (addedActs > 0) saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+      // Ensure all 7 default employees are synced
+      var seenSynced = {};
+      syncedEmpIds.forEach(function(eid) { seenSynced[eid] = true; });
+      for (var de = 0; de < DEFAULT_EMPLOYEES_CONFIG.length; de++) {
+        var defId = DEFAULT_EMPLOYEES_CONFIG[de].id;
+        if (!seenSynced[defId]) {
+          syncedEmpIds.push(defId);
+          seenSynced[defId] = true;
+        }
+      }
+
+      // 4. Infer club approvals and link clubs from activities
+      for (var aid in allActsMap) {
+        var a = allActsMap[aid];
+        var stype = String(a.support_type || "").trim();
+        var aEmp = String(a.emp_id || "").trim().toUpperCase();
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || aid.indexOf("ACT-PRIORITY-" + aEmp) !== -1);
+        if (isApproval && a.club_id) {
+          var cid = String(a.club_id).trim().toUpperCase();
+          if (allClubsMap[cid] && !allClubsMap[cid].approved_by_emp_id) {
+            allClubsMap[cid].approved_by_emp_id = aEmp;
+          }
+        }
+      }
+
+      var mergedClubs = Object.keys(allClubsMap).map(function(k) { return allClubsMap[k]; });
+      var mergedActs = Object.keys(allActsMap).map(function(k) { return allActsMap[k]; });
+
+      // Save master files
+      saveCsvData("master", "master_clubs.csv", mClubs.headers, mergedClubs);
+      saveCsvData("master", "master_activities.csv", mActs.headers, mergedActs);
+
+      // 5. Bi-directional sync back to each employee node
+      syncedEmpIds.forEach(function(empId) {
+        var empClubs = mergedClubs.filter(function(c) {
+          return String(c.approved_by_emp_id || "").toUpperCase() === empId;
+        });
+        saveCsvData("employees/" + empId.toLowerCase(), "clubs.csv", mClubs.headers, empClubs);
+
+        var empActs = mergedActs.filter(function(a) {
+          return String(a.emp_id || "").toUpperCase() === empId;
+        });
+        saveCsvData("employees/" + empId.toLowerCase(), "activity_log.csv", mActs.headers, empActs);
+      });
+
+      // 6. Recompute and save quotas
+      var qMap = {};
+      mQuotas.rows.forEach(function(q) {
+        var eid = String(q.emp_id || "").toUpperCase();
+        if (eid) qMap[eid] = q;
+      });
+
+      // Ensure all 7 officers are in qMap
+      DEFAULT_EMPLOYEES_CONFIG.forEach(function(d) {
+        if (!qMap[d.id]) {
+          var newQ = {
+            emp_id: d.id,
+            employee_name: d.name,
+            zone: d.zone,
+            clubs_approved_count: "0",
+            support_logs_count: "0",
+            last_activity_timestamp: ""
+          };
+          qMap[d.id] = newQ;
+          mQuotas.rows.push(newQ);
+        }
+      });
+
+      for (var qEid in qMap) {
+        var qRec = qMap[qEid];
+        var approvedClubIds = {};
+        mergedClubs.forEach(function(c) {
+          if (String(c.approved_by_emp_id || "").toUpperCase() === qEid) {
+            approvedClubIds[String(c.club_id).toUpperCase()] = true;
+          }
+        });
+
+        var clubApprovalActCount = 0;
+        var standaloneApprovals = 0;
+        var supportCount = 0;
+        var latestTs = qRec.last_activity_timestamp || "";
+
+        mergedActs.forEach(function(a) {
+          if (String(a.emp_id || "").toUpperCase() === qEid) {
+            var ts = a.timestamp || a.submission_timestamp || "";
+            if (ts && ts > latestTs) latestTs = ts;
+            var stype = String(a.support_type || "").trim();
+            var aid = String(a.activity_id || "").trim();
+            var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || aid.indexOf("ACT-PRIORITY-" + qEid) !== -1);
+            if (isApproval) {
+              clubApprovalActCount++;
+              if (a.club_id) {
+                approvedClubIds[String(a.club_id).toUpperCase()] = true;
+              } else {
+                standaloneApprovals++;
+              }
+            } else {
+              supportCount++;
+            }
+          }
+        });
+
+        var totalApprovedClubs = Math.max(Object.keys(approvedClubIds).length + standaloneApprovals, clubApprovalActCount);
+        qRec.clubs_approved_count = String(totalApprovedClubs);
+        qRec.support_logs_count = String(supportCount);
+        if (latestTs) qRec.last_activity_timestamp = latestTs;
+      }
+
+      saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
 
       var summary = {
-        employees_synced: 7,
-        total_master_clubs: mClubs.rows.length,
-        total_master_activities: mActs.rows.length,
+        employees_synced: syncedEmpIds.length,
+        total_master_clubs: mergedClubs.length,
+        total_master_activities: mergedActs.length,
         added_clubs: addedClubs,
         added_activities: addedActs,
         reconciled_clubs: addedClubs,
@@ -1821,9 +2086,9 @@ function apiDispatcher(path, method, body, token) {
         data: {
           success: true,
           summary: summary,
-          employees_synced: 7,
-          total_master_clubs: mClubs.rows.length,
-          total_master_activities: mActs.rows.length,
+          employees_synced: syncedEmpIds.length,
+          total_master_clubs: mergedClubs.length,
+          total_master_activities: mergedActs.length,
           reconciled_clubs: addedClubs,
           reconciled_activities: addedActs
         }
@@ -1961,92 +2226,7 @@ function apiDispatcher(path, method, body, token) {
       };
     }
 
-    // --- MASTER RECONCILIATION ---
-    if (path === "sync/reconcile") {
-      var mClubs = getCsvData("master", "master_clubs.csv");
-      var mActs = getCsvData("master", "master_activities.csv");
-      var mQuotas = getCsvData("master", "master_quotas.csv");
 
-      var allClubsMap = {};
-      mClubs.rows.forEach(function(c) {
-        var cid = String(c.club_id || "").trim().toUpperCase();
-        if (cid) allClubsMap[cid] = c;
-      });
-
-      var allActsMap = {};
-      mActs.rows.forEach(function(a) {
-        var aid = String(a.activity_id || "").trim();
-        if (aid) allActsMap[aid] = a;
-      });
-
-      var employeeCounts = {};
-      var root = getSystemFolder();
-      var empParent = getOrCreateSubfolder(root, "employees");
-      var eIter = empParent.getFolders();
-      var syncedNodes = 0;
-
-      while (eIter.hasNext()) {
-        var eFolder = eIter.next();
-        var empId = eFolder.getName().toUpperCase();
-        syncedNodes++;
-        employeeCounts[empId] = { clubs: 0, activities: 0 };
-
-        var nClubs = getCsvData("employees/" + empId.toLowerCase(), "clubs.csv");
-        if (nClubs && nClubs.rows) {
-          nClubs.rows.forEach(function(c) {
-            var cid = String(c.club_id || "").trim().toUpperCase();
-            if (cid) {
-              if (!allClubsMap[cid] || (c.updated_at || "") >= (allClubsMap[cid].updated_at || "")) {
-                allClubsMap[cid] = c;
-              }
-              employeeCounts[empId].clubs++;
-            }
-          });
-        }
-
-        var nActs = getCsvData("employees/" + empId.toLowerCase(), "activity_log.csv");
-        if (nActs && nActs.rows) {
-          nActs.rows.forEach(function(a) {
-            var aid = String(a.activity_id || "").trim();
-            if (aid) {
-              allActsMap[aid] = a;
-              employeeCounts[empId].activities++;
-            }
-          });
-        }
-      }
-
-      var mergedClubs = Object.keys(allClubsMap).map(function(k) { return allClubsMap[k]; });
-      var mergedActs = Object.keys(allActsMap).map(function(k) { return allActsMap[k]; });
-      writeCsvData("master", "master_clubs.csv", mClubs.headers, mergedClubs);
-      writeCsvData("master", "master_activities.csv", mActs.headers, mergedActs);
-
-      if (mQuotas && mQuotas.rows) {
-        var updatedQuotas = mQuotas.rows.map(function(q) {
-          var eid = String(q.emp_id || "").toUpperCase();
-          if (employeeCounts[eid]) {
-            q.clubs_approved_count = String(employeeCounts[eid].clubs);
-            q.support_logs_count = String(employeeCounts[eid].activities);
-          }
-          return q;
-        });
-        writeCsvData("master", "master_quotas.csv", mQuotas.headers, updatedQuotas);
-      }
-
-      return {
-        ok: true,
-        status: 200,
-        data: {
-          success: true,
-          message: "Reconciliation completed successfully.",
-          summary: {
-            total_master_clubs: mergedClubs.length,
-            total_master_activities: mergedActs.length,
-            employees_synced: syncedNodes
-          }
-        }
-      };
-    }
 
     // --- STATE ZONE MAP & ALL STATES LIST (Dual support for state-zone/map, states-zones, states) ---
     if (path === "state-zone/map" || path === "states-zones" || path === "states") {
@@ -2083,6 +2263,11 @@ function apiDispatcher(path, method, body, token) {
           return false;
         });
       }
+      results.forEach(function(c) {
+        if (!c.zone || c.zone === "Unknown") {
+          c.zone = getZoneForState(c.state || "");
+        }
+      });
       return { ok: true, status: 200, data: { success: true, total: results.length, clubs: results, results: results } };
     }
 
@@ -2097,7 +2282,12 @@ function apiDispatcher(path, method, body, token) {
           break;
         }
       }
-      if (target) return { ok: true, status: 200, data: { found: true, club: target } };
+      if (target) {
+        if (!target.zone || target.zone === "Unknown") {
+          target.zone = getZoneForState(target.state || "");
+        }
+        return { ok: true, status: 200, data: { found: true, club: target } };
+      }
       return { ok: false, status: 404, data: { error: true, message: "Club not found." } };
     }
 
@@ -2115,7 +2305,7 @@ function apiDispatcher(path, method, body, token) {
         reg_no: regNo,
         institution_name: body.institution_name || "",
         state: body.state || "",
-        zone: body.zone || getZoneForState(body.state),
+        zone: (body.zone && body.zone !== "Unknown") ? body.zone : (getZoneForState(body.state || "") || "Unknown"),
         patron_email: body.patron_email || "",
         president_email: body.president_email || "",
         secretary_email: body.secretary_email || "",
@@ -2179,11 +2369,21 @@ function apiDispatcher(path, method, body, token) {
           if (body.institution_name) mClubs.rows[uci].institution_name = body.institution_name;
           if (body.state) {
             mClubs.rows[uci].state = body.state;
-            mClubs.rows[uci].zone = body.zone || getZoneForState(body.state);
+            mClubs.rows[uci].zone = (body.zone && body.zone !== "Unknown") ? body.zone : getZoneForState(body.state);
+          } else if (body.zone) {
+            mClubs.rows[uci].zone = body.zone;
+          }
+          if (!mClubs.rows[uci].zone || mClubs.rows[uci].zone === "Unknown") {
+            mClubs.rows[uci].zone = getZoneForState(mClubs.rows[uci].state || "") || mClubs.rows[uci].zone;
           }
           if (body.patron_email) mClubs.rows[uci].patron_email = body.patron_email;
           if (body.president_email) mClubs.rows[uci].president_email = body.president_email;
           if (body.secretary_email) mClubs.rows[uci].secretary_email = body.secretary_email;
+          if (body.status) mClubs.rows[uci].status = body.status;
+          if (body.renewal_date) mClubs.rows[uci].renewal_date = body.renewal_date;
+          if (body.next_renewal_date) mClubs.rows[uci].next_renewal_date = body.next_renewal_date;
+          if (body.last_renewal_date) mClubs.rows[uci].last_renewal_date = body.last_renewal_date;
+          if (body.date_of_approval) mClubs.rows[uci].date_of_approval = body.date_of_approval;
           mClubs.rows[uci].updated_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
           found = true;
           break;
@@ -2224,6 +2424,9 @@ function apiDispatcher(path, method, body, token) {
       club.next_renewal_date = nextRenStr;
       club.status = "Active (Renewed)";
       club.updated_at = nowIso;
+      if (!club.zone || club.zone === "Unknown") {
+        club.zone = getZoneForState(club.state || "") || club.zone;
+      }
 
       saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
 

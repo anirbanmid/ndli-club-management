@@ -380,8 +380,49 @@ async function runTests() {
   console.assert(strBodyRes.ok === true && strBodyRes.data.token, 'apiDispatcher should parse stringified JSON body');
   console.log('PASS: Stringified JSON body parsed and dispatched successfully.\n');
 
+  // Test 21: Bug 1 - EMP01 performance quota reflects >= 2 clubs approved based on activity logs
+  console.log('[Test 21] EMP01 performance quota reflects clubs approved (Bug 1)...');
+  const emp01Prof = apiDispatcher('employees/profile?id=EMP01', 'GET');
+  console.assert(emp01Prof.ok === true, 'EMP01 profile should return ok: true');
+  console.assert(parseInt(emp01Prof.data.employee.clubs_approved_count, 10) >= 2, `EMP01 clubs approved quota must be >= 2, got ${emp01Prof.data.employee.clubs_approved_count}`);
+  console.log(`PASS: EMP01 performance quota correctly reflects ${emp01Prof.data.employee.clubs_approved_count} clubs approved.\n`);
+
+  // Test 22: Bug 2 - Club NDLI-AUTO-REN-01 displays mapped Zone ("North East")
+  console.log('[Test 22] Club NDLI-AUTO-REN-01 zone auto-mapping (Bug 2)...');
+  const clubDetRes = apiDispatcher('clubs/details', 'POST', { club_id: 'NDLI-AUTO-REN-01' });
+  console.assert(clubDetRes.ok === true && clubDetRes.data.club, 'NDLI-AUTO-REN-01 details must succeed');
+  console.assert(clubDetRes.data.club.zone === 'North East', `Expected North East zone, got ${clubDetRes.data.club.zone}`);
+  const clubSearchRes = apiDispatcher('clubs/search?q=NDLI-AUTO-REN-01', 'GET');
+  console.assert(clubSearchRes.ok === true && clubSearchRes.data.clubs.length > 0, 'Search for NDLI-AUTO-REN-01 should succeed');
+  console.assert(clubSearchRes.data.clubs[0].zone === 'North East', `Search result zone must be North East, got ${clubSearchRes.data.clubs[0].zone}`);
+  console.log(`PASS: Club NDLI-AUTO-REN-01 zone mapped correctly to "${clubDetRes.data.club.zone}".\n`);
+
+  // Test 23: Bug 3 - Database sync & bidirectional reconciliation
+  console.log('[Test 23] Database sync & reconciliation (Bug 3)...');
+  const syncRes = apiDispatcher('sync/reconcile', 'POST');
+  console.assert(syncRes.ok === true && syncRes.data.success === true, 'sync/reconcile must succeed');
+  console.assert(syncRes.data.summary.employees_synced === 7, 'Reconciliation must sync all 7 employee nodes');
+  const perfRes = apiDispatcher('admin/employee-performance', 'GET');
+  console.assert(perfRes.ok === true && Array.isArray(perfRes.data.officers), 'Employee performance must return officers array');
+  const emp01Perf = perfRes.data.officers.find(p => p.emp_id === 'EMP01');
+  console.assert(emp01Perf && emp01Perf.clubs_approved >= 2, `EMP01 performance clubs approved must be >= 2, got ${emp01Perf?.clubs_approved}`);
+  // Test 24: Regression verification - clubs/update updates emails and auto-maps zone
+  console.log('[Test 24] clubs/update email updates and zone mapping...');
+  const updateRes = apiDispatcher('clubs/update', 'POST', {
+    club_id: 'NDLI-EMP01-002',
+    patron_email: 'updated.director@dati.ac.in',
+    president_email: 'updated.pres@dati.ac.in',
+    secretary_email: 'updated.sec@dati.ac.in'
+  });
+  console.assert(updateRes.ok === true, 'clubs/update must succeed');
+  const verifyClub = apiDispatcher('clubs/details', 'POST', { club_id: 'NDLI-EMP01-002' });
+  console.assert(verifyClub.ok === true && verifyClub.data.club.patron_email === 'updated.director@dati.ac.in', 'patron_email must be updated');
+  console.assert(verifyClub.data.club.president_email === 'updated.pres@dati.ac.in', 'president_email must be updated');
+  console.assert(verifyClub.data.club.secretary_email === 'updated.sec@dati.ac.in', 'secretary_email must be updated');
+  console.log('PASS: clubs/update correctly updates contact emails and preserves integrity.\n');
+
   console.log('=============================================');
-  console.log('ALL 20 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 24 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

@@ -150,6 +150,7 @@ class TestSyncEngine(unittest.TestCase):
         }
 
         created = SyncEngine.approve_new_club(emp_id=emp_id, club_data=club_payload)
+        self.assertEqual(created.get("zone"), "North East")
         self.assertIsNotNone(created["renewal_date"])
         self.assertTrue(len(created["renewal_date"]) == 10)  # YYYY-MM-DD
         expected_ren = calculate_next_renewal_date(establishment_date=created["submission_timestamp"])
@@ -163,6 +164,7 @@ class TestSyncEngine(unittest.TestCase):
         # Should instantly capture submission timestamp as last_renewal_date and calculate renewal_date as +1 year from that timestamp
         renewed = SyncEngine.renew_club_registration(emp_id=emp_id, club_id=club_id, renewal_date=None)
         self.assertIsNotNone(renewed)
+        self.assertEqual(renewed.get("zone"), "North East")
         self.assertTrue(len(renewed.get("last_renewal_date", "")) > 0)
         self.assertEqual(renewed["date_of_approval"], created["date_of_approval"])
         expected_next = calculate_next_renewal_date(last_renewal_date=renewed["last_renewal_date"])
@@ -255,6 +257,72 @@ class TestSyncEngine(unittest.TestCase):
                 new_count = int(q.get("support_logs_count", "0") or "0")
                 break
         self.assertEqual(new_count, base_count + 1)
+
+    def test_bug1_emp01_quota_reflects_club_approvals(self):
+        # Reset EMP01 quota to 0 to simulate corrupted or stale quota
+        quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+        for q in quotas:
+            if q.get("emp_id") == "EMP01":
+                q["clubs_approved_count"] = "0"
+        CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, quotas)
+
+        # Even if quotas.csv was reset to 0, reconcile or profile must heal and compute >= 2 clubs
+        SyncEngine.reconcile_all_nodes()
+        quotas_after = {q["emp_id"]: q for q in CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)}
+        emp01_quota = quotas_after.get("EMP01")
+        self.assertIsNotNone(emp01_quota)
+        self.assertGreaterEqual(int(emp01_quota.get("clubs_approved_count", "0")), 2)
+
+    def test_bug2_ndli_auto_ren_01_zone_auto_mapped(self):
+        # NDLI-AUTO-REN-01 must have zone "North East"
+        master_clubs = {c["club_id"]: c for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)}
+        c = master_clubs.get("NDLI-AUTO-REN-01")
+        self.assertIsNotNone(c)
+        self.assertEqual(c.get("zone"), "North East")
+
+        # Also test that loading any record with empty zone auto-maps via get_zone_for_state
+        test_payload = {
+            "club_id": "NDLI-AUTO-TEST-LOAD",
+            "reg_no": "REG-LOAD-01",
+            "institution_name": "Gauhati Institute of Tech",
+            "state": "Assam",
+            "zone": "",
+            "status": "Approved"
+        }
+        CSVEngine.upsert_row(MASTER_CLUBS_CSV, CLUB_FIELDS, "club_id", test_payload)
+        loaded = CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", "NDLI-AUTO-TEST-LOAD", CLUB_FIELDS)
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded.get("zone"), "North East")
+        # Cleanup
+        clean_mc = [cl for cl in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS) if cl.get("club_id") != "NDLI-AUTO-TEST-LOAD"]
+        CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, clean_mc)
+
+    def test_bug3_sync_reconcile_bi_directional_healing(self):
+        # Inject club with missing zone and verify reconcile heals it in both master and node
+        emp_id = "EMP05"
+        club_payload = {
+            "club_id": "NDLI-ZONE-HEAL-TEST",
+            "reg_no": "REG-HEAL-01",
+            "institution_name": "Assam Tech Campus",
+            "state": "Assam",
+            "zone": "",
+            "status": "Approved",
+            "approved_by_emp_id": emp_id
+        }
+        CSVEngine.upsert_row(MASTER_CLUBS_CSV, CLUB_FIELDS, "club_id", club_payload)
+        SyncEngine.reconcile_all_nodes()
+
+        master_clubs = {c["club_id"]: c for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)}
+        healed_c = master_clubs.get("NDLI-ZONE-HEAL-TEST")
+        self.assertIsNotNone(healed_c)
+        self.assertEqual(healed_c.get("zone"), "North East")
+
+        # Cleanup
+        all_mc = [c for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS) if c.get("club_id") != "NDLI-ZONE-HEAL-TEST"]
+        CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, all_mc)
+        node_c_path = SyncEngine.get_employee_clubs_path(emp_id)
+        all_nc = [c for c in CSVEngine.read_all(node_c_path, CLUB_FIELDS) if c.get("club_id") != "NDLI-ZONE-HEAL-TEST"]
+        CSVEngine.write_all(node_c_path, CLUB_FIELDS, all_nc)
 
 if __name__ == "__main__":
     unittest.main()

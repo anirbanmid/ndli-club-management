@@ -244,16 +244,18 @@ class SyncEngine:
             # Upsert into Master Users CSV
             CSVEngine.upsert_row(MASTER_USERS_CSV, USER_FIELDS, "id", user_record)
 
-            # Initialize Master Quota record
-            quota_record = {
-                "emp_id": emp_id,
-                "employee_name": full_name,
-                "zone": zone,
-                "clubs_approved_count": "0",
-                "support_logs_count": "0",
-                "last_activity_timestamp": created_at
-            }
-            CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", quota_record)
+            # Initialize Master Quota record if not already present (preserve existing quota)
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            if not any(q.get("emp_id", "").strip().upper() == emp_id.strip().upper() for q in quotas):
+                quota_record = {
+                    "emp_id": emp_id,
+                    "employee_name": full_name,
+                    "zone": zone,
+                    "clubs_approved_count": "0",
+                    "support_logs_count": "0",
+                    "last_activity_timestamp": created_at
+                }
+                CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", quota_record)
 
             return user_record
 
@@ -518,12 +520,15 @@ class SyncEngine:
                 renewal_date=ren_input
             )
 
+            st_val = str(club_data.get("state", "")).strip()
+            zn_val = str(club_data.get("zone", "")).strip() or get_zone_for_state(st_val) or "Unknown"
+
             club_record = {
                 "club_id": club_id,
                 "reg_no": str(club_data.get("reg_no", "")).strip(),
                 "institution_name": str(club_data.get("institution_name", "")).strip(),
-                "state": str(club_data.get("state", "")).strip(),
-                "zone": str(club_data.get("zone", "")).strip(),
+                "state": st_val,
+                "zone": zn_val,
                 "patron_email": str(club_data.get("patron_email", "")).strip().lower(),
                 "president_email": str(club_data.get("president_email", "")).strip().lower(),
                 "secretary_email": str(club_data.get("secretary_email", "")).strip().lower(),
@@ -603,11 +608,10 @@ class SyncEngine:
                 target_record["renewal_date"] = valid_ren
                 target_record["next_renewal_date"] = valid_ren
 
-            # If state was updated, auto-remap zone to ensure strict consistency
-            if "state" in updated_fields and target_record.get("state"):
-                new_zone = get_zone_for_state(target_record["state"])
-                if new_zone:
-                    target_record["zone"] = new_zone
+            # If state was updated or zone is empty/Unknown, auto-map zone
+            c_state = target_record.get("state", "").strip()
+            if not target_record.get("zone") or target_record.get("zone") == "Unknown" or ("state" in updated_fields and c_state):
+                target_record["zone"] = get_zone_for_state(c_state) or target_record.get("zone", "") or "Unknown"
 
             target_record["updated_at"] = now_iso
 
@@ -718,19 +722,27 @@ class SyncEngine:
     @classmethod
     def reconcile_all_nodes(cls) -> Dict[str, int]:
         """
-        Reconciles the Master Database from all Employee Node databases.
-        Can be invoked anytime to guarantee full data integrity without data loss.
+        Reconciles the Master Database from all Employee Node databases bi-directionally.
+        - Synchronizes clubs and activities between master and employee nodes.
+        - Automatically heals any missing or empty zones using state_zone_mapper.
+        - Accurately recomputes quota performance (clubs approved vs support activities)
+          ensuring club approvals recorded in activity logs are never lost or zeroed out.
         """
         with _SYNC_LOCK:
             cls.initialize_storage_hierarchy()
             all_clubs: Dict[str, Dict[str, str]] = {}
             all_activities: Dict[str, Dict[str, str]] = {}
-            employee_counts: Dict[str, Dict[str, int]] = {}
 
-            # Read all existing master clubs first
+            # 1. Read and heal all existing master clubs
             for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS):
                 cid = c.get("club_id", "").strip().upper()
                 if cid:
+                    st = c.get("state", "").strip()
+                    zn = c.get("zone", "").strip()
+                    if not zn or zn == "Unknown":
+                        zn = get_zone_for_state(st) or "Unknown"
+                    c["zone"] = zn
+
                     doa = c.get("date_of_approval", "").strip() or c.get("submission_timestamp", "").strip()
                     lrd = c.get("last_renewal_date", "").strip()
                     ren = c.get("renewal_date", "").strip() or c.get("next_renewal_date", "").strip()
@@ -753,13 +765,20 @@ class SyncEngine:
                     c["next_renewal_date"] = ren
                     all_clubs[cid] = c
 
-            # Scan employee node folders
+            # 2. Read existing master activities
+            for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS):
+                aid = a.get("activity_id", "").strip()
+                if aid:
+                    all_activities[aid] = a
+
+            # 3. Scan all employee node folders
+            synced_emp_ids = set()
             if EMPLOYEE_NODES_DIR.exists():
                 for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
                     if not emp_dir.is_dir():
                         continue
                     emp_id = emp_dir.name.upper()
-                    employee_counts[emp_id] = {"clubs": 0, "activities": 0}
+                    synced_emp_ids.add(emp_id)
 
                     # Read node clubs
                     node_clubs_path = emp_dir / "clubs.csv"
@@ -767,11 +786,19 @@ class SyncEngine:
                     for c in CSVEngine.read_all(node_clubs_path, CLUB_FIELDS):
                         cid = c.get("club_id", "").strip().upper()
                         if cid:
+                            st = c.get("state", "").strip()
+                            zn = c.get("zone", "").strip()
+                            if not zn or zn == "Unknown":
+                                zn = get_zone_for_state(st) or "Unknown"
+                            c["zone"] = zn
+
+                            if not c.get("approved_by_emp_id"):
+                                c["approved_by_emp_id"] = emp_id
+
                             doa = c.get("date_of_approval", "").strip() or c.get("submission_timestamp", "").strip()
                             lrd = c.get("last_renewal_date", "").strip()
                             ren = c.get("renewal_date", "").strip() or c.get("next_renewal_date", "").strip()
 
-                            # Preserve master's date_of_approval or last_renewal_date if node record lacks it
                             if cid in all_clubs:
                                 if not doa and all_clubs[cid].get("date_of_approval"):
                                     doa = all_clubs[cid]["date_of_approval"]
@@ -796,10 +823,8 @@ class SyncEngine:
                             c["renewal_date"] = ren
                             c["next_renewal_date"] = ren
 
-                            # Keep most recently updated
                             if cid not in all_clubs or (c.get("updated_at", "") >= all_clubs[cid].get("updated_at", "")):
                                 all_clubs[cid] = c
-                            employee_counts[emp_id]["clubs"] += 1
 
                     # Read node activities
                     node_act_path = emp_dir / "activity_log.csv"
@@ -807,34 +832,130 @@ class SyncEngine:
                         aid = a.get("activity_id", "").strip()
                         if aid:
                             all_activities[aid] = a
-                            employee_counts[emp_id]["activities"] += 1
 
-            # Rewrite master clubs
-            CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, list(all_clubs.values()))
+            # Ensure all employee users from master_users.csv are included in synced_emp_ids
+            master_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            for u in master_users:
+                if u.get("role") == "EMPLOYEE":
+                    uid = u.get("id", "").strip().upper()
+                    if uid:
+                        synced_emp_ids.add(uid)
 
-            # Read existing master activities to merge
-            for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS):
+            # 4. Infer club approvals and link clubs from activities
+            for a in all_activities.values():
+                stype = a.get("support_type", "").strip()
                 aid = a.get("activity_id", "").strip()
-                if aid and aid not in all_activities:
-                    all_activities[aid] = a
+                a_emp = a.get("emp_id", "").strip().upper()
+                is_club_approval = (
+                    stype == "Club Approval"
+                    or a.get("priority_flag") == "1"
+                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
+                )
+                if is_club_approval:
+                    cid = a.get("club_id", "").strip().upper()
+                    if cid and cid in all_clubs:
+                        if not all_clubs[cid].get("approved_by_emp_id"):
+                            all_clubs[cid]["approved_by_emp_id"] = a_emp
 
-            # Rewrite master activities
+            # 5. Bi-directional sync back to employee nodes
+            for emp_id in synced_emp_ids:
+                emp_dir = cls.get_employee_dir(emp_id)
+                emp_dir.mkdir(parents=True, exist_ok=True)
+
+                # Clubs belonging to this employee
+                node_clubs_path = emp_dir / "clubs.csv"
+                emp_clubs = [c for c in all_clubs.values() if c.get("approved_by_emp_id", "").strip().upper() == emp_id]
+                CSVEngine.write_all(node_clubs_path, CLUB_FIELDS, emp_clubs)
+
+                # Activities belonging to this employee
+                node_act_path = emp_dir / "activity_log.csv"
+                node_acts = [a for a in all_activities.values() if a.get("emp_id", "").strip().upper() == emp_id]
+                node_acts.sort(key=lambda x: x.get("timestamp", ""))
+                CSVEngine.write_all(node_act_path, ACTIVITY_FIELDS, node_acts)
+
+                # Ensure node credentials and issues files exist
+                cred_path = cls.get_employee_credentials_path(emp_id)
+                CSVEngine.ensure_file(cred_path, USER_FIELDS)
+                issues_path = cls.get_employee_issues_path(emp_id)
+                CSVEngine.ensure_file(issues_path, ISSUE_FIELDS)
+
+            # 6. Write master clubs and master activities
+            CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, list(all_clubs.values()))
             sorted_acts = sorted(all_activities.values(), key=lambda x: x.get("timestamp", ""))
             CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, sorted_acts)
 
-            # Recompute quotas
+            # 7. Recompute quotas accurately for all employees
             quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
-            quota_by_id = {q["emp_id"]: q for q in quotas}
+            quota_by_id = {q["emp_id"].strip().upper(): q for q in quotas if q.get("emp_id")}
 
-            for emp_id, counts in employee_counts.items():
-                if emp_id in quota_by_id:
-                    quota_by_id[emp_id]["clubs_approved_count"] = str(counts["clubs"])
-                    quota_by_id[emp_id]["support_logs_count"] = str(counts["activities"])
+            # Also ensure all officers from master users are represented in quotas
+            master_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            for u in master_users:
+                if u.get("role") == "EMPLOYEE":
+                    uid = u.get("id", "").strip().upper()
+                    if uid and uid not in quota_by_id:
+                        quota_by_id[uid] = {
+                            "emp_id": uid,
+                            "employee_name": u.get("full_name") or uid,
+                            "zone": u.get("zone", ""),
+                            "clubs_approved_count": "0",
+                            "support_logs_count": "0",
+                            "last_activity_timestamp": ""
+                        }
+
+            for emp_id, q_rec in quota_by_id.items():
+                # A) Clubs approved: unique clubs where approved_by_emp_id == emp_id,
+                # plus any club approval activities
+                approved_club_ids = set()
+                for cid, c in all_clubs.items():
+                    if c.get("approved_by_emp_id", "").strip().upper() == emp_id:
+                        approved_club_ids.add(cid)
+
+                club_approval_act_count = 0
+                standalone_approvals = 0
+                support_logs_count = 0
+                latest_ts = q_rec.get("last_activity_timestamp", "")
+
+                for a in all_activities.values():
+                    if a.get("emp_id", "").strip().upper() == emp_id:
+                        ts = a.get("timestamp", "")
+                        if ts and ts > latest_ts:
+                            latest_ts = ts
+                        stype = a.get("support_type", "").strip()
+                        aid = a.get("activity_id", "").strip()
+                        is_club_approval = (
+                            stype == "Club Approval"
+                            or a.get("priority_flag") == "1"
+                            or aid.startswith(f"ACT-PRIORITY-{emp_id}")
+                        )
+                        if is_club_approval:
+                            club_approval_act_count += 1
+                            cid = a.get("club_id", "").strip().upper()
+                            if cid:
+                                approved_club_ids.add(cid)
+                            else:
+                                standalone_approvals += 1
+                        else:
+                            support_logs_count += 1
+
+                for cid in approved_club_ids:
+                    c = all_clubs.get(cid)
+                    if c:
+                        c_ts = c.get("updated_at", "") or c.get("date_of_approval", "")
+                        if c_ts and c_ts > latest_ts:
+                            latest_ts = c_ts
+
+                total_clubs_approved = max(len(approved_club_ids) + standalone_approvals, club_approval_act_count)
+
+                q_rec["clubs_approved_count"] = str(total_clubs_approved)
+                q_rec["support_logs_count"] = str(support_logs_count)
+                if latest_ts:
+                    q_rec["last_activity_timestamp"] = latest_ts
 
             CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, list(quota_by_id.values()))
 
             return {
                 "total_master_clubs": len(all_clubs),
                 "total_master_activities": len(all_activities),
-                "employees_synced": len(employee_counts)
+                "employees_synced": len(synced_emp_ids)
             }
