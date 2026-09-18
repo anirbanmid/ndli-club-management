@@ -279,9 +279,9 @@ async function runTests() {
   console.assert(m.summary.total_activities >= 20, `Expected activities, got ${m.summary.total_activities}`);
   console.assert(m.zone_wise_clubs.North > 0, 'Zone counts must have North clubs');
   console.assert(m.renewal_health.retention_rate_pct !== undefined, 'Renewal health must have retention rate');
-  console.assert(m.coverage_index.total_states === 36, 'Coverage index must track 36 states');
+  console.assert(m.coverage_index.total_states === 37, 'Coverage index must track 37 states');
   console.assert(m.support_type_breakdown['Club Approval'] > 0, 'Support type breakdown must have club approvals');
-  console.log(`PASS: Master CSV data synced to Admin Metrics (Total Clubs: ${m.summary.total_clubs}, Activities: ${m.summary.total_activities}, States: ${m.coverage_index.represented_count}/36).\n`);
+  console.log(`PASS: Master CSV data synced to Admin Metrics (Total Clubs: ${m.summary.total_clubs}, Activities: ${m.summary.total_activities}, States: ${m.coverage_index.represented_count}/37).\n`);
 
   // Test 9: Admin Renewal Attention (/api/admin/renewal-attention)
   console.log('[Test 9] Admin Renewal Attention (/api/admin/renewal-attention)...');

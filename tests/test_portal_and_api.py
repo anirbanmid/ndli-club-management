@@ -99,6 +99,51 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
             self.assertEqual(status_e, 200)
             self.assertIn("NDLI Club Employee Portal", body_e.decode("utf-8"))
 
+    def test_sec_c_state_dropdown_options_and_dual_deployment_parity(self):
+        # 1. Verify python template employee.html
+        status, _, body = self._get_raw("/employee")
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        self.assertIn('id="c-state"', html)
+        self.assertIn('data-alias="sec-c-state"', html)
+        self.assertIn('id="c-zone"', html)
+        self.assertIn('data-alias="sec-c-zone"', html)
+        self.assertIn('id="edit-state"', html)
+        self.assertIn('value="West Bengal"', html)
+        self.assertIn('value="Maharashtra"', html)
+        self.assertIn('value="Delhi"', html)
+        self.assertIn('value="Tamil Nadu"', html)
+        self.assertIn('value="Dadar &amp; Nagar Haveli"', html)
+        self.assertIn('value="Daman and Diu"', html)
+        self.assertIn('DEFAULT_INDIAN_STATES', html)
+        self.assertIn('sec-c-state', html)
+        self.assertIn('_origQuerySelector', html)
+
+        # 2. Verify Google Apps Script Employee.html dual-deployment parity
+        with open("deployment_gas/Employee.html", "r", encoding="utf-8") as f:
+            gas_html = f.read()
+        self.assertIn('id="c-state"', gas_html)
+        self.assertIn('data-alias="sec-c-state"', gas_html)
+        self.assertIn('id="c-zone"', gas_html)
+        self.assertIn('data-alias="sec-c-zone"', gas_html)
+        self.assertIn('id="edit-state"', gas_html)
+        self.assertIn('value="West Bengal"', gas_html)
+        self.assertIn('value="Maharashtra"', gas_html)
+        self.assertIn('value="Delhi"', gas_html)
+        self.assertIn('value="Tamil Nadu"', gas_html)
+        self.assertIn('value="Dadar &amp; Nagar Haveli"', gas_html)
+        self.assertIn('value="Daman and Diu"', gas_html)
+        self.assertIn('DEFAULT_INDIAN_STATES', gas_html)
+        self.assertIn('_origQuerySelector', gas_html)
+
+        # 3. Verify Code.gs handles state-zone/map, states, states-zones and has all 37 canonical states
+        with open("deployment_gas/Code.gs", "r", encoding="utf-8") as f:
+            code_gs = f.read()
+        self.assertIn('states-zones', code_gs)
+        self.assertIn('ALL_INDIAN_STATES', code_gs)
+        self.assertIn('"Dadar & Nagar Haveli"', code_gs)
+        self.assertIn('"Daman and Diu"', code_gs)
+
     def test_login_routes(self):
         # /login route
         status, ctype, body = self._get_raw("/login")

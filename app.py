@@ -206,6 +206,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "GET  /api/auth/me",
                 "POST /api/auth/logout",
                 "GET  /api/state-zone/map",
+                "GET  /api/states",
+                "GET  /api/states-zones",
                 "GET  /api/state-zone/lookup?state=<name>",
                 "GET  /api/clubs/search?q=<query>",
                 "POST /api/clubs/create",
@@ -323,13 +325,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self._send_health_status()
             return
 
-        # State and Zone Mapping
-        if path == "/api/state-zone/map":
+        # State and Zone Mapping (Dual support for /api/state-zone/map, /api/states, /api/states-zones)
+        if path in ("/api/state-zone/map", "/api/states", "/api/states-zones"):
+            all_st = get_all_states()
             self._send_json({
+                "success": True,
                 "zones": get_all_zones(),
                 "zone_to_states": ZONE_STATE_MAP,
-                "all_states": get_all_states(),
-                "support_types": SUPPORT_TYPES
+                "map": ZONE_STATE_MAP,
+                "all_states": all_st,
+                "states": all_st,
+                "support_types": SUPPORT_TYPES,
+                "total": len(all_st)
             })
             return
 

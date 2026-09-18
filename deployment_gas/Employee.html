@@ -1879,15 +1879,51 @@ tbody tr:hover {
           <div class="grid-2">
             <div class="form-group">
               <label for="c-state" class="label-required">State</label>
-              <select id="c-state" required onchange="handleStateSelection(this.value)">
+              <select id="c-state" data-alias="sec-c-state" name="state" required onchange="handleStateSelection(this.value)">
                 <option value="">-- Select State / Union Territory --</option>
-                <!-- Populated dynamically with all 36 Indian states & UTs -->
+                <option value="Andaman &amp; Nicobar Island">Andaman &amp; Nicobar Island</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                <option value="Assam">Assam</option>
+                <option value="Bihar">Bihar</option>
+                <option value="Chandigarh">Chandigarh</option>
+                <option value="Chhattisgarh">Chhattisgarh</option>
+                <option value="Dadar &amp; Nagar Haveli">Dadar &amp; Nagar Haveli</option>
+                <option value="Daman and Diu">Daman and Diu</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Goa">Goa</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                <option value="Jammu &amp; Kashmir">Jammu &amp; Kashmir</option>
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Ladakh">Ladakh</option>
+                <option value="Lakshadweep">Lakshadweep</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Manipur">Manipur</option>
+                <option value="Meghalaya">Meghalaya</option>
+                <option value="Mizoram">Mizoram</option>
+                <option value="Nagaland">Nagaland</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Puducherry">Puducherry</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Sikkim">Sikkim</option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Tripura">Tripura</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Uttarakhand">Uttarakhand</option>
+                <option value="West Bengal">West Bengal</option>
               </select>
             </div>
 
             <div class="form-group">
               <label for="c-zone">Zone (Auto-Mapped)</label>
-              <input type="text" id="c-zone" readonly placeholder="Select State to auto-map zone" style="background: #f8fafc; font-weight: 700; color: var(--primary);">
+              <input type="text" id="c-zone" data-alias="sec-c-zone" readonly placeholder="Select State to auto-map zone" style="background: #f8fafc; font-weight: 700; color: var(--primary);">
             </div>
           </div>
 
@@ -2389,7 +2425,44 @@ tbody tr:hover {
           <div class="form-group">
             <label for="edit-state" class="label-required">State</label>
             <select id="edit-state" required onchange="handleEditStateSelection(this.value)">
-              <!-- populated -->
+              <option value="">-- Select State / Union Territory --</option>
+              <option value="Andaman &amp; Nicobar Island">Andaman &amp; Nicobar Island</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+              <option value="Assam">Assam</option>
+              <option value="Bihar">Bihar</option>
+              <option value="Chandigarh">Chandigarh</option>
+              <option value="Chhattisgarh">Chhattisgarh</option>
+              <option value="Dadar &amp; Nagar Haveli">Dadar &amp; Nagar Haveli</option>
+              <option value="Daman and Diu">Daman and Diu</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Goa">Goa</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Haryana">Haryana</option>
+              <option value="Himachal Pradesh">Himachal Pradesh</option>
+              <option value="Jammu &amp; Kashmir">Jammu &amp; Kashmir</option>
+              <option value="Jharkhand">Jharkhand</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Kerala">Kerala</option>
+              <option value="Ladakh">Ladakh</option>
+              <option value="Lakshadweep">Lakshadweep</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Manipur">Manipur</option>
+              <option value="Meghalaya">Meghalaya</option>
+              <option value="Mizoram">Mizoram</option>
+              <option value="Nagaland">Nagaland</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Puducherry">Puducherry</option>
+              <option value="Punjab">Punjab</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Sikkim">Sikkim</option>
+              <option value="Tamil Nadu">Tamil Nadu</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Tripura">Tripura</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Uttarakhand">Uttarakhand</option>
+              <option value="West Bengal">West Bengal</option>
             </select>
           </div>
           <div class="form-group">
@@ -3742,7 +3815,61 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
     let CURRENT_EMP_ID = "EMP01";
     let CURRENT_USER_SESSION = null;
-    let ALL_STATES = [];
+
+    const DEFAULT_INDIAN_STATES = [
+      "Andaman & Nicobar Island", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+      "Chandigarh", "Chhattisgarh", "Dadar & Nagar Haveli", "Daman and Diu", "Delhi",
+      "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir",
+      "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep",
+      "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+      "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+      "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+      "Uttarakhand", "West Bengal"
+    ];
+    let ALL_STATES = [...DEFAULT_INDIAN_STATES];
+
+    // Dual-alias resolution for #sec-c-state, #sec-c-zone, and #c-doa-display
+    try {
+      if (typeof document !== "undefined") {
+        if (document.getElementById) {
+          const _origGetById = document.getElementById.bind(document);
+          document.getElementById = function(id) {
+            let el = _origGetById(id);
+            if (!el && id === "sec-c-state") el = _origGetById("c-state");
+            if (!el && id === "c-state") el = _origGetById("sec-c-state");
+            if (!el && id === "sec-c-zone") el = _origGetById("c-zone");
+            if (!el && id === "c-zone") el = _origGetById("sec-c-zone");
+            if (!el && id === "c-doa-display") el = _origGetById("c-timestamp-display");
+            return el;
+          };
+        }
+        if (document.querySelector) {
+          const _origQuerySelector = document.querySelector.bind(document);
+          document.querySelector = function(selector) {
+            let el = _origQuerySelector(selector);
+            if (!el && selector === "#sec-c-state") el = _origQuerySelector("#c-state") || _origQuerySelector('[data-alias="sec-c-state"]');
+            if (!el && selector === "#c-state") el = _origQuerySelector("#sec-c-state");
+            if (!el && selector === "#sec-c-zone") el = _origQuerySelector("#c-zone") || _origQuerySelector('[data-alias="sec-c-zone"]');
+            if (!el && selector === "#c-zone") el = _origQuerySelector("#sec-c-zone");
+            if (!el && selector === "#c-doa-display") el = _origQuerySelector("#c-timestamp-display");
+            return el;
+          };
+        }
+        if (document.querySelectorAll) {
+          const _origQuerySelectorAll = document.querySelectorAll.bind(document);
+          document.querySelectorAll = function(selector) {
+            const list = _origQuerySelectorAll(selector);
+            if ((!list || list.length === 0) && selector === "#sec-c-state") {
+              return _origQuerySelectorAll("#c-state");
+            }
+            if ((!list || list.length === 0) && selector === "#sec-c-zone") {
+              return _origQuerySelectorAll("#c-zone");
+            }
+            return list;
+          };
+        }
+      }
+    } catch (e) {}
 
     // Continuous Backend Synchronization
     async function fetchLiveRoster() {
@@ -4522,31 +4649,67 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
     async function loadStates() {
       try {
-        const res = await apiRequest("/api/state-zone/map");
-        if (res.ok && res.data.all_states) {
-          ALL_STATES = res.data.all_states;
-        } else {
-          ALL_STATES = Object.values(CLIENT_ZONE_MAP).flat().sort();
+        let res = await apiRequest("/api/state-zone/map");
+        if (!res || !res.ok || !res.data || (!res.data.all_states && !res.data.states && !res.data.zone_to_states && !res.data.map)) {
+          res = await apiRequest("/api/states");
+        }
+        if (!res || !res.ok || !res.data || (!res.data.all_states && !res.data.states && !res.data.zone_to_states && !res.data.map)) {
+          res = await apiRequest("/api/states-zones");
+        }
+        if (res && res.ok && res.data) {
+          let fetched = res.data.all_states || res.data.states;
+          if (!fetched || !Array.isArray(fetched) || fetched.length === 0) {
+            const zMap = res.data.zone_to_states || res.data.map;
+            if (zMap && typeof zMap === "object") {
+              fetched = Object.values(zMap).flat();
+            }
+          }
+          if (Array.isArray(fetched) && fetched.length > 0) {
+            ALL_STATES = Array.from(new Set(fetched.map(s => typeof s === "string" ? s : (s.name || s.state || String(s))))).sort();
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch states from server, using fallback list:", e);
+      } finally {
+        if (!ALL_STATES || ALL_STATES.length === 0) {
+          ALL_STATES = (typeof CLIENT_ZONE_MAP !== "undefined")
+            ? Array.from(new Set(Object.values(CLIENT_ZONE_MAP).flat())).sort()
+            : [...DEFAULT_INDIAN_STATES];
         }
         populateStateSelect("c-state");
-        populateStateSelect("edit-state");
-      } catch (e) {
-        ALL_STATES = Object.values(CLIENT_ZONE_MAP).flat().sort();
-        populateStateSelect("c-state");
+        populateStateSelect("sec-c-state");
         populateStateSelect("edit-state");
       }
     }
 
     function populateStateSelect(elemId) {
-      const el = document.getElementById(elemId);
+      const el = document.getElementById(elemId) || (typeof document.querySelector === "function" ? (document.querySelector(`#${elemId}`) || document.querySelector(`[data-alias="${elemId}"]`)) : null);
       if (!el) return;
+      const currentVal = el.value;
+      const list = (ALL_STATES && ALL_STATES.length > 0) ? ALL_STATES : DEFAULT_INDIAN_STATES;
+
+      // If already populated with the full options list and matching first state, avoid disruptive redraw
+      if (el.options && el.options.length === list.length + 1 && el.options[1] && el.options[1].value === list[0]) {
+        if (currentVal && el.value !== currentVal) {
+          el.value = currentVal;
+        }
+        return;
+      }
+
       el.innerHTML = '<option value="">-- Select State / Union Territory --</option>';
-      ALL_STATES.forEach(st => {
+      list.forEach(stItem => {
+        const st = (typeof stItem === "string") ? stItem : (stItem.name || stItem.state || String(stItem));
+        if (!st || st === "[object Object]") return;
         const opt = document.createElement("option");
         opt.value = st;
-        opt.innerText = st;
+        opt.textContent = st;
+        opt.text = st;
+        if (currentVal && currentVal === st) {
+          opt.selected = true;
+        }
         el.appendChild(opt);
       });
+      if (currentVal) el.value = currentVal;
     }
 
     // Auto-map zone on state selection
@@ -4577,6 +4740,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           const renInput = document.getElementById("c-renewal-display") || document.getElementById("c-renewal");
           if (renInput && typeof calculateNextRenewalDate === "function") {
             renInput.value = `${calculateNextRenewalDate(new Date().toISOString(), null)} (+1 Year Initial Validity)`;
+          }
+          // Ensure SEC C State dropdown is populated immediately upon opening
+          const stateEl = document.getElementById("c-state") || document.getElementById("sec-c-state");
+          if (stateEl && stateEl.options.length <= 1) {
+            populateStateSelect("c-state");
+            loadStates();
           }
         }
       }
@@ -5079,7 +5248,11 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       document.getElementById("modal-status").innerText = club.status || "Approved";
       document.getElementById("edit-club-id").value = club.club_id;
       document.getElementById("edit-inst-name").value = club.institution_name;
-      document.getElementById("edit-state").value = club.state;
+      const editStateEl = document.getElementById("edit-state");
+      if (editStateEl && editStateEl.options.length <= 1) {
+        populateStateSelect("edit-state");
+      }
+      if (editStateEl) editStateEl.value = club.state || "";
       document.getElementById("edit-zone").value = club.zone;
       const noteEl = document.getElementById("issue-note-input");
       if (noteEl) noteEl.value = "";
@@ -5747,6 +5920,11 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       // Render cached / default chips immediately for zero delay
       renderOfficerChips();
 
+      // Populate States dropdown immediately on portal init (public reference data, non-blocking)
+      populateStateSelect("c-state");
+      populateStateSelect("sec-c-state");
+      loadStates();
+
       // Fetch live employee roster immediately from master database
       await fetchLiveRoster();
 
@@ -5874,7 +6052,45 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       window.loadEmployeeActivities = loadEmployeeActivities;
     }
 
-    window.onload = initEmployeePortal;
+    // Immediate and robust lifecycle initialization of Employee Portal and State dropdown
+    if (typeof document !== "undefined") {
+      const runImmediateStatePop = () => {
+        populateStateSelect("c-state");
+        populateStateSelect("sec-c-state");
+        populateStateSelect("edit-state");
+        const sEl = document.getElementById("c-state") || document.getElementById("sec-c-state");
+        if (sEl) {
+          sEl.addEventListener("focus", () => {
+            if (sEl.options.length <= 1) {
+              populateStateSelect("c-state");
+              loadStates();
+            }
+          });
+          sEl.addEventListener("click", () => {
+            if (sEl.options.length <= 1) {
+              populateStateSelect("c-state");
+              loadStates();
+            }
+          });
+        }
+        loadStates();
+      };
+
+      const startPortal = () => {
+        runImmediateStatePop();
+        initEmployeePortal();
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", startPortal);
+      } else {
+        startPortal();
+      }
+
+      window.addEventListener("load", () => {
+        runImmediateStatePop();
+      });
+    }
 
     // Resilient Global UI Error Boundary
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {

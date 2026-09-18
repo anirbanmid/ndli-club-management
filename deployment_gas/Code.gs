@@ -130,13 +130,14 @@ function getOrCreateFile(folder, fileName, defaultContent, mimeType) {
 // ====================================================================
 
 var ALL_INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
-  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
-  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
-  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-  "Andaman & Nicobar Island", "Chandigarh", "Dadra & Nagar Haveli and Daman & Diu",
-  "Delhi", "Jammu & Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  "Andaman & Nicobar Island", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+  "Chandigarh", "Chhattisgarh", "Dadar & Nagar Haveli", "Daman and Diu", "Delhi",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir",
+  "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+  "Uttarakhand", "West Bengal"
 ];
 
 var ALL_ZONES = ["North", "Central", "West", "East", "North East", "South"];
@@ -2047,9 +2048,21 @@ function apiDispatcher(path, method, body, token) {
       };
     }
 
-    // --- STATE ZONE MAP ---
-    if (path === "state-zone/map") {
-      return { ok: true, status: 200, data: { map: ZONE_STATE_MAP, states: ALL_INDIAN_STATES, zones: ALL_ZONES } };
+    // --- STATE ZONE MAP & ALL STATES LIST (Dual support for state-zone/map, states-zones, states) ---
+    if (path === "state-zone/map" || path === "states-zones" || path === "states") {
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          map: ZONE_STATE_MAP,
+          zone_to_states: ZONE_STATE_MAP,
+          states: ALL_INDIAN_STATES,
+          all_states: ALL_INDIAN_STATES,
+          zones: ALL_ZONES,
+          total: ALL_INDIAN_STATES.length
+        }
+      };
     }
 
     if (path === "state-zone/lookup") {
