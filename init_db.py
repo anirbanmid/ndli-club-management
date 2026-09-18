@@ -126,6 +126,32 @@ BENCHMARK_CLUBS = [
         "date_of_approval": "2025-05-01T10:30:00Z",
         "last_renewal_date": "2026-05-01T10:30:00Z",
         "renewal_date": "2027-05-01"
+    },
+    {
+        "club_id": "NDLI-TEST-999",
+        "reg_no": "REG-TEST-999",
+        "institution_name": "Test Engineering College Raipur",
+        "state": "Chhattisgarh",
+        "patron_email": "patron@test.edu",
+        "president_email": "pres@test.edu",
+        "secretary_email": "sec@test.edu",
+        "emp_id": "EMP02",
+        "date_of_approval": "2026-09-12T17:53:12.028679+00:00",
+        "last_renewal_date": "",
+        "renewal_date": "2027-09-12"
+    },
+    {
+        "club_id": "NDLI-AUTO-REN-01",
+        "reg_no": "REG-AUTO-01",
+        "institution_name": "Automated Renewal University",
+        "state": "Assam",
+        "patron_email": "patron@auto.edu",
+        "president_email": "pres@auto.edu",
+        "secretary_email": "sec@auto.edu",
+        "emp_id": "EMP05",
+        "date_of_approval": "2026-09-12T17:53:12.098579+00:00",
+        "last_renewal_date": "2026-09-12T17:53:12.121991+00:00",
+        "renewal_date": "2027-09-12"
     }
 ]
 

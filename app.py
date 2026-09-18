@@ -431,6 +431,64 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
             q = next((item for item in quotas if item.get("emp_id", "").strip().upper() == clean_id), {})
 
+            # Dynamic node & master verification & healing for accurate live quota
+            approved_club_ids = set()
+            node_clubs_path = SyncEngine.get_employee_clubs_path(clean_id)
+            if node_clubs_path.exists():
+                for c in CSVEngine.read_all(node_clubs_path, CLUB_FIELDS):
+                    cid = c.get("club_id", "").strip().upper()
+                    if cid and (not c.get("approved_by_emp_id") or c.get("approved_by_emp_id", "").strip().upper() == clean_id):
+                        approved_club_ids.add(cid)
+
+            for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS):
+                if c.get("approved_by_emp_id", "").strip().upper() == clean_id:
+                    cid = c.get("club_id", "").strip().upper()
+                    if cid:
+                        approved_club_ids.add(cid)
+
+            node_act_path = SyncEngine.get_employee_activities_path(clean_id)
+            node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
+            master_acts = [a for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS) if a.get("emp_id", "").strip().upper() == clean_id]
+            combined_acts = {a.get("activity_id", "").strip(): a for a in (node_acts + master_acts) if a.get("activity_id")}.values()
+
+            club_approval_acts = 0
+            standalone_approvals = 0
+            support_logs = 0
+            latest_ts = q.get("last_activity_timestamp", "")
+
+            for a in combined_acts:
+                ts = a.get("timestamp", "")
+                if ts and ts > latest_ts:
+                    latest_ts = ts
+                stype = a.get("support_type", "").strip()
+                aid = a.get("activity_id", "").strip()
+                if stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
+                    club_approval_acts += 1
+                    if a.get("club_id"):
+                        approved_club_ids.add(a.get("club_id").strip().upper())
+                    else:
+                        standalone_approvals += 1
+                else:
+                    support_logs += 1
+
+            stored_clubs = int(q.get("clubs_approved_count", "0") or "0")
+            computed_clubs = max(len(approved_club_ids) + standalone_approvals, club_approval_acts)
+            final_clubs = max(stored_clubs, computed_clubs)
+
+            stored_support = int(q.get("support_logs_count", "0") or "0")
+            final_support = max(stored_support, support_logs)
+
+            if not q or final_clubs != stored_clubs or final_support != stored_support:
+                q = {
+                    "emp_id": clean_id,
+                    "employee_name": target.get("full_name") or clean_id,
+                    "zone": target.get("zone", ""),
+                    "clubs_approved_count": str(final_clubs),
+                    "support_logs_count": str(final_support),
+                    "last_activity_timestamp": latest_ts or target.get("created_at", "")
+                }
+                CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", q)
+
             self._send_json({
                 "found": True,
                 "employee": {
@@ -441,8 +499,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "assigned_states": target.get("assigned_states"),
                     "is_active": str(target.get("is_active", "1")),
                     "created_at": target.get("created_at"),
-                    "clubs_approved_count": int(q.get("clubs_approved_count", "0") or "0"),
-                    "support_logs_count": int(q.get("support_logs_count", "0") or "0"),
+                    "clubs_approved_count": final_clubs,
+                    "support_logs_count": final_support,
                     "last_activity_timestamp": q.get("last_activity_timestamp", "")
                 }
             })
@@ -478,6 +536,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                         ren = calculate_next_renewal_date(date_of_approval=doa)
                 r_copy["renewal_date"] = ren
                 r_copy["next_renewal_date"] = ren
+                if not r_copy.get("zone") or r_copy.get("zone") == "Unknown":
+                    r_copy["zone"] = get_zone_for_state(r_copy.get("state", "")) or "Unknown"
                 normalized_results.append(r_copy)
 
             self._send_json({"query": query, "count": len(normalized_results), "results": normalized_results, "clubs": normalized_results})
@@ -748,8 +808,10 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 assigned_states_list = [s.strip().lower() for s in (u.get("assigned_states", "")).split(",") if s.strip()]
                 covers_state_by_emp[eid] = (filter_state == "ALL") or (filter_state.lower() in assigned_states_list)
 
-            # Single-pass O(N) clubs approval aggregation
-            clubs_approved_by_emp: Dict[str, int] = {u.get("id", "").strip().upper(): 0 for u in officers}
+            # Clubs approval aggregation across master clubs and priority club approval activities
+            clubs_approved_by_emp_set: Dict[str, set] = {u.get("id", "").strip().upper(): set() for u in officers}
+            club_approvals_standalone: Dict[str, int] = {u.get("id", "").strip().upper(): 0 for u in officers}
+
             for c in all_clubs:
                 c_state = c.get("state", "").strip()
                 if filter_state != "ALL" and c_state.lower() != filter_state.lower():
@@ -769,8 +831,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     c_zn = c.get("zone", "").strip() or get_zone_for_state(c_state)
                     c_emp = zone_to_default_emp.get(c_zn, "")
 
-                if c_emp in clubs_approved_by_emp:
-                    clubs_approved_by_emp[c_emp] += 1
+                cid = c.get("club_id", "").strip().upper()
+                if c_emp in clubs_approved_by_emp_set:
+                    if cid:
+                        clubs_approved_by_emp_set[c_emp].add(cid)
+                    else:
+                        club_approvals_standalone[c_emp] += 1
 
             # Single-pass O(N) activities aggregation
             act_stats_by_emp: Dict[str, Dict[str, int]] = {
@@ -781,11 +847,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 if a_emp not in act_stats_by_emp:
                     continue
 
+                cid = a.get("club_id", "").strip().upper()
+                ref_club = club_lookup.get(cid)
+                act_state = ref_club.get("state", "").strip() if ref_club else ""
+
                 # State filtering for activities
                 if filter_state != "ALL":
-                    cid = a.get("club_id", "").strip().upper()
-                    ref_club = club_lookup.get(cid)
-                    act_state = ref_club.get("state", "").strip() if ref_club else ""
                     if act_state:
                         if act_state.lower() != filter_state.lower():
                             continue
@@ -795,15 +862,39 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
                 ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
                 dp = parse_iso_or_date(ts) if ts else None
+                ts_club = ref_club.get("date_of_approval", "") if ref_club else ""
+                dp_club = parse_iso_or_date(ts_club) if ts_club else None
+
+                date_match = True
                 if filter_year != "ALL":
-                    if not dp or str(dp.year) != filter_year:
-                        continue
-                if target_month_num is not None:
-                    if not dp or dp.month != target_month_num:
-                        continue
+                    act_yr = str(dp.year) if dp else ""
+                    club_yr = str(dp_club.year) if dp_club else ""
+                    if act_yr != filter_year and club_yr != filter_year:
+                        date_match = False
+                if date_match and target_month_num is not None:
+                    act_m = dp.month if dp else 0
+                    club_m = dp_club.month if dp_club else 0
+                    if act_m != target_month_num and club_m != target_month_num:
+                        date_match = False
+
+                if not date_match:
+                    continue
 
                 stype = a.get("support_type", "").strip()
-                if stype == "Online training":
+                aid = a.get("activity_id", "").strip()
+                is_club_approval = (
+                    stype == "Club Approval"
+                    or a.get("priority_flag") == "1"
+                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
+                )
+
+                if is_club_approval:
+                    if a_emp in clubs_approved_by_emp_set:
+                        if cid:
+                            clubs_approved_by_emp_set[a_emp].add(cid)
+                        else:
+                            club_approvals_standalone[a_emp] += 1
+                elif stype == "Online training":
                     act_stats_by_emp[a_emp]["online"] += 1
                 elif stype == "Offline training":
                     act_stats_by_emp[a_emp]["offline"] += 1
@@ -818,7 +909,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 assigned_states_str = u.get("assigned_states", "")
                 covers_state = covers_state_by_emp.get(emp_id, True)
 
-                clubs_approved = clubs_approved_by_emp.get(emp_id, 0)
+                clubs_approved = len(clubs_approved_by_emp_set.get(emp_id, set())) + club_approvals_standalone.get(emp_id, 0)
                 a_counts = act_stats_by_emp.get(emp_id, {"online": 0, "offline": 0, "other": 0})
                 online_training = a_counts["online"]
                 offline_training = a_counts["offline"]
@@ -955,6 +1046,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     days_left = days_diff
 
             c_info = dict(target)
+            if not c_info.get("zone") or c_info.get("zone") == "Unknown":
+                c_info["zone"] = get_zone_for_state(c_info.get("state", "")) or "Unknown"
             c_info["date_of_approval"] = est_ts
             c_info["submission_timestamp"] = est_ts
             c_info["last_renewal_date"] = last_ren

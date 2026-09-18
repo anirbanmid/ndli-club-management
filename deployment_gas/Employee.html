@@ -4904,24 +4904,45 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     // Quota and Activities loader
     async function loadEmployeeQuota() {
       // First try employee's own live profile endpoint
+      let clubsCount = 0;
+      let supportCount = 0;
+      let hasData = false;
+
       const pRes = await apiRequest(`/api/employees/profile?id=${encodeURIComponent(CURRENT_EMP_ID)}`);
       if (pRes.ok && pRes.data && pRes.data.employee) {
         const emp = pRes.data.employee;
-        const clubsEl = document.getElementById("quota-clubs-count");
-        const supportEl = document.getElementById("quota-support-count");
-        if (clubsEl) clubsEl.innerText = emp.clubs_approved_count !== undefined ? emp.clubs_approved_count : "0";
-        if (supportEl) supportEl.innerText = emp.support_logs_count !== undefined ? emp.support_logs_count : "0";
-        return;
-      }
-      // Fallback
-      const res = await apiRequest("/api/admin/metrics");
-      if (res.ok && res.data.summary && res.data.summary.quotas) {
-        const quota = res.data.summary.quotas.find(q => q.emp_id === CURRENT_EMP_ID);
-        if (quota) {
-          document.getElementById("quota-clubs-count").innerText = quota.clubs_approved_count || "0";
-          document.getElementById("quota-support-count").innerText = quota.support_logs_count || "0";
+        clubsCount = parseInt(emp.clubs_approved_count !== undefined ? emp.clubs_approved_count : 0, 10) || 0;
+        supportCount = parseInt(emp.support_logs_count !== undefined ? emp.support_logs_count : 0, 10) || 0;
+        hasData = true;
+      } else {
+        // Fallback
+        const res = await apiRequest("/api/admin/metrics");
+        if (res.ok && res.data.summary && res.data.summary.quotas) {
+          const quota = res.data.summary.quotas.find(q => q.emp_id === CURRENT_EMP_ID);
+          if (quota) {
+            clubsCount = parseInt(quota.clubs_approved_count || 0, 10) || 0;
+            supportCount = parseInt(quota.support_logs_count || 0, 10) || 0;
+            hasData = true;
+          }
         }
       }
+
+      // Safety check: if clubsCount is 0, check ALL_ACTIVITIES_CACHE for club approvals
+      if (clubsCount === 0 && ALL_ACTIVITIES_CACHE && ALL_ACTIVITIES_CACHE.length > 0) {
+        const approvalActs = ALL_ACTIVITIES_CACHE.filter(a =>
+          a.support_type === "Club Approval" ||
+          a.priority_flag === "1" ||
+          (a.activity_id && a.activity_id.startsWith(`ACT-PRIORITY-${CURRENT_EMP_ID}`))
+        );
+        if (approvalActs.length > 0) {
+          clubsCount = approvalActs.length;
+        }
+      }
+
+      const clubsEl = document.getElementById("quota-clubs-count");
+      const supportEl = document.getElementById("quota-support-count");
+      if (clubsEl) clubsEl.innerText = String(clubsCount);
+      if (supportEl) supportEl.innerText = String(supportCount);
     }
 
     let ALL_ACTIVITIES_CACHE = null;
@@ -5002,6 +5023,10 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           ALL_ACTIVITIES_CACHE = acts;
           LAST_ACTIVITIES_FETCH_TIME = Date.now();
           renderActivitiesTable(acts);
+          const currentClubsCount = parseInt(document.getElementById("quota-clubs-count")?.innerText || "0", 10);
+          if (currentClubsCount === 0) {
+            loadEmployeeQuota();
+          }
         } else {
           if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';

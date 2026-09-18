@@ -13,6 +13,8 @@ import time
 import threading
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
+from db.schemas import CLUB_FIELDS
+from state_zone_mapper import get_zone_for_state
 
 # Global lock dictionary to ensure thread-safe access per file
 _FILE_LOCKS: Dict[str, threading.RLock] = {}
@@ -160,6 +162,16 @@ class CSVEngine:
                                 clean_k = k.replace("\ufeff", "").strip()
                                 cleaned[clean_k] = v.replace("\ufeff", "").strip() if v is not None else ""
                         rows.append(cleaned)
+
+                # Auto-map zone for club records if empty or Unknown
+                if headers == CLUB_FIELDS or (rows and "club_id" in rows[0] and "state" in rows[0]):
+                    for r in rows:
+                        if not r.get("zone") or r.get("zone") == "Unknown":
+                            st = r.get("state", "").strip()
+                            if st:
+                                z = get_zone_for_state(st)
+                                if z:
+                                    r["zone"] = z
             except Exception as e:
                 # Emergency recovery: if reading fails, fallback or re-initialize
                 print(f"[CSVEngine Crash Recovery] Error parsing {file_path.name}: {e}")
@@ -187,6 +199,13 @@ class CSVEngine:
             normalized_rows: List[Dict[str, str]] = []
             for row in rows:
                 normalized_row = {k: str(row.get(k, "")) for k in headers}
+                if headers == CLUB_FIELDS:
+                    if not normalized_row.get("zone") or normalized_row.get("zone") == "Unknown":
+                        st = normalized_row.get("state", "").strip()
+                        if st:
+                            z = get_zone_for_state(st)
+                            if z:
+                                normalized_row["zone"] = z
                 normalized_rows.append(normalized_row)
 
             try:
@@ -240,6 +259,13 @@ class CSVEngine:
         file_path.parent.mkdir(parents=True, exist_ok=True)
         resolved = str(file_path.resolve())
         normalized_row = {k: str(row.get(k, "")) for k in headers}
+        if headers == CLUB_FIELDS:
+            if not normalized_row.get("zone") or normalized_row.get("zone") == "Unknown":
+                st = normalized_row.get("state", "").strip()
+                if st:
+                    z = get_zone_for_state(st)
+                    if z:
+                        normalized_row["zone"] = z
         lock = _get_lock(file_path)
         with lock:
             file_exists = file_path.exists() and file_path.stat().st_size > 0
