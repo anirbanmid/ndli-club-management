@@ -1,6 +1,6 @@
 """
 NDLI Club Management System - Emergency Codebase Restore Utility
-Restores the workspace to Most Stable Version 2 (commit 1d65d95, tag stable-v2).
+Restores the workspace to the certified Most Stable Version 2 (tag stable-v2, branch stable-v2).
 """
 import sys
 import os
@@ -20,7 +20,7 @@ def main():
     print("NDLI Club Management System: Emergency Restore to Most Stable Version 2")
     print("=" * 70)
     print("This will reset your local repository to the certified Most Stable Version 2.")
-    print("Tag / Branch: stable-v2 (commit 1d65d95)")
+    print("Target: tag refs/tags/stable-v2 / branch stable-v2")
     print("-" * 70)
 
     # 1. Stash any uncommitted work for safety

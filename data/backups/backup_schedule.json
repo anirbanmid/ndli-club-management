@@ -1,12 +1,19 @@
 {
-  "last_backup_time": "2026-09-13T20:31:18.331476+00:00",
-  "last_backup_id": "backup_20260913_203118_331476",
-  "next_backup_due": "2026-09-20T20:31:18.331476+00:00",
+  "last_backup_time": "2026-09-18T14:05:30.697901+00:00",
+  "last_backup_id": "backup_20260918_140530_697901",
+  "next_backup_due": "2026-09-25T14:05:30.697901+00:00",
   "interval_days": 7,
   "max_retained_backups": 2,
   "retained_backups": [
-    "backup_20260913_203118_331476",
-    "backup_20260913_203117_589120"
+    "backup_20260918_140530_697901",
+    "backup_20200104_000000_000000"
   ],
-  "deleted_previous_backups": []
+  "deleted_previous_backups": [
+    "backup_20200103_000000_000000"
+  ],
+  "drive_sync": {
+    "mode": "APPS_SCRIPT_RELAY",
+    "status": "pending_mirror",
+    "message": "Mirroring to Google Drive /backups folder"
+  }
 }
