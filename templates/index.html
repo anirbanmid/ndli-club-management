@@ -1128,6 +1128,21 @@
         console.warn("Status check:", e);
       }
     }
+    // Resilient Global UI Error Boundary
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('error', function(e) {
+        console.error('[NDLI UI Boundary error]', e.message, e.filename, e.lineno);
+        const b = document.getElementById('ui-error-boundary-banner');
+        if (b) {
+          b.style.display = 'flex';
+          b.innerHTML = '<span>⚠️ An unexpected interface glitch was safely intercepted.</span><button onclick="window.location.reload()" style="background:#fff;color:#be123c;border:none;padding:3px 10px;border-radius:4px;font-weight:700;cursor:pointer;margin-left:8px;">Reload</button>';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('[NDLI UI Boundary unhandled promise]', e.reason);
+      });
+    }
   </script>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
 </body>
 </html>

@@ -1974,6 +1974,7 @@ tbody tr:hover {
             </tbody>
           </table>
         </div>
+        <div id="clubs-pagination-bar" style="display: none; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
       </div>
     </div>
 
@@ -4832,14 +4833,56 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     let PENDING_SEARCH_QUERY = null;
     let CURRENT_SEARCH_RESULTS = [];
 
-    function renderClubsTable(results) {
+    let CLUBS_PAGE_SIZE = 50;
+    let CURRENT_CLUBS_PAGE = 1;
+
+    function changeClubsPage(page) {
+      CURRENT_CLUBS_PAGE = page;
+      if (CURRENT_SEARCH_RESULTS) {
+        renderClubsTable(CURRENT_SEARCH_RESULTS, page);
+        const t = document.getElementById("search-results-tbody");
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function renderClubsTable(results, page = 1) {
       const tbody = document.getElementById("search-results-tbody");
+      const pBar = document.getElementById("clubs-pagination-bar");
       if (!tbody) return;
       if (!results || results.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No clubs found matching your search.</td></tr>';
+        if (pBar) pBar.style.display = "none";
         return;
       }
-      tbody.innerHTML = results.map(c => {
+
+      let renderList = results;
+      if (results.length > CLUBS_PAGE_SIZE) {
+        const totalPages = Math.ceil(results.length / CLUBS_PAGE_SIZE);
+        CURRENT_CLUBS_PAGE = Math.max(1, Math.min(page, totalPages));
+        const startIdx = (CURRENT_CLUBS_PAGE - 1) * CLUBS_PAGE_SIZE;
+        renderList = results.slice(startIdx, startIdx + CLUBS_PAGE_SIZE);
+
+        if (pBar) {
+          const endIdx = Math.min(startIdx + CLUBS_PAGE_SIZE, results.length);
+          pBar.style.display = "flex";
+          pBar.innerHTML = `
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${results.length.toLocaleString()}</strong> clubs
+            </div>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(1)">« First</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE - 1})">‹ Prev</button>
+              <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${CURRENT_CLUBS_PAGE} of ${totalPages}</span>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE + 1})">Next ›</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${totalPages})">Last »</button>
+            </div>
+          `;
+        }
+      } else {
+        if (pBar) pBar.style.display = "none";
+      }
+
+      tbody.innerHTML = renderList.map(c => {
         const doaVal = c.date_of_approval || c.submission_timestamp || "";
         const doaDisplay = doaVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : doaVal.split("T")[0]) : "-";
         const lrdVal = c.last_renewal_date || "";
@@ -5832,6 +5875,21 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     window.onload = initEmployeePortal;
+
+    // Resilient Global UI Error Boundary
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('error', function(e) {
+        console.error('[NDLI UI Boundary error]', e.message, e.filename, e.lineno);
+        const b = document.getElementById('ui-error-boundary-banner');
+        if (b) {
+          b.style.display = 'flex';
+          b.innerHTML = '<span>⚠️ An unexpected interface glitch was safely intercepted.</span><button onclick="window.location.reload()" style="background:#fff;color:#be123c;border:none;padding:3px 10px;border-radius:4px;font-weight:700;cursor:pointer;margin-left:8px;">Reload</button>';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('[NDLI UI Boundary unhandled promise]', e.reason);
+      });
+    }
   </script>
 
   <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
@@ -5852,5 +5910,6 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       </div>
     </div>
   </footer>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
 </body>
 </html>

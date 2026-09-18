@@ -72,5 +72,21 @@ class TestCSVEngine(unittest.TestCase):
         res_iit = CSVEngine.search(self.csv_path, "IIT")
         self.assertEqual(len(res_iit), 2)
 
+    def test_find_by_key(self):
+        CSVEngine.ensure_file(self.csv_path, self.headers)
+        CSVEngine.append_row(self.csv_path, self.headers, {"id": "EMP01", "name": "Rohan Sharma", "email": "rohan@ndli.iitkgp.ac.in", "role": "EMPLOYEE"})
+        CSVEngine.append_row(self.csv_path, self.headers, {"id": "EMP02", "name": "Pooja Verma", "email": "pooja@ndli.iitkgp.ac.in", "role": "EMPLOYEE"})
+
+        found = CSVEngine.find_by_key(self.csv_path, "id", "emp01")
+        self.assertIsNotNone(found)
+        self.assertEqual(found["name"], "Rohan Sharma")
+
+        found_email = CSVEngine.find_by_key(self.csv_path, "email", "POOJA@ndli.iitkgp.ac.in")
+        self.assertIsNotNone(found_email)
+        self.assertEqual(found_email["id"], "EMP02")
+
+        missing = CSVEngine.find_by_key(self.csv_path, "id", "EMP99")
+        self.assertIsNone(missing)
+
 if __name__ == "__main__":
     unittest.main()

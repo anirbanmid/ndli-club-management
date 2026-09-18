@@ -208,6 +208,7 @@ function initSystem() {
   try {
     PropertiesService.getScriptProperties().deleteProperty("SYSTEM_ROOT_FOLDER_ID");
   } catch (e) {}
+  clearGasCsvCache();
 
   var root = getSystemFolder();
   Logger.log("[NDLI Init] System Root Folder locked to: " + root.getName() + " (ID: " + root.getId() + ")");
@@ -536,7 +537,17 @@ function toCsvString(headers, rows) {
   return lines.join("\n") + "\n";
 }
 
+var _GAS_CSV_CACHE = {};
+
+function clearGasCsvCache() {
+  _GAS_CSV_CACHE = {};
+}
+
 function getCsvData(subPath, fileName) {
+  var cacheKey = subPath + "/" + fileName;
+  if (_GAS_CSV_CACHE[cacheKey]) {
+    return _GAS_CSV_CACHE[cacheKey];
+  }
   try {
     var root = getSystemFolder();
     var dbFolder = getOrCreateSubfolder(root, "databases");
@@ -553,7 +564,9 @@ function getCsvData(subPath, fileName) {
         while (globalFiles.hasNext()) {
           var gf = globalFiles.next();
           if (!gf.isTrashed()) {
-            return parseCsv(gf.getBlob().getDataAsString("UTF-8"));
+            var parsedGlobal = parseCsv(gf.getBlob().getDataAsString("UTF-8"));
+            _GAS_CSV_CACHE[cacheKey] = parsedGlobal;
+            return parsedGlobal;
           }
         }
       } catch (ge) {}
@@ -561,11 +574,15 @@ function getCsvData(subPath, fileName) {
       if (subPath === "master" && SEED_DATA[fileName.replace(".csv", "")]) {
         var seedText = SEED_DATA[fileName.replace(".csv", "")];
         targetFolder.createFile(fileName, seedText, MimeType.CSV);
-        return parseCsv(seedText);
+        var parsedSeed = parseCsv(seedText);
+        _GAS_CSV_CACHE[cacheKey] = parsedSeed;
+        return parsedSeed;
       }
       return { headers: [], rows: [] };
     }
-    return parseCsv(files.next().getBlob().getDataAsString("UTF-8"));
+    var parsedFile = parseCsv(files.next().getBlob().getDataAsString("UTF-8"));
+    _GAS_CSV_CACHE[cacheKey] = parsedFile;
+    return parsedFile;
   } catch (err) {
     Logger.log("[getCsvData Error] " + subPath + "/" + fileName + ": " + err);
     if (subPath === "master" && SEED_DATA[fileName.replace(".csv", "")]) {
@@ -576,6 +593,8 @@ function getCsvData(subPath, fileName) {
 }
 
 function saveCsvData(subPath, fileName, headers, rows) {
+  var cacheKey = subPath + "/" + fileName;
+  _GAS_CSV_CACHE[cacheKey] = { headers: headers, rows: rows };
   try {
     var root = getSystemFolder();
     var dbFolder = getOrCreateSubfolder(root, "databases");
@@ -1461,80 +1480,100 @@ function apiDispatcher(path, method, body, token) {
       }
 
       var evaluations = [];
+      var coversStateByEmp = {};
+      var zoneToDefaultEmp = {};
+      for (var uzi = 0; uzi < officers.length; uzi++) {
+        var off = officers[uzi];
+        var offId = String(off.id || "").trim().toUpperCase();
+        var offZn = String(off.zone || "").trim();
+        if (offZn && !zoneToDefaultEmp[offZn]) zoneToDefaultEmp[offZn] = offId;
+        var stList = (off.assigned_states || "").split(",").map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean);
+        coversStateByEmp[offId] = (filterState === "ALL") || (stList.indexOf(filterState.toLowerCase()) !== -1);
+      }
+
+      // Single-pass O(N) clubs approval aggregation
+      var clubsApprovedByEmp = {};
+      for (var ci0 = 0; ci0 < officers.length; ci0++) {
+        clubsApprovedByEmp[String(officers[ci0].id || "").trim().toUpperCase()] = 0;
+      }
+      for (var cj = 0; cj < allClubs.length; cj++) {
+        var c = allClubs[cj];
+        var cState = String(c.state || "").trim();
+        if (filterState !== "ALL" && cState.toLowerCase() !== filterState.toLowerCase()) continue;
+
+        var ts = c.date_of_approval || c.submission_timestamp || c.updated_at || "";
+        var dp = parseDateObj(ts);
+        if (filterYear !== "ALL") {
+          if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+        }
+        if (targetMonthNum !== null) {
+          if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+        }
+
+        var cEmp = String(c.approved_by_emp_id || "").trim().toUpperCase();
+        if (!cEmp) {
+          var cZn = String(c.zone || "").trim() || getZoneForState(cState);
+          cEmp = zoneToDefaultEmp[cZn] || "";
+        }
+        if (clubsApprovedByEmp[cEmp] !== undefined) {
+          clubsApprovedByEmp[cEmp]++;
+        }
+      }
+
+      // Single-pass O(N) activities aggregation
+      var actStatsByEmp = {};
+      for (var ai0 = 0; ai0 < officers.length; ai0++) {
+        actStatsByEmp[String(officers[ai0].id || "").trim().toUpperCase()] = { online: 0, offline: 0, other: 0 };
+      }
+      for (var aj = 0; aj < allActivities.length; aj++) {
+        var a = allActivities[aj];
+        var aEmp = String(a.emp_id || "").trim().toUpperCase();
+        if (!actStatsByEmp[aEmp]) continue;
+
+        if (filterState !== "ALL") {
+          var cid = String(a.club_id || "").trim().toUpperCase();
+          var refClub = clubLookup[cid];
+          var actState = refClub ? String(refClub.state || "").trim() : "";
+          if (actState) {
+            if (actState.toLowerCase() !== filterState.toLowerCase()) continue;
+          } else {
+            if (!coversStateByEmp[aEmp]) continue;
+          }
+        }
+
+        var ts = a.timestamp || a.submission_timestamp || a.created_at || "";
+        var dp = parseDateObj(ts);
+        if (filterYear !== "ALL") {
+          if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+        }
+        if (targetMonthNum !== null) {
+          if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+        }
+
+        var stype = String(a.support_type || "").trim();
+        if (stype === "Online training") {
+          actStatsByEmp[aEmp].online++;
+        } else if (stype === "Offline training") {
+          actStatsByEmp[aEmp].offline++;
+        } else if (stype === "Phone call and remote assistance" || stype === "Closing of OS Ticket") {
+          actStatsByEmp[aEmp].other++;
+        }
+      }
+
+      var evaluations = [];
       for (var oi = 0; oi < officers.length; oi++) {
         var u = officers[oi];
         var empId = String(u.id || "").trim().toUpperCase();
         var empName = u.full_name || u.name || empId;
         var empZone = u.zone || "Other";
         var assignedStatesStr = u.assigned_states || "";
-        var assignedStatesList = assignedStatesStr.split(",").map(function(s) { return s.trim().toLowerCase(); }).filter(function(s) { return s.length > 0; });
+        var coversState = coversStateByEmp[empId] !== undefined ? coversStateByEmp[empId] : true;
 
-        var coversState = (filterState === "ALL") || (assignedStatesList.indexOf(filterState.toLowerCase()) !== -1);
-
-        // 1. Clubs Approved (50% weightage)
-        var clubsApproved = 0;
-        for (var cj = 0; cj < allClubs.length; cj++) {
-          var c = allClubs[cj];
-          var cEmp = String(c.approved_by_emp_id || "").trim().toUpperCase();
-          if (!cEmp) {
-            var cZn = String(c.zone || "").trim() || getZoneForState(c.state || "");
-            if (cZn === empZone) cEmp = empId;
-          }
-          if (cEmp !== empId) continue;
-
-          var cState = String(c.state || "").trim();
-          if (filterState !== "ALL" && cState.toLowerCase() !== filterState.toLowerCase()) continue;
-
-          var ts = c.date_of_approval || c.submission_timestamp || c.updated_at || "";
-          var dp = parseDateObj(ts);
-          if (filterYear !== "ALL") {
-            if (!dp || String(dp.getFullYear()) !== filterYear) continue;
-          }
-          if (targetMonthNum !== null) {
-            if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
-          }
-          clubsApproved++;
-        }
-
-        // 2. Activities: Online Training (10%), Offline Training (20%), Other Supports (30%)
-        var onlineTraining = 0;
-        var offlineTraining = 0;
-        var otherSupports = 0;
-
-        for (var aj = 0; aj < allActivities.length; aj++) {
-          var a = allActivities[aj];
-          var aEmp = String(a.emp_id || "").trim().toUpperCase();
-          if (aEmp !== empId) continue;
-
-          if (filterState !== "ALL") {
-            var cid = String(a.club_id || "").trim().toUpperCase();
-            var refClub = clubLookup[cid];
-            var actState = refClub ? String(refClub.state || "").trim() : "";
-            if (actState) {
-              if (actState.toLowerCase() !== filterState.toLowerCase()) continue;
-            } else {
-              if (!coversState) continue;
-            }
-          }
-
-          var ts = a.timestamp || a.submission_timestamp || a.created_at || "";
-          var dp = parseDateObj(ts);
-          if (filterYear !== "ALL") {
-            if (!dp || String(dp.getFullYear()) !== filterYear) continue;
-          }
-          if (targetMonthNum !== null) {
-            if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
-          }
-
-          var stype = String(a.support_type || "").trim();
-          if (stype === "Online training") {
-            onlineTraining++;
-          } else if (stype === "Offline training") {
-            offlineTraining++;
-          } else if (stype === "Phone call and remote assistance" || stype === "Closing of OS Ticket") {
-            otherSupports++;
-          }
-        }
+        var clubsApproved = clubsApprovedByEmp[empId] || 0;
+        var aStats = actStatsByEmp[empId] || { online: 0, offline: 0, other: 0 };
+        var onlineTraining = aStats.online;
+        var offlineTraining = aStats.offline;
+        var otherSupports = aStats.other;
 
         // 3. Weighted score: 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
         var weightedScore = Math.round(((0.50 * clubsApproved) + (0.30 * otherSupports) + (0.20 * offlineTraining) + (0.10 * onlineTraining)) * 100) / 100;

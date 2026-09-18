@@ -9,6 +9,7 @@ import base64
 import urllib.parse
 from http import HTTPStatus
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -51,6 +52,13 @@ from state_zone_mapper import (
 from ai.decision_module import AIDecisionEngine
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """High-concurrency multi-threaded HTTP server engineered for 200+ simultaneous real-time requests."""
+    daemon_threads = True
+    request_queue_size = 512
+    allow_reuse_address = True
+
+
 class NDLIRequestHandler(BaseHTTPRequestHandler):
     """Custom HTTP Request Handler with REST routing, JSON parsing, and CORS support."""
 
@@ -59,11 +67,30 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-session-token")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("X-XSS-Protection", "1; mode=block")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.end_headers()
 
     def _serve_file(self, file_path: Path, content_type: str = "text/html; charset=utf-8"):
-        """Serves a static or template file with correct MIME type."""
+        """Serves a static or template file with correct MIME type, caching headers, and directory traversal immunity."""
+        try:
+            resolved = file_path.resolve()
+            allowed_roots = [
+                (BASE_DIR / "static").resolve(),
+                (BASE_DIR / "docs").resolve(),
+                (BASE_DIR / "templates").resolve(),
+                (BASE_DIR / "data").resolve()
+            ]
+            if not any(resolved == r or r in resolved.parents for r in allowed_roots):
+                self._send_error("Access denied: Invalid resource path.", status=403)
+                return
+        except Exception:
+            self._send_error("Invalid file path specification.", status=400)
+            return
+
         if not file_path.exists():
             self._send_error(f"File not found: {file_path.name}", status=404)
             return
@@ -74,6 +101,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(content)))
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            if "/static/" in str(file_path).replace("\\", "/"):
+                self.send_header("Cache-Control", "public, max-age=3600")
+            else:
+                self.send_header("Cache-Control", "no-cache")
             self.end_headers()
             self.wfile.write(content)
         except Exception as e:
@@ -92,14 +125,16 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         self._send_json({"success": False, "error": True, "message": message}, status=status)
 
     def _parse_json_body(self) -> Dict[str, Any]:
-        """Parses incoming JSON body safely."""
+        """Parses incoming JSON body safely with memory protection and encoding fallback."""
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             if content_length <= 0:
                 return {}
-            raw_body = self.rfile.read(content_length).decode("utf-8")
+            if content_length > 50 * 1024 * 1024:
+                return {}
+            raw_body = self.rfile.read(content_length).decode("utf-8", errors="replace")
             return json.loads(raw_body)
-        except Exception as e:
+        except Exception:
             return {}
 
     def _get_auth_session(self) -> Optional[Dict[str, Any]]:
@@ -147,14 +182,13 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         return True
 
     def _is_employee_active(self, emp_id: str) -> bool:
-        """Checks if the employee ID exists and has active status (is_active == '1')."""
+        """Checks if the employee ID exists and has active status (is_active == '1'). O(1) indexed lookup."""
         if not emp_id:
             return False
         clean_id = emp_id.strip().upper()
-        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
-        for u in users:
-            if u.get("id", "").strip().upper() == clean_id:
-                return str(u.get("is_active", "1")).strip() == "1"
+        u = CSVEngine.find_by_key(MASTER_USERS_CSV, "id", clean_id, USER_FIELDS, copy=False)
+        if u:
+            return str(u.get("is_active", "1")).strip() == "1"
         return False
 
     def _send_health_status(self):
@@ -209,6 +243,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         })
 
     def do_GET(self):
+        """Routing for GET requests with emergency crash recovery boundary."""
+        try:
+            self._handle_do_GET()
+        except Exception as exc:
+            import traceback
+            traceback.print_exc()
+            self._send_error(f"Internal server error: {str(exc)}", status=500)
+
+    def _handle_do_GET(self):
         """Routing for GET requests."""
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
@@ -402,13 +445,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/clubs/search":
             query = query_params.get("q", [""])[0]
             emp_id = query_params.get("emp_id", [""])[0]
+            limit_param = query_params.get("limit", [""])[0]
+            limit = int(limit_param) if limit_param.isdigit() else (5000 if not query else None)
 
             # If emp_id specified, search that node first or fall back to master
             if emp_id:
                 node_clubs_path = SyncEngine.get_employee_clubs_path(emp_id)
-                results = CSVEngine.search(node_clubs_path, query) if node_clubs_path.exists() else []
+                results = CSVEngine.search(node_clubs_path, query, limit=limit) if node_clubs_path.exists() else []
             else:
-                results = CSVEngine.search(MASTER_CLUBS_CSV, query)
+                results = CSVEngine.search(MASTER_CLUBS_CSV, query, limit=limit)
 
             normalized_results = []
             for r in results:
@@ -428,7 +473,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 r_copy["next_renewal_date"] = ren
                 normalized_results.append(r_copy)
 
-            self._send_json({"query": query, "count": len(normalized_results), "results": normalized_results})
+            self._send_json({"query": query, "count": len(normalized_results), "results": normalized_results, "clubs": normalized_results})
             return
 
         # Activity List
@@ -445,10 +490,10 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         # Admin Performance Dashboard Metrics
         if path == "/api/admin/metrics":
             session = self._get_auth_session()
-            all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
-            all_quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
-            all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS, copy=False)
+            all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, copy=False)
+            all_quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, copy=False)
+            all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS, copy=False)
 
             # Query Filters: Scope by Zone and/or Year
             raw_zone = query_params.get("zone", ["ALL"])[0].strip()
@@ -685,81 +730,92 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             # Active employee officers
             officers = [u for u in all_users if u.get("role") == "EMPLOYEE"]
 
+            # Pre-compute officer covers_state mapping and zone fallback mapping
+            covers_state_by_emp: Dict[str, bool] = {}
+            zone_to_default_emp: Dict[str, str] = {}
+            for u in officers:
+                eid = u.get("id", "").strip().upper()
+                ezn = u.get("zone", "").strip()
+                if ezn and ezn not in zone_to_default_emp:
+                    zone_to_default_emp[ezn] = eid
+                assigned_states_list = [s.strip().lower() for s in (u.get("assigned_states", "")).split(",") if s.strip()]
+                covers_state_by_emp[eid] = (filter_state == "ALL") or (filter_state.lower() in assigned_states_list)
+
+            # Single-pass O(N) clubs approval aggregation
+            clubs_approved_by_emp: Dict[str, int] = {u.get("id", "").strip().upper(): 0 for u in officers}
+            for c in all_clubs:
+                c_state = c.get("state", "").strip()
+                if filter_state != "ALL" and c_state.lower() != filter_state.lower():
+                    continue
+
+                ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
+                dp = parse_iso_or_date(ts) if ts else None
+                if filter_year != "ALL":
+                    if not dp or str(dp.year) != filter_year:
+                        continue
+                if target_month_num is not None:
+                    if not dp or dp.month != target_month_num:
+                        continue
+
+                c_emp = c.get("approved_by_emp_id", "").strip().upper()
+                if not c_emp:
+                    c_zn = c.get("zone", "").strip() or get_zone_for_state(c_state)
+                    c_emp = zone_to_default_emp.get(c_zn, "")
+
+                if c_emp in clubs_approved_by_emp:
+                    clubs_approved_by_emp[c_emp] += 1
+
+            # Single-pass O(N) activities aggregation
+            act_stats_by_emp: Dict[str, Dict[str, int]] = {
+                u.get("id", "").strip().upper(): {"online": 0, "offline": 0, "other": 0} for u in officers
+            }
+            for a in all_activities:
+                a_emp = a.get("emp_id", "").strip().upper()
+                if a_emp not in act_stats_by_emp:
+                    continue
+
+                # State filtering for activities
+                if filter_state != "ALL":
+                    cid = a.get("club_id", "").strip().upper()
+                    ref_club = club_lookup.get(cid)
+                    act_state = ref_club.get("state", "").strip() if ref_club else ""
+                    if act_state:
+                        if act_state.lower() != filter_state.lower():
+                            continue
+                    else:
+                        if not covers_state_by_emp.get(a_emp, False):
+                            continue
+
+                ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
+                dp = parse_iso_or_date(ts) if ts else None
+                if filter_year != "ALL":
+                    if not dp or str(dp.year) != filter_year:
+                        continue
+                if target_month_num is not None:
+                    if not dp or dp.month != target_month_num:
+                        continue
+
+                stype = a.get("support_type", "").strip()
+                if stype == "Online training":
+                    act_stats_by_emp[a_emp]["online"] += 1
+                elif stype == "Offline training":
+                    act_stats_by_emp[a_emp]["offline"] += 1
+                elif stype in ["Phone call and remote assistance", "Closing of OS Ticket"]:
+                    act_stats_by_emp[a_emp]["other"] += 1
+
             evaluations = []
             for u in officers:
                 emp_id = u.get("id", "").strip().upper()
                 emp_name = u.get("full_name", "") or u.get("name", "") or emp_id
                 emp_zone = u.get("zone", "") or "Other"
                 assigned_states_str = u.get("assigned_states", "")
-                assigned_states_list = [s.strip().lower() for s in assigned_states_str.split(",") if s.strip()]
+                covers_state = covers_state_by_emp.get(emp_id, True)
 
-                covers_state = (filter_state == "ALL") or (filter_state.lower() in assigned_states_list)
-
-                # 1. Clubs Approved (50% weightage)
-                clubs_approved = 0
-                for c in all_clubs:
-                    c_emp = c.get("approved_by_emp_id", "").strip().upper()
-                    if not c_emp:
-                        c_zn = c.get("zone", "").strip() or get_zone_for_state(c.get("state", ""))
-                        if c_zn == emp_zone:
-                            c_emp = emp_id
-
-                    if c_emp != emp_id:
-                        continue
-
-                    c_state = c.get("state", "").strip()
-                    if filter_state != "ALL" and c_state.lower() != filter_state.lower():
-                        continue
-
-                    ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
-                    dp = parse_iso_or_date(ts) if ts else None
-                    if filter_year != "ALL":
-                        if not dp or str(dp.year) != filter_year:
-                            continue
-                    if target_month_num is not None:
-                        if not dp or dp.month != target_month_num:
-                            continue
-
-                    clubs_approved += 1
-
-                # 2. Activities: Online Training (10%), Offline Training (20%), Other Supports (30%)
-                online_training = 0
-                offline_training = 0
-                other_supports = 0
-
-                for a in all_activities:
-                    a_emp = a.get("emp_id", "").strip().upper()
-                    if a_emp != emp_id:
-                        continue
-
-                    # State filtering for activities
-                    if filter_state != "ALL":
-                        cid = a.get("club_id", "").strip().upper()
-                        ref_club = club_lookup.get(cid)
-                        act_state = ref_club.get("state", "").strip() if ref_club else ""
-                        if act_state:
-                            if act_state.lower() != filter_state.lower():
-                                continue
-                        else:
-                            if not covers_state:
-                                continue
-
-                    ts = a.get("timestamp", "") or a.get("submission_timestamp", "") or a.get("created_at", "")
-                    dp = parse_iso_or_date(ts) if ts else None
-                    if filter_year != "ALL":
-                        if not dp or str(dp.year) != filter_year:
-                            continue
-                    if target_month_num is not None:
-                        if not dp or dp.month != target_month_num:
-                            continue
-
-                    stype = a.get("support_type", "").strip()
-                    if stype == "Online training":
-                        online_training += 1
-                    elif stype == "Offline training":
-                        offline_training += 1
-                    elif stype in ["Phone call and remote assistance", "Closing of OS Ticket"]:
-                        other_supports += 1
+                clubs_approved = clubs_approved_by_emp.get(emp_id, 0)
+                a_counts = act_stats_by_emp.get(emp_id, {"online": 0, "offline": 0, "other": 0})
+                online_training = a_counts["online"]
+                offline_training = a_counts["offline"]
+                other_supports = a_counts["other"]
 
                 # 3. 50/30/20/10 Weighted Score Calculation
                 # 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
@@ -849,15 +905,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("club_id parameter is required.")
                 return
 
-            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            target = next((c for c in clubs if c.get("club_id", "").strip().upper() == clean_cid), None)
+            target = CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", clean_cid, CLUB_FIELDS)
             if not target and EMPLOYEE_NODES_DIR.exists():
                 for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
                     if emp_dir.is_dir():
-                        node_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS)
-                        found = next((c for c in node_clubs if c.get("club_id", "").strip().upper() == clean_cid), None)
-                        if found:
-                            target = found
+                        target = CSVEngine.find_by_key(emp_dir / "clubs.csv", "club_id", clean_cid, CLUB_FIELDS)
+                        if target:
                             break
 
             if not target:
@@ -1234,6 +1287,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         self._send_error(f"Endpoint not found: {path}", status=404)
 
     def do_POST(self):
+        """Routing for POST requests with emergency crash recovery boundary."""
+        try:
+            self._handle_do_POST()
+        except Exception as exc:
+            import traceback
+            traceback.print_exc()
+            self._send_error(f"Internal server error: {str(exc)}", status=500)
+
+    def _handle_do_POST(self):
         """Routing for POST requests."""
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
@@ -1817,7 +1879,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
-    """Starts the NDLI HTTP server."""
+    """Starts the NDLI HTTP server with multi-threaded high-concurrency architecture."""
     # Ensure backup schedule and baseline check
     try:
         BackupEngine.start_scheduler()
@@ -1825,8 +1887,8 @@ def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
         print(f"[!] Warning: Could not start backup scheduler: {e}")
 
     server_address = (host, port)
-    httpd = HTTPServer(server_address, NDLIRequestHandler)
-    print(f"[*] NDLI Club Management Server listening on http://{host}:{port}")
+    httpd = ThreadedHTTPServer(server_address, NDLIRequestHandler)
+    print(f"[*] NDLI Club Management Server listening on http://{host}:{port} (Multi-threaded, request_queue_size=512)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
