@@ -1575,6 +1575,26 @@ tbody tr:hover {
     }
     /* Login submit button amber */
     #btn-login-submit { background: var(--gradient-accent) !important; }
+
+    /* Universal Club Search External Details Link */
+    .club-name-link {
+      color: var(--primary, #1A503E);
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline;
+      transition: color 0.15s ease, text-decoration 0.15s ease;
+    }
+    .club-name-link:hover,
+    .club-name-link:focus {
+      color: var(--primary-light, #0D7751);
+      text-decoration: underline;
+    }
+    .club-name-link:focus-visible {
+      outline: 2px solid var(--primary-light, #0D7751);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
   </style>
 </head>
 <body>
@@ -5061,7 +5081,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         return `
           <tr>
             <td><code>${escapeHtml(c.club_id)}</code></td>
-            <td><strong>${escapeHtml(c.institution_name)}</strong></td>
+            <td><a href="https://admin.club.ndl.iitkgp.ac.in/club-details/${encodeURIComponent(c.club_id || '')}" target="_blank" rel="noopener noreferrer" class="club-name-link" onclick="event.stopPropagation();" title="View details for ${escapeHtml(c.institution_name || c.club_id || 'club')} on NDLI Admin Portal"><strong>${escapeHtml(c.institution_name || c.club_id || '-')}</strong></a></td>
             <td>${escapeHtml(c.state)}</td>
             <td><span class="pill pill-primary">${escapeHtml(c.zone)}</span></td>
             <td style="font-family: monospace; font-size: 0.85rem;">${escapeHtml(doaDisplay)}</td>
