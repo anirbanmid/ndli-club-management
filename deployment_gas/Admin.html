@@ -4214,8 +4214,19 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       renderRenewalAttentionList();
     }
 
-    function renderRenewalAttentionList() {
+    let ATTENTION_PAGE_SIZE = 50;
+    let CURRENT_ATTENTION_PAGE = 1;
+
+    function changeAttentionPage(page) {
+      CURRENT_ATTENTION_PAGE = page;
+      renderRenewalAttentionList(page);
+      const t = document.getElementById("renewal-attention-tbody");
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderRenewalAttentionList(page = 1) {
       const tbody = document.getElementById("renewal-attention-tbody");
+      const pBar = document.getElementById("attention-pagination-bar");
       if (!tbody || !RENEWAL_ATTENTION_DATA) return;
 
       let list = RENEWAL_ATTENTION_DATA.clubs || [];
@@ -4241,6 +4252,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       }
 
       if (list.length === 0) {
+        if (pBar) pBar.style.display = "none";
         tbody.innerHTML = `
           <tr>
             <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 3rem;">
@@ -4255,7 +4267,34 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         return;
       }
 
-      tbody.innerHTML = list.map(c => {
+      let renderList = list;
+      if (list.length > ATTENTION_PAGE_SIZE) {
+        const totalPages = Math.ceil(list.length / ATTENTION_PAGE_SIZE);
+        CURRENT_ATTENTION_PAGE = Math.max(1, Math.min(page, totalPages));
+        const startIdx = (CURRENT_ATTENTION_PAGE - 1) * ATTENTION_PAGE_SIZE;
+        renderList = list.slice(startIdx, startIdx + ATTENTION_PAGE_SIZE);
+
+        if (pBar) {
+          const endIdx = Math.min(startIdx + ATTENTION_PAGE_SIZE, list.length);
+          pBar.style.display = "flex";
+          pBar.innerHTML = `
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${list.length.toLocaleString()}</strong> clubs
+            </div>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(1)">« First</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE - 1})">‹ Prev</button>
+              <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${CURRENT_ATTENTION_PAGE} of ${totalPages}</span>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE + 1})">Next ›</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${totalPages})">Last »</button>
+            </div>
+          `;
+        }
+      } else {
+        if (pBar) pBar.style.display = "none";
+      }
+
+      tbody.innerHTML = renderList.map(c => {
         const isOverdue = c.attention_type === "Overdue";
         const badgeClass = isOverdue ? "pill-danger" : "pill-warning";
         const urgencyText = c.badge_label || (isOverdue ? `${c.days_overdue || Math.abs(c.days_diff)} days overdue` : `${c.days_left || c.days_diff} days left`);
@@ -4807,6 +4846,21 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         }
       });
     };
+
+    // Resilient Global UI Error Boundary
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('error', function(e) {
+        console.error('[NDLI UI Boundary error]', e.message, e.filename, e.lineno);
+        const b = document.getElementById('ui-error-boundary-banner');
+        if (b) {
+          b.style.display = 'flex';
+          b.innerHTML = '<span>⚠️ An unexpected interface glitch was safely intercepted.</span><button onclick="window.location.reload()" style="background:#fff;color:#be123c;border:none;padding:3px 10px;border-radius:4px;font-weight:700;cursor:pointer;margin-left:8px;">Reload</button>';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.warn('[NDLI UI Boundary unhandled promise]', e.reason);
+      });
+    }
   </script>
 
   <!-- EDIT EMPLOYEE MODAL -->
@@ -4953,6 +5007,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           </tbody>
         </table>
       </div>
+      <div id="attention-pagination-bar" style="display: none; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
         <button type="button" class="btn btn-outline btn-sm" onclick="closeRenewalAttentionModal()">Close Window</button>
@@ -5162,5 +5217,6 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       </div>
     </div>
   </footer>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
 </body>
 </html>

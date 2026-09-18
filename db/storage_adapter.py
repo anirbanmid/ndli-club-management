@@ -14,6 +14,19 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+_UPLOAD_SEMAPHORE = threading.BoundedSemaphore(value=4)
+
+def _dispatch_upload(target_func, *args):
+    """Dispatches background sync in a daemon thread bounded by semaphore."""
+    def _worker():
+        if not _UPLOAD_SEMAPHORE.acquire(blocking=False):
+            return
+        try:
+            target_func(*args)
+        finally:
+            _UPLOAD_SEMAPHORE.release()
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
 from config import (
     DATA_DIR,
     GOOGLE_DRIVE_FOLDER_ID,
@@ -49,12 +62,15 @@ class LocalSyncStorageAdapter(StorageAdapter):
     """
 
     def __init__(self, root_dir: Path = DATA_DIR):
-        self.root_dir = root_dir
+        self.root_dir = Path(root_dir)
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
     def _resolve(self, relative_path: str) -> Path:
         clean_path = relative_path.lstrip("/\\")
-        return self.root_dir / clean_path
+        target = (self.root_dir / clean_path).resolve()
+        if not target.is_relative_to(self.root_dir.resolve()):
+            raise PermissionError(f"Directory traversal detected: {relative_path}")
+        return target
 
     def read_text(self, relative_path: str) -> str:
         target = self._resolve(relative_path)
@@ -103,18 +119,20 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
     def read_text(self, relative_path: str) -> str:
         return self.local.read_text(relative_path)
 
+    def enqueue_upload(self, relative_path: str, content: str) -> None:
+        """Enqueues file upload to Google Drive using bounded daemon worker."""
+        if self.relay_url and not self.relay_url.startswith("http://example"):
+            try:
+                _dispatch_upload(self._upload_file_to_drive, relative_path, content)
+            except Exception:
+                pass
+
     def write_text(self, relative_path: str, content: str) -> None:
         # 1. Instant local write (guarantees sub-millisecond response)
         self.local.write_text(relative_path, content)
 
-        # 2. Asynchronous background upload to Google Drive
-        if self.relay_url and not self.relay_url.startswith("http://example"):
-            t = threading.Thread(
-                target=self._upload_file_to_drive,
-                args=(relative_path, content),
-                daemon=True
-            )
-            t.start()
+        # 2. Asynchronous background upload to Google Drive via bounded pool
+        self.enqueue_upload(relative_path, content)
 
     def exists(self, relative_path: str) -> bool:
         return self.local.exists(relative_path)

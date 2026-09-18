@@ -44,6 +44,18 @@ def parse_iso_or_date(val: Any) -> Optional[date]:
     if not s or s == "-":
         return None
     clean = s.split("T")[0].split(" ")[0].strip()
+    # Fast-path for standard ISO date: YYYY-MM-DD
+    if len(clean) == 10 and clean[4] == '-' and clean[7] == '-':
+        try:
+            return date(int(clean[0:4]), int(clean[5:7]), int(clean[8:10]))
+        except ValueError:
+            pass
+    # Fast-path for DD-MM-YYYY
+    if len(clean) == 10 and clean[2] == '-' and clean[5] == '-':
+        try:
+            return date(int(clean[6:10]), int(clean[3:5]), int(clean[0:2]))
+        except ValueError:
+            pass
     for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
         try:
             return datetime.strptime(clean, fmt).date()
@@ -106,8 +118,11 @@ class SyncEngine:
     @staticmethod
     def get_employee_dir(emp_id: str) -> Path:
         """Returns the base directory for an employee's node database."""
-        clean_id = emp_id.strip().lower()
-        return EMPLOYEE_NODES_DIR / clean_id
+        clean_id = os.path.basename(str(emp_id).strip().lower())
+        target = (EMPLOYEE_NODES_DIR / clean_id).resolve()
+        if not target.is_relative_to(EMPLOYEE_NODES_DIR.resolve()):
+            raise ValueError(f"Directory traversal detected in employee ID: {emp_id}")
+        return target
 
     @staticmethod
     def get_employee_credentials_path(emp_id: str) -> Path:
@@ -560,14 +575,8 @@ class SyncEngine:
         with _SYNC_LOCK:
             now_iso = datetime.now(timezone.utc).isoformat()
 
-            # Check master clubs
-            master_rows = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            target_record = None
-            for r in master_rows:
-                if r.get("club_id", "").strip().upper() == club_id.strip().upper():
-                    target_record = r
-                    break
-
+            # Check master clubs using O(1) key index
+            target_record = CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", club_id, CLUB_FIELDS)
             if not target_record:
                 return None
 
