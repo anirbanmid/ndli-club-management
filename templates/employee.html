@@ -673,7 +673,7 @@
             <p class="card-subtitle">Dual-written to <code>activity_log.csv</code> and IIT KGP <code>master_activities.csv</code>.</p>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button class="btn btn-outline btn-sm" onclick="loadEmployeeActivities()">Refresh Logs</button>
+            <button class="btn btn-outline btn-sm" onclick="loadEmployeeActivities(true)">Refresh Logs</button>
             <button class="btn btn-outline btn-sm" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from database of that particular employee account">Download Activity Log</button>
           </div>
         </div>
@@ -692,7 +692,9 @@
             </thead>
             <tbody id="activities-tbody">
               <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">Loading activity history...</td>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  <span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading activity history...
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1950,8 +1952,9 @@
         portalView.classList.add("view-fade-in");
       }
 
-      // Preload clubs database concurrently in background (non-blocking)
+      // Preload clubs database and node activities concurrently in background (non-blocking)
       performUniversalSearch("");
+      loadEmployeeActivities();
 
       await fetchLiveProfile(CURRENT_EMP_ID);
       updateNavAuth(true, session);
@@ -1960,7 +1963,6 @@
       await loadStates();
       await renderEmployeeProfile();
       loadEmployeeQuota();
-      loadEmployeeActivities();
       loadEmployeeReminders();
 
       // Set default renewal date in SEC C to 1 year ahead
@@ -2010,7 +2012,7 @@
       await fetchLiveProfile(empId);
       await renderEmployeeProfile();
       loadEmployeeQuota();
-      loadEmployeeActivities();
+      loadEmployeeActivities(true);
       performUniversalSearch(document.getElementById("search-input").value, true);
       loadEmployeeReminders();
       updateNavAuth(true, CURRENT_USER_SESSION || { full_name: EMP_PROFILES[empId]?.name, zone: EMP_PROFILES[empId]?.zone });
@@ -2485,7 +2487,7 @@
         document.getElementById("sec-a-form").reset();
         handleSupportTypeChange();
         loadEmployeeQuota();
-        loadEmployeeActivities();
+        loadEmployeeActivities(true);
       } else {
         showAlert("global-alert", `Error: ${res.data.message || 'Could not log activity.'}`, "danger");
       }
@@ -2529,7 +2531,7 @@
         document.getElementById("sec-c-form").reset();
         document.getElementById("sec-c-card").classList.remove("open");
         loadEmployeeQuota();
-        loadEmployeeActivities();
+        loadEmployeeActivities(true);
         performUniversalSearch("", true);
       } else {
         const errorMsg = res.data.validation_errors ? res.data.validation_errors.join("<br>") : (res.data.message || "Failed to approve club.");
@@ -2560,29 +2562,95 @@
       }
     }
 
-    async function loadEmployeeActivities() {
-      const tbody = document.getElementById("activities-tbody");
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Loading activity log...</td></tr>';
+    let ALL_ACTIVITIES_CACHE = null;
+    let LAST_ACTIVITIES_FETCH_TIME = 0;
+    let IS_ACTIVITIES_FETCHING = false;
 
-      const res = await apiRequest(`/api/activity/list?emp_id=${CURRENT_EMP_ID}`);
-      if (res.ok && res.data.activities) {
-        const acts = res.data.activities;
-        if (acts.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No activity logs recorded yet.</td></tr>';
+    function renderActivitiesTable(acts) {
+      const tbody = document.getElementById("activities-tbody");
+      if (!tbody) return;
+      if (!acts || acts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No activity logs recorded yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = acts.map(a => {
+        const timeDisplay = typeof formatLocalTimestamp === "function" ? formatLocalTimestamp(a.timestamp) : (a.timestamp || "-");
+        const actId = typeof escapeHtml === "function" ? escapeHtml(a.activity_id) : (a.activity_id || "");
+        const suppType = typeof escapeHtml === "function" ? escapeHtml(a.support_type) : (a.support_type || "");
+        const priorityBadge = a.priority_flag === '1' ? '<span class="pill pill-priority">★ Priority</span>' : '<span class="pill pill-primary">Standard</span>';
+        const clubRef = a.club_id ? `<code>${typeof escapeHtml === "function" ? escapeHtml(a.club_id) : a.club_id}</code>` : '-';
+        const notes = typeof escapeHtml === "function" ? escapeHtml(a.notes || '-') : (a.notes || '-');
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 0.8rem;">${timeDisplay}</td>
+            <td><code>${actId}</code></td>
+            <td><strong>${suppType}</strong></td>
+            <td>${priorityBadge}</td>
+            <td>${clubRef}</td>
+            <td style="font-size: 0.85rem;">${notes}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function onHistoryTabActivated() {
+      if (ALL_ACTIVITIES_CACHE && ALL_ACTIVITIES_CACHE.length > 0) {
+        // Instant 0ms cached render!
+        renderActivitiesTable(ALL_ACTIVITIES_CACHE);
+        if (Date.now() - LAST_ACTIVITIES_FETCH_TIME > 45000) {
+          loadEmployeeActivities(false);
+        }
+      } else {
+        loadEmployeeActivities(false);
+      }
+    }
+
+    async function loadEmployeeActivities(forceRefresh = false) {
+      const tbody = document.getElementById("activities-tbody");
+
+      if (forceRefresh) {
+        ALL_ACTIVITIES_CACHE = null;
+      }
+
+      // Fast-path: Instant render from cache if available
+      if (ALL_ACTIVITIES_CACHE && ALL_ACTIVITIES_CACHE.length > 0 && !forceRefresh) {
+        renderActivitiesTable(ALL_ACTIVITIES_CACHE);
+        if (Date.now() - LAST_ACTIVITIES_FETCH_TIME < 45000) {
           return;
         }
-        tbody.innerHTML = acts.map(a => `
-          <tr>
-            <td style="font-family: monospace; font-size: 0.8rem;">${formatLocalTimestamp(a.timestamp)}</td>
-            <td><code>${a.activity_id}</code></td>
-            <td><strong>${a.support_type}</strong></td>
-            <td>
-              ${a.priority_flag === '1' ? '<span class="pill pill-priority">★ Priority</span>' : '<span class="pill pill-primary">Standard</span>'}
-            </td>
-            <td>${a.club_id ? `<code>${a.club_id}</code>` : '-'}</td>
-            <td style="font-size: 0.85rem;">${a.notes || '-'}</td>
-          </tr>
-        `).join("");
+      }
+
+      if (IS_ACTIVITIES_FETCHING) {
+        return;
+      }
+
+      // Show animated spinner only if table currently has no cached rows displayed
+      if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading activity history...</td></tr>';
+      }
+
+      IS_ACTIVITIES_FETCHING = true;
+      try {
+        const res = await apiRequest(`/api/activity/list?emp_id=${encodeURIComponent(CURRENT_EMP_ID)}`);
+        const data = (res && res.data) || {};
+        const acts = data.activities || [];
+
+        if (res.ok) {
+          ALL_ACTIVITIES_CACHE = acts;
+          LAST_ACTIVITIES_FETCH_TIME = Date.now();
+          renderActivitiesTable(acts);
+        } else {
+          if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
+          }
+        }
+      } catch (err) {
+        if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
+        }
+      } finally {
+        IS_ACTIVITIES_FETCHING = false;
       }
     }
 
@@ -2689,6 +2757,8 @@
     function onTabActivated(targetId) {
       if (targetId === "tab-search") {
         onSearchTabActivated();
+      } else if (targetId === "tab-history") {
+        onHistoryTabActivated();
       }
     }
 
@@ -3160,7 +3230,7 @@
           CURRENT_ACTIVE_CLUB = updated;
 
           loadEmployeeQuota();
-          loadEmployeeActivities();
+          loadEmployeeActivities(true);
           performUniversalSearch(document.getElementById("search-input").value, true);
 
           // AUTOMATICALLY OPEN RENEWAL CERTIFICATE GENERATION & DOWNLOAD TERMINAL
@@ -3564,6 +3634,13 @@
           onSearchTabActivated();
         });
       });
+
+      // Tab activation listener for My Node Activity History
+      document.querySelectorAll('.tab-btn[data-target="tab-history"]').forEach(btn => {
+        btn.addEventListener("click", () => {
+          onHistoryTabActivated();
+        });
+      });
     }
 
     if (typeof window !== "undefined") {
@@ -3577,7 +3654,9 @@
       window.submitEmployeeIssueResolution = submitEmployeeIssueResolution;
       window.onTabActivated = onTabActivated;
       window.onSearchTabActivated = onSearchTabActivated;
+      window.onHistoryTabActivated = onHistoryTabActivated;
       window.performUniversalSearch = performUniversalSearch;
+      window.loadEmployeeActivities = loadEmployeeActivities;
     }
 
     window.onload = initEmployeePortal;
