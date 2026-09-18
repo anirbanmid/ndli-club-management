@@ -60,6 +60,28 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("North", data["zones"])
         self.assertIn("West Bengal", data["zone_to_states"]["East"])
+        self.assertIn("all_states", data)
+        self.assertIn("states", data)
+        self.assertEqual(len(data["all_states"]), 37)
+        self.assertEqual(len(data["states"]), 37)
+
+    def test_states_endpoint(self):
+        status, data = self._get("/api/states")
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+        self.assertIn("states", data)
+        self.assertIn("all_states", data)
+        self.assertEqual(len(data["states"]), 37)
+        self.assertIn("West Bengal", data["states"])
+
+    def test_states_zones_endpoint(self):
+        status, data = self._get("/api/states-zones")
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+        self.assertIn("zones", data)
+        self.assertIn("zone_to_states", data)
+        self.assertIn("states", data)
+        self.assertEqual(len(data["states"]), 37)
 
     def test_state_zone_lookup(self):
         status, data = self._get("/api/state-zone/lookup?state=Gujarat")
