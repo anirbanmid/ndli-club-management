@@ -88,6 +88,9 @@ class LocalSyncStorageAdapter(StorageAdapter):
     def exists(self, relative_path: str) -> bool:
         return self._resolve(relative_path).exists()
 
+    def pull_all_from_drive(self) -> Dict[str, Any]:
+        return {"success": True, "message": "Local storage mode: local files already present", "total_pulled": 0}
+
     def get_info(self) -> Dict[str, Any]:
         return {
             "mode": "LOCAL_SYNC",
@@ -192,6 +195,186 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
             "synced": results
         }
 
+    def _merge_csv_content(self, rel_path: str, target_file: Path, incoming_csv_text: str) -> str:
+        """Safely merges incoming CSV rows with existing local CSV rows to prevent record wipeouts."""
+        import io
+        import csv
+        fn = target_file.name.lower()
+        key_field = None
+        if "clubs" in fn:
+            key_field = "club_id"
+        elif "activities" in fn or "activity" in fn:
+            key_field = "activity_id"
+        elif "quotas" in fn:
+            key_field = "emp_id"
+        elif "users" in fn:
+            key_field = "id"
+        elif "issues" in fn:
+            key_field = "issue_id"
+        elif "credentials" in fn:
+            key_field = "employee_id"
+
+        if not key_field:
+            return incoming_csv_text
+
+        try:
+            local_content = target_file.read_text(encoding="utf-8")
+            if not local_content.strip():
+                return incoming_csv_text
+
+            local_reader = csv.DictReader(io.StringIO(local_content))
+            headers = list(local_reader.fieldnames or [])
+            local_rows = list(local_reader)
+
+            inc_reader = csv.DictReader(io.StringIO(incoming_csv_text))
+            inc_headers = list(inc_reader.fieldnames or [])
+            inc_rows = list(inc_reader)
+
+            if not inc_headers:
+                return local_content
+
+            combined_headers = list(headers)
+            for h in inc_headers:
+                if h not in combined_headers:
+                    combined_headers.append(h)
+
+            if key_field not in combined_headers:
+                return incoming_csv_text
+
+            merged_map = {}
+            for r in inc_rows:
+                kv = str(r.get(key_field, "")).strip().lower()
+                if kv:
+                    merged_map[kv] = dict(r)
+
+            for lr in local_rows:
+                kv = str(lr.get(key_field, "")).strip().lower()
+                if not kv:
+                    continue
+                if kv not in merged_map:
+                    merged_map[kv] = dict(lr)
+                else:
+                    inc_r = merged_map[kv]
+                    local_ts = lr.get("updated_at") or lr.get("timestamp") or ""
+                    inc_ts = inc_r.get("updated_at") or inc_r.get("timestamp") or ""
+                    if local_ts and local_ts > inc_ts:
+                        inc_r.update({k: v for k, v in lr.items() if v})
+                    else:
+                        for k, v in lr.items():
+                            if v and not inc_r.get(k):
+                                inc_r[k] = v
+
+            out = io.StringIO()
+            writer = csv.DictWriter(out, fieldnames=combined_headers)
+            writer.writeheader()
+            for row in merged_map.values():
+                writer.writerow({h: row.get(h, "") for h in combined_headers})
+            return out.getvalue()
+        except Exception:
+            return incoming_csv_text
+
+    def pull_all_from_drive(self, force: bool = False) -> Dict[str, Any]:
+        """Pulls all CSV files from Google Drive to restore local storage."""
+        import sys
+        if (os.getenv("NDLI_TESTING") == "true" or "unittest" in sys.modules) and not force and not getattr(self, "_allow_test_pull", False):
+            return {"success": True, "message": "[Testing Mode] Remote pull skipped", "total_pulled": 0, "files": []}
+
+        if not self.relay_url or self.relay_url.startswith("http://example"):
+            return {"success": False, "message": "Apps Script relay URL not configured", "total_pulled": 0}
+
+        payload = {
+            "path": "sync/pull-all",
+            "method": "POST",
+            "data": {}
+        }
+        try:
+            req = urllib.request.Request(
+                self.relay_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw_bytes = resp.read().decode("utf-8")
+                resp_json = json.loads(raw_bytes)
+                data_obj = resp_json.get("data", resp_json)
+                files_map = data_obj.get("files", {})
+
+                pulled_files = []
+                for rel_path, content in files_map.items():
+                    if not content or not content.strip():
+                        continue
+                    clean_rel = rel_path.replace("\\", "/").lstrip("/")
+                    target_file = (self.local.root_dir / clean_rel).resolve()
+                    if not target_file.is_relative_to(self.local.root_dir.resolve()):
+                        continue
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+
+                    if target_file.exists() and target_file.stat().st_size > 0 and clean_rel.endswith(".csv"):
+                        merged_content = self._merge_csv_content(clean_rel, target_file, content)
+                        target_file.write_text(merged_content, encoding="utf-8")
+                    else:
+                        target_file.write_text(content, encoding="utf-8")
+                    pulled_files.append(clean_rel)
+
+                from db.csv_engine import CSVEngine
+                CSVEngine.clear_cache()
+
+                self.last_sync_time = datetime.now(timezone.utc).isoformat()
+                self.last_sync_status = "pulled_from_drive"
+
+                return {
+                    "success": True,
+                    "total_pulled": len(pulled_files),
+                    "files": pulled_files
+                }
+        except Exception as err:
+            self.last_error = str(err)
+            return {"success": False, "error": str(err), "total_pulled": 0}
+
+    def pull_file_from_drive(self, relative_path: str) -> Optional[str]:
+        """Pulls a single file content from Google Drive."""
+        import sys
+        if os.getenv("NDLI_TESTING") == "true" or "unittest" in sys.modules:
+            return None
+        if not self.relay_url or self.relay_url.startswith("http://example"):
+            return None
+
+        clean_path = relative_path.replace("\\", "/").lstrip("/")
+        parts = clean_path.split("/")
+        sub_path = "/".join(parts[:-1]) if len(parts) > 1 else "master"
+        file_name = parts[-1]
+
+        payload = {
+            "path": "sync/pull-file",
+            "method": "POST",
+            "data": {
+                "subPath": sub_path,
+                "fileName": file_name
+            }
+        }
+        try:
+            req = urllib.request.Request(
+                self.relay_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw_bytes = resp.read().decode("utf-8")
+                resp_json = json.loads(raw_bytes)
+                data_obj = resp_json.get("data", resp_json)
+                content = data_obj.get("content")
+                if content is not None:
+                    target_file = (self.local.root_dir / clean_path).resolve()
+                    if target_file.is_relative_to(self.local.root_dir.resolve()):
+                        target_file.parent.mkdir(parents=True, exist_ok=True)
+                        target_file.write_text(content, encoding="utf-8")
+                    return content
+        except Exception:
+            pass
+        return None
+
     def get_info(self) -> Dict[str, Any]:
         return {
             "mode": "APPS_SCRIPT_RELAY",
@@ -227,6 +410,9 @@ class GoogleDriveAPIAdapter(StorageAdapter):
     def exists(self, relative_path: str) -> bool:
         return self.local_fallback.exists(relative_path)
 
+    def pull_all_from_drive(self) -> Dict[str, Any]:
+        return {"success": True, "message": "Drive API storage mode", "total_pulled": 0}
+
     def get_info(self) -> Dict[str, Any]:
         return {
             "mode": "DRIVE_API",
@@ -238,8 +424,9 @@ class GoogleDriveAPIAdapter(StorageAdapter):
 
 
 def get_storage_adapter() -> StorageAdapter:
-    if DRIVE_STORAGE_MODE == "APPS_SCRIPT_RELAY":
+    mode = os.getenv("NDLI_STORAGE_MODE") or os.getenv("NDLI_STORAGE_ADAPTER") or DRIVE_STORAGE_MODE
+    if mode == "APPS_SCRIPT_RELAY":
         return AppsScriptRelaySyncAdapter()
-    elif DRIVE_STORAGE_MODE == "DRIVE_API":
+    elif mode == "DRIVE_API":
         return GoogleDriveAPIAdapter()
     return LocalSyncStorageAdapter()

@@ -120,7 +120,14 @@ function getOrCreateSubfolder(parentFolder, folderName) {
 function getOrCreateFile(folder, fileName, defaultContent, mimeType) {
   var files = folder.getFilesByName(fileName);
   if (files.hasNext()) {
-    return files.next();
+    var f = files.next();
+    try {
+      var content = String(f.getBlob().getDataAsString("UTF-8") || "").trim();
+      if (!content && defaultContent) {
+        f.setContent(defaultContent);
+      }
+    } catch (e) {}
+    return f;
   }
   return folder.createFile(fileName, defaultContent, mimeType || MimeType.PLAIN_TEXT);
 }
@@ -2124,6 +2131,67 @@ function apiDispatcher(path, method, body, token) {
       };
     }
 
+    // --- 24x7 CLOUD-TO-DRIVE REALTIME FILE RESTORE & PULL ---
+    if (path === "sync/pull-all" || path === "sync/fetch-all") {
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var filesMap = {};
+
+      function scanFolderForFiles(folder, prefix) {
+        var fIter = folder.getFiles();
+        while (fIter.hasNext()) {
+          var f = fIter.next();
+          var fn = f.getName();
+          if (fn.indexOf(".csv") !== -1 || fn.indexOf(".json") !== -1) {
+            filesMap[(prefix ? prefix + "/" : "") + fn] = f.getBlob().getDataAsString("UTF-8");
+          }
+        }
+        var subIter = folder.getFolders();
+        while (subIter.hasNext()) {
+          var sf = subIter.next();
+          scanFolderForFiles(sf, (prefix ? prefix + "/" : "") + sf.getName());
+        }
+      }
+
+      scanFolderForFiles(dbFolder, "");
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          files: filesMap,
+          total_files: Object.keys(filesMap).length
+        }
+      };
+    }
+
+    if (path === "sync/pull-file" || path === "sync/fetch-file") {
+      var d = body.data || body;
+      var subPath = d.subPath || "master";
+      var fileName = d.fileName || "";
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var targetFolder = dbFolder;
+      var parts = subPath.split("/").filter(Boolean);
+      for (var i = 0; i < parts.length; i++) {
+        targetFolder = getOrCreateSubfolder(targetFolder, parts[i]);
+      }
+      var existing = targetFolder.getFilesByName(fileName);
+      if (existing.hasNext()) {
+        var content = existing.next().getBlob().getDataAsString("UTF-8");
+        return {
+          ok: true,
+          status: 200,
+          data: { success: true, content: content, file: subPath + "/" + fileName }
+        };
+      }
+      return {
+        ok: false,
+        status: 404,
+        data: { error: true, message: "File not found: " + subPath + "/" + fileName }
+      };
+    }
+
     // --- ADMIN: BACKUP STATUS & TRIGGER ---
     if (path === "admin/backup/status") {
       var root = getSystemFolder();
@@ -2295,7 +2363,7 @@ function apiDispatcher(path, method, body, token) {
     if (path === "clubs/create") {
       var mClubs = getCsvData("master", "master_clubs.csv");
       var empId = String(body.employee_id || body.emp_id || "EMP01").toUpperCase();
-      var clubId = "NDLI-" + empId + "-" + Utilities.formatString("%03d", mClubs.rows.length + 1);
+      var clubId = String(body.club_id || body.id || ("NDLI-" + empId + "-" + Utilities.formatString("%03d", mClubs.rows.length + 1))).trim().toUpperCase();
       var regNo = body.reg_no || ("NDLI/REG/" + new Date().getFullYear() + "/" + Utilities.formatString("%03d", mClubs.rows.length + 1));
       var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
       var renDate = Utilities.formatDate(new Date(Date.now() + (365 * 86400000)), "Asia/Kolkata", "yyyy-MM-dd");

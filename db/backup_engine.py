@@ -105,15 +105,18 @@ class BackupEngine:
             target_dir.mkdir(parents=True, exist_ok=True)
 
             admin_target = target_dir / "admin"
+            master_target = target_dir / "master"
             employee_target = target_dir / "employees"
 
-            # 1. Copy Admin Master Database
+            # 1. Copy Admin Master Database (write to both admin and master for dual compatibility)
             admin_files = []
             if MASTER_DATA_DIR.exists():
                 admin_target.mkdir(parents=True, exist_ok=True)
+                master_target.mkdir(parents=True, exist_ok=True)
                 for f in MASTER_DATA_DIR.iterdir():
                     if f.is_file() and f.suffix == ".csv" and not f.name.startswith("."):
                         shutil.copy2(str(f), str(admin_target / f.name))
+                        shutil.copy2(str(f), str(master_target / f.name))
                         admin_files.append(f.name)
 
             # 2. Copy Employee Node Databases
@@ -427,6 +430,13 @@ class BackupEngine:
                             if sub.is_dir():
                                 master_src = sub
                                 break
+                    if not master_src or not master_src.exists():
+                        master_src = tmp_path / "admin"
+                        if not master_src.exists():
+                            for sub in tmp_path.glob("**/admin"):
+                                if sub.is_dir():
+                                    master_src = sub
+                                    break
 
                     emp_src = tmp_path / "employees"
                     if not emp_src.exists():
@@ -455,17 +465,17 @@ class BackupEngine:
 
             # Case B: Local backup directory
             elif src.is_dir():
-                master_src = src / "master"
+                master_src = (src / "master") if (src / "master").exists() else (src / "admin")
                 emp_src = src / "employees"
 
-                if master_src.exists():
+                if master_src and master_src.exists():
                     MASTER_DATA_DIR.mkdir(parents=True, exist_ok=True)
                     for f in master_src.iterdir():
                         if f.is_file() and f.suffix == ".csv":
                             shutil.copy2(str(f), str(MASTER_DATA_DIR / f.name))
                             restored_master_files.append(f.name)
 
-                if emp_src.exists():
+                if emp_src and emp_src.exists():
                     EMPLOYEE_NODES_DIR.mkdir(parents=True, exist_ok=True)
                     for e_dir in emp_src.iterdir():
                         if e_dir.is_dir():
@@ -477,6 +487,10 @@ class BackupEngine:
                                     shutil.copy2(str(f), str(dest_node / f.name))
             else:
                 raise ValueError(f"Unrecognized backup format for source: {src}")
+
+            # Invalidate memory cache so subsequent reads reflect restored files
+            from db.csv_engine import CSVEngine
+            CSVEngine.clear_cache()
 
             # Run full reconciliation to rebuild all indexes, schemas, and performance quotas
             reconcile_summary = SyncEngine.reconcile_all_nodes()
