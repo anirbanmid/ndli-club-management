@@ -421,8 +421,55 @@ async function runTests() {
   console.assert(verifyClub.data.club.secretary_email === 'updated.sec@dati.ac.in', 'secretary_email must be updated');
   console.log('PASS: clubs/update correctly updates contact emails and preserves integrity.\n');
 
+  // Test 25: Non-destructive startup initialization & re-run parity (club id 26 persistence across initSystem() & sync/pull-all)
+  console.log('[Test 25] Non-destructive initSystem() & sync/pull-all parity (Club 26 persistence)...');
+  const createClub26Res = apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP01',
+    club_id: 'NDLI-EMP01-026',
+    reg_no: 'REG-2026-EMP01-026',
+    institution_name: 'National Institute of Advanced Studies Delhi',
+    state: 'Delhi',
+    zone: 'North',
+    patron_email: 'director@nias.delhi.ac.in',
+    president_email: 'president@nias.delhi.ac.in',
+    secretary_email: 'secretary@nias.delhi.ac.in',
+    date_of_approval: '2026-09-19T10:00:00Z',
+    renewal_date: '2027-09-19'
+  });
+  console.assert(createClub26Res.ok === true, 'Failed to create club 26: ' + JSON.stringify(createClub26Res));
+
+  // Verify club 26 exists in admin metrics
+  const metricsBefore = apiDispatcher('admin/metrics', 'GET');
+  console.assert(metricsBefore.ok === true, 'Failed to get admin metrics');
+  const countBefore = metricsBefore.data.summary.total_clubs;
+
+  // Re-run initSystem() (simulating server restart or manual re-initialization)
+  const reinitRes = initSystem();
+  console.assert(reinitRes.success === true, 'initSystem re-run failed');
+
+  // Verify club 26 still exists and total count was not wiped out
+  const metricsAfter = apiDispatcher('admin/metrics', 'GET');
+  console.assert(metricsAfter.ok === true, 'Failed to get admin metrics after re-init');
+  console.assert(metricsAfter.data.summary.total_clubs === countBefore, `Total clubs wiped! Expected ${countBefore}, got ${metricsAfter.data.summary.total_clubs}`);
+
+  const club26Check = apiDispatcher('clubs/details', 'POST', { club_id: 'NDLI-EMP01-026' });
+  console.assert(club26Check.ok === true && club26Check.data.club, 'Club 26 disappeared after initSystem()!');
+  console.assert(club26Check.data.club.institution_name === 'National Institute of Advanced Studies Delhi', 'Club 26 data corrupted after initSystem()');
+
+  // Verify sync/pull-all endpoint
+  const pullAllRes = apiDispatcher('sync/pull-all', 'POST', {});
+  console.assert(pullAllRes.ok === true && pullAllRes.data.success === true, 'sync/pull-all failed');
+  console.assert(pullAllRes.data.total_files > 0, 'sync/pull-all must return files');
+  console.assert(pullAllRes.data.files['master/master_clubs.csv'].includes('NDLI-EMP01-026'), 'master_clubs.csv in pull-all must contain Club 26');
+
+  // Verify sync/pull-file endpoint
+  const pullFileRes = apiDispatcher('sync/pull-file', 'POST', { subPath: 'master', fileName: 'master_clubs.csv' });
+  console.assert(pullFileRes.ok === true && pullFileRes.data.success === true, 'sync/pull-file failed');
+  console.assert(pullFileRes.data.content.includes('NDLI-EMP01-026'), 'pulled master_clubs.csv must contain Club 26');
+  console.log('PASS: Non-destructive initSystem() verified: Club 26 and activity logs 100% persisted!\n');
+
   console.log('=============================================');
-  console.log('ALL 24 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 25 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

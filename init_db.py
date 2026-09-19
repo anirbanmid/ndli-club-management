@@ -156,45 +156,67 @@ BENCHMARK_CLUBS = [
 ]
 
 
-def initialize_database() -> None:
-    """Initializes master schemas, registers admin and 7 employee nodes, and seeds records."""
+def initialize_database(force: bool = False) -> None:
+    """
+    Initializes master schemas, registers admin and initial employee nodes,
+    and seeds records non-destructively.
+    
+    Idempotent guarantee:
+    - If master CSVs already exist and contain data, existing records are preserved.
+    - Benchmark clubs and support activities are seeded ONLY if the databases are
+      empty or uninitialized, or if force=True is explicitly requested.
+    """
     print("=" * 70)
-    print("NDLI Club Management System: Initializing Database & Auth...")
+    print(f"NDLI Club Management System: Initializing Database & Auth (force={force})...")
     print("=" * 70)
 
-    # 1. Initialize Storage Directories & Clean Non-initial Nodes
+    # 1. Initialize Storage Directories & Schemas
     SyncEngine.initialize_storage_hierarchy()
+
     valid_emp_ids = {emp["id"].lower() for emp in INITIAL_EMPLOYEES}
-    if EMPLOYEE_NODES_DIR.exists():
-        for item in EMPLOYEE_NODES_DIR.iterdir():
-            if item.is_dir() and item.name.lower() not in valid_emp_ids:
-                shutil.rmtree(str(item), ignore_errors=True)
-
     valid_user_ids = {"ADMIN01"}.union({emp["id"].upper() for emp in INITIAL_EMPLOYEES})
-    if MASTER_USERS_CSV.exists():
-        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
-        cleaned_users = [u for u in users if u.get("id", "").strip().upper() in valid_user_ids]
-        CSVEngine.write_all(MASTER_USERS_CSV, USER_FIELDS, cleaned_users)
 
-    if MASTER_QUOTAS_CSV.exists():
-        quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
-        cleaned_quotas = [q for q in quotas if q.get("emp_id", "").strip().upper() in valid_user_ids]
-        CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, cleaned_quotas)
+    if force:
+        # Destructive clean-up only when explicitly forced
+        if EMPLOYEE_NODES_DIR.exists():
+            for item in EMPLOYEE_NODES_DIR.iterdir():
+                if item.is_dir() and item.name.lower() not in valid_emp_ids:
+                    shutil.rmtree(str(item), ignore_errors=True)
 
-    # Clean clubs, activities, and issues so benchmark records are re-seeded cleanly
-    CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, [])
-    CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, [])
-    CSVEngine.write_all(MASTER_ISSUES_CSV, ISSUE_FIELDS, [])
-    for emp in INITIAL_EMPLOYEES:
-        emp_id = emp["id"]
-        SyncEngine.get_employee_dir(emp_id).mkdir(parents=True, exist_ok=True)
-        CSVEngine.write_all(SyncEngine.get_employee_clubs_path(emp_id), CLUB_FIELDS, [])
-        CSVEngine.write_all(SyncEngine.get_employee_activities_path(emp_id), ACTIVITY_FIELDS, [])
-        CSVEngine.write_all(SyncEngine.get_employee_issues_path(emp_id), ISSUE_FIELDS, [])
+        if MASTER_USERS_CSV.exists():
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            cleaned_users = [u for u in users if u.get("id", "").strip().upper() in valid_user_ids]
+            CSVEngine.write_all(MASTER_USERS_CSV, USER_FIELDS, cleaned_users)
+
+        if MASTER_QUOTAS_CSV.exists():
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            cleaned_quotas = [q for q in quotas if q.get("emp_id", "").strip().upper() in valid_user_ids]
+            CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, cleaned_quotas)
+
+        CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, [])
+        CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, [])
+        CSVEngine.write_all(MASTER_ISSUES_CSV, ISSUE_FIELDS, [])
+        for emp in INITIAL_EMPLOYEES:
+            emp_id = emp["id"]
+            SyncEngine.get_employee_dir(emp_id).mkdir(parents=True, exist_ok=True)
+            CSVEngine.write_all(SyncEngine.get_employee_clubs_path(emp_id), CLUB_FIELDS, [])
+            CSVEngine.write_all(SyncEngine.get_employee_activities_path(emp_id), ACTIVITY_FIELDS, [])
+            CSVEngine.write_all(SyncEngine.get_employee_issues_path(emp_id), ISSUE_FIELDS, [])
+    else:
+        # Non-destructive: Ensure directory and file headers exist without clearing rows
+        for emp in INITIAL_EMPLOYEES:
+            emp_id = emp["id"]
+            SyncEngine.get_employee_dir(emp_id).mkdir(parents=True, exist_ok=True)
+            CSVEngine.ensure_file(SyncEngine.get_employee_clubs_path(emp_id), CLUB_FIELDS)
+            CSVEngine.ensure_file(SyncEngine.get_employee_activities_path(emp_id), ACTIVITY_FIELDS)
+            CSVEngine.ensure_file(SyncEngine.get_employee_issues_path(emp_id), ISSUE_FIELDS)
 
     print("[1/5] Initialized storage hierarchy and master CSV schemas.")
 
-    # 2. Provision Admin User (IIT Kharagpur)
+    # 2. Provision Admin User (IIT Kharagpur) - Idempotent & status-preserving
+    existing_users = {u.get("id", "").strip().upper(): u for u in CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)} if MASTER_USERS_CSV.exists() else {}
+
+    admin_active = existing_users.get("ADMIN01", {}).get("is_active", "1") if not force else "1"
     AuthService.register_or_update_user(
         user_id="ADMIN01",
         email=DEFAULT_ADMIN_EMAIL,
@@ -203,12 +225,13 @@ def initialize_database() -> None:
         role="ADMIN",
         zone="Central Coordination (IIT KGP)",
         assigned_states="All India",
-        is_active="1"
+        is_active=admin_active
     )
     print(f"[2/5] Registered IIT Kharagpur Master Admin: {DEFAULT_ADMIN_EMAIL}")
 
-    # 3. Provision 7 Employee Nodes
+    # 3. Provision 7 Employee Nodes - Idempotent & status-preserving
     for emp in INITIAL_EMPLOYEES:
+        emp_active = existing_users.get(emp["id"].upper(), {}).get("is_active", "1") if not force else "1"
         AuthService.register_or_update_user(
             user_id=emp["id"],
             email=emp["email"],
@@ -217,40 +240,50 @@ def initialize_database() -> None:
             role="EMPLOYEE",
             zone=emp["zone"],
             assigned_states=emp["assigned_states"],
-            is_active="1"
+            is_active=emp_active
         )
         print(f"[3/5] Provisioned node for {emp['id']}: {emp['full_name']} ({emp['zone']} Zone)")
 
-    # 4. Seed Benchmark Clubs and Activities
-    for club in BENCHMARK_CLUBS:
-        state = club["state"]
-        zone = get_zone_for_state(state) or "Unknown"
-        payload = {
-            "club_id": club["club_id"],
-            "reg_no": club["reg_no"],
-            "institution_name": club["institution_name"],
-            "state": state,
-            "zone": zone,
-            "patron_email": club["patron_email"],
-            "president_email": club["president_email"],
-            "secretary_email": club["secretary_email"],
-            "date_of_approval": club.get("date_of_approval", ""),
-            "last_renewal_date": club.get("last_renewal_date", ""),
-            "renewal_date": club["renewal_date"]
-        }
-        SyncEngine.approve_new_club(emp_id=club["emp_id"], club_data=payload)
+    # 4. Seed Benchmark Clubs and Activities (Strictly non-destructive: only if empty or forced)
+    existing_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS) if MASTER_CLUBS_CSV.exists() else []
+    existing_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS) if MASTER_ACTIVITIES_CSV.exists() else []
 
-    # Seed some support logs
-    SyncEngine.log_support_activity("EMP01", "Phone call and remote assistance", "Assisted Delhi college with registration portal")
-    SyncEngine.log_support_activity("EMP01", "Closing of OS Ticket", "Ticket #4491 resolved")
-    SyncEngine.log_support_activity("EMP02", "Online training", "Conducted webinar for 15 MP schools")
-    SyncEngine.log_support_activity("EMP03", "Offline training", "Workshop at Pune University")
-    SyncEngine.log_support_activity("EMP04", "Closing of OS Ticket", "Ticket #4502 resolved")
-    SyncEngine.log_support_activity("EMP06", "Phone call and remote assistance", "Assisted Bangalore tech campus")
+    if force or len(existing_clubs) == 0:
+        print(f"[*] Database clubs unpopulated (count={len(existing_clubs)}). Seeding benchmark clubs...")
+        for club in BENCHMARK_CLUBS:
+            state = club["state"]
+            zone = get_zone_for_state(state) or "Unknown"
+            payload = {
+                "club_id": club["club_id"],
+                "reg_no": club["reg_no"],
+                "institution_name": club["institution_name"],
+                "state": state,
+                "zone": zone,
+                "patron_email": club["patron_email"],
+                "president_email": club["president_email"],
+                "secretary_email": club["secretary_email"],
+                "date_of_approval": club.get("date_of_approval", ""),
+                "last_renewal_date": club.get("last_renewal_date", ""),
+                "renewal_date": club["renewal_date"]
+            }
+            SyncEngine.approve_new_club(emp_id=club["emp_id"], club_data=payload)
+    else:
+        print(f"[*] Preserving {len(existing_clubs)} existing clubs (non-destructive startup).")
 
-    print(f"[4/5] Seeded benchmark clubs and support activity logs.")
+    if force or len(existing_activities) == 0:
+        print(f"[*] Database activities unpopulated (count={len(existing_activities)}). Seeding support logs...")
+        SyncEngine.log_support_activity("EMP01", "Phone call and remote assistance", "Assisted Delhi college with registration portal")
+        SyncEngine.log_support_activity("EMP01", "Closing of OS Ticket", "Ticket #4491 resolved")
+        SyncEngine.log_support_activity("EMP02", "Online training", "Conducted webinar for 15 MP schools")
+        SyncEngine.log_support_activity("EMP03", "Offline training", "Workshop at Pune University")
+        SyncEngine.log_support_activity("EMP04", "Closing of OS Ticket", "Ticket #4502 resolved")
+        SyncEngine.log_support_activity("EMP06", "Phone call and remote assistance", "Assisted Bangalore tech campus")
+    else:
+        print(f"[*] Preserving {len(existing_activities)} existing support activity logs.")
 
-    # 5. Full Reconciliation Run
+    print(f"[4/5] Benchmark verification complete.")
+
+    # 5. Full Reconciliation Run (Safely aggregates and reconciles without loss)
     summary = SyncEngine.reconcile_all_nodes()
     print(f"[5/5] Reconciled all nodes with Master DB: {summary}")
     print("=" * 70)
@@ -259,4 +292,7 @@ def initialize_database() -> None:
 
 
 if __name__ == "__main__":
-    initialize_database()
+    import sys
+    force_run = "--force" in sys.argv or "--reset" in sys.argv
+    initialize_database(force=force_run)
+

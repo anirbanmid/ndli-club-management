@@ -4,8 +4,12 @@ services:
     env: python
     buildCommand: ""
     startCommand: python app.py
-    plan: free
+    plan: starter
     autoDeploy: true
+    disk:
+      name: ndli-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
@@ -15,3 +19,5 @@ services:
         value: APPS_SCRIPT_RELAY
       - key: NDLI_APPS_SCRIPT_SYNC_URL
         value: https://script.google.com/macros/s/AKfycbyyBeTLzjrA018d79S1yvgCDduGtyLlG95oJ5BgThV-bU2GUcoQWudYiBkOL_LADDo3/exec
+      - key: NDLI_DATA_DIR
+        value: /var/data

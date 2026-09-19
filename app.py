@@ -82,7 +82,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 (BASE_DIR / "static").resolve(),
                 (BASE_DIR / "docs").resolve(),
                 (BASE_DIR / "templates").resolve(),
-                (BASE_DIR / "data").resolve()
+                (BASE_DIR / "data").resolve(),
+                DATA_DIR.resolve()
             ]
             if not any(resolved == r or r in resolved.parents for r in allowed_roots):
                 self._send_error("Access denied: Invalid resource path.", status=403)
@@ -1335,7 +1336,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Certificate Settings Query
         if path == "/api/certificate/settings":
-            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             settings_file = sig_dir / "settings.json"
             sig_png = sig_dir / "pi_signature.png"
@@ -1362,7 +1363,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Serve Uploaded PI Signature Image
         if path == "/api/certificate/signature":
-            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir = DATA_DIR / "signatures"
             sig_path = sig_dir / "pi_signature.png"
             if not sig_path.exists():
                 sig_path = sig_dir / "pi_signature.jpg"
@@ -1886,7 +1887,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(f"Invalid base64 image data: {e}", status=400)
                 return
 
-            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             # Remove any alternate format to avoid confusion
             alt_ext = ".jpg" if ext == ".png" else ".png"
@@ -1929,7 +1930,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Certificate Settings Update
         if path == "/api/certificate/settings":
-            sig_dir = BASE_DIR / "data" / "signatures"
+            sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             settings_file = sig_dir / "settings.json"
             saved = {
@@ -1965,7 +1966,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # Trigger Immediate Google Drive Sync
+        # Trigger Immediate Google Drive Sync (Push)
         if path == "/api/admin/drive/sync-now":
             adapter = get_storage_adapter()
             if hasattr(adapter, "sync_all_now"):
@@ -1975,16 +1976,120 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
             return
 
+        # Trigger Immediate Google Drive Pull (Restore from Cloud)
+        if path in ("/api/admin/drive/pull-now", "/api/sync/pull-now"):
+            adapter = get_storage_adapter()
+            if hasattr(adapter, "pull_all_from_drive"):
+                res = adapter.pull_all_from_drive()
+                if res.get("success"):
+                    SyncEngine.reconcile_all_nodes()
+                self._send_json(res)
+            else:
+                self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
+            return
+
         self._send_error(f"Endpoint not found: {path}", status=404)
 
 
-def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
-    """Starts the NDLI HTTP server with multi-threaded high-concurrency architecture."""
-    # Ensure backup schedule and baseline check
+def init_system() -> Dict[str, Any]:
+    """
+    Guarantees seamless non-destructive startup initialization and cold-boot restoration:
+    1. Detects persistent disk mount (e.g. /var/data on Render) and bootstraps from repo data if empty.
+    2. Remote Google Drive Pull: Checks for remote cloud snapshot from Google Drive and synchronizes
+       new clubs, activities, and quotas non-destructively so that dyno restarts and cold boots never wipe data.
+    3. Backup Snapshot Auto-Restore: If local database files are missing or empty, restores latest backup snapshot.
+    4. Executes non-destructive initialize_database(force=False).
+    5. Runs SyncEngine.reconcile_all_nodes() to heal indexes and synchronize master and node databases.
+    6. Starts BackupEngine automated scheduler.
+    """
+    import shutil
+    from init_db import initialize_database
+
+    # 1. Bootstrap persistent storage if DATA_DIR is outside BASE_DIR/data and empty
+    base_data = (BASE_DIR / "data").resolve()
+    if DATA_DIR.resolve() != base_data and base_data.exists():
+        if not (DATA_DIR / "master" / "master_clubs.csv").exists():
+            try:
+                for item in base_data.iterdir():
+                    dest = DATA_DIR / item.name
+                    if not dest.exists():
+                        if item.is_dir():
+                            shutil.copytree(str(item), str(dest))
+                        else:
+                            shutil.copy2(str(item), str(dest))
+            except Exception as e:
+                print(f"[!] Warning: Failed to bootstrap persistent disk from {base_data}: {e}")
+        # Ensure signatures exist in DATA_DIR
+        base_sig = base_data / "signatures"
+        data_sig = DATA_DIR / "signatures"
+        if base_sig.exists() and not (data_sig / "pi_signature.png").exists() and (base_sig / "pi_signature.png").exists():
+            try:
+                data_sig.mkdir(parents=True, exist_ok=True)
+                for sf in base_sig.iterdir():
+                    dest_sf = data_sig / sf.name
+                    if not dest_sf.exists():
+                        shutil.copy2(str(sf), str(dest_sf))
+            except Exception as se:
+                print(f"[!] Warning: Failed to bootstrap signatures: {se}")
+
+    # 2. Synchronize remote cloud state from Google Drive (Cold boot & restart recovery)
+    pulled_from_drive = False
+    adapter = get_storage_adapter()
+    if hasattr(adapter, "pull_all_from_drive"):
+        try:
+            drive_res = adapter.pull_all_from_drive()
+            if drive_res.get("success") and drive_res.get("total_pulled", 0) > 0:
+                pulled_from_drive = True
+                print(f"[*] Cloud Sync: Successfully synchronized {drive_res.get('total_pulled')} database files from Google Drive.")
+        except Exception as de:
+            print(f"[!] Warning: Failed to pull from Google Drive on startup: {de}")
+
+    # 3. Check if local data is missing or cold boot has occurred
+    is_missing = (
+        not MASTER_CLUBS_CSV.exists()
+        or MASTER_CLUBS_CSV.stat().st_size == 0
+        or len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)) == 0
+    )
+
+    restored_from_backup = False
+    if is_missing:
+        existing_backups = BackupEngine.get_existing_backups()
+        if existing_backups:
+            try:
+                print(f"[*] Cold boot recovery: Restoring latest backup {existing_backups[0].name}...")
+                BackupEngine.restore_backup(existing_backups[0])
+                restored_from_backup = True
+                is_missing = False
+            except Exception as be:
+                print(f"[!] Warning: Failed to restore backup on cold boot: {be}")
+
+    # 4. Idempotent non-destructive database initialization
+    initialize_database(force=False)
+
+    # 5. Full reconciliation to heal indexes and verify all clubs and activities
+    summary = SyncEngine.reconcile_all_nodes()
+
+    # 6. Start automated backup scheduler
     try:
         BackupEngine.start_scheduler()
     except Exception as e:
         print(f"[!] Warning: Could not start backup scheduler: {e}")
+
+    return {
+        "status": "ready",
+        "restored_from_backup": restored_from_backup,
+        "pulled_from_drive": pulled_from_drive,
+        "reconciliation": summary
+    }
+
+
+def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
+    """Starts the NDLI HTTP server with multi-threaded high-concurrency architecture."""
+    # Ensure safe startup initialization and cold-boot recovery
+    try:
+        init_system()
+    except Exception as e:
+        print(f"[!] Warning: System initialization encountered an error: {e}")
 
     server_address = (host, port)
     httpd = ThreadedHTTPServer(server_address, NDLIRequestHandler)
@@ -1998,3 +2103,4 @@ def run_server(host: str = SERVER_HOST, port: int = SERVER_PORT):
 
 if __name__ == "__main__":
     run_server()
+
