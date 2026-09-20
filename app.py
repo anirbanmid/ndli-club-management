@@ -1220,6 +1220,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         # by _log_sync_event -- is the only reliable place to see what a
         # background/confirm_durable sync actually failed with).
         if path == "/api/admin/sync-issues":
+            if not self._check_admin_access():
+                return
             try:
                 adapter = get_storage_adapter()
                 log_path = adapter.local.root_dir / "sync_issues.log" if hasattr(adapter, "local") else None
