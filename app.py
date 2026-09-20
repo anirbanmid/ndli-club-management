@@ -1214,6 +1214,33 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(f"Error serving master CSV: {str(e)}", status=500)
             return
 
+        # DIAGNOSTIC: Read the durable sync-failure log directly (the
+        # per-request adapter instance from get_storage_adapter() has no
+        # memory of past requests, so this file -- written straight to disk
+        # by _log_sync_event -- is the only reliable place to see what a
+        # background/confirm_durable sync actually failed with).
+        if path == "/api/admin/sync-issues":
+            try:
+                adapter = get_storage_adapter()
+                log_path = adapter.local.root_dir / "sync_issues.log" if hasattr(adapter, "local") else None
+                if not log_path or not log_path.exists():
+                    self._send_json({"success": True, "entries": [], "message": "No sync issues logged yet."})
+                    return
+                lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+                tail_param = query_params.get("tail", ["50"])[0]
+                tail_n = int(tail_param) if tail_param.isdigit() else 50
+                recent = lines[-tail_n:]
+                entries = []
+                for line in recent:
+                    try:
+                        entries.append(json.loads(line))
+                    except Exception:
+                        entries.append({"raw": line})
+                self._send_json({"success": True, "count": len(entries), "entries": entries})
+            except Exception as e:
+                self._send_error(f"Error reading sync issues log: {str(e)}", status=500)
+            return
+
         # FEATURE 2: 7-Day Auto Backup Status Check (Admin End & Employee End)
         if path == "/api/admin/backup/status":
             BackupEngine.check_and_run_auto_backup()
