@@ -527,6 +527,51 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         self.assertIn("upload_failed_after_retries", log_path.read_text(encoding="utf-8"))
         log_path.unlink()
 
+    def test_delete_club_removes_from_master_and_node_and_confirms_cloud(self):
+        """
+        A deleted club must actually disappear from both the master CSV and
+        the owning employee's node CSV, and (like approve_new_club) must
+        synchronously confirm the removal reached Drive so a stale Drive
+        snapshot can't silently restore it on the next restart.
+        """
+        from unittest.mock import patch
+
+        club_payload = {
+            "club_id": "NDLI-EMP01-DELTEST1",
+            "reg_no": "REG-DELTEST-1",
+            "institution_name": "Deletion Test School",
+            "state": "Delhi",
+            "patron_email": "del@example.com",
+            "president_email": "delpres@example.com",
+            "secretary_email": "delsec@example.com",
+            "date_of_approval": "2026-09-20T10:00:00Z",
+            "renewal_date": "2027-09-20"
+        }
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+            master_before = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            self.assertTrue(any(c.get("club_id") == "NDLI-EMP01-DELTEST1" for c in master_before))
+
+            result = SyncEngine.delete_club("NDLI-EMP01-DELTEST1")
+
+        self.assertTrue(result["deleted"])
+        self.assertTrue(result["cloud_sync_confirmed"])
+
+        master_after = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        self.assertFalse(any(c.get("club_id") == "NDLI-EMP01-DELTEST1" for c in master_after))
+
+        node_after = CSVEngine.read_all(SyncEngine.get_employee_clubs_path("EMP01"), CLUB_FIELDS)
+        self.assertFalse(any(c.get("club_id") == "NDLI-EMP01-DELTEST1" for c in node_after))
+
+    def test_delete_club_not_found_returns_deleted_false(self):
+        """Deleting a nonexistent club_id must not raise or fabricate success."""
+        result = SyncEngine.delete_club("NDLI-DOES-NOT-EXIST-999")
+        self.assertFalse(result["deleted"])
+
 
 if __name__ == "__main__":
     unittest.main()

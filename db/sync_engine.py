@@ -593,6 +593,63 @@ class SyncEngine:
             return club_record
 
     @classmethod
+    def delete_club(cls, club_id: str) -> Dict[str, Any]:
+        """
+        Permanently removes a club from both the master DB and whichever
+        employee node it belongs to, then synchronously confirms the
+        removal reached Google Drive -- so a deleted club doesn't silently
+        reappear after a restart pulls a stale (pre-deletion) Drive copy,
+        the same class of bug this file's confirm_durable was built to
+        catch on the write side.
+        """
+        club_id = str(club_id).strip().upper()
+        if not club_id:
+            raise ValueError("club_id is required")
+
+        with _SYNC_LOCK:
+            master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            target = next((c for c in master_clubs if c.get("club_id", "").strip().upper() == club_id), None)
+            if target is None:
+                return {"deleted": False, "message": f"No club found with club_id '{club_id}'."}
+
+            approved_by = str(target.get("approved_by_emp_id", "")).strip().upper()
+
+            # 1. Remove from Master DB
+            remaining_master = [c for c in master_clubs if c.get("club_id", "").strip().upper() != club_id]
+            CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, remaining_master)
+
+            # 2. Remove from the owning employee's node, if known
+            emp_clubs_path = None
+            if approved_by:
+                emp_clubs_path = cls.get_employee_clubs_path(approved_by)
+                if emp_clubs_path.exists():
+                    node_clubs = CSVEngine.read_all(emp_clubs_path, CLUB_FIELDS)
+                    remaining_node = [c for c in node_clubs if c.get("club_id", "").strip().upper() != club_id]
+                    CSVEngine.write_all(emp_clubs_path, CLUB_FIELDS, remaining_node)
+
+            # 3. Synchronously confirm the deletion reached Drive, same as
+            # approve_new_club does for a write -- otherwise a stale Drive
+            # copy could restore the "deleted" club on the next restart.
+            cloud_sync_confirmed = True
+            try:
+                from db.storage_adapter import get_storage_adapter
+                adapter = get_storage_adapter()
+                if hasattr(adapter, "confirm_durable"):
+                    paths_to_confirm = [MASTER_CLUBS_CSV]
+                    if emp_clubs_path:
+                        paths_to_confirm.append(emp_clubs_path)
+                    cloud_sync_confirmed = adapter.confirm_durable(paths_to_confirm)
+            except Exception:
+                cloud_sync_confirmed = False
+
+            return {
+                "deleted": True,
+                "club_id": club_id,
+                "institution_name": target.get("institution_name", ""),
+                "cloud_sync_confirmed": cloud_sync_confirmed
+            }
+
+    @classmethod
     def update_club(
         cls,
         emp_id: str,

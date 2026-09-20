@@ -1580,6 +1580,29 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
+        # Admin: Permanently Delete a Club (Master + Employee Node + Drive)
+        if path == "/api/admin/clubs/delete":
+            if not self._check_admin_access():
+                return
+            club_id = str(body.get("club_id", "")).strip().upper()
+            if not club_id:
+                self._send_error("club_id is required.")
+                return
+            try:
+                result = SyncEngine.delete_club(club_id)
+            except Exception as e:
+                self._send_error(f"Error deleting club: {str(e)}", status=500)
+                return
+            if not result.get("deleted"):
+                self._send_error(result.get("message", f"Club '{club_id}' not found."), status=404)
+                return
+            self._send_json({
+                "success": True,
+                "message": f"Club {club_id} permanently deleted.",
+                **result
+            })
+            return
+
         # Update Club Details (Universal Search Edit)
         if path == "/api/clubs/update":
             emp_id = str(body.get("emp_id", "")).strip().upper()
