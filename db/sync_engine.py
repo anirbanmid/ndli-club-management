@@ -593,6 +593,88 @@ class SyncEngine:
             return club_record
 
     @classmethod
+    def recompute_and_persist_quota(cls, emp_id: str) -> Dict[str, Any]:
+        """
+        THE PERMANENT FIX for quota drift (e.g. an employee's "clubs approved"
+        count staying inflated after clubs are deleted, or generally
+        disagreeing with the live club count).
+
+        Previous behavior (still present in some call sites) treated
+        `clubs_approved_count` as a ratchet: it was only ever incremented
+        (_increment_quota), and reconciliation used `max(stored, computed)`,
+        which meant the number could climb during testing/cleanup but could
+        never come back down -- exactly what caused EMP01 to show 32 while
+        the real, live club count was 18.
+
+        This method is the single source of truth going forward: it always
+        derives clubs_approved_count and support_logs_count FRESH from the
+        current, live clubs.csv/activity_log.csv content (no stored ratchet,
+        no max()), and overwrites master_quotas.csv with that truth. Call
+        this after ANY operation that changes an employee's clubs or
+        activities (create, delete, update) so the stored quota can never
+        drift from reality again.
+        """
+        clean_id = str(emp_id).strip().upper()
+        if not clean_id:
+            return {}
+
+        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+        target = next((u for u in users if u.get("id", "").strip().upper() == clean_id), None)
+
+        approved_club_ids = set()
+        node_clubs_path = cls.get_employee_clubs_path(clean_id)
+        if node_clubs_path.exists():
+            for c in CSVEngine.read_all(node_clubs_path, CLUB_FIELDS):
+                cid = c.get("club_id", "").strip().upper()
+                if cid and (not c.get("approved_by_emp_id") or c.get("approved_by_emp_id", "").strip().upper() == clean_id):
+                    approved_club_ids.add(cid)
+        for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS):
+            if c.get("approved_by_emp_id", "").strip().upper() == clean_id:
+                cid = c.get("club_id", "").strip().upper()
+                if cid:
+                    approved_club_ids.add(cid)
+
+        node_act_path = cls.get_employee_activities_path(clean_id)
+        node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
+        master_acts = [a for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS) if a.get("emp_id", "").strip().upper() == clean_id]
+        combined_acts = {a.get("activity_id", "").strip(): a for a in (node_acts + master_acts) if a.get("activity_id")}.values()
+
+        club_approval_acts = 0
+        standalone_approvals = 0
+        support_logs = 0
+        latest_ts = ""
+        for a in combined_acts:
+            ts = a.get("timestamp", "")
+            if ts and ts > latest_ts:
+                latest_ts = ts
+            stype = a.get("support_type", "").strip()
+            aid = a.get("activity_id", "").strip()
+            if stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
+                club_approval_acts += 1
+                if a.get("club_id"):
+                    approved_club_ids.add(a.get("club_id").strip().upper())
+                else:
+                    standalone_approvals += 1
+            else:
+                support_logs += 1
+
+        # No max()/ratchet: this computed value IS the truth. If a club (and
+        # its activity entries) were deleted, this number drops accordingly.
+        final_clubs = max(len(approved_club_ids) + standalone_approvals, club_approval_acts)
+        final_support = support_logs
+
+        q = {
+            "emp_id": clean_id,
+            "employee_name": (target.get("full_name") if target else None) or clean_id,
+            "zone": target.get("zone", "") if target else "",
+            "clubs_approved_count": str(final_clubs),
+            "support_logs_count": str(final_support),
+            "last_activity_timestamp": latest_ts
+        }
+        CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", q)
+        return {"clubs_approved_count": final_clubs, "support_logs_count": final_support}
+
+    @classmethod
     def delete_club(cls, club_id: str) -> Dict[str, Any]:
         """
         Permanently removes a club from both the master DB and whichever
@@ -601,6 +683,13 @@ class SyncEngine:
         reappear after a restart pulls a stale (pre-deletion) Drive copy,
         the same class of bug this file's confirm_durable was built to
         catch on the write side.
+
+        Also purges matching activity-log entries for this club (both the
+        owning employee's node and master logs) and recomputes that
+        employee's quota counters from scratch, so deleting a club can never
+        leave a stale, inflated "clubs approved" count behind -- the exact
+        drift that previously made an employee's dashboard disagree with
+        the live master club count.
         """
         club_id = str(club_id).strip().upper()
         if not club_id:
@@ -627,7 +716,29 @@ class SyncEngine:
                     remaining_node = [c for c in node_clubs if c.get("club_id", "").strip().upper() != club_id]
                     CSVEngine.write_all(emp_clubs_path, CLUB_FIELDS, remaining_node)
 
-            # 3. Synchronously confirm the deletion reached Drive, same as
+            # 2b. Purge matching activity-log entries (master + node) so
+            # quota recomputation below reflects the truth, not stale
+            # "Club Approval" entries still pointing at a now-deleted club.
+            master_acts = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            remaining_master_acts = [a for a in master_acts if a.get("club_id", "").strip().upper() != club_id]
+            if len(remaining_master_acts) != len(master_acts):
+                CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, remaining_master_acts)
+
+            emp_act_path = None
+            if approved_by:
+                emp_act_path = cls.get_employee_activities_path(approved_by)
+                if emp_act_path.exists():
+                    node_acts = CSVEngine.read_all(emp_act_path, ACTIVITY_FIELDS)
+                    remaining_node_acts = [a for a in node_acts if a.get("club_id", "").strip().upper() != club_id]
+                    if len(remaining_node_acts) != len(node_acts):
+                        CSVEngine.write_all(emp_act_path, ACTIVITY_FIELDS, remaining_node_acts)
+
+            # 3. Recompute the owning employee's quota from scratch -- the
+            # permanent fix, replacing any stale incremented/ratcheted value.
+            if approved_by:
+                cls.recompute_and_persist_quota(approved_by)
+
+            # 4. Synchronously confirm the deletion reached Drive, same as
             # approve_new_club does for a write -- otherwise a stale Drive
             # copy could restore the "deleted" club on the next restart.
             cloud_sync_confirmed = True
@@ -635,9 +746,11 @@ class SyncEngine:
                 from db.storage_adapter import get_storage_adapter
                 adapter = get_storage_adapter()
                 if hasattr(adapter, "confirm_durable"):
-                    paths_to_confirm = [MASTER_CLUBS_CSV]
+                    paths_to_confirm = [MASTER_CLUBS_CSV, MASTER_ACTIVITIES_CSV, MASTER_QUOTAS_CSV]
                     if emp_clubs_path:
                         paths_to_confirm.append(emp_clubs_path)
+                    if emp_act_path:
+                        paths_to_confirm.append(emp_act_path)
                     cloud_sync_confirmed = adapter.confirm_durable(paths_to_confirm)
             except Exception:
                 cloud_sync_confirmed = False
@@ -647,6 +760,70 @@ class SyncEngine:
                 "club_id": club_id,
                 "institution_name": target.get("institution_name", ""),
                 "cloud_sync_confirmed": cloud_sync_confirmed
+            }
+
+    @classmethod
+    def reset_all_and_reseed(cls, clubs_per_employee: int = 4) -> Dict[str, Any]:
+        """
+        Full, controlled reset for testing: wipes ALL club and activity data
+        (master + every employee node) while explicitly preserving employee
+        accounts/credentials, then creates exactly `clubs_per_employee` fresh,
+        clearly-labeled test clubs for every employee, with quotas recomputed
+        from scratch (never incremented/ratcheted). Intended for an
+        explicit, admin-confirmed reset -- not for routine use.
+        """
+        with _SYNC_LOCK:
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            emp_ids = sorted({u.get("id", "").strip().upper() for u in users if u.get("id", "").strip()})
+
+            # 1. Wipe master club/activity data (headers only)
+            CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, [])
+            CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, [])
+            CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, [])
+
+            # 2. Wipe each employee's clubs.csv and activity_log.csv only --
+            # credentials.csv and issues.csv are NEVER touched here.
+            for emp_id in emp_ids:
+                clubs_path = cls.get_employee_clubs_path(emp_id)
+                if clubs_path.exists():
+                    CSVEngine.write_all(clubs_path, CLUB_FIELDS, [])
+                acts_path = cls.get_employee_activities_path(emp_id)
+                if acts_path.exists():
+                    CSVEngine.write_all(acts_path, ACTIVITY_FIELDS, [])
+
+            # 3. Reseed exactly `clubs_per_employee` clean test clubs per employee
+            created: Dict[str, List[str]] = {}
+            now = datetime.now(timezone.utc)
+            for emp_id in emp_ids:
+                created[emp_id] = []
+                for n in range(1, clubs_per_employee + 1):
+                    club_id = f"NDLI-{emp_id}-SEEDTEST{n}"
+                    club_data = {
+                        "club_id": club_id,
+                        "reg_no": f"REG-SEEDTEST-{emp_id}-{n}",
+                        "institution_name": f"{emp_id} Seed Test Institution {n}",
+                        "state": "Delhi",
+                        "patron_email": f"seed.patron.{emp_id.lower()}.{n}@example.com",
+                        "president_email": f"seed.president.{emp_id.lower()}.{n}@example.com",
+                        "secretary_email": f"seed.secretary.{emp_id.lower()}.{n}@example.com",
+                        "date_of_approval": now.isoformat(),
+                        "renewal_date": (now.replace(year=now.year + 1)).date().isoformat()
+                    }
+                    cls.approve_new_club(emp_id=emp_id, club_data=club_data)
+                    created[emp_id].append(club_id)
+
+            # 4. Final confirmation pass: recompute every employee's quota
+            # fresh (approve_new_club already does this incrementally, this
+            # just guarantees consistency after a bulk reseed).
+            for emp_id in emp_ids:
+                cls.recompute_and_persist_quota(emp_id)
+
+            total_created = sum(len(v) for v in created.values())
+            return {
+                "employees_reset": len(emp_ids),
+                "clubs_per_employee": clubs_per_employee,
+                "total_clubs_created": total_created,
+                "created": created
             }
 
     @classmethod

@@ -19,12 +19,14 @@ from config import (
     MASTER_CLUBS_CSV,
     MASTER_ACTIVITIES_CSV,
     MASTER_USERS_CSV,
+    MASTER_QUOTAS_CSV,
     EMPLOYEE_NODES_DIR,
     CLUB_FIELDS,
     ACTIVITY_FIELDS,
     USER_FIELDS,
     _resolve_data_dir
 )
+from db.schemas import QUOTA_FIELDS
 from db.csv_engine import CSVEngine
 from db.sync_engine import SyncEngine
 from db.backup_engine import BackupEngine
@@ -571,6 +573,96 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         """Deleting a nonexistent club_id must not raise or fabricate success."""
         result = SyncEngine.delete_club("NDLI-DOES-NOT-EXIST-999")
         self.assertFalse(result["deleted"])
+
+    def test_delete_club_purges_activity_log_and_fixes_quota_drift(self):
+        """
+        Regression for the actual live-production bug: EMP01's dashboard
+        showed 32 "clubs approved" while the master DB genuinely had 18.
+        The cause was twofold: (1) _increment_quota only ever adds, never
+        subtracts, and (2) delete_club previously left stale "Club Approval"
+        activity-log rows behind, which the old max(stored, computed)
+        reconciliation would use to justify keeping the inflated number
+        forever. This test proves both are now fixed: after deleting a
+        club, its activity-log rows are gone and the employee's quota
+        reflects the true, current count -- not the old high-water mark.
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+
+            quota_before = SyncEngine.recompute_and_persist_quota("EMP01")
+            baseline_clubs = quota_before.get("clubs_approved_count", 0)
+
+            club_payload = {
+                "club_id": "NDLI-EMP01-QUOTADRIFT1",
+                "reg_no": "REG-QUOTADRIFT-1",
+                "institution_name": "Quota Drift Test School",
+                "state": "Delhi",
+                "patron_email": "qd@example.com",
+                "president_email": "qdpres@example.com",
+                "secretary_email": "qdsec@example.com",
+                "date_of_approval": "2026-09-20T10:00:00Z",
+                "renewal_date": "2027-09-20"
+            }
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+            quota_after_create = SyncEngine.recompute_and_persist_quota("EMP01")
+            self.assertEqual(
+                quota_after_create["clubs_approved_count"], baseline_clubs + 1,
+                "Quota should reflect exactly one more club after creation"
+            )
+
+            # Confirm the activity log actually has an entry for this club
+            master_acts = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            self.assertTrue(any(a.get("club_id") == "NDLI-EMP01-QUOTADRIFT1" for a in master_acts))
+
+            result = SyncEngine.delete_club("NDLI-EMP01-QUOTADRIFT1")
+            self.assertTrue(result["deleted"])
+
+            # Activity log entries for the deleted club must be gone
+            master_acts_after = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            self.assertFalse(any(a.get("club_id") == "NDLI-EMP01-QUOTADRIFT1" for a in master_acts_after))
+
+            # The quota must have dropped back to baseline -- NOT stayed at
+            # baseline+1 (which is what the old max()-ratchet logic would do).
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            persisted = next((q for q in quotas if q.get("emp_id") == "EMP01"), {})
+            self.assertEqual(
+                int(persisted.get("clubs_approved_count", "-1")), baseline_clubs,
+                "Quota must return to baseline after the club is deleted -- no ratchet, no drift"
+            )
+
+    def test_recompute_quota_never_uses_stale_higher_stored_value(self):
+        """
+        Directly proves the ratchet is gone: manually inflate the stored
+        clubs_approved_count far above the true live count, then confirm
+        recompute_and_persist_quota overwrites it with the true (lower)
+        value instead of preserving the inflated one via max().
+        """
+        quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+        if_version_quotas = [q for q in quotas if q.get("emp_id") != "EMP02"]
+        inflated = {
+            "emp_id": "EMP02",
+            "employee_name": "Inflated Test",
+            "zone": "",
+            "clubs_approved_count": "99999",
+            "support_logs_count": "0",
+            "last_activity_timestamp": ""
+        }
+        CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, if_version_quotas + [inflated])
+
+        result = SyncEngine.recompute_and_persist_quota("EMP02")
+        self.assertLess(
+            result["clubs_approved_count"], 99999,
+            "recompute_and_persist_quota must overwrite an artificially inflated stored value with the truth"
+        )
+
+        quotas_after = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+        persisted = next((q for q in quotas_after if q.get("emp_id") == "EMP02"), {})
+        self.assertEqual(int(persisted.get("clubs_approved_count", "-1")), result["clubs_approved_count"])
 
 
 if __name__ == "__main__":

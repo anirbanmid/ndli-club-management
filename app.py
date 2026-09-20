@@ -429,66 +429,16 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(f"Employee with ID '{clean_id}' not found.", status=404)
                 return
 
+            # PERMANENT FIX: quota is now always derived fresh from live data
+            # (no stored ratchet, no max()) via SyncEngine.recompute_and_persist_quota,
+            # so it can never drift upward and stay stuck after clubs/activities
+            # are deleted -- see that method's docstring for the history of why
+            # this replaced the previous max(stored, computed) logic here.
+            quota_result = SyncEngine.recompute_and_persist_quota(clean_id)
+            final_clubs = quota_result.get("clubs_approved_count", 0)
+            final_support = quota_result.get("support_logs_count", 0)
             quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
             q = next((item for item in quotas if item.get("emp_id", "").strip().upper() == clean_id), {})
-
-            # Dynamic node & master verification & healing for accurate live quota
-            approved_club_ids = set()
-            node_clubs_path = SyncEngine.get_employee_clubs_path(clean_id)
-            if node_clubs_path.exists():
-                for c in CSVEngine.read_all(node_clubs_path, CLUB_FIELDS):
-                    cid = c.get("club_id", "").strip().upper()
-                    if cid and (not c.get("approved_by_emp_id") or c.get("approved_by_emp_id", "").strip().upper() == clean_id):
-                        approved_club_ids.add(cid)
-
-            for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS):
-                if c.get("approved_by_emp_id", "").strip().upper() == clean_id:
-                    cid = c.get("club_id", "").strip().upper()
-                    if cid:
-                        approved_club_ids.add(cid)
-
-            node_act_path = SyncEngine.get_employee_activities_path(clean_id)
-            node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
-            master_acts = [a for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS) if a.get("emp_id", "").strip().upper() == clean_id]
-            combined_acts = {a.get("activity_id", "").strip(): a for a in (node_acts + master_acts) if a.get("activity_id")}.values()
-
-            club_approval_acts = 0
-            standalone_approvals = 0
-            support_logs = 0
-            latest_ts = q.get("last_activity_timestamp", "")
-
-            for a in combined_acts:
-                ts = a.get("timestamp", "")
-                if ts and ts > latest_ts:
-                    latest_ts = ts
-                stype = a.get("support_type", "").strip()
-                aid = a.get("activity_id", "").strip()
-                if stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
-                    club_approval_acts += 1
-                    if a.get("club_id"):
-                        approved_club_ids.add(a.get("club_id").strip().upper())
-                    else:
-                        standalone_approvals += 1
-                else:
-                    support_logs += 1
-
-            stored_clubs = int(q.get("clubs_approved_count", "0") or "0")
-            computed_clubs = max(len(approved_club_ids) + standalone_approvals, club_approval_acts)
-            final_clubs = max(stored_clubs, computed_clubs)
-
-            stored_support = int(q.get("support_logs_count", "0") or "0")
-            final_support = max(stored_support, support_logs)
-
-            if not q or final_clubs != stored_clubs or final_support != stored_support:
-                q = {
-                    "emp_id": clean_id,
-                    "employee_name": target.get("full_name") or clean_id,
-                    "zone": target.get("zone", ""),
-                    "clubs_approved_count": str(final_clubs),
-                    "support_logs_count": str(final_support),
-                    "last_activity_timestamp": latest_ts or target.get("created_at", "")
-                }
-                CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", q)
 
             self._send_json({
                 "found": True,
@@ -1577,6 +1527,45 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 ),
                 "cloud_sync_confirmed": cloud_confirmed,
                 "club": created_club
+            })
+            return
+
+        # Admin: Full Reset & Reseed of ALL club/activity data (DESTRUCTIVE).
+        # Requires an explicit confirmation phrase in the body to guard
+        # against accidental invocation -- this wipes every club and
+        # activity record (master + every employee node), preserving only
+        # employee accounts/credentials, then creates a fresh, clean,
+        # clearly-labeled set of test clubs per employee with quotas
+        # recomputed from scratch.
+        if path == "/api/admin/data/reset-test-data":
+            if not self._check_admin_access():
+                return
+            confirm = str(body.get("confirm", "")).strip()
+            if confirm != "RESET-ALL-TEST-DATA":
+                self._send_error(
+                    "This is a destructive operation that wipes ALL club and activity "
+                    "data. To proceed, resend with body: "
+                    '{"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 4}',
+                    status=400
+                )
+                return
+            try:
+                clubs_per_employee = int(body.get("clubs_per_employee", 4))
+            except (TypeError, ValueError):
+                clubs_per_employee = 4
+            try:
+                result = SyncEngine.reset_all_and_reseed(clubs_per_employee=clubs_per_employee)
+            except Exception as e:
+                self._send_error(f"Error resetting data: {str(e)}", status=500)
+                return
+            self._send_json({
+                "success": True,
+                "message": (
+                    f"Reset complete: {result['employees_reset']} employees, "
+                    f"{result['total_clubs_created']} clean test clubs created "
+                    f"({result['clubs_per_employee']} per employee)."
+                ),
+                **result
             })
             return
 
