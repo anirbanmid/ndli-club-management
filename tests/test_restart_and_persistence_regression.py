@@ -7,6 +7,7 @@ and Google Drive sync parity.
 """
 import os
 import sys
+import json
 import unittest
 import shutil
 import tempfile
@@ -483,6 +484,48 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
              patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=False):
             created2 = SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
         self.assertFalse(created2["cloud_sync_confirmed"])
+
+    def test_upload_treats_http_200_ok_false_as_failure_not_success(self):
+        """
+        Regression for the actual root cause of the false-positive
+        confirmation bug: Google Apps Script web apps return HTTP 200 even
+        when the operation failed -- the real result is the `ok`/`success`
+        field inside the JSON body (see deployment_gas/Code.gs's doPost).
+        A version of _upload_file_to_drive that only checked "did urlopen()
+        raise" treated this as success, so approve_new_club could report
+        cloud_sync_confirmed=True for a record that was never actually
+        written to Drive. This must not happen again.
+        """
+        from unittest.mock import patch, MagicMock
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        log_path = adapter.local.root_dir / "sync_issues.log"
+        if log_path.exists():
+            log_path.unlink()
+
+        fake_body = json.dumps({
+            "ok": False,
+            "status": 500,
+            "data": {"error": True, "message": "Simulated: Drive folder reference is invalid"}
+        }).encode("utf-8")
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = fake_body
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = False
+
+        with patch("urllib.request.urlopen", return_value=mock_resp), \
+             patch("time.sleep", return_value=None):
+            ok = adapter._upload_file_to_drive("master/master_clubs.csv", "irrelevant", max_attempts=2)
+
+        self.assertFalse(
+            ok,
+            "An HTTP-200 response with ok:false in the body must be treated as a failed sync, not a success"
+        )
+        self.assertTrue(log_path.exists())
+        self.assertIn("upload_failed_after_retries", log_path.read_text(encoding="utf-8"))
+        log_path.unlink()
 
 
 if __name__ == "__main__":

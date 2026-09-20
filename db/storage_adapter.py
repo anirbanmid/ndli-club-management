@@ -212,10 +212,53 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                     method="POST"
                 )
                 with urllib.request.urlopen(req, timeout=15) as resp:
-                    self.last_sync_time = datetime.now(timezone.utc).isoformat()
-                    self.last_sync_status = "synced"
-                    self.synced_files_count += 1
-                    return True
+                    raw_body = resp.read().decode("utf-8", errors="replace")
+
+                # CRITICAL: Google Apps Script web apps almost always return
+                # HTTP 200 even when the operation itself failed -- the real
+                # result is `ok`/`success` inside the JSON body (see
+                # deployment_gas/Code.gs's doPost/apiDispatcher, which wraps
+                # every outcome, success or failure, in an HTTP-200 response).
+                # A prior version of this method only checked that urlopen()
+                # didn't raise, which meant a Drive-side failure (bad folder
+                # reference, quota, permissions, a caught exception in the
+                # script) was silently reported as a successful sync. That
+                # false-positive is exactly what let approve_new_club return
+                # cloud_sync_confirmed=True for records that were never
+                # actually durable. Parse and check the body for real.
+                try:
+                    parsed = json.loads(raw_body) if raw_body else {}
+                except (json.JSONDecodeError, ValueError):
+                    parsed = None
+
+                body_ok = (
+                    isinstance(parsed, dict)
+                    and (
+                        parsed.get("ok") is True
+                        or (isinstance(parsed.get("data"), dict) and parsed["data"].get("success") is True)
+                        or parsed.get("success") is True
+                    )
+                )
+
+                if not parsed and raw_body:
+                    # Response wasn't valid JSON at all (e.g. an Apps Script
+                    # error/login HTML page) -- definitely not a confirmed sync.
+                    raise ValueError(f"Non-JSON response from relay: {raw_body[:200]!r}")
+                if not body_ok:
+                    err_detail = None
+                    if isinstance(parsed, dict):
+                        data_field = parsed.get("data")
+                        err_detail = (
+                            (isinstance(data_field, dict) and (data_field.get("message") or data_field.get("error")))
+                            or parsed.get("message")
+                            or parsed.get("error")
+                        )
+                    raise ValueError(f"Relay reported failure for {relative_path}: {err_detail or parsed}")
+
+                self.last_sync_time = datetime.now(timezone.utc).isoformat()
+                self.last_sync_status = "synced"
+                self.synced_files_count += 1
+                return True
             except Exception as err:
                 last_err = err
                 if attempt < max_attempts:
