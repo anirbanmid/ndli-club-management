@@ -320,6 +320,170 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         # Restore EMP07 status
         AuthService.set_user_status("EMP07", is_active=True)
 
+    def test_merge_exception_preserves_local_not_incoming(self):
+        """
+        Regression for the silent-wipe bug: if _merge_csv_content hits an
+        exception (e.g. malformed/garbled incoming CSV from a stale or
+        partial Google Drive snapshot), it must fall back to the LOCAL
+        copy (which has club 26), never the incoming remote copy (which
+        doesn't). The old code's `except Exception: return incoming_csv_text`
+        was the exact root cause of a locally-saved club vanishing after a
+        server restart.
+        """
+        club_payload = {
+            "club_id": "NDLI-EMP01-026",
+            "reg_no": "REG-2026-EMP01-026",
+            "institution_name": "Delhi Institute of Advanced Scientific Studies",
+            "state": "Delhi",
+            "zone": "North",
+            "patron_email": "director@diass.edu.in",
+            "president_email": "president.club@diass.edu.in",
+            "secretary_email": "secretary.club@diass.edu.in",
+            "date_of_approval": "2026-09-19T10:00:00Z",
+            "renewal_date": "2027-09-19"
+        }
+        SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+        local_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        local_count = len(local_clubs)
+        self.assertTrue(any(c.get("club_id") == "NDLI-EMP01-026" for c in local_clubs))
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+
+        # Deliberately garbled incoming content that will raise inside the
+        # merge (e.g. a truncated/corrupted Drive snapshot).
+        garbled_incoming = "\x00\x01not,a,valid\ncsv\x02\x03"
+
+        result = adapter._merge_csv_content(
+            "master/master_clubs.csv", MASTER_CLUBS_CSV, garbled_incoming
+        )
+
+        # The merge must have returned the LOCAL content (still has club 26),
+        # not the garbled/incoming content.
+        self.assertIn("NDLI-EMP01-026", result)
+        self.assertNotEqual(result, garbled_incoming)
+
+    def test_merge_row_count_regression_keeps_local(self):
+        """
+        Regression: if a merge somehow produces FEWER rows than what's
+        already safely on local disk, the merge must refuse to shrink the
+        dataset and keep the local copy instead.
+        """
+        club_payload = {
+            "club_id": "NDLI-EMP01-026",
+            "reg_no": "REG-2026-EMP01-026",
+            "institution_name": "Delhi Institute of Advanced Scientific Studies",
+            "state": "Delhi",
+            "zone": "North",
+            "patron_email": "director@diass.edu.in",
+            "president_email": "president.club@diass.edu.in",
+            "secretary_email": "secretary.club@diass.edu.in",
+            "date_of_approval": "2026-09-19T10:00:00Z",
+            "renewal_date": "2027-09-19"
+        }
+        SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+        local_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        local_count = len(local_clubs)
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+
+        # Incoming CSV that is valid but stale (missing club 26 and possibly
+        # other rows) -- simulates a Drive snapshot from before club 26 was
+        # ever successfully relayed.
+        headers = "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date\n"
+        stale_incoming = headers  # zero data rows: strictly fewer than local
+
+        result = adapter._merge_csv_content(
+            "master/master_clubs.csv", MASTER_CLUBS_CSV, stale_incoming
+        )
+        result_rows = list(__import__("csv").DictReader(__import__("io").StringIO(result)))
+        self.assertGreaterEqual(
+            len(result_rows), local_count,
+            "Merge must never reduce row count below what was already safely on local disk"
+        )
+        self.assertTrue(any(r.get("club_id") == "NDLI-EMP01-026" for r in result_rows))
+
+    def test_upload_retries_and_logs_after_exhausting_attempts(self):
+        """
+        Regression: a relay upload failure must retry, and after exhausting
+        retries must be recorded in a durable, inspectable log (not just an
+        in-memory attribute that's lost on restart / never checked).
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        log_path = adapter.local.root_dir / "sync_issues.log"
+        if log_path.exists():
+            log_path.unlink()
+
+        call_count = {"n": 0}
+
+        def _always_fail(*args, **kwargs):
+            call_count["n"] += 1
+            raise ConnectionError("simulated relay failure")
+
+        with patch("urllib.request.urlopen", side_effect=_always_fail), \
+             patch("time.sleep", return_value=None):
+            ok = adapter._upload_file_to_drive("master/master_clubs.csv", "irrelevant", max_attempts=3)
+
+        self.assertFalse(ok)
+        self.assertEqual(call_count["n"], 3, "Must retry up to max_attempts before giving up")
+        self.assertEqual(adapter.failed_uploads_count, 1)
+        self.assertTrue(log_path.exists(), "A failed-after-retries event must be durably logged")
+        log_contents = log_path.read_text(encoding="utf-8")
+        self.assertIn("upload_failed_after_retries", log_contents)
+
+        log_path.unlink()
+
+    def test_approve_new_club_confirms_cloud_sync_before_returning_success(self):
+        """
+        Regression for the free-tier-no-disk reality: on a host with no
+        persistent disk, local writes alone are NOT durable. approve_new_club
+        must synchronously confirm the Drive mirror before reporting success,
+        and must clearly flag it when that confirmation fails, instead of
+        reporting "approved successfully" for a record that could vanish on
+        the next restart.
+        """
+        from unittest.mock import patch
+        import db.sync_engine as sync_engine_module
+
+        club_payload = {
+            "club_id": "NDLI-EMP01-026",
+            "reg_no": "REG-2026-EMP01-026",
+            "institution_name": "Delhi Institute of Advanced Scientific Studies",
+            "state": "Delhi",
+            "zone": "North",
+            "patron_email": "director@diass.edu.in",
+            "president_email": "president.club@diass.edu.in",
+            "secretary_email": "secretary.club@diass.edu.in",
+            "date_of_approval": "2026-09-19T10:00:00Z",
+            "renewal_date": "2027-09-19"
+        }
+
+        # Case 1: relay confirms successfully -> cloud_sync_confirmed True
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        adapter._allow_test_confirm = True
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+            created = SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+        self.assertTrue(created["cloud_sync_confirmed"])
+        self._cleanup_test_club("NDLI-EMP01-026")
+
+        # Case 2: relay fails every attempt -> cloud_sync_confirmed False,
+        # so the caller (app.py) knows NOT to tell the user this is safely saved.
+        adapter2 = AppsScriptRelaySyncAdapter()
+        adapter2.relay_url = "https://mock.relay.url/exec"
+        adapter2._allow_test_confirm = True
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter2), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=False):
+            created2 = SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+        self.assertFalse(created2["cloud_sync_confirmed"])
+
 
 if __name__ == "__main__":
     unittest.main()

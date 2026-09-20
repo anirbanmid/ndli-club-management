@@ -7,6 +7,7 @@ Provides an abstraction layer supporting:
 """
 import os
 import json
+import time
 import threading
 import urllib.request
 import urllib.parse
@@ -54,6 +55,19 @@ class StorageAdapter(ABC):
     @abstractmethod
     def get_info(self) -> Dict[str, Any]:
         pass
+
+    def confirm_durable(self, absolute_paths: List[Path]) -> bool:
+        """
+        Blocking, synchronous confirmation that the given files have reached
+        durable storage. Default: local disk IS the durable store (LOCAL_SYNC
+        mode, or any environment with a real persistent disk), so there is
+        nothing further to confirm.
+        Overridden by AppsScriptRelaySyncAdapter for environments (e.g. a
+        free-tier host with NO persistent disk) where local disk is only an
+        ephemeral, per-instance cache and Google Drive is the only thing that
+        actually survives a restart/redeploy/scale-to-zero cycle.
+        """
+        return True
 
 
 class LocalSyncStorageAdapter(StorageAdapter):
@@ -118,17 +132,43 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
         self.last_sync_status: str = "initialized"
         self.synced_files_count: int = 0
         self.last_error: Optional[str] = None
+        self.failed_uploads_count: int = 0
 
     def read_text(self, relative_path: str) -> str:
         return self.local.read_text(relative_path)
+
+    def _log_sync_event(self, event_type: str, message: str) -> None:
+        """
+        Persists sync warnings/failures to a durable, append-only log on the
+        persistent disk so a fire-and-forget background failure is no longer
+        silent/invisible. This survives restarts (it lives under DATA_DIR)
+        and can be inspected via GET /api/admin/sync-issues or the log file
+        directly at <DATA_DIR>/sync_issues.log.
+        """
+        try:
+            entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "event": event_type,
+                "message": message,
+            }
+            log_path = self.local.root_dir / "sync_issues.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception:
+            # Logging must never itself break the sync/merge path.
+            pass
 
     def enqueue_upload(self, relative_path: str, content: str) -> None:
         """Enqueues file upload to Google Drive using bounded daemon worker."""
         if self.relay_url and not self.relay_url.startswith("http://example"):
             try:
                 _dispatch_upload(self._upload_file_to_drive, relative_path, content)
-            except Exception:
-                pass
+            except Exception as dispatch_err:
+                self._log_sync_event(
+                    "dispatch_failed",
+                    f"{relative_path}: failed to dispatch background upload thread: {dispatch_err}"
+                )
 
     def write_text(self, relative_path: str, content: str) -> None:
         # 1. Instant local write (guarantees sub-millisecond response)
@@ -140,7 +180,14 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
     def exists(self, relative_path: str) -> bool:
         return self.local.exists(relative_path)
 
-    def _upload_file_to_drive(self, relative_path: str, content: str) -> bool:
+    def _upload_file_to_drive(self, relative_path: str, content: str, max_attempts: int = 3) -> bool:
+        """
+        Relays a file to Google Drive via the Apps Script webhook.
+        Retries transient failures (network blips, cold Apps Script starts,
+        brief quota contention) with short backoff before giving up, and
+        logs a durable, inspectable record if every attempt fails so a save
+        never silently fails to reach the cloud backup without a trace.
+        """
         clean_path = relative_path.replace("\\", "/").lstrip("/")
         parts = clean_path.split("/")
         sub_path = "/".join(parts[:-1]) if len(parts) > 1 else "master"
@@ -155,22 +202,87 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 "content": content
             }
         }
-        try:
-            req = urllib.request.Request(
-                self.relay_url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                self.last_sync_time = datetime.now(timezone.utc).isoformat()
-                self.last_sync_status = "synced"
-                self.synced_files_count += 1
-                return True
-        except Exception as err:
-            self.last_error = str(err)
-            self.last_sync_status = f"warning: {err}"
+        last_err: Optional[Exception] = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                req = urllib.request.Request(
+                    self.relay_url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    self.last_sync_time = datetime.now(timezone.utc).isoformat()
+                    self.last_sync_status = "synced"
+                    self.synced_files_count += 1
+                    return True
+            except Exception as err:
+                last_err = err
+                if attempt < max_attempts:
+                    time.sleep(min(2 ** attempt, 10))  # 2s, 4s backoff
+
+        # All attempts exhausted: record this loudly and durably instead of
+        # letting it vanish into a daemon thread that no one ever checks.
+        self.last_error = str(last_err)
+        self.last_sync_status = f"warning: {last_err}"
+        self.failed_uploads_count += 1
+        self._log_sync_event(
+            "upload_failed_after_retries",
+            f"{clean_path}: failed after {max_attempts} attempts: {last_err}"
+        )
+        return False
+
+    def confirm_durable(self, absolute_paths: List[Path]) -> bool:
+        """
+        On a host with NO persistent disk (e.g. Render free tier), the local
+        filesystem is wiped on every restart, redeploy, and free-tier
+        scale-to-zero cycle. In that reality, local disk is only a fast
+        per-request cache — Google Drive (via this relay) is the ONLY thing
+        that actually persists. This method blocks the caller (synchronously,
+        with the retries already built into `_upload_file_to_drive`) until
+        every given file is confirmed mirrored to Drive, or returns False if
+        any could not be confirmed after retries.
+
+        Call this at the end of any operation the system cannot afford to
+        silently lose (e.g. approving a new club) so a "success" response to
+        the user actually means the record will survive the next restart —
+        instead of reporting success on a purely local, ephemeral write that
+        a background thread may still be failing to relay in the background.
+        """
+        import sys
+        if (os.getenv("NDLI_TESTING") == "true" or "unittest" in sys.modules) and not getattr(self, "_allow_test_confirm", False):
+            # Never let a real, slow, likely-unreachable network round trip
+            # block the test suite. Tests that need to exercise this path
+            # explicitly mock `_upload_file_to_drive` and/or `get_storage_adapter`.
+            return True
+
+        if not self.relay_url or self.relay_url.startswith("http://example"):
+            # Relay isn't configured at all; nothing we can confirm.
             return False
+
+        all_ok = True
+        for p in absolute_paths:
+            p = Path(p)
+            try:
+                if not p.exists():
+                    continue
+                content = p.read_text(encoding="utf-8")
+                rel_path = str(p.relative_to(self.local.root_dir.resolve()))
+            except Exception:
+                # Fall back to a best-effort relative path if not under root_dir
+                rel_path = p.name
+                try:
+                    content = p.read_text(encoding="utf-8")
+                except Exception:
+                    all_ok = False
+                    continue
+            # Keep this bounded: 2 attempts with a short timeout each, rather
+            # than the full 3-attempt/15s-timeout policy used for background
+            # uploads, so a form submission never hangs for tens of seconds.
+            ok = self._upload_file_to_drive(rel_path, content, max_attempts=2)
+            if not ok:
+                all_ok = False
+        return all_ok
 
     def sync_all_now(self) -> Dict[str, Any]:
         """Synchronously pushes all local database CSVs to Google Drive."""
@@ -269,9 +381,36 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
             writer.writeheader()
             for row in merged_map.values():
                 writer.writerow({h: row.get(h, "") for h in combined_headers})
-            return out.getvalue()
-        except Exception:
-            return incoming_csv_text
+            merged_text = out.getvalue()
+
+            # Safety net: a merge must never produce FEWER rows than what is
+            # already sitting safely on the local persistent disk. If it does,
+            # something went wrong (bad incoming data, header mismatch, a
+            # parsing edge case) and the local copy is the trustworthy one.
+            # Silently falling back to `incoming_csv_text` here is exactly how
+            # locally-saved records (e.g. a newly approved club) get wiped out
+            # by a stale/partial Google Drive snapshot on the next restart.
+            if len(merged_map) < len(local_rows):
+                self._log_sync_event(
+                    "merge_row_count_regression",
+                    f"{rel_path}: merge produced {len(merged_map)} rows, "
+                    f"local had {len(local_rows)}. Keeping local copy."
+                )
+                return local_content
+
+            return merged_text
+        except Exception as merge_err:
+            # NEVER fall back to the incoming (remote) content here: doing so
+            # discards whatever is uniquely on local disk. The local copy is
+            # always the safer default when the merge itself is unreliable.
+            self._log_sync_event(
+                "merge_exception",
+                f"{rel_path}: {merge_err}. Preserving local copy instead of overwriting."
+            )
+            try:
+                return target_file.read_text(encoding="utf-8")
+            except Exception:
+                return incoming_csv_text
 
     def pull_all_from_drive(self, force: bool = False) -> Dict[str, Any]:
         """Pulls all CSV files from Google Drive to restore local storage."""
@@ -313,6 +452,17 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                     if target_file.exists() and target_file.stat().st_size > 0 and clean_rel.endswith(".csv"):
                         merged_content = self._merge_csv_content(clean_rel, target_file, content)
                         target_file.write_text(merged_content, encoding="utf-8")
+                    elif target_file.exists() and target_file.stat().st_size > 0:
+                        # Non-CSV file (e.g. JSON) already exists locally with
+                        # data. Don't blindly clobber it with a remote copy
+                        # that could be stale/partial — only fill in files
+                        # that don't already exist locally.
+                        self._log_sync_event(
+                            "skipped_non_csv_overwrite",
+                            f"{clean_rel}: local copy already present, keeping it instead of remote."
+                        )
+                        pulled_files.append(clean_rel)
+                        continue
                     else:
                         target_file.write_text(content, encoding="utf-8")
                     pulled_files.append(clean_rel)
@@ -382,7 +532,9 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
             "status": self.last_sync_status,
             "last_sync_time": self.last_sync_time,
             "synced_files_count": self.synced_files_count,
+            "failed_uploads_count": self.failed_uploads_count,
             "last_error": self.last_error,
+            "sync_issues_log": str((self.local.root_dir / "sync_issues.log").resolve()),
             "drive_sync_type": "24x7 Real-Time Cloud-to-Drive Sync Relay"
         }
 

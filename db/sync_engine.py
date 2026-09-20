@@ -567,6 +567,29 @@ class SyncEngine:
             # 4. Increment performance quota
             cls._increment_quota(emp_id, clubs_inc=1, now_iso=now_iso)
 
+            # 5. On hosts with no persistent disk (e.g. Render free tier),
+            # local disk does not survive a restart/redeploy/scale-to-zero
+            # cycle -- only a confirmed Google Drive mirror does. Block here
+            # until the affected files are durably confirmed, so a caller
+            # that gets "success" back can trust the record will still be
+            # there after the next restart, rather than finding out 30
+            # minutes later that it silently vanished.
+            cloud_sync_confirmed = True
+            try:
+                from db.storage_adapter import get_storage_adapter
+                adapter = get_storage_adapter()
+                if hasattr(adapter, "confirm_durable"):
+                    cloud_sync_confirmed = adapter.confirm_durable([
+                        emp_clubs_path,
+                        MASTER_CLUBS_CSV,
+                        emp_act_path,
+                        MASTER_ACTIVITIES_CSV,
+                    ])
+            except Exception:
+                cloud_sync_confirmed = False
+
+            club_record = dict(club_record)
+            club_record["cloud_sync_confirmed"] = cloud_sync_confirmed
             return club_record
 
     @classmethod

@@ -1534,9 +1534,19 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             body["zone"] = get_zone_for_state(state) or "Unknown"
 
             created_club = SyncEngine.approve_new_club(emp_id=emp_id, club_data=body)
+            cloud_confirmed = created_club.get("cloud_sync_confirmed", True)
             self._send_json({
                 "success": True,
-                "message": f"NDLI Club {created_club['club_id']} approved successfully.",
+                "message": (
+                    f"NDLI Club {created_club['club_id']} approved successfully."
+                    if cloud_confirmed else
+                    f"NDLI Club {created_club['club_id']} saved, but cloud backup "
+                    f"could not be confirmed. This server has no persistent disk, "
+                    f"so this record may be lost if the server restarts before the "
+                    f"sync succeeds. Please notify an administrator and avoid "
+                    f"relying on this save until confirmed."
+                ),
+                "cloud_sync_confirmed": cloud_confirmed,
                 "club": created_club
             })
             return
