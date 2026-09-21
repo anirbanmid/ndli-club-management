@@ -476,7 +476,8 @@ class SyncEngine:
     def approve_new_club(
         cls,
         emp_id: str,
-        club_data: Dict[str, Any]
+        club_data: Dict[str, Any],
+        confirm_cloud_sync: bool = True
     ) -> Dict[str, Any]:
         """
         SEC B & C: Club Approval.
@@ -487,6 +488,16 @@ class SyncEngine:
         - Real-time upsert to Master master_clubs.csv
         - Logs a priority activity in both Employee and Master activity logs
         - Increments employee's performance quota for priority activity
+
+        `confirm_cloud_sync` (default True): block synchronously until the
+        Google Drive mirror is confirmed for this club's files, so a normal
+        single-club API call can honestly report whether it's durable. Bulk
+        operations (e.g. reset_all_and_reseed) pass False here and instead
+        perform ONE synchronous confirmation pass across every affected file
+        at the very end -- doing a full synchronous Drive round-trip for
+        every single club in a large batch is what previously made a 28-club
+        reseed take minutes (near-)hanging the request; batching the
+        confirmation into one pass is the fix.
         """
         with _SYNC_LOCK:
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -575,18 +586,24 @@ class SyncEngine:
             # there after the next restart, rather than finding out 30
             # minutes later that it silently vanished.
             cloud_sync_confirmed = True
-            try:
-                from db.storage_adapter import get_storage_adapter
-                adapter = get_storage_adapter()
-                if hasattr(adapter, "confirm_durable"):
-                    cloud_sync_confirmed = adapter.confirm_durable([
-                        emp_clubs_path,
-                        MASTER_CLUBS_CSV,
-                        emp_act_path,
-                        MASTER_ACTIVITIES_CSV,
-                    ])
-            except Exception:
-                cloud_sync_confirmed = False
+            if confirm_cloud_sync:
+                try:
+                    from db.storage_adapter import get_storage_adapter
+                    adapter = get_storage_adapter()
+                    if hasattr(adapter, "confirm_durable"):
+                        cloud_sync_confirmed = adapter.confirm_durable([
+                            emp_clubs_path,
+                            MASTER_CLUBS_CSV,
+                            emp_act_path,
+                            MASTER_ACTIVITIES_CSV,
+                        ])
+                except Exception:
+                    cloud_sync_confirmed = False
+            else:
+                # Caller will confirm sync in one batched pass later; the
+                # local write above already fired the normal async
+                # background mirror upload as a best-effort head start.
+                cloud_sync_confirmed = None
 
             club_record = dict(club_record)
             club_record["cloud_sync_confirmed"] = cloud_sync_confirmed
@@ -791,7 +808,11 @@ class SyncEngine:
                 if acts_path.exists():
                     CSVEngine.write_all(acts_path, ACTIVITY_FIELDS, [])
 
-            # 3. Reseed exactly `clubs_per_employee` clean test clubs per employee
+            # 3. Reseed exactly `clubs_per_employee` clean test clubs per employee.
+            # confirm_cloud_sync=False: skip the per-club synchronous Drive
+            # round-trip here (that's what made a 28-club reset take minutes
+            # of sequential network calls) -- confirmed once, in a single
+            # batched pass, in step 4 below instead.
             created: Dict[str, List[str]] = {}
             now = datetime.now(timezone.utc)
             for emp_id in emp_ids:
@@ -809,10 +830,27 @@ class SyncEngine:
                         "date_of_approval": now.isoformat(),
                         "renewal_date": (now.replace(year=now.year + 1)).date().isoformat()
                     }
-                    cls.approve_new_club(emp_id=emp_id, club_data=club_data)
+                    cls.approve_new_club(emp_id=emp_id, club_data=club_data, confirm_cloud_sync=False)
                     created[emp_id].append(club_id)
 
-            # 4. Final confirmation pass: recompute every employee's quota
+            # 4. One single, final, batched confirmation pass -- confirms
+            # every master file plus every employee's node files together,
+            # instead of a synchronous Drive round-trip per club (which is
+            # what previously made a large reseed hang for minutes).
+            cloud_sync_confirmed = True
+            try:
+                from db.storage_adapter import get_storage_adapter
+                adapter = get_storage_adapter()
+                if hasattr(adapter, "confirm_durable"):
+                    paths_to_confirm = [MASTER_CLUBS_CSV, MASTER_ACTIVITIES_CSV, MASTER_QUOTAS_CSV]
+                    for emp_id in emp_ids:
+                        paths_to_confirm.append(cls.get_employee_clubs_path(emp_id))
+                        paths_to_confirm.append(cls.get_employee_activities_path(emp_id))
+                    cloud_sync_confirmed = adapter.confirm_durable(paths_to_confirm)
+            except Exception:
+                cloud_sync_confirmed = False
+
+            # 5. Final confirmation pass: recompute every employee's quota
             # fresh (approve_new_club already does this incrementally, this
             # just guarantees consistency after a bulk reseed).
             for emp_id in emp_ids:
@@ -823,6 +861,7 @@ class SyncEngine:
                 "employees_reset": len(emp_ids),
                 "clubs_per_employee": clubs_per_employee,
                 "total_clubs_created": total_created,
+                "cloud_sync_confirmed": cloud_sync_confirmed,
                 "created": created
             }
 
