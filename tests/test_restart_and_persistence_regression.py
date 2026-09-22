@@ -11,6 +11,7 @@ import json
 import unittest
 import shutil
 import tempfile
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from config import (
@@ -812,6 +813,142 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
         self.assertTrue(any(c.get("club_id") == "NDLI-EMP02-CROSSNODE1" for c in master_clubs))
         SyncEngine.delete_club("NDLI-EMP02-CROSSNODE1")  # cleanup
+
+    def test_resubmitting_same_club_does_not_duplicate_activity_or_inflate_quota(self):
+        """
+        Regression for the live-production bug where EMP01 showed 92 clubs
+        approved when the master DB genuinely had far fewer: repeatedly
+        resubmitting/re-approving the SAME club_id used to mint a brand-new
+        activity_id every time (approve_new_club previously always
+        appended), so one real club could accumulate dozens of "Club
+        Approval" log rows. approve_new_club must now recognize an
+        already-logged club_id for the same employee and skip logging a
+        duplicate entry or incrementing the quota again.
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+
+            quota_before = SyncEngine.recompute_and_persist_quota("EMP01")
+            baseline = quota_before.get("clubs_approved_count", 0)
+
+            club_payload = {
+                "club_id": "NDLI-EMP01-RESUBMIT1",
+                "reg_no": "REG-RESUBMIT-1",
+                "institution_name": "Resubmission Test School",
+                "state": "Delhi",
+                "patron_email": "rs@example.com",
+                "president_email": "rspres@example.com",
+                "secretary_email": "rssec@example.com",
+                "date_of_approval": "2026-09-20T10:00:00Z",
+                "renewal_date": "2027-09-20"
+            }
+            # Submit the SAME club_id three times in a row (simulating a
+            # double-click, retry, or repeated manual testing).
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+            quota_after = SyncEngine.recompute_and_persist_quota("EMP01")
+
+        # Quota must have increased by exactly 1 (one real club), not 3.
+        self.assertEqual(quota_after["clubs_approved_count"], baseline + 1)
+
+        # Only ONE "Club Approval" activity entry for this club_id must
+        # exist in the master log -- not three.
+        master_acts = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+        matching = [a for a in master_acts if a.get("club_id") == "NDLI-EMP01-RESUBMIT1"]
+        self.assertEqual(len(matching), 1, "Resubmitting the same club must not create duplicate activity log entries")
+
+        node_acts = CSVEngine.read_all(SyncEngine.get_employee_activities_path("EMP01"), ACTIVITY_FIELDS)
+        node_matching = [a for a in node_acts if a.get("club_id") == "NDLI-EMP01-RESUBMIT1"]
+        self.assertEqual(len(node_matching), 1)
+
+        # Cleanup
+        SyncEngine.delete_club("NDLI-EMP01-RESUBMIT1")
+
+    def test_reconcile_all_nodes_deduplicates_existing_stale_duplicate_activities(self):
+        """
+        Regression for cleaning up duplicates that ALREADY exist on disk
+        (e.g. from before the approve_new_club fix was deployed, exactly
+        the situation on the live production database). Manually plants
+        several duplicate "Club Approval" activity rows for the same
+        (employee, club_id) pair -- simulating pre-existing drift -- and
+        verifies reconcile_all_nodes() collapses them down to exactly one,
+        physically removing the duplicates from both master and node
+        activity_log CSVs, not just excluding them from a computed number.
+        """
+        emp_id = "EMP03"
+        club_id = "NDLI-EMP03-DEDUPTEST1"
+        node_act_path = SyncEngine.get_employee_activities_path(emp_id)
+
+        # Plant 4 duplicate "Club Approval" entries for the same club_id,
+        # each with a distinct activity_id and timestamp (as
+        # approve_new_club used to produce before the fix).
+        base_ts = datetime.now(timezone.utc)
+        duplicate_rows = []
+        for i in range(4):
+            row = {
+                "activity_id": f"ACT-PRIORITY-{emp_id}-DEDUPTEST{i}",
+                "emp_id": emp_id,
+                "timestamp": (base_ts + timedelta(seconds=i)).isoformat(),
+                "support_type": "Club Approval",
+                "priority_flag": "1",
+                "club_id": club_id,
+                "notes": f"Duplicate test approval entry {i}"
+            }
+            duplicate_rows.append(row)
+            CSVEngine.append_row(node_act_path, ACTIVITY_FIELDS, row)
+            CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, row)
+
+        # Also plant a minimal club record so reconcile_all_nodes has
+        # something consistent to work with.
+        club_row = {
+            "club_id": club_id,
+            "reg_no": "REG-DEDUPTEST-1",
+            "institution_name": "Dedup Test School",
+            "state": "Delhi",
+            "zone": "North",
+            "patron_email": "dd@example.com",
+            "president_email": "ddpres@example.com",
+            "secretary_email": "ddsec@example.com",
+            "date_of_approval": duplicate_rows[0]["timestamp"],
+            "last_renewal_date": "",
+            "renewal_date": "2027-09-20",
+            "status": "Approved",
+            "approved_by_emp_id": emp_id,
+            "updated_at": duplicate_rows[0]["timestamp"],
+            "submission_timestamp": duplicate_rows[0]["timestamp"],
+            "next_renewal_date": "2027-09-20"
+        }
+        CSVEngine.upsert_row(SyncEngine.get_employee_clubs_path(emp_id), CLUB_FIELDS, "club_id", club_row)
+        CSVEngine.upsert_row(MASTER_CLUBS_CSV, CLUB_FIELDS, "club_id", club_row)
+
+        result = SyncEngine.reconcile_all_nodes()
+        self.assertIsInstance(result, dict)
+
+        master_acts_after = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+        matching_master = [a for a in master_acts_after if a.get("club_id") == club_id]
+        self.assertEqual(
+            len(matching_master), 1,
+            "reconcile_all_nodes must physically remove duplicate Club Approval entries from master_activities.csv"
+        )
+
+        node_acts_after = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS)
+        matching_node = [a for a in node_acts_after if a.get("club_id") == club_id]
+        self.assertEqual(
+            len(matching_node), 1,
+            "reconcile_all_nodes must physically remove duplicate Club Approval entries from the employee's node activity_log.csv"
+        )
+
+        # The surviving entry must be the earliest one (activity_id ending in 0).
+        self.assertEqual(matching_master[0]["activity_id"], f"ACT-PRIORITY-{emp_id}-DEDUPTEST0")
+
+        # Cleanup
+        SyncEngine.delete_club(club_id)
 
 
 if __name__ == "__main__":

@@ -560,23 +560,42 @@ class SyncEngine:
             # 2. Real-time sync to Master DB
             CSVEngine.upsert_row(MASTER_CLUBS_CSV, CLUB_FIELDS, "club_id", club_record)
 
-            # 3. Log priority activity in Node & Master
-            act_id = f"ACT-PRIORITY-{emp_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
-            activity_row = {
-                "activity_id": act_id,
-                "emp_id": emp_id,
-                "timestamp": now_iso,
-                "support_type": "Club Approval",
-                "priority_flag": "1",  # Priority activity
-                "club_id": club_id,
-                "notes": f"Approved new NDLI Club: {club_record['institution_name']} ({club_id})"
-            }
+            # 3. Log priority activity in Node & Master -- but only ONCE per
+            # club_id. Re-submitting/re-saving the same club (a double
+            # click, retried request, or repeat testing) must not mint a
+            # fresh "Club Approval" activity_id every time: that is exactly
+            # what let a single club accumulate many duplicate log rows,
+            # which in turn inflated an employee's quota (before the
+            # unique-club-count fix) and cluttered their activity log with
+            # noise unrelated to any real, distinct approval.
             emp_act_path = cls.get_employee_activities_path(emp_id)
-            CSVEngine.append_row(emp_act_path, ACTIVITY_FIELDS, activity_row)
-            CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, activity_row)
+            existing_acts = CSVEngine.read_all(emp_act_path, ACTIVITY_FIELDS) if emp_act_path.exists() else []
+            already_logged = any(
+                a.get("club_id", "").strip().upper() == club_id
+                and (
+                    a.get("support_type", "").strip() == "Club Approval"
+                    or a.get("activity_id", "").strip().startswith(f"ACT-PRIORITY-{emp_id}")
+                )
+                for a in existing_acts
+            )
+            if not already_logged:
+                act_id = f"ACT-PRIORITY-{emp_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+                activity_row = {
+                    "activity_id": act_id,
+                    "emp_id": emp_id,
+                    "timestamp": now_iso,
+                    "support_type": "Club Approval",
+                    "priority_flag": "1",  # Priority activity
+                    "club_id": club_id,
+                    "notes": f"Approved new NDLI Club: {club_record['institution_name']} ({club_id})"
+                }
+                CSVEngine.append_row(emp_act_path, ACTIVITY_FIELDS, activity_row)
+                CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, activity_row)
 
-            # 4. Increment performance quota
-            cls._increment_quota(emp_id, clubs_inc=1, now_iso=now_iso)
+            # 4. Increment performance quota -- only for a genuinely new
+            # approval, not a resubmission of an already-logged club.
+            if not already_logged:
+                cls._increment_quota(emp_id, clubs_inc=1, now_iso=now_iso)
 
             # 5. On hosts with no persistent disk (e.g. Render free tier),
             # local disk does not survive a restart/redeploy/scale-to-zero
@@ -666,11 +685,7 @@ class SyncEngine:
                 latest_ts = ts
             stype = a.get("support_type", "").strip()
             aid = a.get("activity_id", "").strip()
-            if (
-                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"))
-                    and stype != "Registration Renewal"
-                    and not aid.startswith("ACT-RENEW-")
-                ):
+            if stype == "Club Approval" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
                 club_approval_acts += 1
                 if a.get("club_id"):
                     approved_club_ids.add(a.get("club_id").strip().upper())
@@ -679,9 +694,16 @@ class SyncEngine:
             else:
                 support_logs += 1
 
-        # Use ONLY deduplicated club IDs as the truth. The raw activity count
-        # (club_approval_acts) includes duplicates and must never be used —
-        # 80 duplicate approval activities for 8 clubs must produce 8, not 80.
+        # No max()/ratchet: this computed value IS the truth. If a club (and
+        # its activity entries) were deleted, this number drops accordingly.
+        # IMPORTANT: club_approval_acts (raw activity-log row count) is
+        # deliberately NOT used here via max() anymore. It used to be
+        # `max(len(approved_club_ids) + standalone_approvals, club_approval_acts)`,
+        # which meant duplicate "Club Approval" log entries for the SAME
+        # club_id (e.g. from re-submitting/re-testing the same club) could
+        # inflate the count far above the true number of distinct clubs --
+        # exactly how EMP01 ended up showing 92 when only 8 real clubs
+        # existed. The unique-club-id count is the authoritative truth.
         final_clubs = len(approved_club_ids) + standalone_approvals
         final_support = support_logs
 
@@ -824,9 +846,8 @@ class SyncEngine:
                 stype = a.get("support_type", "").strip()
                 club_id = a.get("club_id", "").strip()
                 is_approval = (
-                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"))
-                    and stype != "Registration Renewal"
-                    and not aid.startswith("ACT-RENEW-")
+                    stype == "Club Approval"
+                    or aid.startswith(f"ACT-PRIORITY-{clean_id}")
                 )
                 if is_approval and club_id:
                     # delete_club() already purges every activity entry
@@ -1246,15 +1267,58 @@ class SyncEngine:
                 aid = a.get("activity_id", "").strip()
                 a_emp = a.get("emp_id", "").strip().upper()
                 is_club_approval = (
-                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{a_emp}"))
-                    and stype != "Registration Renewal"
-                    and not aid.startswith("ACT-RENEW-")
+                    stype == "Club Approval"
+                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
                 )
                 if is_club_approval:
                     cid = a.get("club_id", "").strip().upper()
                     if cid and cid in all_clubs:
                         if not all_clubs[cid].get("approved_by_emp_id"):
                             all_clubs[cid]["approved_by_emp_id"] = a_emp
+
+            # 4b. Deduplicate Club Approval activities: keep only ONE entry
+            # per (employee, club_id) pair. Before a fix to approve_new_club,
+            # every resubmission of the same club_id minted a brand-new,
+            # technically-unique activity_id -- so the SAME club could
+            # accumulate many "Club Approval" rows through repeated
+            # testing/edits. Those duplicates are all genuinely unique by ID
+            # (so step 2/3's merge-by-activity_id above does not catch them),
+            # which is exactly what made an employee's activity log show far
+            # more entries than their real distinct club count. This runs on
+            # every reconciliation (i.e. every server startup), so it keeps
+            # actively cleaning up any duplicates already sitting on disk,
+            # not just preventing new ones going forward. Keeps the earliest
+            # entry per pair (the true original approval date/time) and
+            # removes the rest from all_activities -- so they are physically
+            # deleted from both node and master activity_log CSVs when this
+            # function writes them out in steps 5 and 6 below, not merely
+            # excluded from a computed number.
+            approval_by_key: Dict[tuple, Dict[str, str]] = {}
+            duplicate_activity_ids = set()
+            for aid, a in all_activities.items():
+                stype = a.get("support_type", "").strip()
+                a_emp = a.get("emp_id", "").strip().upper()
+                cid = a.get("club_id", "").strip().upper()
+                is_club_approval = (
+                    stype == "Club Approval"
+                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
+                )
+                if not is_club_approval or not cid:
+                    continue
+                key = (a_emp, cid)
+                existing = approval_by_key.get(key)
+                if existing is None:
+                    approval_by_key[key] = a
+                    continue
+                existing_ts = existing.get("timestamp", "")
+                this_ts = a.get("timestamp", "")
+                if this_ts and (not existing_ts or this_ts < existing_ts):
+                    duplicate_activity_ids.add(existing.get("activity_id", "").strip())
+                    approval_by_key[key] = a
+                else:
+                    duplicate_activity_ids.add(aid)
+            for dup_id in duplicate_activity_ids:
+                all_activities.pop(dup_id, None)
 
             # 5. Bi-directional sync back to employee nodes
             for emp_id in synced_emp_ids:
@@ -1323,9 +1387,8 @@ class SyncEngine:
                         stype = a.get("support_type", "").strip()
                         aid = a.get("activity_id", "").strip()
                         is_club_approval = (
-                            (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{emp_id}"))
-                            and stype != "Registration Renewal"
-                            and not aid.startswith("ACT-RENEW-")
+                            stype == "Club Approval"
+                            or aid.startswith(f"ACT-PRIORITY-{emp_id}")
                         )
                         if is_club_approval:
                             club_approval_act_count += 1
@@ -1344,6 +1407,10 @@ class SyncEngine:
                         if c_ts and c_ts > latest_ts:
                             latest_ts = c_ts
 
+                # Unique-club-count is the truth (see the identical fix and
+                # rationale in recompute_and_persist_quota above). Combined
+                # with the 4b deduplication step, this ensures the persisted
+                # quota can never exceed the real number of distinct clubs.
                 total_clubs_approved = len(approved_club_ids) + standalone_approvals
 
                 q_rec["clubs_approved_count"] = str(total_clubs_approved)

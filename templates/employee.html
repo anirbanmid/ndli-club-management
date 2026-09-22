@@ -2885,7 +2885,6 @@
       if (clubsCount === 0 && ALL_ACTIVITIES_CACHE && ALL_ACTIVITIES_CACHE.length > 0) {
         const approvalActs = ALL_ACTIVITIES_CACHE.filter(a =>
           a.support_type === "Club Approval" ||
-          a.priority_flag === "1" ||
           (a.activity_id && a.activity_id.startsWith(`ACT-PRIORITY-${CURRENT_EMP_ID}`))
         );
         if (approvalActs.length > 0) {
@@ -3719,7 +3718,6 @@
         const targetActs = cache.filter(a => ACTIVITY_DELETE_PENDING_IDS.includes(a.activity_id));
         const hasApproval = targetActs.some(a =>
           a.support_type === "Club Approval" ||
-          a.priority_flag === "1" ||
           (a.activity_id && a.activity_id.startsWith(`ACT-PRIORITY-${CURRENT_EMP_ID}`))
         );
         const cascadeWarnEl = document.getElementById("activity-delete-cascade-warning");
@@ -3729,7 +3727,7 @@
         if (listEl) {
           listEl.innerHTML = ACTIVITY_DELETE_PENDING_IDS.map(id => {
             const match = targetActs.find(a => a.activity_id === id);
-            const isApproval = match && (match.support_type === "Club Approval" || match.priority_flag === "1");
+            const isApproval = match && match.support_type === "Club Approval";
             const clubTag = match && match.club_id ? ` — Club: ${escapeHtml(match.club_id)}${isApproval ? ' (will be cascade-deleted)' : ''}` : '';
             return `<li>${escapeHtml(id)}${clubTag}</li>`;
           }).join("");

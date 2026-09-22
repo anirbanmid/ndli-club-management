@@ -834,9 +834,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 stype = a.get("support_type", "").strip()
                 aid = a.get("activity_id", "").strip()
                 is_club_approval = (
-                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{a_emp}"))
-                    and stype != "Registration Renewal"
-                    and not aid.startswith("ACT-RENEW-")
+                    stype == "Club Approval"
+                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
                 )
 
                 if is_club_approval:

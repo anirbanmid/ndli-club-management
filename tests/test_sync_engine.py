@@ -40,10 +40,18 @@ class TestSyncEngine(unittest.TestCase):
 
     def test_approve_new_club_sync_and_priority_quota(self):
         emp_id = "EMP02"
-        club_id = "NDLI-TEST-999"
+        # Use a fresh, timestamp-unique club_id rather than a hardcoded one:
+        # a hardcoded ID can collide with a leftover activity-log entry from
+        # a prior run of this exact test (e.g. in a shared, non-isolated
+        # data directory), which would make approve_new_club correctly
+        # treat this as a resubmission of an already-logged club rather
+        # than a genuinely new approval -- exactly the duplicate-prevention
+        # behavior this suite exists to verify elsewhere, but not what this
+        # specific test is trying to measure.
+        club_id = f"NDLI-TEST-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
         club_payload = {
             "club_id": club_id,
-            "reg_no": "REG-TEST-999",
+            "reg_no": f"REG-{club_id}",
             "institution_name": "Test Engineering College Raipur",
             "state": "Chhattisgarh",
             "zone": "Central",
