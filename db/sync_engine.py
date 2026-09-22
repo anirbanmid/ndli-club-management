@@ -666,7 +666,11 @@ class SyncEngine:
                 latest_ts = ts
             stype = a.get("support_type", "").strip()
             aid = a.get("activity_id", "").strip()
-            if stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
+            if (
+                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"))
+                    and stype != "Registration Renewal"
+                    and not aid.startswith("ACT-RENEW-")
+                ):
                 club_approval_acts += 1
                 if a.get("club_id"):
                     approved_club_ids.add(a.get("club_id").strip().upper())
@@ -675,9 +679,10 @@ class SyncEngine:
             else:
                 support_logs += 1
 
-        # No max()/ratchet: this computed value IS the truth. If a club (and
-        # its activity entries) were deleted, this number drops accordingly.
-        final_clubs = max(len(approved_club_ids) + standalone_approvals, club_approval_acts)
+        # Use ONLY deduplicated club IDs as the truth. The raw activity count
+        # (club_approval_acts) includes duplicates and must never be used —
+        # 80 duplicate approval activities for 8 clubs must produce 8, not 80.
+        final_clubs = len(approved_club_ids) + standalone_approvals
         final_support = support_logs
 
         q = {
@@ -819,9 +824,9 @@ class SyncEngine:
                 stype = a.get("support_type", "").strip()
                 club_id = a.get("club_id", "").strip()
                 is_approval = (
-                    stype == "Club Approval"
-                    or a.get("priority_flag") == "1"
-                    or aid.startswith(f"ACT-PRIORITY-{clean_id}")
+                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{clean_id}"))
+                    and stype != "Registration Renewal"
+                    and not aid.startswith("ACT-RENEW-")
                 )
                 if is_approval and club_id:
                     # delete_club() already purges every activity entry
@@ -1241,9 +1246,9 @@ class SyncEngine:
                 aid = a.get("activity_id", "").strip()
                 a_emp = a.get("emp_id", "").strip().upper()
                 is_club_approval = (
-                    stype == "Club Approval"
-                    or a.get("priority_flag") == "1"
-                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
+                    (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{a_emp}"))
+                    and stype != "Registration Renewal"
+                    and not aid.startswith("ACT-RENEW-")
                 )
                 if is_club_approval:
                     cid = a.get("club_id", "").strip().upper()
@@ -1318,9 +1323,9 @@ class SyncEngine:
                         stype = a.get("support_type", "").strip()
                         aid = a.get("activity_id", "").strip()
                         is_club_approval = (
-                            stype == "Club Approval"
-                            or a.get("priority_flag") == "1"
-                            or aid.startswith(f"ACT-PRIORITY-{emp_id}")
+                            (stype == "Club Approval" or a.get("priority_flag") == "1" or aid.startswith(f"ACT-PRIORITY-{emp_id}"))
+                            and stype != "Registration Renewal"
+                            and not aid.startswith("ACT-RENEW-")
                         )
                         if is_club_approval:
                             club_approval_act_count += 1
@@ -1339,7 +1344,7 @@ class SyncEngine:
                         if c_ts and c_ts > latest_ts:
                             latest_ts = c_ts
 
-                total_clubs_approved = max(len(approved_club_ids) + standalone_approvals, club_approval_act_count)
+                total_clubs_approved = len(approved_club_ids) + standalone_approvals
 
                 q_rec["clubs_approved_count"] = str(total_clubs_approved)
                 q_rec["support_logs_count"] = str(support_logs_count)
