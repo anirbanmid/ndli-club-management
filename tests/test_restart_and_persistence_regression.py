@@ -664,6 +664,155 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         persisted = next((q for q in quotas_after if q.get("emp_id") == "EMP02"), {})
         self.assertEqual(int(persisted.get("clubs_approved_count", "-1")), result["clubs_approved_count"])
 
+    def test_delete_activity_cascades_to_club_deletion(self):
+        """
+        Deleting a Club Approval activity-log entry must cascade-delete the
+        corresponding club from both the Master DB and the employee's node,
+        so the club can never be left dangling (visible in clubs.csv/Master
+        CSV with no corresponding approval record, or vice versa).
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+
+            club_payload = {
+                "club_id": "NDLI-EMP01-ACTDELCASCADE1",
+                "reg_no": "REG-ACTDELCASCADE-1",
+                "institution_name": "Activity Delete Cascade School",
+                "state": "Delhi",
+                "patron_email": "adc@example.com",
+                "president_email": "adcpres@example.com",
+                "secretary_email": "adcsec@example.com",
+                "date_of_approval": "2026-09-20T10:00:00Z",
+                "renewal_date": "2027-09-20"
+            }
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+            node_acts = CSVEngine.read_all(SyncEngine.get_employee_activities_path("EMP01"), ACTIVITY_FIELDS)
+            approval_entry = next(a for a in node_acts if a.get("club_id") == "NDLI-EMP01-ACTDELCASCADE1")
+            activity_id = approval_entry["activity_id"]
+
+            result = SyncEngine.delete_activity_log_entries("EMP01", [activity_id])
+
+        self.assertEqual(result["deleted_count"], 1)
+        self.assertEqual(len(result["cascaded_clubs"]), 1)
+        self.assertEqual(result["cascaded_clubs"][0]["club_id"], "NDLI-EMP01-ACTDELCASCADE1")
+        self.assertTrue(result["cascaded_clubs"][0]["deleted"])
+
+        # Club must be gone from both master and node.
+        master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        self.assertFalse(any(c.get("club_id") == "NDLI-EMP01-ACTDELCASCADE1" for c in master_clubs))
+        node_clubs = CSVEngine.read_all(SyncEngine.get_employee_clubs_path("EMP01"), CLUB_FIELDS)
+        self.assertFalse(any(c.get("club_id") == "NDLI-EMP01-ACTDELCASCADE1" for c in node_clubs))
+
+        # The activity entry itself must be gone too.
+        node_acts_after = CSVEngine.read_all(SyncEngine.get_employee_activities_path("EMP01"), ACTIVITY_FIELDS)
+        self.assertFalse(any(a.get("activity_id") == activity_id for a in node_acts_after))
+
+    def test_delete_activity_bulk_mixed_approval_and_support_entries(self):
+        """
+        Bulk-deleting a mix of a Club Approval entry and a plain support-log
+        entry in one call must handle both correctly: the approval entry
+        cascades to a club deletion, the support entry is removed directly,
+        and both are gone afterward with an accurate deleted_count.
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+
+            club_payload = {
+                "club_id": "NDLI-EMP01-BULKMIX1",
+                "reg_no": "REG-BULKMIX-1",
+                "institution_name": "Bulk Mix Delete School",
+                "state": "Delhi",
+                "patron_email": "bm@example.com",
+                "president_email": "bmpres@example.com",
+                "secretary_email": "bmsec@example.com",
+                "date_of_approval": "2026-09-20T10:00:00Z",
+                "renewal_date": "2027-09-20"
+            }
+            SyncEngine.approve_new_club(emp_id="EMP01", club_data=club_payload)
+
+            support_row = {
+                "activity_id": "ACT-BULKMIXSUPPORT1",
+                "emp_id": "EMP01",
+                "timestamp": "2026-09-20T11:00:00Z",
+                "support_type": "Phone call and remote assistance",
+                "club_id": "",
+                "priority_flag": "0",
+                "notes": "Test support entry for bulk delete"
+            }
+            emp_act_path = SyncEngine.get_employee_activities_path("EMP01")
+            CSVEngine.append_row(emp_act_path, ACTIVITY_FIELDS, support_row)
+            CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, support_row)
+
+            node_acts = CSVEngine.read_all(emp_act_path, ACTIVITY_FIELDS)
+            approval_entry = next(a for a in node_acts if a.get("club_id") == "NDLI-EMP01-BULKMIX1")
+
+            result = SyncEngine.delete_activity_log_entries(
+                "EMP01", [approval_entry["activity_id"], "ACT-BULKMIXSUPPORT1"]
+            )
+
+        self.assertEqual(result["deleted_count"], 2)
+        self.assertEqual(len(result["cascaded_clubs"]), 1)
+        self.assertEqual(result["not_found"], [])
+
+        master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        self.assertFalse(any(c.get("club_id") == "NDLI-EMP01-BULKMIX1" for c in master_clubs))
+
+        node_acts_after = CSVEngine.read_all(emp_act_path, ACTIVITY_FIELDS)
+        self.assertFalse(any(a.get("activity_id") == "ACT-BULKMIXSUPPORT1" for a in node_acts_after))
+
+    def test_delete_activity_unknown_id_reported_as_not_found(self):
+        """A nonexistent activity_id must be reported in not_found, not silently ignored or raise."""
+        result = SyncEngine.delete_activity_log_entries("EMP01", ["ACT-DOES-NOT-EXIST-999"])
+        self.assertEqual(result["deleted_count"], 0)
+        self.assertIn("ACT-DOES-NOT-EXIST-999", result["not_found"])
+
+    def test_delete_activity_cannot_delete_another_employees_entry(self):
+        """
+        An activity_id that belongs to a different employee's node must not
+        be deletable by passing a mismatched emp_id -- it should come back
+        as not_found rather than being deleted from the wrong node.
+        """
+        from unittest.mock import patch
+
+        adapter = AppsScriptRelaySyncAdapter()
+        adapter.relay_url = "https://mock.relay.url/exec"
+        with patch("db.storage_adapter.get_storage_adapter", return_value=adapter), \
+             patch.object(AppsScriptRelaySyncAdapter, "_upload_file_to_drive", return_value=True):
+            club_payload = {
+                "club_id": "NDLI-EMP02-CROSSNODE1",
+                "reg_no": "REG-CROSSNODE-1",
+                "institution_name": "Cross Node Test School",
+                "state": "Madhya Pradesh",
+                "patron_email": "cn@example.com",
+                "president_email": "cnpres@example.com",
+                "secretary_email": "cnsec@example.com",
+                "date_of_approval": "2026-09-20T10:00:00Z",
+                "renewal_date": "2027-09-20"
+            }
+            SyncEngine.approve_new_club(emp_id="EMP02", club_data=club_payload)
+            emp02_acts = CSVEngine.read_all(SyncEngine.get_employee_activities_path("EMP02"), ACTIVITY_FIELDS)
+            emp02_activity_id = next(a["activity_id"] for a in emp02_acts if a.get("club_id") == "NDLI-EMP02-CROSSNODE1")
+
+            # Attempt to delete EMP02's activity while scoped to EMP01.
+            result = SyncEngine.delete_activity_log_entries("EMP01", [emp02_activity_id])
+
+        self.assertEqual(result["deleted_count"], 0)
+        self.assertIn(emp02_activity_id, result["not_found"])
+
+        # The club must still exist -- untouched.
+        master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        self.assertTrue(any(c.get("club_id") == "NDLI-EMP02-CROSSNODE1" for c in master_clubs))
+        SyncEngine.delete_club("NDLI-EMP02-CROSSNODE1")  # cleanup
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -780,6 +780,104 @@ class SyncEngine:
             }
 
     @classmethod
+    def delete_activity_log_entries(cls, emp_id: str, activity_ids: List[str]) -> Dict[str, Any]:
+        """
+        Deletes one or more of an employee's own activity log entries
+        (single or bulk). If a deleted entry represents a Club Approval,
+        the corresponding club is cascade-deleted from both the Master DB
+        and the employee's node via delete_club() -- so a club can never be
+        left dangling in Clubs/Master CSV after its approval log entry is
+        removed, which is exactly the mismatch this feature exists to
+        prevent. Plain (non-approval/support) entries are removed directly.
+
+        A single batched Drive confirmation covers every file touched by
+        the whole batch, not one confirmation per entry -- see
+        reset_all_and_reseed for why that matters once more than a couple
+        of items are involved.
+        """
+        clean_id = str(emp_id).strip().upper()
+        ids_wanted = {str(a).strip() for a in activity_ids if str(a).strip()}
+        if not clean_id or not ids_wanted:
+            return {"deleted_count": 0, "cascaded_clubs": [], "not_found": sorted(ids_wanted), "results": [], "cloud_sync_confirmed": True}
+
+        with _SYNC_LOCK:
+            node_act_path = cls.get_employee_activities_path(clean_id)
+            node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
+            # Only entries that actually belong to this employee's own node
+            # are eligible -- prevents deleting another employee's log entry
+            # by guessing/passing an activity_id that isn't theirs.
+            target_acts = [a for a in node_acts if a.get("activity_id", "").strip() in ids_wanted]
+            found_ids = {a.get("activity_id", "").strip() for a in target_acts}
+            not_found = sorted(ids_wanted - found_ids)
+
+            results = []
+            cascaded_clubs = []
+            direct_delete_ids = set()
+
+            for a in target_acts:
+                aid = a.get("activity_id", "").strip()
+                stype = a.get("support_type", "").strip()
+                club_id = a.get("club_id", "").strip()
+                is_approval = (
+                    stype == "Club Approval"
+                    or a.get("priority_flag") == "1"
+                    or aid.startswith(f"ACT-PRIORITY-{clean_id}")
+                )
+                if is_approval and club_id:
+                    # delete_club() already purges every activity entry
+                    # (node + master) referencing this club_id, so this
+                    # covers the current entry (and any duplicates) in one go.
+                    del_result = cls.delete_club(club_id)
+                    cascaded_clubs.append({"club_id": club_id, "deleted": del_result.get("deleted", False)})
+                    results.append({
+                        "activity_id": aid,
+                        "deleted": del_result.get("deleted", False),
+                        "cascaded_club_id": club_id if del_result.get("deleted") else None
+                    })
+                else:
+                    direct_delete_ids.add(aid)
+                    results.append({"activity_id": aid, "deleted": True, "cascaded_club_id": None})
+
+            # Remove plain (non-approval) entries directly, node + master.
+            if direct_delete_ids:
+                node_acts_fresh = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
+                remaining_node = [a for a in node_acts_fresh if a.get("activity_id", "").strip() not in direct_delete_ids]
+                if len(remaining_node) != len(node_acts_fresh):
+                    CSVEngine.write_all(node_act_path, ACTIVITY_FIELDS, remaining_node)
+
+                master_acts_fresh = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+                remaining_master = [a for a in master_acts_fresh if a.get("activity_id", "").strip() not in direct_delete_ids]
+                if len(remaining_master) != len(master_acts_fresh):
+                    CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, remaining_master)
+
+            # Recompute the employee's quota once, after all deletions in
+            # this batch -- never incremented/decremented piecemeal.
+            cls.recompute_and_persist_quota(clean_id)
+
+            # One batched Drive confirmation for everything this whole
+            # operation touched, instead of one confirmation per activity.
+            cloud_sync_confirmed = True
+            try:
+                from db.storage_adapter import get_storage_adapter
+                adapter = get_storage_adapter()
+                if hasattr(adapter, "confirm_durable"):
+                    paths_to_confirm = [
+                        MASTER_CLUBS_CSV, MASTER_ACTIVITIES_CSV, MASTER_QUOTAS_CSV,
+                        cls.get_employee_clubs_path(clean_id), node_act_path
+                    ]
+                    cloud_sync_confirmed = adapter.confirm_durable(paths_to_confirm)
+            except Exception:
+                cloud_sync_confirmed = False
+
+            return {
+                "deleted_count": len(direct_delete_ids) + sum(1 for c in cascaded_clubs if c["deleted"]),
+                "cascaded_clubs": cascaded_clubs,
+                "not_found": not_found,
+                "cloud_sync_confirmed": cloud_sync_confirmed,
+                "results": results
+            }
+
+    @classmethod
     def reset_all_and_reseed(cls, clubs_per_employee: int = 4) -> Dict[str, Any]:
         """
         Full, controlled reset for testing: wipes ALL club and activity data

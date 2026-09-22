@@ -1488,6 +1488,58 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
+        # Employee: Delete own activity log entry/entries (single or bulk).
+        # Cascade-deletes the corresponding club if a deleted entry is a
+        # Club Approval, so clubs.csv/Master CSV can never be left
+        # inconsistent with the activity log after this operation.
+        if path == "/api/employee/activity/delete":
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            activity_ids = body.get("activity_ids")
+            if not activity_ids and body.get("activity_id"):
+                activity_ids = [body.get("activity_id")]
+            if not emp_id or not activity_ids:
+                self._send_error("emp_id and activity_ids (or activity_id) are required.", status=400)
+                return
+
+            # Identity check: the authenticated session must belong to this
+            # same employee (or be an admin) -- this is a destructive,
+            # employee-scoped operation, not something any valid emp_id in
+            # the body alone should be able to trigger.
+            session = self._get_auth_session()
+            if not session:
+                self._send_error("Authentication required to delete activity log entries.", status=401)
+                return
+            session_id = str(session.get("user_id", "")).strip().upper()
+            if session.get("role") != "ADMIN" and session_id != emp_id:
+                self._send_error("You may only delete your own activity log entries.", status=403)
+                return
+
+            if not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+
+            try:
+                result = SyncEngine.delete_activity_log_entries(emp_id, activity_ids)
+            except Exception as e:
+                self._send_error(f"Error deleting activity log entries: {str(e)}", status=500)
+                return
+
+            cascaded_count = sum(1 for c in result["cascaded_clubs"] if c["deleted"])
+            msg = f"{result['deleted_count']} activity log entr{'y' if result['deleted_count'] == 1 else 'ies'} deleted"
+            if cascaded_count:
+                msg += f", including {cascaded_count} club{'s' if cascaded_count != 1 else ''} cascade-deleted from Master DB"
+            if result["not_found"]:
+                msg += f". {len(result['not_found'])} activity ID(s) were not found in your node log."
+            else:
+                msg += "."
+
+            self._send_json({
+                "success": True,
+                "message": msg,
+                **result
+            })
+            return
+
         # SEC C: Approve New Club Details
         if path == "/api/clubs/create":
             emp_id = str(body.get("emp_id", "")).strip().upper()

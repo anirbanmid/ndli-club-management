@@ -732,24 +732,29 @@
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-outline btn-sm" onclick="loadEmployeeActivities(true)">Refresh Logs</button>
             <button class="btn btn-outline btn-sm" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from database of that particular employee account">Download Activity Log</button>
+            <button class="btn btn-outline btn-sm" id="btn-bulk-delete-activities" onclick="openActivityDeleteSecurityModal(null)" disabled style="color: #b91c1c; border-color: #fecaca;" title="Select one or more entries below to enable bulk delete">🗑 Delete Selected (0)</button>
           </div>
         </div>
+
+        <div id="activity-tab-alert" style="padding: 0 1.25rem;"></div>
 
         <div class="table-responsive table-scroll-container" style="max-height: 290px;">
           <table>
             <thead>
               <tr>
+                <th style="width: 2.2rem;"><input type="checkbox" id="activity-select-all" onchange="toggleAllActivitySelection(this.checked)" title="Select all"></th>
                 <th>Date & Time (Local)</th>
                 <th>Activity ID</th>
                 <th>Nature of Support</th>
                 <th>Priority</th>
                 <th>Club Ref</th>
                 <th>Notes / Remarks</th>
+                <th style="width: 3rem;">Action</th>
               </tr>
             </thead>
             <tbody id="activities-tbody">
               <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                   <span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading activity history...
                 </td>
               </tr>
@@ -1478,8 +1483,98 @@
   </div>
 
   <!-- ============================================================= -->
-  <!-- 6. RENEWAL CERTIFICATE GENERATION & DOWNLOAD TERMINAL MODAL -->
+  <!-- 5b. ACTIVITY LOG DELETION SECURITY CONFIRMATION MODAL -->
   <!-- ============================================================= -->
+  <div class="modal-overlay" id="activity-delete-security-modal" style="z-index: 1260; display: none;">
+    <div class="modal-content" style="max-width: 620px; width: 95%; border-top: 6px solid #b91c1c;">
+      <button class="modal-close" onclick="closeActivityDeleteSecurityModal()" title="Cancel Deletion">×</button>
+
+      <!-- Warning Header -->
+      <div style="display: flex; align-items: flex-start; gap: 0.85rem; margin-bottom: 1.25rem;">
+        <div style="background: #fee2e2; color: #b91c1c; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; border: 2px solid #fecaca;">
+          🗑
+        </div>
+        <div>
+          <h3 style="color: #991b1b; margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800;">
+            Security Confirmation: Permanently Delete Activity Log
+          </h3>
+          <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.4;">
+            Second-layer security verification required before this permanent deletion is committed to the Node and IIT Kharagpur Master Database.
+          </p>
+        </div>
+      </div>
+
+      <!-- Warning Box -->
+      <div style="background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: var(--radius); padding: 0.9rem 1rem; margin-bottom: 1.25rem;">
+        <div style="font-weight: 700; color: #991b1b; font-size: 0.88rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🛑</span> This Action Cannot Be Undone
+        </div>
+        <p style="font-size: 0.8rem; color: #7f1d1d; margin: 0 0 0.6rem 0; line-height: 1.4;" id="activity-delete-warning-text">
+          You are about to permanently delete <strong id="activity-delete-count-text">1 activity log entry</strong>.
+          <span id="activity-delete-cascade-warning" style="display: none;"> This includes at least one <strong>Club Approval</strong> entry — deleting it will also permanently remove the corresponding club from the Clubs Log and Master Database to keep records consistent.</span>
+        </p>
+
+        <!-- Summary of Target Entries -->
+        <div style="background: #ffffff; border: 1px solid #fca5a5; border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.78rem; max-height: 140px; overflow-y: auto;">
+          <ul id="activity-delete-target-list" style="margin: 0; padding-left: 1.1rem; font-family: monospace;"></ul>
+        </div>
+      </div>
+
+      <!-- Security Challenge Selection -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+          <span>🔐 Complete Security Challenge:</span>
+          <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
+        </div>
+
+        <div id="activity-delete-confirm-alert"></div>
+
+        <!-- Option 1: Visual Alphanumeric CAPTCHA -->
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+            Option 1: Visual Alphanumeric CAPTCHA Code
+          </label>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div style="position: relative; background: #0f172a; border-radius: 6px; padding: 4px; display: inline-flex; align-items: center;">
+              <canvas id="activity-delete-captcha-canvas" width="150" height="42" style="border-radius: 4px; cursor: pointer;" title="Click to refresh CAPTCHA" onclick="generateActivityDeleteCaptchaCode()"></canvas>
+              <button type="button" onclick="generateActivityDeleteCaptchaCode()" title="Reload CAPTCHA" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0 6px;">↻</button>
+            </div>
+            <input type="text" id="activity-delete-captcha-input" placeholder="Type 5 chars" maxlength="6" style="flex: 1; padding: 0.5rem 0.75rem; font-size: 1rem; font-family: monospace; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;" autocomplete="off">
+          </div>
+          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+            Type the 5 characters shown above. Not case-sensitive.
+          </small>
+        </div>
+
+        <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; margin: 0.5rem 0; font-weight: 600;">
+          — OR —
+        </div>
+
+        <!-- Option 2: Employee Login Password -->
+        <div>
+          <label for="activity-delete-confirm-password" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+            Option 2: Confirm with Employee Login Password
+          </label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="activity-delete-confirm-password" placeholder="Enter your portal login password" style="width: 100%; padding: 0.5rem 0.75rem; padding-right: 4.5rem; font-size: 0.9rem;" autocomplete="current-password">
+            <button type="button" class="password-toggle-btn" onclick="toggleActivityDeletePasswordVisibility()">👁️ Show</button>
+          </div>
+          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+            Verifies against your active employee account database.
+          </small>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <button type="button" class="btn btn-outline" onclick="closeActivityDeleteSecurityModal()">Cancel</button>
+        <button type="button" class="btn btn-lg" id="btn-confirm-activity-delete" onclick="confirmActivityDeletion()" style="background: #b91c1c; border-color: #991b1b; color: #fff;">
+          <span>🗑</span> Confirm Permanent Deletion →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="renewal-certificate-terminal-modal" style="z-index: 1300; display: none;">
     <div class="modal-content modal-lg" style="max-width: 1340px; width: 96%; max-height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1.5rem;">
       <button class="modal-close" onclick="closeCertificateTerminal()" title="Close Terminal">×</button>
@@ -2807,12 +2902,53 @@
     let ALL_ACTIVITIES_CACHE = null;
     let LAST_ACTIVITIES_FETCH_TIME = 0;
     let IS_ACTIVITIES_FETCHING = false;
+    let SELECTED_ACTIVITY_IDS = new Set();
+    let ACTIVITY_DELETE_PENDING_IDS = [];
+    let ACTIVITY_DELETE_CAPTCHA_CODE = "";
+
+    function updateBulkDeleteButtonState() {
+      const btn = document.getElementById("btn-bulk-delete-activities");
+      if (!btn) return;
+      const n = SELECTED_ACTIVITY_IDS.size;
+      btn.innerText = `🗑 Delete Selected (${n})`;
+      btn.disabled = n === 0;
+      btn.title = n === 0 ? "Select one or more entries below to enable bulk delete" : `Delete ${n} selected entr${n === 1 ? 'y' : 'ies'}`;
+      btn.onclick = n === 0 ? null : () => openActivityDeleteSecurityModal(null);
+    }
+
+    function toggleActivitySelection(activityId, checked) {
+      if (checked) {
+        SELECTED_ACTIVITY_IDS.add(activityId);
+      } else {
+        SELECTED_ACTIVITY_IDS.delete(activityId);
+      }
+      updateBulkDeleteButtonState();
+      const selectAll = document.getElementById("activity-select-all");
+      if (selectAll) {
+        const totalCheckboxes = document.querySelectorAll(".activity-row-checkbox").length;
+        selectAll.checked = totalCheckboxes > 0 && SELECTED_ACTIVITY_IDS.size === totalCheckboxes;
+      }
+    }
+
+    function toggleAllActivitySelection(checked) {
+      SELECTED_ACTIVITY_IDS.clear();
+      document.querySelectorAll(".activity-row-checkbox").forEach(cb => {
+        cb.checked = checked;
+        if (checked) SELECTED_ACTIVITY_IDS.add(cb.dataset.activityId);
+      });
+      updateBulkDeleteButtonState();
+    }
 
     function renderActivitiesTable(acts) {
       const tbody = document.getElementById("activities-tbody");
       if (!tbody) return;
+      SELECTED_ACTIVITY_IDS.clear();
+      updateBulkDeleteButtonState();
+      const selectAll = document.getElementById("activity-select-all");
+      if (selectAll) selectAll.checked = false;
+
       if (!acts || acts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No activity logs recorded yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No activity logs recorded yet.</td></tr>';
         return;
       }
       tbody.innerHTML = acts.map(a => {
@@ -2822,15 +2958,18 @@
         const priorityBadge = a.priority_flag === '1' ? '<span class="pill pill-priority">★ Priority</span>' : '<span class="pill pill-primary">Standard</span>';
         const clubRef = a.club_id ? `<code>${typeof escapeHtml === "function" ? escapeHtml(a.club_id) : a.club_id}</code>` : '-';
         const notes = typeof escapeHtml === "function" ? escapeHtml(a.notes || '-') : (a.notes || '-');
+        const rawActId = a.activity_id || "";
 
         return `
           <tr>
+            <td><input type="checkbox" class="activity-row-checkbox" data-activity-id="${rawActId.replace(/"/g, '&quot;')}" onchange="toggleActivitySelection('${rawActId.replace(/'/g, "\\'")}', this.checked)"></td>
             <td style="font-family: monospace; font-size: 0.8rem;">${timeDisplay}</td>
             <td><code>${actId}</code></td>
             <td><strong>${suppType}</strong></td>
             <td>${priorityBadge}</td>
             <td>${clubRef}</td>
             <td style="font-size: 0.85rem;">${notes}</td>
+            <td><button class="btn btn-outline btn-sm" style="color: #b91c1c; border-color: #fecaca; padding: 0.2rem 0.5rem;" title="Delete this activity log entry" onclick="openActivityDeleteSecurityModal('${rawActId.replace(/'/g, "\\'")}')">🗑</button></td>
           </tr>
         `;
       }).join("");
@@ -2869,7 +3008,7 @@
 
       // Show animated spinner only if table currently has no cached rows displayed
       if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading activity history...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading activity history...</td></tr>';
       }
 
       IS_ACTIVITIES_FETCHING = true;
@@ -2888,12 +3027,12 @@
           }
         } else {
           if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
           }
         }
       } catch (err) {
         if (tbody && (!ALL_ACTIVITIES_CACHE || ALL_ACTIVITIES_CACHE.length === 0)) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading activity logs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="loadEmployeeActivities(true)">↻ Retry</button></td></tr>';
         }
       } finally {
         IS_ACTIVITIES_FETCHING = false;
@@ -3539,6 +3678,240 @@
         if (confirmBtn) {
           confirmBtn.disabled = false;
           confirmBtn.innerHTML = `<span>✓</span> Authorize & Confirm Renewal Approval →`;
+        }
+      }
+    }
+
+    // =============================================================
+    // ACTIVITY LOG DELETION (single or bulk) — with security modal
+    // =============================================================
+
+    function openActivityDeleteSecurityModal(singleActivityId) {
+      try {
+        ACTIVITY_DELETE_PENDING_IDS = singleActivityId
+          ? [singleActivityId]
+          : Array.from(SELECTED_ACTIVITY_IDS);
+
+        if (ACTIVITY_DELETE_PENDING_IDS.length === 0) {
+          return;
+        }
+
+        const modal = document.getElementById("activity-delete-security-modal");
+        if (!modal) {
+          console.error("Modal #activity-delete-security-modal not found in DOM!");
+          return;
+        }
+
+        const alertEl = document.getElementById("activity-delete-confirm-alert");
+        if (alertEl) alertEl.innerHTML = "";
+        const capInput = document.getElementById("activity-delete-captcha-input");
+        if (capInput) capInput.value = "";
+        const pwdInput = document.getElementById("activity-delete-confirm-password");
+        if (pwdInput) pwdInput.value = "";
+
+        const n = ACTIVITY_DELETE_PENDING_IDS.length;
+        const countEl = document.getElementById("activity-delete-count-text");
+        if (countEl) countEl.innerText = `${n} activity log entr${n === 1 ? 'y' : 'ies'}`;
+
+        // Detect whether any selected entry is a Club Approval, to show
+        // the cascade-deletion warning up front rather than as a surprise.
+        const cache = ALL_ACTIVITIES_CACHE || [];
+        const targetActs = cache.filter(a => ACTIVITY_DELETE_PENDING_IDS.includes(a.activity_id));
+        const hasApproval = targetActs.some(a =>
+          a.support_type === "Club Approval" ||
+          a.priority_flag === "1" ||
+          (a.activity_id && a.activity_id.startsWith(`ACT-PRIORITY-${CURRENT_EMP_ID}`))
+        );
+        const cascadeWarnEl = document.getElementById("activity-delete-cascade-warning");
+        if (cascadeWarnEl) cascadeWarnEl.style.display = hasApproval ? "inline" : "none";
+
+        const listEl = document.getElementById("activity-delete-target-list");
+        if (listEl) {
+          listEl.innerHTML = ACTIVITY_DELETE_PENDING_IDS.map(id => {
+            const match = targetActs.find(a => a.activity_id === id);
+            const isApproval = match && (match.support_type === "Club Approval" || match.priority_flag === "1");
+            const clubTag = match && match.club_id ? ` — Club: ${escapeHtml(match.club_id)}${isApproval ? ' (will be cascade-deleted)' : ''}` : '';
+            return `<li>${escapeHtml(id)}${clubTag}</li>`;
+          }).join("");
+        }
+
+        const confirmBtn = document.getElementById("btn-confirm-activity-delete");
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
+        }
+
+        modal.style.display = "flex";
+        modal.classList.add("active");
+        modal.classList.add("open");
+        modal.style.opacity = "1";
+        modal.style.visibility = "visible";
+        modal.style.zIndex = "1260";
+
+        generateActivityDeleteCaptchaCode();
+
+        setTimeout(() => {
+          if (capInput) capInput.focus();
+        }, 150);
+      } catch (err) {
+        console.error("Error in openActivityDeleteSecurityModal:", err);
+        alert("Security confirmation error: " + err.message);
+      }
+    }
+
+    function closeActivityDeleteSecurityModal() {
+      const modal = document.getElementById("activity-delete-security-modal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.opacity = "";
+        modal.style.visibility = "";
+      }
+      ACTIVITY_DELETE_PENDING_IDS = [];
+    }
+
+    function generateActivityDeleteCaptchaCode() {
+      const canvas = document.getElementById("activity-delete-captcha-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 5; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      ACTIVITY_DELETE_CAPTCHA_CODE = code;
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const colors = ["#38bdf8", "#4ade80", "#facc15", "#f472b6", "#a78bfa", "#fdba74"];
+      for (let i = 0; i < 5; i++) {
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.bezierCurveTo(
+          Math.random() * canvas.width, Math.random() * canvas.height,
+          Math.random() * canvas.width, Math.random() * canvas.height,
+          Math.random() * canvas.width, Math.random() * canvas.height
+        );
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < 28; i++) {
+        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        ctx.beginPath();
+        ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.font = "bold 22px 'Courier New', monospace";
+      ctx.textBaseline = "middle";
+      const startX = 14;
+      const spacing = 26;
+      for (let i = 0; i < code.length; i++) {
+        ctx.save();
+        const charX = startX + (i * spacing);
+        const charY = canvas.height / 2;
+        ctx.translate(charX, charY);
+        ctx.rotate((Math.random() - 0.5) * 0.3);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fillText(code[i], 0, 0);
+        ctx.restore();
+      }
+    }
+
+    function toggleActivityDeletePasswordVisibility() {
+      const pwd = document.getElementById("activity-delete-confirm-password");
+      if (pwd) {
+        pwd.type = pwd.type === "password" ? "text" : "password";
+      }
+    }
+
+    async function confirmActivityDeletion() {
+      if (!ACTIVITY_DELETE_PENDING_IDS || ACTIVITY_DELETE_PENDING_IDS.length === 0) {
+        showAlert("activity-delete-confirm-alert", "No pending deletion found. Please retry.", "danger");
+        return;
+      }
+
+      const capInput = document.getElementById("activity-delete-captcha-input");
+      const enteredCap = capInput ? capInput.value.trim().toUpperCase() : "";
+      const pwdInput = document.getElementById("activity-delete-confirm-password");
+      const enteredPwd = pwdInput ? pwdInput.value.trim() : "";
+
+      if (!enteredCap && !enteredPwd) {
+        showAlert("activity-delete-confirm-alert", "Security confirmation required: Please type the CAPTCHA code above OR enter your login password.", "danger");
+        return;
+      }
+
+      const confirmBtn = document.getElementById("btn-confirm-activity-delete");
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = `<span>⏳</span> Verifying Security & Deleting...`;
+      }
+
+      if (enteredPwd) {
+        try {
+          const verifyRes = await apiRequest("/api/auth/verify-password", "POST", {
+            user_id: CURRENT_EMP_ID,
+            password: enteredPwd
+          });
+          if (!verifyRes.ok) {
+            showAlert("activity-delete-confirm-alert", `Security verification failed: ${verifyRes.data.message || 'Incorrect password.'}`, "danger");
+            if (confirmBtn) {
+              confirmBtn.disabled = false;
+              confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
+            }
+            return;
+          }
+        } catch (e) {
+          showAlert("activity-delete-confirm-alert", `Password verification error: ${e.message}`, "danger");
+          if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
+          }
+          return;
+        }
+      } else if (enteredCap) {
+        if (enteredCap !== ACTIVITY_DELETE_CAPTCHA_CODE) {
+          showAlert("activity-delete-confirm-alert", "Incorrect CAPTCHA code entered. Please try again or use your password.", "danger");
+          generateActivityDeleteCaptchaCode();
+          if (capInput) capInput.value = "";
+          if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
+          }
+          return;
+        }
+      }
+
+      // Security passed -> Execute deletion
+      try {
+        const res = await apiRequest("/api/employee/activity/delete", "POST", {
+          emp_id: CURRENT_EMP_ID,
+          activity_ids: ACTIVITY_DELETE_PENDING_IDS
+        });
+
+        if (res.ok && res.data && res.data.success) {
+          closeActivityDeleteSecurityModal();
+          showAlert("activity-tab-alert", res.data.message || "Activity log entries deleted.", "success");
+          SELECTED_ACTIVITY_IDS.clear();
+          loadEmployeeQuota();
+          loadEmployeeActivities(true);
+          performUniversalSearch(document.getElementById("search-input").value, true);
+        } else {
+          showAlert("activity-delete-confirm-alert", `Deletion failed: ${(res.data && res.data.message) || 'Unknown error.'}`, "danger");
+          if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
+          }
+        }
+      } catch (err) {
+        showAlert("activity-delete-confirm-alert", `Deletion failed: ${err.message}`, "danger");
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `<span>🗑</span> Confirm Permanent Deletion →`;
         }
       }
     }
