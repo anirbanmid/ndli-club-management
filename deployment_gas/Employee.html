@@ -3607,7 +3607,15 @@ function clientGetZoneForState(stateName) {
 // Utility: API caller
 async function apiRequest(path, method = "GET", body = null, token = null) {
   const headers = { "Content-Type": "application/json" };
-  const authTok = token || sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+  let authTok = token;
+  if (!authTok && typeof sessionStorage !== "undefined") {
+    const isAdminRoute = path.startsWith("/api/admin") || path.startsWith("/api/escalations") || path.startsWith("/api/backup");
+    if (isAdminRoute) {
+      authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
+    } else {
+      authTok = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+    }
+  }
   if (authTok) {
     headers["Authorization"] = `Bearer ${authTok}`;
   }
@@ -3789,7 +3797,15 @@ if (typeof window !== "undefined") {
 
 // Google Apps Script & Standard Fetch Unified API Caller
 async function apiRequest(path, method = "GET", body = null, token = null) {
-  const authTok = token || sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+  let authTok = token;
+  if (!authTok && typeof sessionStorage !== "undefined") {
+    const isAdminRoute = path.startsWith("/api/admin") || path.startsWith("/api/escalations") || path.startsWith("/api/backup");
+    if (isAdminRoute) {
+      authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
+    } else {
+      authTok = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+    }
+  }
   
   // 1. Google Apps Script Native Execution (Zero CORS, 100% reliable)
   if (typeof google !== "undefined" && google.script && google.script.run) {
@@ -3833,7 +3849,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       "EMP07": { name: "Ananya Nair", zone: "South 2", email: "emp.south2@ndli.edu.in", states: "Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep" }
     };
 
-    let CURRENT_EMP_ID = "EMP01";
+    let CURRENT_EMP_ID = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || "EMP01";
     let CURRENT_USER_SESSION = null;
 
     const DEFAULT_INDIAN_STATES = [
@@ -4192,7 +4208,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         if (res.ok && res.data.success && res.data.session) {
           const session = res.data.session;
           sessionStorage.setItem("ndli_token", session.token);
+          sessionStorage.setItem("ndli_employee_token", session.token);
+          sessionStorage.setItem("ndli_employee_id", session.user_id);
+          sessionStorage.setItem("ndli_current_emp_id", session.user_id);
           sessionStorage.setItem("ndli_employee_session", JSON.stringify(session));
+          sessionStorage.setItem("ndli_auth_session", JSON.stringify(session));
+          sessionStorage.setItem("ndli_user_id", session.user_id);
+          sessionStorage.setItem("ndli_role", session.role || "EMPLOYEE");
 
           CURRENT_USER_SESSION = session;
           if (session.role === "EMPLOYEE") {
@@ -4214,7 +4236,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     async function handleLogout() {
-      const token = sessionStorage.getItem("ndli_token");
+      const token = sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_token");
       if (token) {
         try {
           await apiRequest("/api/auth/logout", "POST", { token: token });
@@ -4223,7 +4245,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         }
       }
       sessionStorage.removeItem("ndli_token");
+      sessionStorage.removeItem("ndli_employee_token");
+      sessionStorage.removeItem("ndli_employee_id");
+      sessionStorage.removeItem("ndli_current_emp_id");
       sessionStorage.removeItem("ndli_employee_session");
+      sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_user_id");
+      sessionStorage.removeItem("ndli_role");
       localStorage.removeItem("ndli_token");
       CURRENT_USER_SESSION = null;
 
@@ -4328,6 +4356,8 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     // =============================================================
     async function switchEmployee(empId) {
       CURRENT_EMP_ID = empId;
+      sessionStorage.setItem("ndli_current_emp_id", empId);
+      sessionStorage.setItem("ndli_employee_id", empId);
       window.history.pushState({}, "", `/employee/${empId}`);
       await fetchLiveProfile(empId);
       await renderEmployeeProfile();
@@ -5976,17 +6006,31 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const path = window.location.pathname.toLowerCase();
       const isExplicitLoginRoute = path === "/login" || path === "/employee/login";
       const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryEmp = urlParams.get("emp");
+
       if (pathParts.length >= 2 && pathParts[0].toLowerCase() === "employee" && pathParts[1].toLowerCase() !== "login") {
         CURRENT_EMP_ID = decodeURIComponent(pathParts[1]).toUpperCase();
+        sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+        sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+      } else if (queryEmp && EMP_PROFILES[queryEmp.toUpperCase()]) {
+        CURRENT_EMP_ID = queryEmp.toUpperCase();
+        sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+        sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+      } else {
+        const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
+        if (savedEmpId && EMP_PROFILES[savedEmpId]) {
+          CURRENT_EMP_ID = savedEmpId;
+        }
       }
 
       // Check for active authentication session
-      const urlParams = new URLSearchParams(window.location.search);
       const urlToken = urlParams.get("token");
       if (urlToken) {
         sessionStorage.setItem("ndli_token", urlToken);
+        sessionStorage.setItem("ndli_employee_token", urlToken);
       }
-      const token = sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
+      const token = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
 
       // Handle explicit login routes (/login, /employee/login)
       if (isExplicitLoginRoute) {
@@ -6022,10 +6066,18 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           const user = res.data.user;
           if (user.role === "EMPLOYEE") {
             CURRENT_EMP_ID = user.user_id.toUpperCase();
+            sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+            sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+          } else if (user.role === "ADMIN") {
+            const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id");
+            if (savedEmpId && EMP_PROFILES[savedEmpId]) {
+              CURRENT_EMP_ID = savedEmpId;
+            }
           }
           showPortalView(user);
         } else {
           sessionStorage.removeItem("ndli_token");
+          sessionStorage.removeItem("ndli_employee_token");
           sessionStorage.removeItem("ndli_employee_session");
           showLoginView("Your previous session has expired. Please sign in to continue.");
         }

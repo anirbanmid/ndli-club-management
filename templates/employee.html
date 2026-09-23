@@ -12,7 +12,7 @@
       try {
         var path = window.location.pathname.toLowerCase();
         var isExplicitLogin = path === "/login" || path === "/employee/login";
-        var t = sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_auth_session") || sessionStorage.getItem("ndli_employee_session");
+        var t = sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_auth_session") || sessionStorage.getItem("ndli_employee_session");
         if (t && !isExplicitLogin) {
           document.documentElement.classList.add("auth-portal-unlocked");
         }
@@ -1736,7 +1736,7 @@
       "EMP07": { name: "Ananya Nair", zone: "South 2", email: "emp.south2@ndli.edu.in", states: "Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep" }
     };
 
-    let CURRENT_EMP_ID = "EMP01";
+    let CURRENT_EMP_ID = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || "EMP01";
     let CURRENT_USER_SESSION = null;
 
     const DEFAULT_INDIAN_STATES = [
@@ -2095,6 +2095,9 @@
         if (res.ok && res.data.success && res.data.session) {
           const session = res.data.session;
           sessionStorage.setItem("ndli_token", session.token);
+          sessionStorage.setItem("ndli_employee_token", session.token);
+          sessionStorage.setItem("ndli_employee_id", session.user_id);
+          sessionStorage.setItem("ndli_current_emp_id", session.user_id);
           sessionStorage.setItem("ndli_employee_session", JSON.stringify(session));
           sessionStorage.setItem("ndli_auth_session", JSON.stringify(session));
           sessionStorage.setItem("ndli_user_id", session.user_id);
@@ -2120,7 +2123,7 @@
     }
 
     async function handleLogout() {
-      const token = sessionStorage.getItem("ndli_token");
+      const token = sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_token");
       if (token) {
         try {
           await apiRequest("/api/auth/logout", "POST", { token: token });
@@ -2129,6 +2132,9 @@
         }
       }
       sessionStorage.removeItem("ndli_token");
+      sessionStorage.removeItem("ndli_employee_token");
+      sessionStorage.removeItem("ndli_employee_id");
+      sessionStorage.removeItem("ndli_current_emp_id");
       sessionStorage.removeItem("ndli_employee_session");
       sessionStorage.removeItem("ndli_auth_session");
       sessionStorage.removeItem("ndli_user_id");
@@ -2251,6 +2257,8 @@
     // =============================================================
     async function switchEmployee(empId) {
       CURRENT_EMP_ID = empId;
+      sessionStorage.setItem("ndli_current_emp_id", empId);
+      sessionStorage.setItem("ndli_employee_id", empId);
       window.history.pushState({}, "", `/employee/${empId}`);
       await fetchLiveProfile(empId);
       await renderEmployeeProfile();
@@ -4199,6 +4207,13 @@
       const pathParts = window.location.pathname.split("/").filter(Boolean);
       if (pathParts.length >= 2 && pathParts[0].toLowerCase() === "employee" && pathParts[1].toLowerCase() !== "login") {
         CURRENT_EMP_ID = decodeURIComponent(pathParts[1]).toUpperCase();
+        sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+        sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+      } else {
+        const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
+        if (savedEmpId && EMP_PROFILES[savedEmpId]) {
+          CURRENT_EMP_ID = savedEmpId;
+        }
       }
 
       // Check for active authentication session
@@ -4207,8 +4222,9 @@
       const urlToken = urlParams.get("token");
       if (urlToken) {
         sessionStorage.setItem("ndli_token", urlToken);
+        sessionStorage.setItem("ndli_employee_token", urlToken);
       }
-      const token = sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
+      const token = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
 
       // Handle explicit login routes (/login, /employee/login)
       if (isExplicitLoginRoute) {
@@ -4244,10 +4260,18 @@
           const user = res.data.user;
           if (user.role === "EMPLOYEE") {
             CURRENT_EMP_ID = user.user_id.toUpperCase();
+            sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+            sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+          } else if (user.role === "ADMIN") {
+            const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id");
+            if (savedEmpId && EMP_PROFILES[savedEmpId]) {
+              CURRENT_EMP_ID = savedEmpId;
+            }
           }
           showPortalView(user);
         } else {
           sessionStorage.removeItem("ndli_token");
+          sessionStorage.removeItem("ndli_employee_token");
           sessionStorage.removeItem("ndli_employee_session");
           showLoginView("Your previous session has expired. Please sign in to continue.");
         }

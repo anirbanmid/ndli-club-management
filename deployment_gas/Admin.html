@@ -2210,7 +2210,15 @@ function clientGetZoneForState(stateName) {
 // Utility: API caller
 async function apiRequest(path, method = "GET", body = null, token = null) {
   const headers = { "Content-Type": "application/json" };
-  const authTok = token || sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+  let authTok = token;
+  if (!authTok && typeof sessionStorage !== "undefined") {
+    const isAdminRoute = path.startsWith("/api/admin") || path.startsWith("/api/escalations") || path.startsWith("/api/backup");
+    if (isAdminRoute) {
+      authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
+    } else {
+      authTok = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+    }
+  }
   if (authTok) {
     headers["Authorization"] = `Bearer ${authTok}`;
   }
@@ -2394,7 +2402,15 @@ if (typeof window !== "undefined") {
 
 // Google Apps Script & Standard Fetch Unified API Caller
 async function apiRequest(path, method = "GET", body = null, token = null) {
-  const authTok = token || sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+  let authTok = token;
+  if (!authTok && typeof sessionStorage !== "undefined") {
+    const isAdminRoute = path.startsWith("/api/admin") || path.startsWith("/api/escalations") || path.startsWith("/api/backup");
+    if (isAdminRoute) {
+      authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
+    } else {
+      authTok = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
+    }
+  }
   
   // 1. Google Apps Script Native Execution (Zero CORS, 100% reliable)
   if (typeof google !== "undefined" && google.script && google.script.run) {
@@ -3869,8 +3885,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const urlToken = urlParams.get("token") || urlParams.get("admin_token");
       if (urlToken) {
         sessionStorage.setItem("ndli_admin_token", urlToken);
-        sessionStorage.setItem("ndli_token", urlToken);
-        sessionStorage.setItem("ndli_role", "ADMIN");
+        sessionStorage.setItem("ndli_admin_role", "ADMIN");
       }
       const token = sessionStorage.getItem("ndli_admin_token");
       if (!token) {
@@ -3884,16 +3899,24 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         if (res.ok && res.data && res.data.user && res.data.user.role === "ADMIN") {
           IS_ADMIN_AUTHENTICATED = true;
           sessionStorage.setItem("ndli_admin_token", token);
-          sessionStorage.setItem("ndli_token", token);
-          sessionStorage.setItem("ndli_role", "ADMIN");
+          sessionStorage.setItem("ndli_admin_role", "ADMIN");
+          sessionStorage.setItem("ndli_admin_user_id", res.data.user.user_id || res.data.user.email);
+          if (!sessionStorage.getItem("ndli_employee_token") && sessionStorage.getItem("ndli_role") !== "EMPLOYEE") {
+            sessionStorage.setItem("ndli_token", token);
+            sessionStorage.setItem("ndli_role", "ADMIN");
+            sessionStorage.setItem("ndli_user_id", res.data.user.user_id || res.data.user.email);
+          }
           showAdminGateView(true, res.data.user);
           loadEmployeesRoster();
           return true;
         } else {
           sessionStorage.removeItem("ndli_admin_token");
+          sessionStorage.removeItem("ndli_admin_role");
+          sessionStorage.removeItem("ndli_admin_user_id");
           if (sessionStorage.getItem("ndli_role") === "ADMIN") {
             sessionStorage.removeItem("ndli_token");
             sessionStorage.removeItem("ndli_role");
+            sessionStorage.removeItem("ndli_user_id");
           }
           IS_ADMIN_AUTHENTICATED = false;
           showAdminGateView(false);
@@ -3970,10 +3993,15 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           }
           const token = res.data.session.token;
           sessionStorage.setItem("ndli_admin_token", token);
-          sessionStorage.setItem("ndli_token", token);
-          sessionStorage.setItem("ndli_auth_session", JSON.stringify(res.data.session));
-          sessionStorage.setItem("ndli_user_id", res.data.session.user_id || "admin@iitkgp.ac.in");
-          sessionStorage.setItem("ndli_role", "ADMIN");
+          sessionStorage.setItem("ndli_admin_session", JSON.stringify(res.data.session));
+          sessionStorage.setItem("ndli_admin_user_id", res.data.session.user_id || "admin@iitkgp.ac.in");
+          sessionStorage.setItem("ndli_admin_role", "ADMIN");
+          if (!sessionStorage.getItem("ndli_employee_token") && sessionStorage.getItem("ndli_role") !== "EMPLOYEE") {
+            sessionStorage.setItem("ndli_token", token);
+            sessionStorage.setItem("ndli_auth_session", JSON.stringify(res.data.session));
+            sessionStorage.setItem("ndli_user_id", res.data.session.user_id || "admin@iitkgp.ac.in");
+            sessionStorage.setItem("ndli_role", "ADMIN");
+          }
           IS_ADMIN_AUTHENTICATED = true;
 
           showAdminGateView(true, res.data.session);
@@ -4078,12 +4106,15 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
     function lockAdminSection() {
       sessionStorage.removeItem("ndli_admin_token");
+      sessionStorage.removeItem("ndli_admin_session");
+      sessionStorage.removeItem("ndli_admin_user_id");
+      sessionStorage.removeItem("ndli_admin_role");
       if (sessionStorage.getItem("ndli_role") === "ADMIN") {
         sessionStorage.removeItem("ndli_token");
         sessionStorage.removeItem("ndli_role");
+        sessionStorage.removeItem("ndli_auth_session");
+        sessionStorage.removeItem("ndli_user_id");
       }
-      sessionStorage.removeItem("ndli_auth_session");
-      sessionStorage.removeItem("ndli_user_id");
       IS_ADMIN_AUTHENTICATED = false;
       showAdminGateView(false);
       const formEl = document.getElementById("admin-gate-form");
@@ -4092,6 +4123,18 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       if (alertEl) alertEl.innerHTML = "";
       renderUnauthenticatedKPIs(401);
       showAlert("admin-alert", "Employee Management section has been locked. Admin authentication required to re-enter.", "info");
+    }
+
+    function updateEmployeePortalNavLink() {
+      const empId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
+      if (empId) {
+        document.querySelectorAll(".nav-link-employee").forEach(el => {
+          el.href = (typeof window !== "undefined" && window.location && window.location.search && window.location.search.includes("page="))
+            ? `?page=employee&emp=${encodeURIComponent(empId)}`
+            : `/employee/${encodeURIComponent(empId)}`;
+          el.title = `Return to ${empId} Zonal Employee Portal`;
+        });
+      }
     }
 
     function toggleAdminAuthAction() {
@@ -5035,6 +5078,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     window.onload = async () => {
+      updateEmployeePortalNavLink();
       await checkAdminAuth();
       await loadDashboardData();
       await loadAIDecisions();

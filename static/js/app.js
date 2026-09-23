@@ -43,7 +43,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     if (isAdminRoute) {
       authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
     } else {
-      authTok = sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+      authTok = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || sessionStorage.getItem("ndli_admin_token");
     }
   }
   if (authTok) {
