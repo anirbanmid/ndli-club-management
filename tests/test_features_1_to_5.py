@@ -49,6 +49,8 @@ class TestFeatures1To5(unittest.TestCase):
         cls.server.server_close()
 
     def _post(self, path: str, payload: dict, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
@@ -61,6 +63,8 @@ class TestFeatures1To5(unittest.TestCase):
             return e.code, json.loads(e.read().decode("utf-8"))
 
     def _get_json(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         req = urllib.request.Request(url)
         if token:
@@ -72,6 +76,8 @@ class TestFeatures1To5(unittest.TestCase):
             return e.code, json.loads(e.read().decode("utf-8"))
 
     def _get_raw(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         req = urllib.request.Request(url)
         if token:
@@ -294,6 +300,7 @@ class TestFeatures1To5(unittest.TestCase):
             "issue_id": issue_id,
             "status": "Not Resolved",
             "resolved_by": emp_id,
+            "role": "EMPLOYEE",
             "resolution_notes": "Awaiting updated documents from patron."
         })
         self.assertEqual(status, 200)

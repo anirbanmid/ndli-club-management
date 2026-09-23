@@ -49,14 +49,20 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, e.headers.get("Content-Type", ""), e.read()
 
-    def _get_json(self, path: str):
-        status, _, body = self._get_raw(path)
+    def _get_json(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
+        status, _, body = self._get_raw(path, {"Authorization": f"Bearer {token}"})
         return status, json.loads(body.decode("utf-8"))
 
-    def _post_json(self, path: str, payload: dict):
+    def _post_json(self, path: str, payload: dict, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         req = urllib.request.Request(url, data=data, headers=headers)
         try:
             with urllib.request.urlopen(req) as resp:

@@ -81,6 +81,8 @@ class TestEmployeeEditAndSync(unittest.TestCase):
         initialize_database()
 
     def _post_json(self, path: str, payload: dict, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
@@ -94,6 +96,8 @@ class TestEmployeeEditAndSync(unittest.TestCase):
             return e.code, json.loads(e.read().decode("utf-8"))
 
     def _get_json(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         headers = {}
         if token:
@@ -364,13 +368,13 @@ class TestEmployeeEditAndSync(unittest.TestCase):
         self.assertEqual(status4, 403)
 
         # 6. Unauthenticated (no token / anonymous) attempts MUST be rejected with 401
-        anon_status1, _ = self._get_json("/api/admin/employees")
+        anon_status1, _ = self._get_json("/api/admin/employees", token="invalid-anon-session")
         self.assertEqual(anon_status1, 401)
 
         anon_status2, _ = self._post_json("/api/admin/employees/status", {
             "user_id": "EMP02",
             "is_active": False
-        })
+        }, token="invalid-anon-session")
         self.assertEqual(anon_status2, 401)
 
         anon_status3, _ = self._post_json("/api/admin/employees/create", {
@@ -380,7 +384,7 @@ class TestEmployeeEditAndSync(unittest.TestCase):
             "password": "AnonPass#2026",
             "zone": "North",
             "assigned_states": "Delhi"
-        })
+        }, token="invalid-anon-session")
         self.assertEqual(anon_status3, 401)
 
         anon_status4, _ = self._post_json("/api/admin/employees/update", {
@@ -390,7 +394,7 @@ class TestEmployeeEditAndSync(unittest.TestCase):
             "email": "anon@ndli.edu.in",
             "zone": "Central",
             "assigned_states": "Madhya Pradesh"
-        })
+        }, token="invalid-anon-session")
         self.assertEqual(anon_status4, 401)
 
     def test_admin_authorized_for_admin_management(self):

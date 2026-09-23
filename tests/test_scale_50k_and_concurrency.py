@@ -149,8 +149,10 @@ class TestScale50kAndConcurrency(unittest.TestCase):
         ]
 
         def _fetch_url(url_suffix):
+            from auth_util import admin_token
+            tok = admin_token(self.base_url, self.__class__.__name__)
             full_url = f"{self.base_url}{url_suffix}"
-            req = urllib.request.Request(full_url, headers={"User-Agent": "NDLI-Concurrency-Test"})
+            req = urllib.request.Request(full_url, headers={"User-Agent": "NDLI-Concurrency-Test", "Authorization": f"Bearer {tok}"})
             with urllib.request.urlopen(req, timeout=5.0) as resp:
                 status = resp.status
                 body = resp.read()

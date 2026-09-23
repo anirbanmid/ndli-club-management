@@ -43,9 +43,13 @@ class TestRenewalCertificateAndSecurity(unittest.TestCase):
         except Exception:
             pass
 
-    def _get(self, path):
+    def _get(self, path, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         req = urllib.request.Request(url, method="GET")
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(req) as resp:
                 status = resp.status
@@ -55,11 +59,15 @@ class TestRenewalCertificateAndSecurity(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, e.read(), dict(e.headers)
 
-    def _post(self, path, payload):
+    def _post(self, path, payload, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(req) as resp:
                 status = resp.status

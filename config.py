@@ -50,6 +50,10 @@ APPS_SCRIPT_SYNC_URL = os.getenv(
     "NDLI_APPS_SCRIPT_SYNC_URL",
     "http://example.invalid/REPLACE_RELAY_URL_AT_HANDOVER"
 )
+# Optional shared secret appended to every relay payload. When set, the Apps
+# Script relay should reject requests without it (see HANDOVER_SECURITY_CHECKLIST.md).
+# Leave empty to keep legacy relay behavior.
+RELAY_SECRET = os.getenv("NDLI_RELAY_SECRET", "")
 AUTO_SYNC_INTERVAL_SEC = int(os.getenv("NDLI_AUTO_SYNC_INTERVAL_SEC", 300))
 
 # Master Database Paths (CSV Files)
@@ -72,8 +76,12 @@ SECRET_KEY = os.getenv("NDLI_SECRET_KEY", "ndli_kgp_secret_key_2026_production_g
 SESSION_EXPIRY_HOURS = 12
 
 # Admin Seed Account (IIT Kharagpur)
+# NOTE: the default below is a TEST-ONLY seed. For a production/client
+# deployment set the NDLI_ADMIN_PASSWORD environment variable before first
+# boot (or use the in-app "Change Password" feature right after first login).
+# See HANDOVER_SECURITY_CHECKLIST.md.
 DEFAULT_ADMIN_EMAIL = "admin@iitkgp.ac.in"
-DEFAULT_ADMIN_PASSWORD = "Seed#Admin-Rotated2026"
+DEFAULT_ADMIN_PASSWORD = os.getenv("NDLI_ADMIN_PASSWORD", "Seed#Admin-Rotated2026")
 DEFAULT_ADMIN_NAME = "IIT Kharagpur Admin Office"
 
 # 7 Initial Employees Mapping across India

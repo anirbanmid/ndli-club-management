@@ -43,6 +43,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
             return e.code, e.headers.get("Content-Type", ""), e.read()
 
     def _get_json(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         headers = {}
         if token:
             headers["Authorization"] = f"Bearer {token}"
@@ -50,6 +52,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         return status, json.loads(body.decode("utf-8"))
 
     def _post_json(self, path: str, payload: dict, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}

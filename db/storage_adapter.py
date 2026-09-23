@@ -33,6 +33,7 @@ from config import (
     GOOGLE_DRIVE_FOLDER_ID,
     GOOGLE_SERVICE_ACCOUNT_FILE,
     APPS_SCRIPT_SYNC_URL,
+    RELAY_SECRET,
     DRIVE_STORAGE_MODE
 )
 
@@ -202,6 +203,8 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 "content": content
             }
         }
+        if RELAY_SECRET:
+            payload["relay_key"] = RELAY_SECRET
         last_err: Optional[Exception] = None
         for attempt in range(1, max_attempts + 1):
             try:
@@ -469,6 +472,8 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
             "method": "POST",
             "data": {}
         }
+        if RELAY_SECRET:
+            payload["relay_key"] = RELAY_SECRET
         try:
             req = urllib.request.Request(
                 self.relay_url,
@@ -546,6 +551,8 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 "fileName": file_name
             }
         }
+        if RELAY_SECRET:
+            payload["relay_key"] = RELAY_SECRET
         try:
             req = urllib.request.Request(
                 self.relay_url,

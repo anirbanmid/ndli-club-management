@@ -65,7 +65,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self, status: int = 200, content_type: str = "application/json"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-session-token")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -74,17 +73,21 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.end_headers()
 
-    def _serve_file(self, file_path: Path, content_type: str = "text/html; charset=utf-8"):
+    def _serve_file(self, file_path: Path, content_type: str = "text/html; charset=utf-8", extra_root: Optional[Path] = None):
         """Serves a static or template file with correct MIME type, caching headers, and directory traversal immunity."""
         try:
             resolved = file_path.resolve()
+            # Only web-servable roots. The database directories (data/, DATA_DIR)
+            # are deliberately NOT roots here -- database files must only travel
+            # through authenticated API endpoints. `extra_root` allows narrowly
+            # scoped exceptions (e.g. the signatures folder).
             allowed_roots = [
                 (BASE_DIR / "static").resolve(),
                 (BASE_DIR / "docs").resolve(),
                 (BASE_DIR / "templates").resolve(),
-                (BASE_DIR / "data").resolve(),
-                DATA_DIR.resolve()
             ]
+            if extra_root is not None:
+                allowed_roots.append(Path(extra_root).resolve())
             if not any(resolved == r or r in resolved.parents for r in allowed_roots):
                 self._send_error("Access denied: Invalid resource path.", status=403)
                 return
@@ -101,7 +104,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(content)))
-            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "SAMEORIGIN")
             if "/static/" in str(file_path).replace("\\", "/"):
@@ -116,6 +118,14 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         """Handle CORS pre-flight requests."""
         self._set_headers(HTTPStatus.NO_CONTENT)
+
+    def log_message(self, fmt, *args):
+        """Access log with query strings redacted so tokens never reach server logs."""
+        try:
+            path_only = str(self.path).split("?", 1)[0]
+            print(f"[{self.log_date_time_string()}] {self.command} {path_only}")
+        except Exception:
+            pass
 
     def _send_json(self, data: Any, status: int = 200):
         self._set_headers(status, "application/json; charset=utf-8")
@@ -148,14 +158,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             token = self.headers.get("x-session-token", "").strip()
 
         if not token:
-            try:
-                parsed_q = urllib.parse.urlparse(self.path)
-                qs = urllib.parse.parse_qs(parsed_q.query)
-                token = qs.get("token", [""])[0].strip()
-            except Exception:
-                pass
-
-        if not token:
             return None
         return AuthService.validate_session(token)
 
@@ -181,6 +183,30 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             return False
 
         return True
+
+    def _require_session(self) -> Optional[Dict[str, Any]]:
+        """Returns the authenticated session, or sends 401 and returns None."""
+        session = self._get_auth_session()
+        if not session:
+            self._send_error("Authentication required. Please log in.", status=401)
+            return None
+        return session
+
+    def _require_self_or_admin(self, emp_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Identity gate for employee-scoped operations: the authenticated session
+        must belong to the same employee, or the caller must be an Admin.
+        Sends 401/403 and returns None on failure.
+        """
+        session = self._require_session()
+        if not session:
+            return None
+        if session.get("role") == "ADMIN":
+            return session
+        if str(session.get("user_id", "")).strip().upper() == str(emp_id or "").strip().upper():
+            return session
+        self._send_error("Access denied: you may only operate on your own employee records.", status=403)
+        return None
 
     def _is_employee_active(self, emp_id: str) -> bool:
         """Checks if the employee ID exists and has active status (is_active == '1'). O(1) indexed lookup."""
@@ -262,7 +288,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Static assets serving (static/ and docs/)
         if path.startswith("/static/") or path.startswith("/docs/"):
-            rel_path = path.lstrip("/")
+            rel_path = urllib.parse.unquote(path).lstrip("/")
+            # Reject traversal attempts before any filesystem mapping
+            if ".." in rel_path.split("/") or "\x00" in rel_path:
+                self._send_error("Access denied: Invalid resource path.", status=403)
+                return
             file_path = BASE_DIR / rel_path
             content_type = "application/octet-stream"
             if path.endswith(".css"):
@@ -417,6 +447,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             if not clean_id:
                 self._send_error("emp_id or id parameter is required.")
                 return
+            if not self._require_session():
+                return
 
             users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
             target = None
@@ -459,6 +491,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Universal Search for Clubs
         if path == "/api/clubs/search":
+            if not self._require_session():
+                return
             query = query_params.get("q", [""])[0]
             emp_id = query_params.get("emp_id", [""])[0]
             limit_param = query_params.get("limit", [""])[0]
@@ -496,6 +530,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Activity List
         if path == "/api/activity/list":
+            if not self._require_session():
+                return
             emp_id = query_params.get("emp_id", [""])[0]
             if emp_id:
                 node_act_path = SyncEngine.get_employee_activities_path(emp_id)
@@ -507,7 +543,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Admin Performance Dashboard Metrics
         if path == "/api/admin/metrics":
-            session = self._get_auth_session()
+            if not self._check_admin_access():
+                return
             all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS, copy=False)
             all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, copy=False)
             all_quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, copy=False)
@@ -696,6 +733,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Admin Employee Performance Evaluation & Star Rating Matrix
         if path == "/api/admin/employee-performance":
+            if not self._check_admin_access():
+                return
             raw_year = query_params.get("year", ["ALL"])[0].strip()
             raw_month = query_params.get("month", ["ALL"])[0].strip()
             raw_state = query_params.get("state", ["ALL"])[0].strip() or query_params.get("states", ["ALL"])[0].strip()
@@ -938,12 +977,16 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Admin Renewal Attention Clubs List
         if path == "/api/admin/renewal-attention":
+            if not self._check_admin_access():
+                return
             attention_data = AIDecisionEngine.get_renewal_attention_data()
             self._send_json({"success": True, **attention_data})
             return
 
         # Single Club Full Details View
         if path == "/api/clubs/details":
+            if not self._require_session():
+                return
             club_id = query_params.get("club_id", [""])[0] or query_params.get("id", [""])[0]
             clean_cid = club_id.strip().upper()
             if not clean_cid:
@@ -1045,6 +1088,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # AI Strategic Decision Module
         if path == "/api/admin/ai-insights":
+            if not self._check_admin_access():
+                return
             insights = AIDecisionEngine.generate_strategic_report()
             self._send_json(insights)
             return
@@ -1095,7 +1140,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Disposition", f'{disp_type}; filename="NDLI_Club_Management_User_Manual.pdf"')
                 self.send_header("Content-Length", str(len(pdf_bytes)))
                 self.send_header("Cache-Control", "public, max-age=3600")
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(pdf_bytes)
             except Exception as e:
@@ -1135,7 +1179,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", str(len(video_bytes)))
                 self.send_header("Accept-Ranges", "bytes")
                 self.send_header("Cache-Control", "public, max-age=86400")
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(video_bytes)
             except Exception as e:
@@ -1144,6 +1187,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # FEATURE 1: Download Master CSV (master_clubs.csv) from Admin Dashboard
         if path in ["/api/admin/download/master-clubs", "/api/admin/download/master_clubs.csv"]:
+            if not self._check_admin_access():
+                return
             if not MASTER_CLUBS_CSV.exists():
                 CSVEngine.ensure_file(MASTER_CLUBS_CSV, CLUB_FIELDS)
             try:
@@ -1153,7 +1198,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/csv; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="master_clubs.csv"')
                 self.send_header("Content-Length", str(len(content)))
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(content)
             except Exception as e:
@@ -1191,6 +1235,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # FEATURE 2: 7-Day Auto Backup Status Check (Admin End & Employee End)
         if path == "/api/admin/backup/status":
+            if not self._check_admin_access():
+                return
             BackupEngine.check_and_run_auto_backup()
             status_data = BackupEngine.get_backup_status()
             self._send_json({"success": True, **status_data})
@@ -1207,6 +1253,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("Employee ID (emp_id) is required.", status=400)
                 return
             clean_emp = emp_id.strip().upper()
+            if not self._require_self_or_admin(clean_emp):
+                return
             users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
             emp_user = next((u for u in users if u.get("id", "").strip().upper() == clean_emp), None)
             if not emp_user:
@@ -1226,7 +1274,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/csv; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="activity_log.csv"')
                 self.send_header("Content-Length", str(len(content)))
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(content)
             except Exception as e:
@@ -1244,6 +1291,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("Employee ID (emp_id) is required.", status=400)
                 return
             clean_emp = emp_id.strip().upper()
+            if not self._require_self_or_admin(clean_emp):
+                return
             users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
             emp_user = next((u for u in users if u.get("id", "").strip().upper() == clean_emp), None)
             if not emp_user:
@@ -1263,7 +1312,6 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/csv; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="clubs.csv"')
                 self.send_header("Content-Length", str(len(content)))
-                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(content)
             except Exception as e:
@@ -1277,18 +1325,28 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 session = self._get_auth_session()
                 if session and session.get("role") == "EMPLOYEE":
                     emp_id = session.get("user_id", "")
+            if not emp_id:
+                # Listing reminders across all employees is admin-only
+                if not self._check_admin_access():
+                    return
+            elif not self._require_self_or_admin(emp_id):
+                return
             reminders = IssueManager.get_employee_reminders(emp_id=emp_id if emp_id else None)
             self._send_json({"success": True, "count": len(reminders), "reminders": reminders})
             return
 
         # FEATURE 5: Admin Escalation Reminders Query (Unresolved for 30 days, or +7 days if not resolved)
         if path == "/api/issues/admin-reminders":
+            if not self._check_admin_access():
+                return
             reminders = IssueManager.get_admin_reminders()
             self._send_json({"success": True, "count": len(reminders), "reminders": reminders})
             return
 
         # Issues List Query
         if path == "/api/issues/list":
+            if not self._require_session():
+                return
             emp_id = query_params.get("emp_id", [""])[0]
             club_id = query_params.get("club_id", [""])[0]
             status_param = query_params.get("status", [""])[0]
@@ -1301,6 +1359,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             issue_id = query_params.get("issue_id", [""])[0] or query_params.get("id", [""])[0]
             if not issue_id:
                 self._send_error("issue_id parameter is required.", status=400)
+                return
+            if not self._require_session():
                 return
             issue = IssueManager.get_issue_by_id(issue_id)
             if not issue:
@@ -1345,13 +1405,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             if sig_path.exists():
                 ext = sig_path.suffix.lower()
                 ctype = "image/png" if ext == ".png" else "image/jpeg"
-                self._serve_file(sig_path, ctype)
+                self._serve_file(sig_path, ctype, extra_root=sig_dir)
             else:
                 self._send_error("No PI signature uploaded yet.", status=404)
             return
 
         # Trigger Immediate Google Drive Sync
         if path == "/api/admin/drive/sync-now":
+            if not self._check_admin_access():
+                return
             adapter = get_storage_adapter()
             if hasattr(adapter, "sync_all_now"):
                 res = adapter.sync_all_now()
@@ -1403,6 +1465,32 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, "message": "Logged out successfully."})
             return
 
+        # Self-Service Password Change (any role -- proves ownership via current password)
+        if path == "/api/auth/change-password":
+            session = self._require_session()
+            if not session:
+                return
+            identifier = str(body.get("user_id", "") or session.get("user_id", "")).strip()
+            current_password = str(body.get("current_password", "") or body.get("password", "")).strip()
+            new_password = str(body.get("new_password", "")).strip()
+            if not current_password or not new_password:
+                self._send_error("current_password and new_password are required.", status=400)
+                return
+            # Non-admins may only change their own password
+            if session.get("role") != "ADMIN" and identifier.upper() != str(session.get("user_id", "")).upper():
+                self._send_error("You may only change your own password.", status=403)
+                return
+            ok, err, user_record = AuthService.change_password(identifier, current_password, new_password)
+            if not ok:
+                self._send_error(err or "Password change failed.", status=400)
+                return
+            self._send_json({
+                "success": True,
+                "message": "Password changed successfully.",
+                "user_id": user_record.get("id")
+            })
+            return
+
         # Security Verification: Verify Login Password (Renewal Confirmation Second Layer)
         if path == "/api/auth/verify-password":
             identifier = str(body.get("user_id", "") or body.get("emp_id", "") or body.get("email", "") or body.get("identifier", "")).strip()
@@ -1452,6 +1540,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 return
             if not support_type:
                 self._send_error("Support type is required.")
+                return
+
+            if not self._require_self_or_admin(emp_id):
                 return
 
             if not self._is_employee_active(emp_id):
@@ -1541,6 +1632,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             emp_id = str(body.get("emp_id", "")).strip().upper()
             if not emp_id:
                 self._send_error("Approving Employee ID (emp_id) is required.")
+                return
+
+            if not self._require_self_or_admin(emp_id):
                 return
 
             if not self._is_employee_active(emp_id):
@@ -1648,6 +1742,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("club_id is required.")
                 return
 
+            if emp_id:
+                if not self._require_self_or_admin(emp_id):
+                    return
+            elif not self._check_admin_access():
+                return
+
             if emp_id and not self._is_employee_active(emp_id):
                 self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
                 return
@@ -1673,6 +1773,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
             if not emp_id or not club_id:
                 self._send_error("emp_id and club_id are required.")
+                return
+
+            if not self._require_self_or_admin(emp_id):
                 return
 
             if not self._is_employee_active(emp_id):
@@ -1818,6 +1921,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Trigger Manual Reconcile
         if path == "/api/sync/reconcile":
+            if not self._check_admin_access():
+                return
             summary = SyncEngine.reconcile_all_nodes()
             self._send_json({
                 "success": True,
@@ -1828,6 +1933,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # FEATURE 2: Trigger Database Backup Manually (Admin)
         if path in ["/api/admin/backup/trigger", "/api/admin/backup/create"]:
+            if not self._check_admin_access():
+                return
             try:
                 note_param = body.get("note", "Manual Admin Trigger")
                 res = BackupEngine.create_backup(note=note_param)
@@ -1896,6 +2003,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             if not emp_id:
                 self._send_error("emp_id is required.", status=400)
                 return
+            if not self._require_self_or_admin(emp_id):
+                return
             if not issue_note:
                 self._send_error("issue_note (brief note of the issue) is required.", status=400)
                 return
@@ -1930,14 +2039,22 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("status ('Resolved' or 'Not Resolved') is required.", status=400)
                 return
 
-            session = self._get_auth_session()
-            if not resolved_by:
-                if session:
-                    resolved_by = session.get("email") or session.get("user_id", "")
-                else:
-                    resolved_by = "Portal User"
+            session = self._require_session()
+            if not session:
+                return
 
-            if not role_param and session:
+            existing_issue = IssueManager.get_issue_by_id(issue_id)
+            if not existing_issue:
+                self._send_error(f"Issue with ID '{issue_id}' not found.", status=404)
+                return
+            if session.get("role") != "ADMIN" and str(existing_issue.get("emp_id", "")).strip().upper() != str(session.get("user_id", "")).strip().upper():
+                self._send_error("Access denied: you may only resolve your own issues.", status=403)
+                return
+
+            if not resolved_by:
+                resolved_by = session.get("email") or session.get("user_id", "")
+
+            if not role_param:
                 role_param = session.get("role", "").strip().upper()
 
             updated_issue = IssueManager.resolve_issue(
@@ -1966,6 +2083,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Certificate Signature Upload
         if path == "/api/certificate/signature":
+            if not self._check_admin_access():
+                return
             image_data = body.get("image_data", "")
             if not image_data:
                 self._send_error("image_data (base64 string or data URL) is required.", status=400)
@@ -2032,6 +2151,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             settings_file = sig_dir / "settings.json"
+            if not self._check_admin_access():
+                return
             saved = {
                 "pi_name": "Prof. Partha Pratim Chakrabarti",
                 "pi_affiliation": "Principal Investigator, NDLI Project, Central Library, IIT Kharagpur"
@@ -2067,6 +2188,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Trigger Immediate Google Drive Sync (Push)
         if path == "/api/admin/drive/sync-now":
+            if not self._check_admin_access():
+                return
             adapter = get_storage_adapter()
             if hasattr(adapter, "sync_all_now"):
                 res = adapter.sync_all_now()
@@ -2077,6 +2200,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Trigger Immediate Google Drive Pull (Restore from Cloud)
         if path in ("/api/admin/drive/pull-now", "/api/sync/pull-now"):
+            if not self._check_admin_access():
+                return
             adapter = get_storage_adapter()
             if hasattr(adapter, "pull_all_from_drive"):
                 res = adapter.pull_all_from_drive()

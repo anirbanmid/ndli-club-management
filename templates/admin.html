@@ -126,6 +126,7 @@
         <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem;">ADMIN LOCKED 🔒</span>
         <span id="nav-admin-user" style="font-size: 0.78rem; color: #cbd5e1;">Access Restricted</span>
         <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem; white-space: nowrap;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
+        <a href="#" class="nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
         <a href="/login" class="nav-link" title="Regional Employee Sign-In"><span>🔐</span> Employee Login</a>
         <a href="/employee" class="nav-link nav-link-employee" title="Regional Zonal Employee Portal"><span>👥</span> Employee Portal</a>
@@ -836,17 +837,31 @@
     // FEATURE 1: DOWNLOAD MASTER CSV (master_clubs.csv)
     // =========================================================================
     function downloadMasterCSV() {
+      fetchMasterCSVAsBlob();
+    }
+
+    async function fetchMasterCSVAsBlob() {
       const adminToken = sessionStorage.getItem("ndli_admin_token");
-      let url = "/api/admin/download/master-clubs";
-      if (adminToken) {
-        url += `?token=${encodeURIComponent(adminToken)}`;
+      try {
+        const res = await fetch("/api/admin/download/master-clubs", {
+          headers: adminToken ? { "Authorization": `Bearer ${adminToken}` } : {}
+        });
+        if (!res.ok) {
+          showAlert("global-alert", "Master CSV download failed. Please sign in as Administrator and try again.", "danger");
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        const objUrl = URL.createObjectURL(blob);
+        a.href = objUrl;
+        a.download = "master_clubs.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+      } catch (err) {
+        showAlert("global-alert", "Master CSV download failed: " + err.message, "danger");
       }
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "master_clubs.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
     }
 
     // =========================================================================
@@ -3605,7 +3620,7 @@
             <label for="restore-admin-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
               Security Layer 2: Master Administrator Password
             </label>
-            <input type="password" id="restore-admin-password" placeholder="Enter Central Admin Password (e.g. Seed#Admin-Rotated2026)" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+            <input type="password" id="restore-admin-password" placeholder="Enter Master Administrator Password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
             <div id="restore-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
           </div>
         </div>
@@ -3622,6 +3637,96 @@
       </div>
     </div>
   </div>
+
+  <!-- CHANGE PASSWORD MODAL (self-service credential rotation, used at client handover) -->
+  <div class="modal-overlay modal" id="change-password-modal" style="z-index: 1260; display: none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%;">
+      <button class="modal-close" onclick="closeChangePasswordModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🔑</span> Change My Password
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Rotate this account's password (minimum 8 characters)</p>
+        </div>
+      </div>
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
+        <div style="margin-bottom: 0.8rem;">
+          <label for="chg-current-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Current Password</label>
+          <input type="password" id="chg-current-password" placeholder="Enter current password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+        </div>
+        <div style="margin-bottom: 0.8rem;">
+          <label for="chg-new-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">New Password</label>
+          <input type="password" id="chg-new-password" placeholder="Enter new password (min 8 characters)" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+        </div>
+        <div>
+          <label for="chg-confirm-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Confirm New Password</label>
+          <input type="password" id="chg-confirm-password" placeholder="Re-enter new password" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+        </div>
+        <div id="chg-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
+        <div id="chg-password-success" style="color: #047857; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" class="btn btn-outline" onclick="closeChangePasswordModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-change-password" onclick="submitChangePassword()" style="font-weight: 600;">Update Password</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Self-service password change (credential rotation provision) =====
+    function openChangePasswordModal() {
+      document.getElementById("chg-current-password").value = "";
+      document.getElementById("chg-new-password").value = "";
+      document.getElementById("chg-confirm-password").value = "";
+      document.getElementById("chg-password-error").style.display = "none";
+      document.getElementById("chg-password-success").style.display = "none";
+      document.getElementById("btn-submit-change-password").disabled = false;
+      document.getElementById("change-password-modal").style.display = "flex";
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById("change-password-modal").style.display = "none";
+    }
+
+    async function submitChangePassword() {
+      const cur = document.getElementById("chg-current-password").value;
+      const nw = document.getElementById("chg-new-password").value;
+      const cf = document.getElementById("chg-confirm-password").value;
+      const errEl = document.getElementById("chg-password-error");
+      const okEl = document.getElementById("chg-password-success");
+      errEl.style.display = "none";
+      okEl.style.display = "none";
+      const fail = (msg) => { errEl.textContent = msg; errEl.style.display = "block"; };
+      if (!cur || !nw) { fail("Both current and new password are required."); return; }
+      if (nw.length < 8) { fail("New password must be at least 8 characters long."); return; }
+      if (nw !== cf) { fail("New passwords do not match."); return; }
+      const btn = document.getElementById("btn-submit-change-password");
+      btn.disabled = true;
+      try {
+        const res = await apiRequest("/api/auth/change-password", "POST", {
+          current_password: cur,
+          new_password: nw
+        });
+        if (res.ok && res.data && res.data.success) {
+          okEl.textContent = "✓ Password changed successfully. Please use the new password at next sign-in.";
+          okEl.style.display = "block";
+          document.getElementById("chg-current-password").value = "";
+          document.getElementById("chg-new-password").value = "";
+          document.getElementById("chg-confirm-password").value = "";
+        } else {
+          fail((res.data && res.data.message) || "Password change failed.");
+        }
+      } catch (err) {
+        fail("Password change failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    window.openChangePasswordModal = openChangePasswordModal;
+    window.closeChangePasswordModal = closeChangePasswordModal;
+    window.submitChangePassword = submitChangePassword;
+  </script>
 
   <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
   <footer class="system-footer">

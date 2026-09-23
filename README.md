@@ -6,6 +6,14 @@ A high-performance, modern, minimalist web application engineered for tracking e
 
 ---
 
+> **Deployment & Security Docs**
+> - `PYTHONANYWHERE_DEPLOYMENT.md` — free-tier deployment via `wsgi.py` (persistent disk, no cold starts)
+> - `HANDOVER_SECURITY_CHECKLIST.md` — password/secret rotation procedure for client handover
+> - Security note: API endpoints enforce session auth (admin gates + self-or-admin identity checks); the
+>   in-app **🔑 Change Password** provision rotates any account credential.
+
+---
+
 ## 1. System Architecture Overview
 
 ```

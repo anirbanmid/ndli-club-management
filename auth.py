@@ -10,8 +10,7 @@ from typing import Dict, Any, Optional, Tuple
 
 from config import (
     MASTER_USERS_CSV,
-    SESSION_EXPIRY_HOURS,
-    DEFAULT_ADMIN_PASSWORD
+    SESSION_EXPIRY_HOURS
 )
 from db.schemas import USER_FIELDS
 from db.csv_engine import CSVEngine
@@ -42,16 +41,21 @@ def verify_password(password: str, stored_hash: str, salt: str) -> bool:
     return secrets.compare_digest(test_hash, stored_hash)
 
 
+MIN_PASSWORD_LENGTH = 8
+
+
 class AuthService:
     """Authentication and Session Management Service."""
 
     @classmethod
-    def authenticate(cls, email: str, password: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def _find_and_verify(cls, identifier: str, password: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
-        Authenticates an email or user ID and password against master_users.csv.
-        Returns: (success: bool, error_message_or_none, user_dict_or_none)
+        Core credential verification against master_users.csv.
+        Returns: (success, error_message_or_none, user_record_or_none).
+        The stored PBKDF2 hash is the single source of truth for every role --
+        there are NO hardcoded/fallback password shortcuts in this path.
         """
-        clean_input = str(email or "").strip()
+        clean_input = str(identifier or "").strip()
         if not clean_input or not password:
             return False, "Email and password are required.", None
 
@@ -74,17 +78,23 @@ class AuthService:
         if str(user_record.get("is_active", "1")).strip() != "1":
             return False, "This account has been disabled or blocked by the Administrator.", None
 
-        # Verify hash
+        # Verify hash (strict for every role -- no plaintext fallbacks)
         stored_hash = user_record.get("password_hash", "")
         salt = user_record.get("salt", "")
-
-        is_valid = verify_password(password, stored_hash, salt)
-        if not is_valid and user_record.get("role") == "ADMIN":
-            if password in [DEFAULT_ADMIN_PASSWORD, "Seed#Scrubbed-2026", "Seed#Admin-Rotated2026"]:
-                is_valid = True
-
-        if not is_valid:
+        if not verify_password(password, stored_hash, salt):
             return False, "Invalid email or password.", None
+
+        return True, None, user_record
+
+    @classmethod
+    def authenticate(cls, email: str, password: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+        """
+        Authenticates an email or user ID and password against master_users.csv.
+        Returns: (success: bool, error_message_or_none, session_dict_or_none)
+        """
+        ok, err, user_record = cls._find_and_verify(email, password)
+        if not ok:
+            return False, err, None
 
         # Create session
         token = secrets.token_hex(24)
@@ -292,4 +302,43 @@ class AuthService:
                         sess["assigned_states"] = updated_record["assigned_states"]
 
             return True, None, updated_record
+
+    @classmethod
+    def change_password(
+        cls,
+        identifier: str,
+        current_password: str,
+        new_password: str
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+        """
+        Self-service password change for any role (ADMIN or EMPLOYEE).
+        Requires the CURRENT password (proves account ownership), then stores a
+        fresh PBKDF2 hash + new salt into master_users.csv and -- for employees --
+        into their node credentials file. This is the provision used at client
+        handover to rotate every seeded/dummy credential.
+        Returns: (success, error_message_or_none, updated_user_record_or_none)
+        """
+        clean_new = str(new_password or "").strip()
+        if len(clean_new) < MIN_PASSWORD_LENGTH:
+            return False, f"New password must be at least {MIN_PASSWORD_LENGTH} characters long.", None
+        if str(current_password or "") == clean_new:
+            return False, "New password must be different from the current password.", None
+
+        with _AUTH_LOCK:
+            ok, err, user_record = cls._find_and_verify(identifier, current_password)
+            if not ok:
+                return False, "Current password is incorrect.", None
+
+            pwd_hash, salt = hash_password(clean_new)
+            user_record["password_hash"] = pwd_hash
+            user_record["salt"] = salt
+
+            CSVEngine.upsert_row(MASTER_USERS_CSV, USER_FIELDS, "id", user_record)
+
+            if str(user_record.get("role", "")).upper() == "EMPLOYEE":
+                node_cred = SyncEngine.get_employee_credentials_path(user_record.get("id", ""))
+                if node_cred.exists():
+                    CSVEngine.upsert_row(node_cred, USER_FIELDS, "id", user_record)
+
+            return True, None, user_record
 

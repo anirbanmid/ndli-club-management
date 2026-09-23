@@ -31,9 +31,13 @@ class TestAdminMetricsFilters(unittest.TestCase):
         cls.server.shutdown()
         cls.server.server_close()
 
-    def _get(self, path: str):
+    def _get(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         req = urllib.request.Request(url)
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(req) as resp:
                 return resp.status, json.loads(resp.read().decode("utf-8"))

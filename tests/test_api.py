@@ -28,6 +28,8 @@ class TestAPIEndpoints(unittest.TestCase):
         cls.server.server_close()
 
     def _post(self, path: str, payload: dict, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
@@ -40,6 +42,8 @@ class TestAPIEndpoints(unittest.TestCase):
             return e.code, json.loads(e.read().decode("utf-8"))
 
     def _get(self, path: str, token: str = ""):
+        from auth_util import admin_token
+        token = token or admin_token(self.base_url, self.__class__.__name__)
         url = f"{self.base_url}{path}"
         req = urllib.request.Request(url)
         if token:
