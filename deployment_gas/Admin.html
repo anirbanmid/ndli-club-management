@@ -1470,12 +1470,12 @@ tbody tr:hover {
     <div class="kpi-row">
       <div class="stat-card">
         <span class="stat-label">Total NDLI Clubs</span>
-        <span class="stat-value" id="kpi-clubs">0</span>
+        <span class="stat-value" id="kpi-clubs">--</span>
         <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States & UTs</span>
       </div>
       <div class="stat-card accent">
         <span class="stat-label">Total Daily Support Logs</span>
-        <span class="stat-value" id="kpi-activities">0</span>
+        <span class="stat-value" id="kpi-activities">--</span>
         <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 7 zones</span>
       </div>
       <div class="stat-card success">
@@ -2361,6 +2361,38 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     let GLOBAL_METRICS = null;
     let CURRENT_TABLE_STATE_FILTER = null;
 
+    function renderUnauthenticatedKPIs(status = 401) {
+      const alertContainer = document.getElementById("admin-alert");
+      if (alertContainer && !document.getElementById("admin-auth-prompt-banner")) {
+        const isEmployee = status === 403;
+        alertContainer.innerHTML = `
+          <div class="alert alert-warning" id="admin-auth-prompt-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <span style="font-size: 1.8rem; line-height: 1;">🔐</span>
+              <div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: #92400e;">Administrator Authentication Required</div>
+                <div style="font-size: 0.85rem; color: #b45309; margin-top: 2px;">
+                  Master KPIs, national club totals, and zonal analytics require verified Central Administrator privileges.
+                  ${isEmployee ? '<br><span style="color:#b91c1c; font-weight:600;">(Notice: You are currently logged in with an Employee account. Please sign in with Central Admin credentials.)</span>' : 'Please sign in with administrator credentials to reveal real-time database counts.'}
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-amber" onclick="openAdminLoginModal()" style="font-weight: 700; white-space: nowrap; padding: 0.55rem 1.15rem; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm); cursor: pointer;">
+              <span>🔑</span> Admin Sign-In
+            </button>
+          </div>
+        `;
+      }
+      const kpiClubs = document.getElementById("kpi-clubs");
+      const kpiActs = document.getElementById("kpi-activities");
+      if (kpiClubs && !IS_ADMIN_AUTHENTICATED) {
+        kpiClubs.innerHTML = '<span style="font-size:1.6rem; color:#dc2626;" title="Admin sign-in required to view master clubs">🔒</span>';
+      }
+      if (kpiActs && !IS_ADMIN_AUTHENTICATED) {
+        kpiActs.innerHTML = '<span style="font-size:1.6rem; color:#dc2626;" title="Admin sign-in required to view support logs">🔒</span>';
+      }
+    }
+
     async function loadDashboardData() {
       const zoneEl = document.getElementById("filter-zone");
       const yearEl = document.getElementById("filter-year");
@@ -2373,9 +2405,13 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const qs = queryParams.toString();
       const endpoint = qs ? `/api/admin/metrics?${qs}` : "/api/admin/metrics";
 
-      const res = await apiRequest(endpoint);
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+      const res = await apiRequest(endpoint, "GET", null, adminToken);
       if (res.ok && res.data) {
         GLOBAL_METRICS = res.data;
+
+        const banner = document.getElementById("admin-auth-prompt-banner");
+        if (banner) banner.remove();
 
         // Dynamically sync available database years into dropdown
         if (res.data.available_years && Array.isArray(res.data.available_years)) {
@@ -2390,6 +2426,8 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         renderRenewalHealthGauge(res.data.renewal_health);
         renderEmployeeBars(res.data.summary.quotas);
         renderStateBreakdown(res.data.state_wise_clubs);
+      } else {
+        renderUnauthenticatedKPIs(res.status || 401);
       }
       // Trigger live updates for automated backups and 30-day escalation reminders
       loadAdminBackupStatus();
@@ -3689,9 +3727,15 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     // AI Decision Module
     async function loadAIDecisions() {
       const container = document.getElementById("ai-recommendations-list");
+      if (!container) return;
+      if (!IS_ADMIN_AUTHENTICATED) {
+        container.innerHTML = "<p style='text-align: center; color: #cbd5e1; padding: 1.5rem;'>🔒 Administrator sign-in required to synthesize AI roadmap insights.</p>";
+        return;
+      }
       container.innerHTML = "<p style='text-align: center; color: #c7d2fe;'>Synthesizing AI roadmap insights...</p>";
 
-      const res = await apiRequest("/api/admin/ai-insights");
+      const adminToken = sessionStorage.getItem("ndli_admin_token");
+      const res = await apiRequest("/api/admin/ai-insights", "GET", null, adminToken);
       if (res.ok && res.data) {
         const ai = res.data;
         document.getElementById("kpi-renewals").innerText = (ai.metrics.expiring_soon_count || 0) + (ai.metrics.overdue_count || 0);
@@ -3746,14 +3790,17 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     let CURRENT_ROSTER = [];
 
     async function checkAdminAuth() {
-      const urlParams = new URLSearchParams(window.location.search);
+      const searchStr = (typeof window !== "undefined" && window.location && window.location.search) ? window.location.search : "";
+      const urlParams = new URLSearchParams(searchStr);
       const urlToken = urlParams.get("token") || urlParams.get("admin_token");
       if (urlToken) {
         sessionStorage.setItem("ndli_admin_token", urlToken);
         sessionStorage.setItem("ndli_token", urlToken);
+        sessionStorage.setItem("ndli_role", "ADMIN");
       }
       const token = sessionStorage.getItem("ndli_admin_token");
       if (!token) {
+        IS_ADMIN_AUTHENTICATED = false;
         showAdminGateView(false);
         return false;
       }
@@ -3764,11 +3811,16 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           IS_ADMIN_AUTHENTICATED = true;
           sessionStorage.setItem("ndli_admin_token", token);
           sessionStorage.setItem("ndli_token", token);
+          sessionStorage.setItem("ndli_role", "ADMIN");
           showAdminGateView(true, res.data.user);
           loadEmployeesRoster();
           return true;
         } else {
           sessionStorage.removeItem("ndli_admin_token");
+          if (sessionStorage.getItem("ndli_role") === "ADMIN") {
+            sessionStorage.removeItem("ndli_token");
+            sessionStorage.removeItem("ndli_role");
+          }
           IS_ADMIN_AUTHENTICATED = false;
           showAdminGateView(false);
           return false;
@@ -3816,52 +3868,109 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       }
     }
 
-    async function handleAdminGateLogin(e) {
-      e.preventDefault();
-      const id = document.getElementById("admin-gate-id").value.trim();
-      const pass = document.getElementById("admin-gate-pass").value;
-      const alertEl = document.getElementById("admin-gate-alert");
-      const unlockBtn = document.getElementById("btn-admin-unlock");
+    async function executeAdminLogin(id, pass, alertElId, unlockBtnId) {
+      const alertEl = document.getElementById(alertElId);
+      const unlockBtn = document.getElementById(unlockBtnId);
 
       if (!id || !pass) {
-        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>Admin User ID and Password are required.</div></div>`;
-        return;
+        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger" style="margin-bottom:0.75rem;"><span>⚠️</span><div>Admin User ID and Password are required.</div></div>`;
+        return false;
       }
 
-      unlockBtn.disabled = true;
-      unlockBtn.innerHTML = `<span>⏳</span> Verifying Admin Credentials...`;
+      if (unlockBtn) {
+        unlockBtn.disabled = true;
+        unlockBtn.innerHTML = `<span>⏳</span> Verifying Admin Credentials...`;
+      }
 
       try {
         const res = await apiRequest("/api/auth/login", "POST", { email: id, password: pass });
         if (res.ok && res.data.success && res.data.session) {
           if (res.data.session.role !== "ADMIN") {
             if (alertEl) alertEl.innerHTML = `
-              <div class="alert alert-danger">
+              <div class="alert alert-danger" style="margin-bottom:0.75rem;">
                 <span>🚫</span>
-                <div><strong>Access Denied:</strong> Employee credentials detected. Only Central IIT Kharagpur Administrators (admin@iitkgp.ac.in / ADMIN01) have permission to unlock Employee Management.</div>
+                <div><strong>Access Denied:</strong> Employee credentials detected (${res.data.session.user_id}). Only Central IIT Kharagpur Administrators (admin@iitkgp.ac.in / ADMIN01) have permission to unlock the Master Administration Dashboard.</div>
               </div>
             `;
-            return;
+            return false;
           }
           const token = res.data.session.token;
           sessionStorage.setItem("ndli_admin_token", token);
           sessionStorage.setItem("ndli_token", token);
+          sessionStorage.setItem("ndli_auth_session", JSON.stringify(res.data.session));
+          sessionStorage.setItem("ndli_user_id", res.data.session.user_id || "admin@iitkgp.ac.in");
+          sessionStorage.setItem("ndli_role", "ADMIN");
           IS_ADMIN_AUTHENTICATED = true;
+
           showAdminGateView(true, res.data.session);
-          showAlert("admin-alert", "✓ Central Administrator authenticated. Master Employee Management unlocked!", "success");
+          closeAdminLoginModal();
+
+          const banner = document.getElementById("admin-auth-prompt-banner");
+          if (banner) banner.remove();
+
+          showAlert("admin-alert", "✓ Central Administrator authenticated. Master Dashboard & Employee Management unlocked!", "success");
+
+          // IMMEDIATELY RELOAD ALL MASTER VIEWS AND DATA
+          await loadDashboardData();
+          await loadAIDecisions();
           loadEmployeesRoster();
+          loadEmployeePerformance();
+          loadAdminBackupStatus();
+          loadAdminEscalationReminders();
+          return true;
         } else {
           const msg = res.data?.message || "Invalid Admin User ID or Password.";
-          if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>${msg}</div></div>`;
+          if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger" style="margin-bottom:0.75rem;"><span>⚠️</span><div>${msg}</div></div>`;
+          return false;
         }
       } catch (err) {
-        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger"><span>⚠️</span><div>Network error connecting to authentication server.</div></div>`;
+        if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger" style="margin-bottom:0.75rem;"><span>⚠️</span><div>Network error connecting to authentication server.</div></div>`;
+        return false;
       } finally {
-        unlockBtn.disabled = false;
-        unlockBtn.innerHTML = `<span>🔓</span> Verify Admin & Unlock Employee Management`;
+        if (unlockBtn) {
+          unlockBtn.disabled = false;
+          unlockBtn.innerHTML = `<span>🔓</span> Verify Admin & Unlock`;
+        }
       }
     }
 
+    async function handleAdminGateLogin(e) {
+      e.preventDefault();
+      const id = document.getElementById("admin-gate-id").value.trim();
+      const pass = document.getElementById("admin-gate-pass").value;
+      await executeAdminLogin(id, pass, "admin-gate-alert", "btn-admin-unlock");
+    }
+
+    function openAdminLoginModal() {
+      const modal = document.getElementById("admin-login-modal");
+      if (!modal) return;
+      const alertEl = document.getElementById("admin-modal-alert");
+      if (alertEl) alertEl.innerHTML = "";
+      const passInp = document.getElementById("admin-modal-pass");
+      if (passInp) passInp.value = "";
+      const idInp = document.getElementById("admin-modal-id");
+      if (idInp && !idInp.value) idInp.value = "admin@iitkgp.ac.in";
+      modal.style.display = "flex";
+      setTimeout(() => { if (passInp) passInp.focus(); }, 100);
+    }
+
+    function closeAdminLoginModal() {
+      const modal = document.getElementById("admin-login-modal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function toggleModalAdminPassVisibility() {
+      const input = document.getElementById("admin-modal-pass");
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+    }
+
+    async function handleAdminModalLogin(e) {
+      e.preventDefault();
+      const id = document.getElementById("admin-modal-id").value.trim();
+      const pass = document.getElementById("admin-modal-pass").value;
+      await executeAdminLogin(id, pass, "admin-modal-alert", "btn-admin-modal-unlock");
+    }
 
     function toggleAdminPassVisibility() {
       const input = document.getElementById("admin-gate-pass");
@@ -3871,13 +3980,19 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
     function lockAdminSection() {
       sessionStorage.removeItem("ndli_admin_token");
-      sessionStorage.removeItem("ndli_token");
+      if (sessionStorage.getItem("ndli_role") === "ADMIN") {
+        sessionStorage.removeItem("ndli_token");
+        sessionStorage.removeItem("ndli_role");
+      }
+      sessionStorage.removeItem("ndli_auth_session");
+      sessionStorage.removeItem("ndli_user_id");
       IS_ADMIN_AUTHENTICATED = false;
       showAdminGateView(false);
       const formEl = document.getElementById("admin-gate-form");
       if (formEl) formEl.reset();
       const alertEl = document.getElementById("admin-gate-alert");
       if (alertEl) alertEl.innerHTML = "";
+      renderUnauthenticatedKPIs(401);
       showAlert("admin-alert", "Employee Management section has been locked. Admin authentication required to re-enter.", "info");
     }
 
@@ -3885,10 +4000,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       if (IS_ADMIN_AUTHENTICATED) {
         lockAdminSection();
       } else {
-        const tabBtn = document.getElementById("tab-btn-employees");
-        if (tabBtn) tabBtn.click();
-        const gate = document.getElementById("admin-auth-gate");
-        if (gate) gate.scrollIntoView({ behavior: "smooth" });
+        openAdminLoginModal();
       }
     }
 
@@ -4773,10 +4885,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           const editEmpModal = document.getElementById("edit-employee-modal");
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
-
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
+          const adminLoginModal = document.getElementById("admin-login-modal");
 
-          if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
+          if (adminLoginModal && (adminLoginModal.style.display === "flex" || adminLoginModal.classList.contains("active"))) {
+            closeAdminLoginModal();
+          } else if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
             closeEmergencyRestoreModal();
           } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
@@ -4796,7 +4910,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       document.querySelectorAll(".modal-overlay").forEach(overlay => {
         overlay.addEventListener("click", (e) => {
           if (e.target === overlay) {
-            if (overlay.id === "club-details-modal") {
+            if (overlay.id === "admin-login-modal") {
+              closeAdminLoginModal();
+            } else if (overlay.id === "club-details-modal") {
               backToAttentionList();
             } else if (overlay.id === "renewal-attention-modal") {
               closeRenewalAttentionModal();
@@ -4821,9 +4937,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     window.onload = async () => {
-      loadDashboardData();
-      loadAIDecisions();
       await checkAdminAuth();
+      await loadDashboardData();
+      await loadAIDecisions();
       document.getElementById("tab-btn-employees")?.addEventListener("click", () => {
         checkAdminAuth();
       });
@@ -5196,6 +5312,43 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           <span>⚠️</span> Confirm &amp; Execute Restore
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
+  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: 1250; display: none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%;">
+      <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1.25rem;">
+        <div>
+          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🏛️</span> Central Admin Sign-In
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
+        </div>
+      </div>
+      <div id="admin-modal-alert"></div>
+      <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
+          <div style="margin-bottom: 0.85rem;">
+            <label for="admin-modal-id" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
+            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+          </div>
+          <div>
+            <label for="admin-modal-pass" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
+          <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
+            <span>🔓</span> Verify &amp; Unlock
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

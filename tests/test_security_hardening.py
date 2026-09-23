@@ -53,6 +53,17 @@ class TestSecurityHardening(unittest.TestCase):
     def tearDownClass(cls):
         cls.server.shutdown()
         cls.server.server_close()
+        # Clean up probe test users so other test suites maintain pristine state
+        from config import MASTER_USERS_CSV, USER_FIELDS, BASE_DIR
+        from db.csv_engine import CSVEngine
+        import shutil
+        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+        clean_users = [u for u in users if u.get("id") not in (SEC_EMP_A, SEC_EMP_B, SEC_ADMIN)]
+        CSVEngine.write_all(MASTER_USERS_CSV, USER_FIELDS, clean_users)
+        for emp in (SEC_EMP_A.lower(), SEC_EMP_B.lower()):
+            p = BASE_DIR / "data" / "employees" / emp
+            if p.exists():
+                shutil.rmtree(p, ignore_errors=True)
 
     def setUp(self):
         # Reset probe identities every test so execution order never matters

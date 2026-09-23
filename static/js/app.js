@@ -37,7 +37,15 @@ function clientGetZoneForState(stateName) {
 // Utility: API caller
 async function apiRequest(path, method = "GET", body = null, token = null) {
   const headers = { "Content-Type": "application/json" };
-  const authTok = token || sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+  let authTok = token;
+  if (!authTok) {
+    const isAdminRoute = path.startsWith("/api/admin/") || path.startsWith("/api/sync/") || path.startsWith("/api/issues/admin");
+    if (isAdminRoute) {
+      authTok = sessionStorage.getItem("ndli_admin_token") || (sessionStorage.getItem("ndli_role") === "ADMIN" ? sessionStorage.getItem("ndli_token") : null);
+    } else {
+      authTok = sessionStorage.getItem("ndli_admin_token") || sessionStorage.getItem("ndli_token");
+    }
+  }
   if (authTok) {
     headers["Authorization"] = `Bearer ${authTok}`;
   }
