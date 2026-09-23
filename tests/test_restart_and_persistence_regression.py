@@ -950,6 +950,65 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         # Cleanup
         SyncEngine.delete_club(club_id)
 
+    def test_reconcile_all_nodes_purges_orphan_approval_activities_and_guarantees_sum_equals_master_total(self):
+        """
+        Regression for the live Render production discrepancy where
+        Sum(clubs_approved_count) was 19 while Master total_clubs was 17.
+        Caused by leftover/orphan Club Approval activity-log rows referencing
+        clubs that were deleted or had empty club_id (standalone phantoms).
+        reconcile_all_nodes() must purge any Club Approval activities for
+        non-existent clubs, and guarantee that:
+          Sum(all employees' clubs_approved_count) == Master total_clubs
+        """
+        emp_id = "EMP01"
+        node_act_path = SyncEngine.get_employee_activities_path(emp_id)
+
+        # 1. Plant orphan approval activities for deleted/non-existent clubs
+        orphan_act_1 = {
+            "activity_id": f"ACT-PRIORITY-{emp_id}-ORPHAN1",
+            "emp_id": emp_id,
+            "timestamp": "2026-09-20T10:00:00Z",
+            "support_type": "Club Approval",
+            "priority_flag": "1",
+            "club_id": "NDLI-NONEXISTENT-CLUB-1",
+            "notes": "Orphan test entry 1"
+        }
+        orphan_act_2 = {
+            "activity_id": f"ACT-PRIORITY-{emp_id}-ORPHAN2",
+            "emp_id": emp_id,
+            "timestamp": "2026-09-20T10:01:00Z",
+            "support_type": "Club Approval",
+            "priority_flag": "1",
+            "club_id": "",  # Empty club_id (phantom standalone approval)
+            "notes": "Orphan test entry 2"
+        }
+        CSVEngine.append_row(node_act_path, ACTIVITY_FIELDS, orphan_act_1)
+        CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, orphan_act_1)
+        CSVEngine.append_row(node_act_path, ACTIVITY_FIELDS, orphan_act_2)
+        CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, orphan_act_2)
+
+        # 2. Run reconciliation (same as server boot)
+        result = SyncEngine.reconcile_all_nodes()
+        self.assertIsInstance(result, dict)
+
+        # 3. Verify orphan activities are physically removed
+        master_acts = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+        self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN1" for a in master_acts))
+        self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN2" for a in master_acts))
+
+        node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS)
+        self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN1" for a in node_acts))
+        self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN2" for a in node_acts))
+
+        # 4. Verify sum of all quotas strictly equals master total clubs
+        master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+        quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+        total_quota_clubs = sum(int(q.get("clubs_approved_count", "0") or "0") for q in quotas)
+        self.assertEqual(
+            total_quota_clubs, len(master_clubs),
+            f"Sum of quotas ({total_quota_clubs}) must strictly equal Master total clubs ({len(master_clubs)})"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

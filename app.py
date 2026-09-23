@@ -839,11 +839,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 )
 
                 if is_club_approval:
-                    if a_emp in clubs_approved_by_emp_set:
-                        if cid:
-                            clubs_approved_by_emp_set[a_emp].add(cid)
-                        else:
-                            club_approvals_standalone[a_emp] += 1
+                    if a_emp in clubs_approved_by_emp_set and cid and cid in club_lookup:
+                        clubs_approved_by_emp_set[a_emp].add(cid)
                 elif stype == "Online training":
                     act_stats_by_emp[a_emp]["online"] += 1
                 elif stype == "Offline training":
@@ -859,7 +856,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 assigned_states_str = u.get("assigned_states", "")
                 covers_state = covers_state_by_emp.get(emp_id, True)
 
-                clubs_approved = len(clubs_approved_by_emp_set.get(emp_id, set())) + club_approvals_standalone.get(emp_id, 0)
+                clubs_approved = len(clubs_approved_by_emp_set.get(emp_id, set()))
                 a_counts = act_stats_by_emp.get(emp_id, {"online": 0, "offline": 0, "other": 0})
                 online_training = a_counts["online"]
                 offline_training = a_counts["offline"]
