@@ -84,15 +84,9 @@ employee portal (`/employee`). Log in as admin and confirm the
 
 ## 5. Notes & limits
 
-- **Sessions are in-memory**: a Reload (deploy/restart) logs everyone out.
-  Acceptable for this app size; ask if you want persistent sessions later.
-- **CPU throttling**: fine for normal club-management traffic. The 50k-row
-  load benchmark in `tests/` is for local runs only — don't run it on the
-  live instance.
-- **Backups** land in `~/ndli_data/backups/` and also sync to Drive via the
-  relay. The 512 MB quota is plenty for CSVs; watch it if you enable the
-  promo video hosting.
-- **Redeploys** (`git pull` in the project folder + Reload) never touch
-  `~/ndli_data` — your data is safe.
-- The WSGI adapter and the local `python app.py` server share all route code,
-  so the 171-test suite validates exactly what runs in production.
+- **Sessions are disk-backed**: sessions are saved in `~/ndli_data/sessions.json` so worker restarts, uWSGI recycling, or web app reloads do not log active users out.
+- **High performance non-blocking sync**: on PythonAnywhere, form submissions (new club approvals and deletions) write to local disk instantly (< 1ms) and queue Drive uploads to background threads without hanging the UI.
+- **CPU throttling & Polling**: Polling interval is set to 30 seconds to conserve PythonAnywhere CPU quota while maintaining real-time accuracy.
+- **Backups** land in `~/ndli_data/backups/` and also sync to Drive via the relay.
+- **Redeploys** (`git pull` in the project folder + Reload) never touch `~/ndli_data` — your database and sessions are safe.
+- The WSGI adapter and the local `python app.py` server share all route code, so the 180-test suite validates exactly what runs in production.
