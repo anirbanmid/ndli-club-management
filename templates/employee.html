@@ -2869,39 +2869,14 @@
 
     // Quota and Activities loader
     async function loadEmployeeQuota() {
-      // First try employee's own live profile endpoint
       let clubsCount = 0;
       let supportCount = 0;
-      let hasData = false;
 
       const pRes = await apiRequest(`/api/employees/profile?id=${encodeURIComponent(CURRENT_EMP_ID)}`);
       if (pRes.ok && pRes.data && pRes.data.employee) {
         const emp = pRes.data.employee;
         clubsCount = parseInt(emp.clubs_approved_count !== undefined ? emp.clubs_approved_count : 0, 10) || 0;
         supportCount = parseInt(emp.support_logs_count !== undefined ? emp.support_logs_count : 0, 10) || 0;
-        hasData = true;
-      } else {
-        // Fallback
-        const res = await apiRequest("/api/admin/metrics");
-        if (res.ok && res.data.summary && res.data.summary.quotas) {
-          const quota = res.data.summary.quotas.find(q => q.emp_id === CURRENT_EMP_ID);
-          if (quota) {
-            clubsCount = parseInt(quota.clubs_approved_count || 0, 10) || 0;
-            supportCount = parseInt(quota.support_logs_count || 0, 10) || 0;
-            hasData = true;
-          }
-        }
-      }
-
-      // Safety check: if clubsCount is 0, check ALL_ACTIVITIES_CACHE for club approvals
-      if (clubsCount === 0 && ALL_ACTIVITIES_CACHE && ALL_ACTIVITIES_CACHE.length > 0) {
-        const approvalActs = ALL_ACTIVITIES_CACHE.filter(a =>
-          a.support_type === "Club Approval" ||
-          (a.activity_id && a.activity_id.startsWith(`ACT-PRIORITY-${CURRENT_EMP_ID}`))
-        );
-        if (approvalActs.length > 0) {
-          clubsCount = approvalActs.length;
-        }
       }
 
       const clubsEl = document.getElementById("quota-clubs-count");
@@ -4158,10 +4133,14 @@
       if (isPortalVisible && token) {
         try {
           const res = await apiRequest("/api/auth/me", "GET", null, token);
-          if (!res.ok || !res.data || !res.data.authenticated) {
+          if (res.status === 401) {
             sessionStorage.removeItem("ndli_token");
             sessionStorage.removeItem("ndli_employee_session");
-            showLoginView("Your employee account has been suspended or blocked by the Administrator. Access denied.");
+            showLoginView(res.data && res.data.message ? res.data.message : "Your employee account has been suspended or session expired. Access denied.");
+            return;
+          }
+          if (!res.ok || !res.data || !res.data.authenticated) {
+            console.warn("Continuous sync temporary response:", res.status, res.data);
             return;
           }
 
@@ -4198,8 +4177,8 @@
       updateClock();
       setInterval(updateClock, 1000);
 
-      // Continuous synchronization with Admin Master Control (every 5 seconds)
-      setInterval(syncEmployeeWithAdmin, 5000);
+      // Continuous synchronization with Admin Master Control (every 30 seconds)
+      setInterval(syncEmployeeWithAdmin, 30000);
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) syncEmployeeWithAdmin();
       });

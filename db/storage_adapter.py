@@ -306,7 +306,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
             # Relay isn't configured at all; nothing we can confirm.
             return False
 
-        all_ok = True
+        items = []
         for p in absolute_paths:
             p = Path(p)
             try:
@@ -320,14 +320,39 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 try:
                     content = p.read_text(encoding="utf-8")
                 except Exception:
-                    all_ok = False
                     continue
-            # Keep this bounded: 2 attempts with a short timeout each, rather
-            # than the full 3-attempt/15s-timeout policy used for background
-            # uploads, so a form submission never hangs for tens of seconds.
-            ok = self._upload_file_to_drive(rel_path, content, max_attempts=2)
-            if not ok:
-                all_ok = False
+            items.append((rel_path, content))
+
+        # Check if non-blocking mode applies (persistent disk like PythonAnywhere)
+        is_persistent = bool(os.getenv("PYTHONANYWHERE_DOMAIN") or os.getenv("NDLI_DATA_DIR") or os.getenv("NDLI_STORAGE_PERSISTENT") == "true")
+        test_allowed = getattr(self, "_allow_test_confirm", False)
+        blocking_mode = (
+            test_allowed
+            or os.getenv("NDLI_BLOCKING_SYNC", "").lower() == "true"
+            or (not is_persistent and os.getenv("NDLI_BLOCKING_SYNC", "").lower() != "false")
+        )
+
+        if not blocking_mode:
+            # High-performance async enqueue: guarantees sub-millisecond API response
+            for rel_path, content in items:
+                self.enqueue_upload(rel_path, content)
+            return True
+
+        # If blocking mode is explicitly requested, upload concurrently to avoid sequential 30s delays
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        all_ok = True
+        with ThreadPoolExecutor(max_workers=min(len(items) or 1, 5)) as executor:
+            future_to_path = {
+                executor.submit(self._upload_file_to_drive, rel, c, 2): rel
+                for rel, c in items
+            }
+            for fut in as_completed(future_to_path):
+                try:
+                    ok = fut.result()
+                    if not ok:
+                        all_ok = False
+                except Exception:
+                    all_ok = False
         return all_ok
 
     def sync_all_now(self) -> Dict[str, Any]:

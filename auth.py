@@ -2,6 +2,8 @@
 NDLI Club Management - Authentication and Session Management Engine
 Supports Salted SHA-256 / PBKDF2 Password Hashing, Role Validation, and Token Management.
 """
+import json
+import os
 import hashlib
 import secrets
 import threading
@@ -9,6 +11,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, Tuple
 
 from config import (
+    DATA_DIR,
     MASTER_USERS_CSV,
     SESSION_EXPIRY_HOURS
 )
@@ -18,8 +21,52 @@ from db.sync_engine import SyncEngine
 
 _AUTH_LOCK = threading.RLock()
 
-# In-memory Active Session Store: session_token -> session_data
+# Active Session Store: in-memory cache backed by persistent DATA_DIR / "sessions.json"
 _ACTIVE_SESSIONS: Dict[str, Dict[str, Any]] = {}
+_SESSIONS_FILE = DATA_DIR / "sessions.json"
+
+
+def _load_sessions_from_disk() -> None:
+    """Loads active sessions from disk and purges expired ones."""
+    if not _SESSIONS_FILE.exists():
+        return
+    try:
+        raw = _SESSIONS_FILE.read_text(encoding="utf-8")
+        if not raw.strip():
+            return
+        loaded = json.loads(raw)
+        now = datetime.now(timezone.utc)
+        valid = {}
+        for tok, s in loaded.items():
+            try:
+                exp = datetime.fromisoformat(s.get("expires_at", ""))
+                if now <= exp:
+                    valid[tok] = s
+            except Exception:
+                continue
+        _ACTIVE_SESSIONS.update(valid)
+    except Exception:
+        pass
+
+
+def _save_sessions_to_disk() -> None:
+    """Atomically persists active sessions to disk."""
+    try:
+        _SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        now = datetime.now(timezone.utc)
+        valid = {}
+        for tok, s in list(_ACTIVE_SESSIONS.items()):
+            try:
+                exp = datetime.fromisoformat(s.get("expires_at", ""))
+                if now <= exp:
+                    valid[tok] = s
+            except Exception:
+                continue
+        tmp_file = _SESSIONS_FILE.with_suffix(".tmp")
+        tmp_file.write_text(json.dumps(valid, indent=2), encoding="utf-8")
+        os.replace(tmp_file, _SESSIONS_FILE)
+    except Exception:
+        pass
 
 
 def hash_password(password: str, salt: Optional[str] = None) -> Tuple[str, str]:
@@ -113,6 +160,7 @@ class AuthService:
 
         with _AUTH_LOCK:
             _ACTIVE_SESSIONS[token] = session_info
+            _save_sessions_to_disk()
 
         return True, None, session_info
 
@@ -124,11 +172,15 @@ class AuthService:
         with _AUTH_LOCK:
             session = _ACTIVE_SESSIONS.get(token)
             if not session:
+                _load_sessions_from_disk()
+                session = _ACTIVE_SESSIONS.get(token)
+            if not session:
                 return None
             # Check expiration
             expires_at = datetime.fromisoformat(session["expires_at"])
             if datetime.now(timezone.utc) > expires_at:
-                del _ACTIVE_SESSIONS[token]
+                _ACTIVE_SESSIONS.pop(token, None)
+                _save_sessions_to_disk()
                 return None
             return session.copy()
 
@@ -136,8 +188,9 @@ class AuthService:
     def logout(cls, token: str) -> bool:
         """Invalidates a session token."""
         with _AUTH_LOCK:
-            if token in _ACTIVE_SESSIONS:
-                del _ACTIVE_SESSIONS[token]
+            if token in _ACTIVE_SESSIONS or _SESSIONS_FILE.exists():
+                _ACTIVE_SESSIONS.pop(token, None)
+                _save_sessions_to_disk()
                 return True
             return False
 
