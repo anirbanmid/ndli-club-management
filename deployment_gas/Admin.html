@@ -1439,6 +1439,43 @@ tbody tr:hover {
       line-height: 1.2;
     }
   </style>
+  <script>
+    // Immediate global bootstrap for Admin Sign-In modal
+    window.openAdminLoginModal = function() {
+      const modal = document.getElementById("admin-login-modal");
+      if (modal) {
+        modal.classList.add("active");
+        modal.classList.add("open");
+        modal.style.display = "flex";
+        modal.style.opacity = "1";
+        modal.style.visibility = "visible";
+        const passInp = document.getElementById("admin-modal-pass");
+        if (passInp) passInp.focus();
+      } else {
+        const tabBtn = document.getElementById("tab-btn-employees");
+        if (tabBtn) tabBtn.click();
+        const gate = document.getElementById("admin-auth-gate");
+        if (gate) gate.scrollIntoView({ behavior: "smooth" });
+      }
+    };
+    window.closeAdminLoginModal = function() {
+      const modal = document.getElementById("admin-login-modal");
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+        modal.style.opacity = "0";
+        modal.style.visibility = "hidden";
+      }
+    };
+    window.toggleAdminAuthAction = function() {
+      if (window.IS_ADMIN_AUTHENTICATED) {
+        if (typeof lockAdminSection === "function") lockAdminSection();
+      } else {
+        window.openAdminLoginModal();
+      }
+    };
+  </script>
 </head>
 <body>
   <header class="navbar">
@@ -1464,6 +1501,43 @@ tbody tr:hover {
       </div>
     </div>
   </header>
+
+  <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
+  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: 2500; display: none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%;">
+      <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1.25rem;">
+        <div>
+          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🏛️</span> Central Admin Sign-In
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
+        </div>
+      </div>
+      <div id="admin-modal-alert"></div>
+      <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
+          <div style="margin-bottom: 0.85rem;">
+            <label for="admin-modal-id" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
+            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+          </div>
+          <div>
+            <label for="admin-modal-pass" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
+          <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
+            <span>🔓</span> Verify &amp; Unlock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <main class="container">
     <!-- Top KPIs -->
@@ -3943,21 +4017,45 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
     function openAdminLoginModal() {
       const modal = document.getElementById("admin-login-modal");
-      if (!modal) return;
+      if (!modal) {
+        const tabBtn = document.getElementById("tab-btn-employees");
+        if (tabBtn) tabBtn.click();
+        const gate = document.getElementById("admin-auth-gate");
+        if (gate) gate.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
       const alertEl = document.getElementById("admin-modal-alert");
       if (alertEl) alertEl.innerHTML = "";
       const passInp = document.getElementById("admin-modal-pass");
       if (passInp) passInp.value = "";
       const idInp = document.getElementById("admin-modal-id");
       if (idInp && !idInp.value) idInp.value = "admin@iitkgp.ac.in";
+
+      modal.classList.add("active");
+      modal.classList.add("open");
       modal.style.display = "flex";
+      modal.style.opacity = "1";
+      modal.style.visibility = "visible";
+
       setTimeout(() => { if (passInp) passInp.focus(); }, 100);
     }
 
     function closeAdminLoginModal() {
       const modal = document.getElementById("admin-login-modal");
-      if (modal) modal.style.display = "none";
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+        modal.style.opacity = "0";
+        modal.style.visibility = "hidden";
+      }
     }
+
+    window.openAdminLoginModal = openAdminLoginModal;
+    window.closeAdminLoginModal = closeAdminLoginModal;
+    window.handleAdminModalLogin = handleAdminModalLogin;
+    window.toggleModalAdminPassVisibility = toggleModalAdminPassVisibility;
+    window.toggleAdminAuthAction = toggleAdminAuthAction;
 
     function toggleModalAdminPassVisibility() {
       const input = document.getElementById("admin-modal-pass");
@@ -5312,43 +5410,6 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           <span>⚠️</span> Confirm &amp; Execute Restore
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
-  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: 1250; display: none;">
-    <div class="modal-content" style="max-width: 480px; width: 95%;">
-      <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
-      <div class="card-header" style="margin-bottom: 1.25rem;">
-        <div>
-          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-            <span>🏛️</span> Central Admin Sign-In
-          </h3>
-          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
-        </div>
-      </div>
-      <div id="admin-modal-alert"></div>
-      <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
-        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
-          <div style="margin-bottom: 0.85rem;">
-            <label for="admin-modal-id" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
-            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
-          </div>
-          <div>
-            <label for="admin-modal-pass" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
-            <div style="position: relative; display: flex; align-items: center;">
-              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
-              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
-            </div>
-          </div>
-        </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
-          <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
-            <span>🔓</span> Verify &amp; Unlock
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
