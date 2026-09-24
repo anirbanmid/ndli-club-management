@@ -797,7 +797,7 @@
           <div class="card-header">
             <div>
               <h3 class="card-title">Automated Database Backup Engine (7-Day Schedule)</h3>
-              <p class="card-subtitle">Auto-backups both Admin end (Master DB) and Employee end (7 Regional Nodes) every 7 days. Strictly retains only the last 2 backups and deletes all previous backups.</p>
+              <p class="card-subtitle">Auto-backups both Admin end (Master DB) and Employee end (7 Regional Nodes) every 7 days. Strictly retains the last 6 backups and auto-prunes older archives. Takes automatic safety checkpoints before destructive admin operations (data reset, club delete) and aborts them if a checkpoint cannot be written.</p>
             </div>
             <span class="pill pill-success" id="backup-status-pill">Active (7-Day Cycle)</span>
           </div>
@@ -810,12 +810,12 @@
             </div>
             <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
               <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Retention Policy</span>
-              <strong style="display: block; font-size: 1.1rem; color: #0D7751; margin-top: 0.2rem;">Last 2 Backups Stored</strong>
+              <strong style="display: block; font-size: 1.1rem; color: #0D7751; margin-top: 0.2rem;">Last 6 Backups Stored</strong>
               <small style="color: var(--text-muted); font-size: 0.75rem;">Previous backups pruned automatically</small>
             </div>
             <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
               <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Stored Backups</span>
-              <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.2rem;" id="backup-count-display">0 / 2 Backups</strong>
+              <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.2rem;" id="backup-count-display">0 / 6 Backups</strong>
               <small style="color: var(--text-muted); font-size: 0.75rem;">Last: <span id="backup-last-time">Never</span></small>
             </div>
           </div>
@@ -987,7 +987,7 @@
         if (res.ok && res.data) {
           const d = res.data;
           const countEl = document.getElementById("backup-count-display");
-          if (countEl) countEl.innerText = `${d.total_stored_backups || 0} / ${d.max_retained_backups || 2} Backups`;
+          if (countEl) countEl.innerText = `${d.total_stored_backups || 0} / ${d.max_retained_backups || 6} Backups`;
 
           const lastEl = document.getElementById("backup-last-time");
           if (lastEl) {

@@ -9,7 +9,7 @@
  * 1. Operates 24x7 natively inside any Google Drive folder with ZERO hardcoded IDs.
  * 2. Dynamic Folder Resolution: Automatically finds the parent Google Drive folder.
  * 3. Self-Provisioning: Automatically seeds master CSVs, employee node CSVs, and backup folder.
- * 4. Automated 7-Day Rolling Backups: Retains the last 2 archives and auto-deletes older backups.
+ * 4. Automated 7-Day Rolling Backups: Retains the last 6 archives and auto-deletes older backups.
  * 5. Full REST API & google.script.run Dispatcher for multi-state real-time sync across India.
  * 6. 100% Portable: Seamlessly shifts from personal test Drive to Admin Drive with 0 code changes.
  */
@@ -361,8 +361,8 @@ function runWeeklyBackup(customId) {
     backupFolder.createFile(zipBlob);
     Logger.log("[NDLI Backup] Created new backup: " + filename);
 
-    // Enforce 2-backup rolling retention
-    enforceBackupRetention(backupFolder, 2);
+    // Enforce 6-backup rolling retention
+    enforceBackupRetention(backupFolder, 6);
 
     return { success: true, timestamp: dateStr, filename: filename, backup_id: customId || ("ndli_backup_" + dateStr) };
   } finally {
@@ -371,7 +371,7 @@ function runWeeklyBackup(customId) {
 }
 
 function enforceBackupRetention(backupFolder, maxBackups) {
-  maxBackups = maxBackups || 2;
+  maxBackups = maxBackups || 6;
   var files = [];
   var fIter = backupFolder.getFiles();
   while (fIter.hasNext()) {

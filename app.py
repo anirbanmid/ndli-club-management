@@ -1695,6 +1695,21 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 clubs_per_employee = int(body.get("clubs_per_employee", 4))
             except (TypeError, ValueError):
                 clubs_per_employee = 4
+            # Safety checkpoint: full snapshot before wiping all data. If the
+            # checkpoint cannot be written, abort — never destroy without a net.
+            checkpoint = None
+            checkpoint_err = ""
+            try:
+                checkpoint = BackupEngine.create_backup(note="Auto Checkpoint before Test Data Reset (wipe-all)")
+            except Exception as be:
+                checkpoint_err = str(be)
+            if not checkpoint or not checkpoint.get("success"):
+                self._send_error(
+                    f"Pre-reset safety checkpoint failed ({checkpoint_err or 'backup engine error'}). "
+                    "Reset aborted — your current data is untouched.",
+                    status=500,
+                )
+                return
             try:
                 result = SyncEngine.reset_all_and_reseed(clubs_per_employee=clubs_per_employee)
             except Exception as e:
@@ -1705,9 +1720,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "message": (
                     f"Reset complete: {result['employees_reset']} employees, "
                     f"{result['total_clubs_created']} clean test clubs created "
-                    f"({result['clubs_per_employee']} per employee)."
+                    f"({result['clubs_per_employee']} per employee). "
+                    f"Pre-reset checkpoint: {checkpoint.get('backup_id', '')}."
                 ),
-                **result
+                **result,
+                "checkpoint_backup_id": checkpoint.get("backup_id", ""),
             })
             return
 
@@ -1719,6 +1736,24 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             if not club_id:
                 self._send_error("club_id is required.")
                 return
+            if not CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", club_id, CLUB_FIELDS, copy=False):
+                self._send_error(f"Club '{club_id}' not found.", status=404)
+                return
+            # Safety checkpoint before permanent deletion (master + node + Drive).
+            # If the checkpoint cannot be written, abort — never destroy without a net.
+            checkpoint = None
+            checkpoint_err = ""
+            try:
+                checkpoint = BackupEngine.create_backup(note=f"Auto Checkpoint before Club Delete ({club_id})")
+            except Exception as be:
+                checkpoint_err = str(be)
+            if not checkpoint or not checkpoint.get("success"):
+                self._send_error(
+                    f"Pre-delete safety checkpoint failed ({checkpoint_err or 'backup engine error'}). "
+                    f"Delete aborted — club '{club_id}' is untouched.",
+                    status=500,
+                )
+                return
             try:
                 result = SyncEngine.delete_club(club_id)
             except Exception as e:
@@ -1729,8 +1764,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 return
             self._send_json({
                 "success": True,
-                "message": f"Club {club_id} permanently deleted.",
-                **result
+                "message": f"Club {club_id} permanently deleted (pre-delete checkpoint: {checkpoint.get('backup_id', '')}).",
+                **result,
+                "checkpoint_backup_id": checkpoint.get("backup_id", ""),
             })
             return
 

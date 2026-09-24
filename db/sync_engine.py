@@ -910,22 +910,36 @@ class SyncEngine:
         """
         with _SYNC_LOCK:
             users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
-            emp_ids = sorted({u.get("id", "").strip().upper() for u in users if u.get("id", "").strip()})
+            # Only real zonal EMPLOYEES take part in a reset/reseed -- never the
+            # admin account. Seeding an admin-owned club would create master clubs
+            # that no employee quota can count (breaking Sum(quotas) == total_clubs,
+            # i.e. the employee-vs-admin dashboard count mismatch).
+            emp_ids = sorted({
+                u.get("id", "").strip().upper()
+                for u in users
+                if u.get("id", "").strip() and u.get("role", "").strip().upper() == "EMPLOYEE"
+            })
 
             # 1. Wipe master club/activity data (headers only)
             CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, [])
             CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, [])
             CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, [])
 
-            # 2. Wipe each employee's clubs.csv and activity_log.csv only --
-            # credentials.csv and issues.csv are NEVER touched here.
-            for emp_id in emp_ids:
-                clubs_path = cls.get_employee_clubs_path(emp_id)
-                if clubs_path.exists():
-                    CSVEngine.write_all(clubs_path, CLUB_FIELDS, [])
-                acts_path = cls.get_employee_activities_path(emp_id)
-                if acts_path.exists():
-                    CSVEngine.write_all(acts_path, ACTIVITY_FIELDS, [])
+            # 2. Wipe every node's clubs.csv and activity_log.csv only --
+            # credentials.csv and issues.csv are NEVER touched here. Iterating the
+            # actual node directories (not just emp_ids) also clears artifacts of
+            # historical bugs (e.g. a stray admin01 node), which reconcile would
+            # otherwise sync back into master.
+            if EMPLOYEE_NODES_DIR.exists():
+                for node_dir in EMPLOYEE_NODES_DIR.iterdir():
+                    if not node_dir.is_dir():
+                        continue
+                    clubs_path = node_dir / "clubs.csv"
+                    if clubs_path.exists():
+                        CSVEngine.write_all(clubs_path, CLUB_FIELDS, [])
+                    acts_path = node_dir / "activity_log.csv"
+                    if acts_path.exists():
+                        CSVEngine.write_all(acts_path, ACTIVITY_FIELDS, [])
 
             # 3. Reseed exactly `clubs_per_employee` clean test clubs per employee.
             # confirm_cloud_sync=False: skip the per-club synchronous Drive
@@ -1273,10 +1287,17 @@ class SyncEngine:
 
             # Ensure every club in all_clubs is assigned to an employee
             master_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            employee_ids = {u.get("id", "").strip().upper()
+                            for u in master_users if u.get("role", "").strip().upper() == "EMPLOYEE"}
             zone_to_emp = {u.get("zone", "").strip(): u.get("id", "").strip().upper() 
                            for u in master_users if u.get("role") == "EMPLOYEE" and u.get("zone")}
             for cid, c in all_clubs.items():
-                if not c.get("approved_by_emp_id"):
+                owner = (c.get("approved_by_emp_id") or "").strip().upper()
+                # Reassign missing owners AND owners that are not real employees
+                # (e.g. ADMIN01 seeding artifacts): every master club must belong
+                # to an employee so that Sum(clubs_approved_count) strictly equals
+                # the master total club count (no employee-vs-admin count drift).
+                if not owner or owner not in employee_ids:
                     c_zn = c.get("zone", "").strip() or get_zone_for_state(c.get("state", "").strip())
                     c["approved_by_emp_id"] = zone_to_emp.get(c_zn, "EMP01")
 

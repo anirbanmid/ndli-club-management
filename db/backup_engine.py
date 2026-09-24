@@ -1,6 +1,6 @@
 """
 NDLI Club Management - Automated Database Backup Engine
-Handles 7-day automated backups of Admin and Employee databases with strict 2-backup retention.
+Handles 7-day automated backups of Admin and Employee databases with strict rolling retention (MAX_RETAINED_BACKUPS archives).
 """
 import os
 import sys
@@ -25,7 +25,11 @@ _SCHEDULER_THREAD: Optional[threading.Thread] = None
 _SCHEDULER_RUNNING = False
 
 BACKUP_INTERVAL_DAYS = 7
-MAX_RETAINED_BACKUPS = 2
+# Rolling retention: how many backup archives to keep. Each archive is a tiny
+# CSV snapshot (~40KB: master dual-copy + 7 employee nodes), so 6 archives cost
+# ~250KB — about 0.05% of the 512MB PythonAnywhere free tier. Six weekly
+# archives give ~6 weeks of recovery history instead of the old 2 (~14 days).
+MAX_RETAINED_BACKUPS = 6
 SCHEDULE_FILE_NAME = "backup_schedule.json"
 
 
@@ -145,7 +149,7 @@ class BackupEngine:
             with open(manifest_file, "w", encoding="utf-8") as mf:
                 json.dump(manifest, mf, indent=2)
 
-            # 4. Enforce strict 2-backup retention (delete all other previous backups)
+            # 4. Enforce strict rolling retention (keep newest MAX_RETAINED_BACKUPS, delete older)
             retained, deleted = cls.rotate_backups(keep=MAX_RETAINED_BACKUPS)
 
             # 5. Update Schedule Metadata
@@ -184,7 +188,7 @@ class BackupEngine:
         """
         Relays the backup creation to Google Drive via the Google Apps Script Webhook Relay
         or mounted Drive directory, ensuring the backup ZIP archive is stored in Google Drive
-        and the 2-backup retention policy is enforced directly in Google Drive.
+        and the rolling retention policy is enforced directly in Google Drive.
         """
         try:
             from config import DRIVE_STORAGE_MODE, APPS_SCRIPT_SYNC_URL
@@ -340,7 +344,7 @@ class BackupEngine:
     def get_backup_status(cls) -> Dict[str, Any]:
         """Returns comprehensive status of backup configuration, schedules, and stored archives."""
         with _BACKUP_LOCK:
-            # Enforce strict 2-backup retention
+            # Enforce strict rolling retention
             cls.rotate_backups(keep=MAX_RETAINED_BACKUPS)
             now = datetime.now(timezone.utc)
             schedule_file = cls.get_schedule_file()

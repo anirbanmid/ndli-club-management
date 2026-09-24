@@ -28,7 +28,7 @@ from config import (
     ISSUE_FIELDS
 )
 from db.csv_engine import CSVEngine
-from db.backup_engine import BackupEngine
+from db.backup_engine import BackupEngine, MAX_RETAINED_BACKUPS
 from db.issue_manager import IssueManager
 
 
@@ -115,11 +115,13 @@ class TestFeatures1To5(unittest.TestCase):
     # =========================================================================
     # FEATURE 2 TESTS
     # =========================================================================
-    def test_feature_2_backup_creation_and_strict_two_backup_retention(self):
+    def test_feature_2_backup_creation_and_strict_rolling_retention(self):
         """
         Feature 2: Verify backup covers both admin end and employee end database,
-        and strictly retains only the last 2 backups while deleting all previous backups.
+        and strictly retains only the last MAX_RETAINED_BACKUPS backups while
+        deleting all previous backups.
         """
+        KEEP = MAX_RETAINED_BACKUPS
         # Clean any old test backups first
         b_dir = BackupEngine.get_backup_dir()
         for d in b_dir.iterdir():
@@ -127,51 +129,38 @@ class TestFeatures1To5(unittest.TestCase):
                 import shutil
                 shutil.rmtree(str(d), ignore_errors=True)
 
-        # Create 1st backup
-        b1 = BackupEngine.create_backup(note="Backup 1")
-        self.assertTrue(b1["success"])
-        existing = BackupEngine.get_existing_backups()
-        self.assertEqual(len(existing), 1)
+        # Fill the retention window one by one, verifying the stored count grows
+        made = []
+        for i in range(KEEP):
+            time.sleep(0.05)
+            b = BackupEngine.create_backup(note=f"Backup {i + 1}")
+            self.assertTrue(b["success"])
+            made.append(b)
+            self.assertEqual(len(BackupEngine.get_existing_backups()), i + 1)
 
-        # Verify admin end and employee end folders exist inside backup
-        b1_path = Path(b1["path"])
+        # Verify admin end and employee end folders exist inside the first backup
+        b1_path = Path(made[0]["path"])
         self.assertTrue((b1_path / "admin").exists())
         self.assertTrue((b1_path / "employees").exists())
         self.assertTrue((b1_path / "manifest.json").exists())
         self.assertTrue((b1_path / "admin" / "master_clubs.csv").exists())
         self.assertTrue((b1_path / "employees" / "emp01" / "clubs.csv").exists())
 
-        # Create 2nd backup
-        time.sleep(0.05)
-        b2 = BackupEngine.create_backup(note="Backup 2")
-        self.assertTrue(b2["success"])
-        existing = BackupEngine.get_existing_backups()
-        self.assertEqual(len(existing), 2)
-
-        # Create 3rd backup -> Must delete oldest backup (Backup 1) and keep exactly 2
-        time.sleep(0.05)
-        b3 = BackupEngine.create_backup(note="Backup 3")
-        self.assertTrue(b3["success"])
-        existing = BackupEngine.get_existing_backups()
-        self.assertEqual(len(existing), 2, "Must strictly retain only the last 2 backups")
-
-        # The retained backups must be b3 and b2, b1 must be deleted
-        retained_ids = [d.name for d in existing]
-        self.assertIn(b3["backup_id"], retained_ids)
-        self.assertIn(b2["backup_id"], retained_ids)
-        self.assertNotIn(b1["backup_id"], retained_ids)
-        self.assertFalse(b1_path.exists(), "Previous backup 1 must be deleted automatically by system")
-
-        # Create 4th backup -> Keeps b4 and b3, deletes b2
-        time.sleep(0.05)
-        b4 = BackupEngine.create_backup(note="Backup 4")
-        self.assertTrue(b4["success"])
-        existing = BackupEngine.get_existing_backups()
-        self.assertEqual(len(existing), 2)
-        retained_ids = [d.name for d in existing]
-        self.assertIn(b4["backup_id"], retained_ids)
-        self.assertIn(b3["backup_id"], retained_ids)
-        self.assertNotIn(b2["backup_id"], retained_ids)
+        # Overflow the window: every new backup must evict the oldest one
+        for j in range(2):
+            time.sleep(0.05)
+            b = BackupEngine.create_backup(note=f"Overflow {j + 1}")
+            self.assertTrue(b["success"])
+            made.append(b)
+            existing = BackupEngine.get_existing_backups()
+            self.assertEqual(len(existing), KEEP,
+                             f"Must strictly retain only the last {KEEP} backups")
+            retained_ids = [d.name for d in existing]
+            self.assertIn(made[-1]["backup_id"], retained_ids)
+            self.assertNotIn(made[j]["backup_id"], retained_ids,
+                             "Oldest backup must be deleted automatically by system")
+        self.assertFalse(b1_path.exists(),
+                         "Previous backup 1 must be deleted automatically by system")
 
     def test_feature_2_auto_backup_schedule_logic(self):
         """Feature 2: Verify 7-day auto backup triggers only after 7 days have elapsed."""
@@ -204,8 +193,8 @@ class TestFeatures1To5(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(data["success"])
         self.assertEqual(data["interval_days"], 7)
-        self.assertEqual(data["max_retained_backups"], 2)
-        self.assertLessEqual(len(data["backups"]), 2)
+        self.assertEqual(data["max_retained_backups"], MAX_RETAINED_BACKUPS)
+        self.assertLessEqual(len(data["backups"]), MAX_RETAINED_BACKUPS)
 
         # Trigger manual backup via API
         status, trig_data = self._post("/api/admin/backup/trigger", {"note": "Test API Trigger"})
@@ -216,7 +205,7 @@ class TestFeatures1To5(unittest.TestCase):
         admin_html = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
         self.assertIn("Automated Database Backup Engine", admin_html)
         self.assertIn("Every 7 Days", admin_html)
-        self.assertIn("Last 2 Backups Stored", admin_html)
+        self.assertIn(f"Last {MAX_RETAINED_BACKUPS} Backups Stored", admin_html)
 
     # =========================================================================
     # FEATURE 3 TESTS
@@ -551,20 +540,22 @@ class TestFeatures1To5(unittest.TestCase):
         """
         Retention Invariant Verification:
         If extra backup directories exist on disk, get_backup_status() prunes them
-        so that strictly only the last 2 backups are stored.
+        so that strictly only the last MAX_RETAINED_BACKUPS backups are stored.
         """
+        KEEP = MAX_RETAINED_BACKUPS
         b_dir = BackupEngine.get_backup_dir()
         dummy_dirs = []
-        for i in [1, 2, 3, 4]:
-            d = b_dir / f"backup_2020010{i}_000000_000000"
+        for i in range(1, KEEP + 3):
+            d = b_dir / f"backup_2020010{i:02d}_000000_000000"
             d.mkdir(parents=True, exist_ok=True)
             dummy_dirs.append(d)
 
         # Status check must enforce retention
         status_data = BackupEngine.get_backup_status()
-        self.assertEqual(status_data["max_retained_backups"], 2)
+        self.assertEqual(status_data["max_retained_backups"], KEEP)
         existing = BackupEngine.get_existing_backups()
-        self.assertLessEqual(len(existing), 2, "Must strictly retain at most 2 backups")
+        self.assertLessEqual(len(existing), KEEP,
+                             f"Must strictly retain at most {KEEP} backups")
 
     def test_download_employee_logs_invalid_or_blocked_employee(self):
         """
