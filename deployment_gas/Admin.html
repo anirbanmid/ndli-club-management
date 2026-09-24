@@ -4006,6 +4006,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
           showAdminGateView(true, res.data.session);
           closeAdminLoginModal();
+          updateEmployeePortalNavLink();
 
           const banner = document.getElementById("admin-auth-prompt-banner");
           if (banner) banner.remove();
@@ -4126,15 +4127,26 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     function updateEmployeePortalNavLink() {
-      const empId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
-      if (empId) {
-        document.querySelectorAll(".nav-link-employee").forEach(el => {
-          el.href = (typeof window !== "undefined" && window.location && window.location.search && window.location.search.includes("page="))
+      // The Employee Portal link may only target a concrete workspace while an ACTIVE
+      // employee session exists in this tab. An admin-only session (or a stale id with no
+      // employee session) must fall back to the employee sign-in entry — never to a
+      // default employee dashboard such as EMP01.
+      const hasEmployeeSession = !!sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_role") === "EMPLOYEE";
+      const empId = hasEmployeeSession
+        ? (sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null) || "").toUpperCase()
+        : "";
+      document.querySelectorAll(".nav-link-employee").forEach(el => {
+        const usesPageRouting = (typeof window !== "undefined" && window.location && window.location.search && window.location.search.includes("page="));
+        if (empId) {
+          el.href = usesPageRouting
             ? `?page=employee&emp=${encodeURIComponent(empId)}`
             : `/employee/${encodeURIComponent(empId)}`;
           el.title = `Return to ${empId} Zonal Employee Portal`;
-        });
-      }
+        } else {
+          el.href = usesPageRouting ? `?page=employee` : `/employee`;
+          el.title = "Employee Portal — Sign-In Required";
+        }
+      });
     }
 
     function toggleAdminAuthAction() {

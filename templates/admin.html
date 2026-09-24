@@ -2433,6 +2433,7 @@
 
           showAdminGateView(true, res.data.session);
           closeAdminLoginModal();
+          updateEmployeePortalNavLink();
 
           const banner = document.getElementById("admin-auth-prompt-banner");
           if (banner) banner.remove();
@@ -2561,13 +2562,23 @@
     }
 
     function updateEmployeePortalNavLink() {
-      const empId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
-      if (empId) {
-        document.querySelectorAll(".nav-link-employee").forEach(el => {
+      // The Employee Portal link may only target a concrete workspace while an ACTIVE
+      // employee session exists in this tab. An admin-only session (or a stale id with no
+      // employee session) must fall back to the employee sign-in entry — never to a
+      // default employee dashboard such as EMP01.
+      const hasEmployeeSession = !!sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_role") === "EMPLOYEE";
+      const empId = hasEmployeeSession
+        ? (sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null) || "").toUpperCase()
+        : "";
+      document.querySelectorAll(".nav-link-employee").forEach(el => {
+        if (empId) {
           el.href = `/employee/${empId}`;
           el.title = `Return to ${empId} Zonal Employee Portal`;
-        });
-      }
+        } else {
+          el.href = "/employee";
+          el.title = "Employee Portal — Sign-In Required";
+        }
+      });
     }
 
     // =============================================================

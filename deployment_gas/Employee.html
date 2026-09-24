@@ -3849,7 +3849,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       "EMP07": { name: "Ananya Nair", zone: "South 2", email: "emp.south2@ndli.edu.in", states: "Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep" }
     };
 
-    let CURRENT_EMP_ID = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || "EMP01";
+    // Active employee identity comes ONLY from a real signed-in session (normalized to uppercase).
+    // No hardcoded fallback: when no employee is signed in there must be no phantom workspace (e.g. auto EMP01).
+    let CURRENT_EMP_ID = (sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || "").toUpperCase();
     let CURRENT_USER_SESSION = null;
 
     const DEFAULT_INDIAN_STATES = [
@@ -4236,7 +4238,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     async function handleLogout() {
-      const token = sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_token");
+      // Only ever terminate the EMPLOYEE session server-side. If the viewer is an
+      // Administrator previewing a workspace, the admin session must stay intact.
+      const token = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null);
       if (token) {
         try {
           await apiRequest("/api/auth/logout", "POST", { token: token });
@@ -4255,7 +4259,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       localStorage.removeItem("ndli_token");
       CURRENT_USER_SESSION = null;
 
-      showLoginView("You have signed out successfully.");
+      showLoginView(token ? "You have signed out successfully." : "Workspace closed. No zonal employee session is active.");
     }
 
     function promptSwitchOfficer() {
@@ -4296,6 +4300,11 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     }
 
     async function showPortalView(session) {
+      // Hard guard: a workspace may only render with a resolved, known employee identity.
+      if (!CURRENT_EMP_ID) {
+        showLoginView("No active employee session found. Please sign in as a zonal officer.");
+        return;
+      }
       CURRENT_USER_SESSION = session;
       const loginView = document.getElementById("employee-login-view");
       const portalView = document.getElementById("employee-portal-view");
@@ -5939,7 +5948,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     // 4. CONTINUOUS SYNCHRONIZATION WITH ADMIN & SESSION VALIDATION
     // =============================================================
     async function syncEmployeeWithAdmin() {
-      const token = sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
+      // Resolve the token exactly like portal init (employee session first), so an
+      // Administrator previewing a workspace can never hijack the employee identity.
+      const token = sessionStorage.getItem("ndli_employee_token") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_token") : null) || sessionStorage.getItem("ndli_token") || localStorage.getItem("ndli_token");
       const portalView = document.getElementById("employee-portal-view");
       const isPortalVisible = portalView && portalView.style.display !== "none";
 
@@ -5954,8 +5965,9 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
           }
 
           const u = res.data.user;
-          // If Admin renamed employee ID
-          if (u.user_id && u.user_id.toUpperCase() !== CURRENT_EMP_ID) {
+          // If Admin renamed employee ID (only an EMPLOYEE session may re-identify the
+          // workspace — an admin's own user_id must never replace the employee identity)
+          if (u.role === "EMPLOYEE" && u.user_id && u.user_id.toUpperCase() !== CURRENT_EMP_ID) {
             CURRENT_EMP_ID = u.user_id.toUpperCase();
             window.history.pushState({}, "", `/employee/${CURRENT_EMP_ID}`);
           }
@@ -6009,14 +6021,23 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
       const urlParams = new URLSearchParams(window.location.search);
       const queryEmp = urlParams.get("emp");
 
+      let routeEmpId = null;
       if (pathParts.length >= 2 && pathParts[0].toLowerCase() === "employee" && pathParts[1].toLowerCase() !== "login") {
-        CURRENT_EMP_ID = decodeURIComponent(pathParts[1]).toUpperCase();
-        sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
-        sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+        routeEmpId = decodeURIComponent(pathParts[1]).toUpperCase();
+        CURRENT_EMP_ID = routeEmpId;
+        // Only persist the identity while a real employee session is active. A bare URL
+        // visit must never mint a phantom "active employee" for other portals to pick up.
+        if (sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_role") === "EMPLOYEE") {
+          sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+          sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+        }
       } else if (queryEmp && EMP_PROFILES[queryEmp.toUpperCase()]) {
-        CURRENT_EMP_ID = queryEmp.toUpperCase();
-        sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
-        sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+        routeEmpId = queryEmp.toUpperCase();
+        CURRENT_EMP_ID = routeEmpId;
+        if (sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_role") === "EMPLOYEE") {
+          sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+          sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
+        }
       } else {
         const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id") || (sessionStorage.getItem("ndli_role") === "EMPLOYEE" ? sessionStorage.getItem("ndli_user_id") : null);
         if (savedEmpId && EMP_PROFILES[savedEmpId]) {
@@ -6040,12 +6061,17 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
             const res = await apiRequest("/api/auth/me", "GET", null, token);
             if (res.ok && res.data.authenticated) {
               const u = res.data.user;
-              showLoginView(`
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                  <span>Currently signed in as <strong>${u.full_name} (${u.user_id} - ${u.zone} Zone)</strong>.</span>
-                  <a href="/employee/${u.user_id}" class="btn btn-sm btn-primary" style="text-decoration: none; padding: 0.35rem 0.75rem;">Launch Workspace →</a>
-                </div>
-              `);
+              if (u.role === "EMPLOYEE") {
+                showLoginView(`
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <span>Currently signed in as <strong>${u.full_name} (${u.user_id} - ${u.zone} Zone)</strong>.</span>
+                    <a href="/employee/${u.user_id}" class="btn btn-sm btn-primary" style="text-decoration: none; padding: 0.35rem 0.75rem;">Launch Workspace →</a>
+                  </div>
+                `);
+                return;
+              }
+              // Admin (or any non-employee) session: never offer a phantom employee workspace.
+              showLoginView(`You are currently signed in as <strong>Administrator (${u.user_id})</strong>. No zonal employee session is active — please sign in below as a zonal officer to open an employee workspace.`);
               return;
             }
           } catch (e) {}
@@ -6068,13 +6094,22 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
             CURRENT_EMP_ID = user.user_id.toUpperCase();
             sessionStorage.setItem("ndli_employee_id", CURRENT_EMP_ID);
             sessionStorage.setItem("ndli_current_emp_id", CURRENT_EMP_ID);
+            showPortalView(user);
           } else if (user.role === "ADMIN") {
-            const savedEmpId = sessionStorage.getItem("ndli_employee_id") || sessionStorage.getItem("ndli_current_emp_id");
-            if (savedEmpId && EMP_PROFILES[savedEmpId]) {
-              CURRENT_EMP_ID = savedEmpId;
+            // An Administrator may preview an EXPLICITLY requested workspace (/employee/<id>
+            // or ?page=employee&emp=<id>, e.g. the admin roster "Open UI" action). With no
+            // employee signed in and no explicit target, the portal must fall back to the
+            // sign-in screen — it must NEVER default to a phantom dashboard such as EMP01.
+            const previewEmpId = (routeEmpId && EMP_PROFILES[routeEmpId]) ? routeEmpId : null;
+            if (previewEmpId) {
+              CURRENT_EMP_ID = previewEmpId;
+              showPortalView(user);
+            } else {
+              showLoginView("You are signed in as Administrator and no zonal employee session is active. Please sign in as a zonal officer to open an employee workspace.");
             }
+          } else {
+            showLoginView("Your account role cannot access a zonal employee workspace.");
           }
-          showPortalView(user);
         } else {
           sessionStorage.removeItem("ndli_token");
           sessionStorage.removeItem("ndli_employee_token");
