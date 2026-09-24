@@ -1691,6 +1691,24 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     status=400
                 )
                 return
+            # Dual-layer security (layer 2): Master Admin password re-authentication,
+            # mirroring the emergency-restore endpoint. Session + typed confirmation
+            # phrase alone must never authorize a full data wipe.
+            password = str(body.get("password", "")).strip()
+            admin_email = str(body.get("admin_email") or body.get("email") or DEFAULT_ADMIN_EMAIL).strip()
+            if not password:
+                self._send_error(
+                    "Master Admin password is required to authorize test data reset.",
+                    status=401,
+                )
+                return
+            auth_ok, auth_err, user = AuthService.authenticate(admin_email, password)
+            if not auth_ok or not user or user.get("role") != "ADMIN":
+                self._send_error(
+                    "Authentication failed: Invalid Master Admin password. Reset aborted.",
+                    status=403,
+                )
+                return
             try:
                 clubs_per_employee = int(body.get("clubs_per_employee", 4))
             except (TypeError, ValueError):

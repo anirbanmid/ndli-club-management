@@ -821,7 +821,7 @@
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-            <strong style="font-size: 0.9rem; color: var(--text);">Retained Backup Archives (Max 2):</strong>
+            <strong style="font-size: 0.9rem; color: var(--text);">Retained Backup Archives (Max 6):</strong>
             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
               <a href="/api/download/user-manual" class="btn btn-outline btn-sm" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;" title="Download Official User Manual (PDF)"><span>📖</span> Manual (PDF)</a>
               <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
@@ -831,6 +831,23 @@
 
           <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem;">
             <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading backup archives...</div>
+          </div>
+
+          <!-- DANGER ZONE: Test Data Reset (dual-layer security) -->
+          <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 6px; padding: 0.85rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 260px;">
+                <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Reset Test Data</strong>
+                <small style="color: #7f1d1d; font-size: 0.78rem; line-height: 1.45; display: block;">
+                  Wipes ALL club &amp; activity data (Master DB + 7 Regional Nodes) and reseeds clean test clubs. Employee accounts, credentials &amp; issues are preserved.
+                  An automatic safety checkpoint is taken first (and the reset aborts if it cannot be written) — you can restore it from the archives list above.
+                  Protected by dual-layer security: typed confirmation phrase + Master Admin password.
+                </small>
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="openResetTestModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem;">
+                <span>🧹</span> Reset Test Data…
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1061,6 +1078,95 @@
         }
       } catch (e) {
         alert("Error triggering backup: " + e.message);
+      }
+    }
+
+    // =========================================================================
+    // DANGER ZONE: TEST DATA RESET (dual-layer security: phrase + admin password)
+    // =========================================================================
+    function openResetTestModal() {
+      const modal = document.getElementById("reset-test-data-modal");
+      if (!modal) return;
+      const cInp = document.getElementById("reset-confirm-input");
+      const pInp = document.getElementById("reset-admin-password");
+      const nInp = document.getElementById("reset-clubs-per-employee");
+      const st = document.getElementById("reset-test-status");
+      const pErr = document.getElementById("reset-password-error");
+      if (cInp) cInp.value = "";
+      if (pInp) pInp.value = "";
+      if (nInp) nInp.value = "4";
+      if (st) { st.style.display = "none"; st.innerHTML = ""; }
+      if (pErr) { pErr.style.display = "none"; pErr.innerText = ""; }
+      validateResetTestForm();
+      modal.classList.add("active");
+      modal.classList.add("open");
+      modal.style.display = "flex";
+      setTimeout(() => { if (cInp) cInp.focus(); }, 100);
+    }
+
+    function closeResetTestModal() {
+      const modal = document.getElementById("reset-test-data-modal");
+      if (!modal) return;
+      modal.classList.remove("active");
+      modal.classList.remove("open");
+      modal.style.display = "none";
+    }
+
+    function validateResetTestForm() {
+      const cInp = document.getElementById("reset-confirm-input");
+      const pInp = document.getElementById("reset-admin-password");
+      const btn = document.getElementById("btn-execute-reset-test");
+      if (!btn) return;
+      const phraseOk = !!(cInp && cInp.value.trim() === "RESET-ALL-TEST-DATA");
+      const passOk = !!(pInp && pInp.value.trim());
+      btn.disabled = !(phraseOk && passOk);
+      btn.style.opacity = btn.disabled ? "0.5" : "1";
+    }
+
+    async function executeResetTest() {
+      const cInp = document.getElementById("reset-confirm-input");
+      const pInp = document.getElementById("reset-admin-password");
+      const nInp = document.getElementById("reset-clubs-per-employee");
+      const st = document.getElementById("reset-test-status");
+      const btn = document.getElementById("btn-execute-reset-test");
+      const pErr = document.getElementById("reset-password-error");
+      if (!cInp || cInp.value.trim() !== "RESET-ALL-TEST-DATA") return;
+      if (btn) { btn.disabled = true; btn.innerHTML = "<span>⏳</span> Wiping & Reseeding..."; }
+      if (pErr) { pErr.style.display = "none"; pErr.innerText = ""; }
+      try {
+        const res = await apiRequest("/api/admin/data/reset-test-data", "POST", {
+          confirm: cInp.value.trim(),
+          password: pInp ? pInp.value : "",
+          clubs_per_employee: nInp ? (parseInt(nInp.value, 10) || 4) : 4
+        });
+        if (res.ok && res.data && res.data.success) {
+          const d = res.data;
+          if (st) {
+            st.style.display = "block";
+            st.innerHTML = `<div class="alert alert-success" style="margin: 0;"><span>✓</span><div><strong>Reset complete.</strong> ${escapeHtml(d.message || "")}<br>Safety checkpoint <code>${escapeHtml(d.checkpoint_backup_id || "")}</code> — restore it from the archives list if needed.</div></div>`;
+          }
+          showAlert("admin-alert", "✓ Test data wiped & reseeded. Auto-checkpoint: " + (d.checkpoint_backup_id || "n/a"), "success");
+          loadDashboardData();
+          loadAdminBackupStatus();
+          loadEmployeesRoster();
+        } else {
+          const msg = (res.data && (res.data.message || res.data.error)) || "Reset failed.";
+          if ((res.status === 401 || res.status === 403) && pErr) {
+            pErr.style.display = "block";
+            pErr.innerText = msg;
+          }
+          if (st) {
+            st.style.display = "block";
+            st.innerHTML = `<div class="alert alert-danger" style="margin: 0;"><span>⚠️</span><div>${escapeHtml(msg)}</div></div>`;
+          }
+        }
+      } catch (e) {
+        if (st) {
+          st.style.display = "block";
+          st.innerHTML = `<div class="alert alert-danger" style="margin: 0;"><span>⚠️</span><div>Network error: ${escapeHtml(e.message)}</div></div>`;
+        }
+      } finally {
+        if (btn) { btn.innerHTML = "<span>⚠️</span> Wipe & Reseed Test Data"; validateResetTestForm(); }
       }
     }
 
@@ -3463,12 +3569,15 @@
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
+          const resetTestModal = document.getElementById("reset-test-data-modal");
           const adminLoginModal = document.getElementById("admin-login-modal");
 
           if (adminLoginModal && (adminLoginModal.style.display === "flex" || adminLoginModal.classList.contains("active"))) {
             closeAdminLoginModal();
           } else if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
             closeEmergencyRestoreModal();
+          } else if (resetTestModal && (resetTestModal.classList.contains("active") || resetTestModal.style.display === "flex")) {
+            closeResetTestModal();
           } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
           } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
@@ -3501,6 +3610,8 @@
               closeAdminIssueModal();
             } else if (overlay.id === "emergency-restore-modal") {
               closeEmergencyRestoreModal();
+            } else if (overlay.id === "reset-test-data-modal") {
+              closeResetTestModal();
             }
           }
         });
@@ -3815,6 +3926,62 @@
   </div>
 
   <!-- EMERGENCY DATABASE RESTORE SECURITY MODAL -->
+  <div class="modal-overlay modal" id="reset-test-data-modal" style="z-index: 1260; display: none;">
+    <div class="modal-content" style="max-width: 580px; width: 95%;">
+      <button class="modal-close" onclick="closeResetTestModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🧹</span> Reset All Test Data
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Wipe club &amp; activity data and reseed clean test clubs</p>
+        </div>
+        <span class="pill pill-danger" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Critical Action</span>
+      </div>
+
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+        <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
+          <span>⚠️</span> NON-REVERSIBLE WIPE WARNING
+        </strong>
+        This permanently wipes ALL club and activity records (Master DB + all 7 Regional Node DBs) and reseeds clean test clubs.
+        <strong>Preserved:</strong> employee accounts, credentials, issues and signatures.
+        <strong>Safety net:</strong> an automatic checkpoint (<em>Auto Checkpoint before Test Data Reset</em>) is taken first — if it cannot be written, the reset is aborted and nothing changes. The checkpoint appears in the archives list above and can be restored at any time.
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
+          <span>🛡️</span> Dual-Layer Security Verification
+        </h4>
+
+        <div style="margin-bottom: 0.85rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>RESET-ALL-TEST-DATA</code> to confirm:</label>
+          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; font-family: monospace;">
+          <small style="color: var(--text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">Prevents accidental activation — the phrase must match exactly.</small>
+        </div>
+
+        <div style="margin-bottom: 0.85rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 2 — Master Admin Password:</label>
+          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+          <div id="reset-password-error" style="display: none; color: #b91c1c; font-size: 0.75rem; margin-top: 0.3rem;"></div>
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Test clubs per employee (reseed count):</label>
+          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+        </div>
+      </div>
+
+      <div id="reset-test-status" style="display: none; margin-bottom: 1rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button class="btn btn-outline btn-sm" onclick="closeResetTestModal()" style="padding: 0.5rem 1rem;">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; padding: 0.5rem 1rem; opacity: 0.5;">
+          <span>⚠️</span> Wipe &amp; Reseed Test Data
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay modal" id="emergency-restore-modal" style="z-index: 1250; display: none;">
     <div class="modal-content" style="max-width: 620px; width: 95%;">
       <button class="modal-close" onclick="closeEmergencyRestoreModal()" title="Close Window">×</button>

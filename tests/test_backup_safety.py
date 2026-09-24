@@ -20,7 +20,7 @@ from unittest import mock
 
 from app import NDLIRequestHandler
 from init_db import initialize_database
-from config import MASTER_CLUBS_CSV, EMPLOYEE_NODES_DIR
+from config import MASTER_CLUBS_CSV, EMPLOYEE_NODES_DIR, DEFAULT_ADMIN_PASSWORD, BASE_DIR
 from db.backup_engine import BackupEngine, MAX_RETAINED_BACKUPS
 from db.csv_engine import CSVEngine
 from db.schemas import CLUB_FIELDS
@@ -159,7 +159,8 @@ class TestBackupSafetyCheckpoints(unittest.TestCase):
         before_rows = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
         with mock.patch.object(BackupEngine, "create_backup", side_effect=OSError("simulated backup failure")):
             status, res = self._post("/api/admin/data/reset-test-data",
-                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1})
+                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1,
+                                      "password": DEFAULT_ADMIN_PASSWORD})
         self.assertGreaterEqual(status, 500, "Checkpoint failure must surface as an error")
         after_rows = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
         self.assertEqual(len(after_rows), len(before_rows),
@@ -171,7 +172,8 @@ class TestBackupSafetyCheckpoints(unittest.TestCase):
         ckpt_dir = None
         try:
             status, res = self._post("/api/admin/data/reset-test-data",
-                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1})
+                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1,
+                                      "password": DEFAULT_ADMIN_PASSWORD})
             self.assertEqual(status, 200)
             self.assertTrue(res.get("success"))
 
@@ -211,6 +213,46 @@ class TestBackupSafetyCheckpoints(unittest.TestCase):
         status, data = self._get_json("/api/admin/backup/status")
         self.assertEqual(status, 200)
         self.assertEqual(data["max_retained_backups"], MAX_RETAINED_BACKUPS)
+
+    # ------------------------------------------------------------------
+    # dual-layer security on the destructive reset
+    # ------------------------------------------------------------------
+    def test_data_reset_dual_security_enforced(self):
+        """Reset requires: admin session + typed phrase (layer 1) + admin password (layer 2)."""
+        rows_before = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
+
+        # No admin session -> 401
+        st, _ = self._post("/api/admin/data/reset-test-data",
+                           {"confirm": "RESET-ALL-TEST-DATA", "password": DEFAULT_ADMIN_PASSWORD},
+                           use_token=False)
+        self.assertEqual(st, 401)
+
+        # Wrong typed phrase -> 400 (layer 1 blocks)
+        st, _ = self._post("/api/admin/data/reset-test-data",
+                           {"confirm": "reset-all", "password": DEFAULT_ADMIN_PASSWORD})
+        self.assertEqual(st, 400)
+
+        # Correct phrase but missing password -> 401 (layer 2 blocks)
+        st, _ = self._post("/api/admin/data/reset-test-data", {"confirm": "RESET-ALL-TEST-DATA"})
+        self.assertEqual(st, 401)
+
+        # Correct phrase but wrong password -> 403
+        st, _ = self._post("/api/admin/data/reset-test-data",
+                           {"confirm": "RESET-ALL-TEST-DATA", "password": "definitely-wrong-pass"})
+        self.assertEqual(st, 403)
+
+        rows_after = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
+        self.assertEqual(rows_after, rows_before,
+                         "No rejected reset attempt may alter any data")
+
+    def test_reset_button_present_with_dual_security_ui(self):
+        """The admin UI must expose the Danger Zone reset button + dual-layer modal."""
+        admin_html = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
+        for marker in ("openResetTestModal()", "reset-test-data-modal", "reset-confirm-input",
+                       "reset-admin-password", "RESET-ALL-TEST-DATA",
+                       "Dual-Layer Security Verification"):
+            self.assertIn(marker, admin_html,
+                          f"Admin UI must contain the reset dual-layer security element: {marker}")
 
 
 if __name__ == "__main__":
