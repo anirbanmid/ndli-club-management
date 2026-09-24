@@ -17,6 +17,7 @@ from config import (
     DATA_DIR,
     MASTER_DATA_DIR,
     EMPLOYEE_NODES_DIR,
+    SIGNATURES_DIR,
     BACKUP_DIR
 )
 
@@ -136,6 +137,18 @@ class BackupEngine:
                             if f.is_file() and f.suffix == ".csv" and not f.name.startswith("."):
                                 shutil.copy2(str(f), str(dest_emp / f.name))
 
+            # 2b. Copy Digital Signature Assets (certificate engine: pi_signature.png,
+            # settings.json). These are not CSVs, so they need their own pass -- without
+            # it, a disaster restore would silently lose the PI signature.
+            signature_files = []
+            signatures_target = target_dir / "signatures"
+            if SIGNATURES_DIR.exists():
+                signatures_target.mkdir(parents=True, exist_ok=True)
+                for f in SIGNATURES_DIR.iterdir():
+                    if f.is_file() and not f.name.startswith("."):
+                        shutil.copy2(str(f), str(signatures_target / f.name))
+                        signature_files.append(f.name)
+
             # 3. Create Manifest
             manifest = {
                 "backup_id": backup_id,
@@ -143,6 +156,7 @@ class BackupEngine:
                 "note": note,
                 "admin_files": admin_files,
                 "employee_nodes": employee_nodes,
+                "signatures_files": signature_files,
                 "status": "SUCCESS"
             }
             manifest_file = target_dir / "manifest.json"
@@ -396,7 +410,9 @@ class BackupEngine:
         Accepts:
         - A Path/str pointing to a .zip archive (downloaded from Google Drive or local)
         - A Path/str pointing to a backup snapshot directory (e.g. data/backups/backup_...)
-        Replaces active CSVs in data/master/ and data/employees/ and executes full reconciliation.
+        Replaces active CSVs in data/master/ and data/employees/, restores digital
+        signature assets into data/signatures/ when present in the archive (older
+        archives without them are simply skipped), and executes full reconciliation.
         """
         import zipfile
         from db.sync_engine import SyncEngine
@@ -419,6 +435,7 @@ class BackupEngine:
         with _BACKUP_LOCK:
             restored_master_files = []
             restored_employee_nodes = []
+            restored_signature_files = []
 
             # Case A: ZIP archive (e.g. downloaded from Google Drive backups folder)
             if src.is_file() and (src.suffix.lower() == ".zip" or zipfile.is_zipfile(src)):
@@ -467,6 +484,19 @@ class BackupEngine:
                                     if f.is_file() and f.suffix == ".csv":
                                         shutil.copy2(str(f), str(dest_node / f.name))
 
+                    sig_src = tmp_path / "signatures"
+                    if not sig_src.exists():
+                        for sub in tmp_path.glob("**/signatures"):
+                            if sub.is_dir():
+                                sig_src = sub
+                                break
+                    if sig_src and sig_src.exists():
+                        SIGNATURES_DIR.mkdir(parents=True, exist_ok=True)
+                        for f in sig_src.iterdir():
+                            if f.is_file():
+                                shutil.copy2(str(f), str(SIGNATURES_DIR / f.name))
+                                restored_signature_files.append(f.name)
+
             # Case B: Local backup directory
             elif src.is_dir():
                 master_src = (src / "master") if (src / "master").exists() else (src / "admin")
@@ -489,6 +519,14 @@ class BackupEngine:
                             for f in e_dir.iterdir():
                                 if f.is_file() and f.suffix == ".csv":
                                     shutil.copy2(str(f), str(dest_node / f.name))
+
+                sig_src = src / "signatures"
+                if sig_src.exists():
+                    SIGNATURES_DIR.mkdir(parents=True, exist_ok=True)
+                    for f in sig_src.iterdir():
+                        if f.is_file():
+                            shutil.copy2(str(f), str(SIGNATURES_DIR / f.name))
+                            restored_signature_files.append(f.name)
             else:
                 raise ValueError(f"Unrecognized backup format for source: {src}")
 
@@ -504,9 +542,10 @@ class BackupEngine:
                 "message": "Emergency restoration completed successfully.",
                 "source": str(src),
                 "restored_from": str(src.name),
-                "restored_files_count": len(restored_master_files) + len(restored_employee_nodes),
+                "restored_files_count": len(restored_master_files) + len(restored_employee_nodes) + len(restored_signature_files),
                 "restored_master_files": restored_master_files,
                 "restored_employee_nodes": restored_employee_nodes,
+                "restored_signature_files": restored_signature_files,
                 "reconciliation": reconcile_summary,
                 "reconciliation_summary": reconcile_summary
             }
