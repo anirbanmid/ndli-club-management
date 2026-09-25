@@ -646,10 +646,11 @@ async function runTests() {
   const crossRem = __rawDispatch('issues/employee-reminders?emp_id=EMP01', 'GET', {}, empTok29);
   console.assert(crossRem.status === 403, 'Employee must not list another employee\'s reminders');
 
-  // 29h. Role gates tightened to Python parity: issues/admin-reminders and
-  // certificate/* are admin-only
+  // 29h. Role gates tightened to Python parity: issues/admin-reminders is
+  // admin-only. Certificate APIs stay OPEN to employees (client requirement
+  // 2026-09-26: employees generate certificates and manage the PI signature).
   const certEmp = __rawDispatch('certificate/settings', 'GET', {}, empTok29);
-  console.assert(certEmp.status === 403, 'certificate/* must be admin-only (parity with Python app.py)');
+  console.assert(certEmp.ok === true, 'certificate/* must stay available to employee sessions (client requirement 2026-09-26)');
   const admRemEmp = __rawDispatch('issues/admin-reminders', 'GET', {}, empTok29);
   console.assert(admRemEmp.status === 403, 'issues/admin-reminders must be admin-only');
 

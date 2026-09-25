@@ -2222,7 +2222,10 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         # Certificate Signature Upload
         if path == "/api/certificate/signature":
-            if not self._check_admin_access():
+            # CLIENT REQUIREMENT (2026-09-26): employees must be able to generate
+            # certificates and upload/modify the PI signature — every authenticated
+            # session may use the certificate APIs (previously admin-only).
+            if not self._require_session():
                 return
             image_data = body.get("image_data", "")
             if not image_data:
@@ -2290,7 +2293,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             settings_file = sig_dir / "settings.json"
-            if not self._check_admin_access():
+            # CLIENT REQUIREMENT (2026-09-26): certificate PI settings are
+            # editable by every authenticated session (previously admin-only).
+            if not self._require_session():
                 return
             saved = {
                 "pi_name": "Prof. Partha Pratim Chakrabarti",

@@ -174,6 +174,40 @@ class TestRenewalCertificateAndSecurity(unittest.TestCase):
         self.assertEqual(status, 400)
 
     # -------------------------------------------------------------
+    # 3b. CLIENT REQUIREMENT (2026-09-26): employees may generate
+    # certificates and upload/modify the PI signature — the certificate
+    # APIs must accept EMPLOYEE sessions, not just admins.
+    # -------------------------------------------------------------
+    def test_employee_session_may_use_certificate_apis(self):
+        from auth_util import employee_token
+        tok = employee_token(self.base_url, self.__class__.__name__)
+
+        # GET settings as employee
+        status, body, _ = self._get("/api/certificate/settings", token=tok)
+        self.assertEqual(status, 200)
+
+        # POST settings update as employee
+        status, data, _ = self._post("/api/certificate/settings", {
+            "pi_name": "Prof. Partha Pratim Chakrabarti",
+            "pi_affiliation": "Principal Investigator, NDLI Project, Central Library, IIT Kharagpur"
+        }, token=tok)
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+
+        # Signature upload as employee
+        status, data, _ = self._post("/api/certificate/signature", {
+            "image_data": MINIMAL_PNG_B64,
+            "filename": "employee_signature.png"
+        }, token=tok)
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("success"))
+
+        # And the served image is retrievable with the employee session too
+        status, img_bytes, headers = self._get("/api/certificate/signature", token=tok)
+        self.assertEqual(status, 200)
+        self.assertIn("image/png", headers.get("Content-Type", ""))
+
+    # -------------------------------------------------------------
     # 4. Test Frontend HTML Markup in templates/employee.html
     # -------------------------------------------------------------
     def test_employee_template_modals_and_script(self):

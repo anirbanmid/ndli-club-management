@@ -813,13 +813,14 @@ function isRelayGasRoute_(path) {
 
 function isAdminGasRoute_(path) {
   // Round 4 (parity with Python app.py _check_admin_access call sites):
-  // issues/admin-reminders and the certificate PI settings/signature routes
-  // are admin-only, exactly like their Python twins.
+  // issues/admin-reminders is admin-only. Certificate PI settings/signature
+  // were admin-only for one round — CLIENT REQUIREMENT (2026-09-26) reopened
+  // them to every authenticated session (employees generate certificates and
+  // manage the PI signature), matching the Python twin.
   return path.indexOf("admin/") === 0 || path === "auth/block-toggle" ||
          path === "backup/restore" || path === "backup/upload" || path === "backup/run-manual" ||
          path === "sync/reconcile" ||
-         path === "issues/admin-reminders" ||
-         path === "certificate/settings" || path === "certificate/signature";
+         path === "issues/admin-reminders";
 }
 
 function requireSelfOrAdminGas_(authSession, empId) {
