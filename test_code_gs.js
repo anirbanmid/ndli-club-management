@@ -128,7 +128,20 @@ global.Logger = {
   log: (...args) => console.log('[GAS Logger]', ...args)
 };
 
+// Mock CacheService (used by the round-3 login throttle)
+global.CacheService = (() => {
+  const store = new Map();
+  return {
+    getScriptCache: () => ({
+      get: (k) => (store.has(k) ? store.get(k) : null),
+      put: (k, v, _ttl) => { store.set(k, String(v)); },
+      remove: (k) => { store.delete(k); }
+    })
+  };
+})();
+
 global.Utilities = {
+  getUuid: () => require('crypto').randomUUID(),
   parseCsv: (text) => {
     if (!text) return [];
     // Basic CSV parse matching GAS Utilities.parseCsv
@@ -226,8 +239,12 @@ async function runTests() {
   console.log('PASS: Admin login with email passed.\n');
 
   console.log('[Test 3b] Admin login with User ID (ADMIN01)...');
-  const adminLogin2 = apiDispatcher('auth/login', 'POST', { id: 'ADMIN01', password: 'Seed#Admin-Rotated2026' });
-  console.assert(adminLogin2.ok === true, 'Admin login with ADMIN01 and Seed#Admin-Rotated2026 should succeed');
+  const adminLogin2 = apiDispatcher('auth/login', 'POST', { id: 'ADMIN01', password: 'Seed#Scrubbed-2026' });
+  console.assert(adminLogin2.ok === true, 'Admin login with ADMIN01 and the stored credential should succeed');
+  // Round-3: the seed backdoor is gone — a password that is NOT the stored
+  // credential must be rejected even for a known account.
+  const adminBad = apiDispatcher('auth/login', 'POST', { id: 'ADMIN01', password: 'Seed#Admin-Rotated2026' });
+  console.assert(adminBad.ok === false && adminBad.status === 401, 'Non-stored password must be rejected (seed backdoor removed)');
   console.log('PASS: Admin login with User ID passed.\n');
 
   // Test 4: Credentials - Employee Login
@@ -425,7 +442,7 @@ async function runTests() {
   console.log('[Test 25] Non-destructive initSystem() & sync/pull-all parity (Club 26 persistence)...');
   const createClub26Res = apiDispatcher('clubs/create', 'POST', {
     emp_id: 'EMP01',
-    club_id: 'NDLI-EMP01-026',
+    club_id: '260026',
     reg_no: 'REG-2026-EMP01-026',
     institution_name: 'National Institute of Advanced Studies Delhi',
     state: 'Delhi',
@@ -452,7 +469,7 @@ async function runTests() {
   console.assert(metricsAfter.ok === true, 'Failed to get admin metrics after re-init');
   console.assert(metricsAfter.data.summary.total_clubs === countBefore, `Total clubs wiped! Expected ${countBefore}, got ${metricsAfter.data.summary.total_clubs}`);
 
-  const club26Check = apiDispatcher('clubs/details', 'POST', { club_id: 'NDLI-EMP01-026' });
+  const club26Check = apiDispatcher('clubs/details', 'POST', { club_id: '260026' });
   console.assert(club26Check.ok === true && club26Check.data.club, 'Club 26 disappeared after initSystem()!');
   console.assert(club26Check.data.club.institution_name === 'National Institute of Advanced Studies Delhi', 'Club 26 data corrupted after initSystem()');
 
@@ -460,16 +477,69 @@ async function runTests() {
   const pullAllRes = apiDispatcher('sync/pull-all', 'POST', {});
   console.assert(pullAllRes.ok === true && pullAllRes.data.success === true, 'sync/pull-all failed');
   console.assert(pullAllRes.data.total_files > 0, 'sync/pull-all must return files');
-  console.assert(pullAllRes.data.files['master/master_clubs.csv'].includes('NDLI-EMP01-026'), 'master_clubs.csv in pull-all must contain Club 26');
+  console.assert(pullAllRes.data.files['master/master_clubs.csv'].includes('260026'), 'master_clubs.csv in pull-all must contain Club 26');
 
   // Verify sync/pull-file endpoint
   const pullFileRes = apiDispatcher('sync/pull-file', 'POST', { subPath: 'master', fileName: 'master_clubs.csv' });
   console.assert(pullFileRes.ok === true && pullFileRes.data.success === true, 'sync/pull-file failed');
-  console.assert(pullFileRes.data.content.includes('NDLI-EMP01-026'), 'pulled master_clubs.csv must contain Club 26');
+  console.assert(pullFileRes.data.content.includes('260026'), 'pulled master_clubs.csv must contain Club 26');
   console.log('PASS: Non-destructive initSystem() verified: Club 26 and activity logs 100% persisted!\n');
 
+  // Test 27: Round-3 parity — numeric club IDs, duplicate-entry checkpoints,
+  // and the renewal policy/dedupe guard.
+  console.log('[Test 27] Round-3: numeric club IDs + duplicate-entry checkpoints...');
+
+  // 27a. Client requisition: Club ID must be a whole number
+  const badIdRes = apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP03', club_id: 'NDLI-BAD-1', reg_no: 'REG-R3-A',
+    institution_name: 'Bad ID Institute', state: 'Gujarat'
+  });
+  console.assert(badIdRes.ok === false && badIdRes.status === 422, 'Non-numeric club ID must be rejected with 422');
+
+  // 27b. Numeric ID accepted
+  const numIdRes = apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP03', club_id: '930001', reg_no: 'REG-R3-1',
+    institution_name: 'Numeric ID Institute', state: 'Gujarat'
+  });
+  console.assert(numIdRes.ok === true, 'Numeric club ID must be accepted');
+
+  // 27c. Club-ID takeover blocked (other employee's club)
+  const hijackRes = apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP04', club_id: '930001', reg_no: 'REG-R3-2',
+    institution_name: 'Hijack Institute', state: 'Bihar'
+  });
+  console.assert(hijackRes.ok === false && hijackRes.status === 409, 'Cross-employee club takeover must return 409');
+
+  // 27d. Duplicate Registration Number blocked with a warning naming the club
+  const dupRegRes = apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP04', club_id: '930002', reg_no: 'reg-r3-1',
+    institution_name: 'Duplicate Reg Institute', state: 'Bihar'
+  });
+  console.assert(dupRegRes.ok === false && dupRegRes.status === 409, 'Duplicate Registration Number must return 409');
+  console.assert(String(dupRegRes.data.message).includes('930001'), 'Duplicate warning must name the existing club');
+
+  // 27e. Renewal policy: +1 year from the PREVIOUS due date + 60s dedupe
+  apiDispatcher('clubs/update', 'POST', { club_id: '930001', role: 'ADMIN', renewal_date: '2030-01-10', next_renewal_date: '2030-01-10' });
+  const ren1Res = apiDispatcher('clubs/renew', 'POST', { emp_id: 'EMP03', club_id: '930001' });
+  console.assert(ren1Res.ok === true && ren1Res.data.club.renewal_date === '2031-01-10', 'Renewal must be +1 year from the previous DUE date (2030-01-10 -> 2031-01-10)');
+  const ren2Res = apiDispatcher('clubs/renew', 'POST', { emp_id: 'EMP03', club_id: '930001' });
+  console.assert(ren2Res.ok === true && ren2Res.data.renewal_duplicate_skipped === true, 'Double-click renewal must be ignored as duplicate');
+
+  // 27f. Mass-assignment guard: non-admin cannot change status/renewal dates
+  apiDispatcher('clubs/create', 'POST', {
+    emp_id: 'EMP04', club_id: '930003', reg_no: 'REG-R3-3',
+    institution_name: 'Mass Test Institute', state: 'Bihar'
+  });
+  const massRes = apiDispatcher('clubs/update', 'POST', { club_id: '930003', institution_name: 'Renamed R3', status: 'Hacked', renewal_date: '1999-01-01' });
+  console.assert(massRes.ok === true, 'Descriptive update should succeed');
+  const massCheck = apiDispatcher('clubs/details', 'POST', { club_id: '930003' });
+  console.assert(massCheck.data.club.status !== 'Hacked' && massCheck.data.club.renewal_date !== '1999-01-01', 'Non-admin must not change status/renewal dates');
+  console.assert(massCheck.data.club.institution_name === 'Renamed R3', 'Non-admin descriptive edit must still work');
+
+  console.log('PASS: Round-3 numeric IDs, duplicate checkpoints, renewal policy & mass-assignment guard verified.\n');
+
   console.log('=============================================');
-  console.log('ALL 25 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 28 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

@@ -67,7 +67,7 @@ class TestBugHuntRegressions(unittest.TestCase):
     # 2
     def test_create_cannot_overwrite_other_employees_club(self):
         t3, t4 = self._login(*E3), self._login(*E4)
-        cid = "BH-DUP-1"; self.created.append(cid)
+        cid = "920301"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03"), t3)[0], 200)
         s, j = self._call("/api/clubs/create", _club(cid, "EMP04", state="Bihar", institution_name="HIJACK"), t4)
         self.assertEqual(s, 409)
@@ -82,7 +82,7 @@ class TestBugHuntRegressions(unittest.TestCase):
     # 3
     def test_update_ignores_privileged_fields_for_employees(self):
         t3, t4 = self._login(*E3), self._login(*E4)
-        cid = "BH-MASS-1"; self.created.append(cid)
+        cid = "920302"; self.created.append(cid)
         self._call("/api/clubs/create", _club(cid, "EMP03"), t3)
         s, j = self._call("/api/clubs/update", {"emp_id": "EMP04", "club_id": cid, "institution_name": "Renamed OK",
                           "approved_by_emp_id": "EMP04", "status": "Hacked", "last_renewal_date": "2026-09-01"}, t4)

@@ -102,7 +102,7 @@ class TestRenewalPolicy(Round2TestBase):
 
     def test_early_renewal_keeps_anniversary(self):
         t3 = self._login(*E3)
-        cid = "R2-RENEW-EARLY"; self.created.append(cid)
+        cid = "940101"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03"), t3)[0], 200)
         # Model a mid-cycle club: due ~400 days from today, renewed early today
         import datetime as _dt
@@ -122,7 +122,7 @@ class TestRenewalPolicy(Round2TestBase):
 
     def test_overdue_renewal_rolls_forward(self):
         t3 = self._login(*E3)
-        cid = "R2-RENEW-LATE"; self.created.append(cid)
+        cid = "940102"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03"), t3)[0], 200)
         # Model an overdue club realistically (due date in the past, approved &
         # renewed before that): ~1100 days since approval, ~700 since renewal,
@@ -166,7 +166,7 @@ class TestDoubleRenewalGuard(Round2TestBase):
 
     def test_double_click_renew_counts_once(self):
         t3 = self._login(*E3)
-        cid = "R2-RENEW-DBL"; self.created.append(cid)
+        cid = "940103"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03"), t3)[0], 200)
 
         before_support, _ = _quota("EMP03")
@@ -192,12 +192,12 @@ class TestDuplicateEntryCheckpoint(Round2TestBase):
 
     def test_duplicate_reg_no_blocked_on_create(self):
         t3, t4 = self._login(*E3), self._login(*E4)
-        cid = "R2-DUP-A"; self.created.append(cid)
+        cid = "940104"; self.created.append(cid)
         self.assertEqual(
             self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-777", state="Gujarat"), t3)[0], 200)
 
         # Different Club ID, SAME Registration Number -> blocked with warning naming the clash
-        cid2 = "R2-DUP-B"; self.created.append(cid2)
+        cid2 = "940105"; self.created.append(cid2)
         s, j = self._call("/api/clubs/create", _club(cid2, "EMP04", reg_no="R2-REG-777", state="Bihar"), t4)
         self.assertEqual(s, 409)
         msg = j.get("message", "")
@@ -218,7 +218,7 @@ class TestDuplicateEntryCheckpoint(Round2TestBase):
 
     def test_duplicate_club_id_still_blocked(self):
         t3, t4 = self._login(*E3), self._login(*E4)
-        cid = "R2-DUP-ID"; self.created.append(cid)
+        cid = "940106"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-901"), t3)[0], 200)
         s, j = self._call("/api/clubs/create", _club(cid, "EMP04", reg_no="R2-REG-902", state="Bihar"), t4)
         self.assertEqual(s, 409)
@@ -226,15 +226,15 @@ class TestDuplicateEntryCheckpoint(Round2TestBase):
 
     def test_same_club_resubmission_still_allowed(self):
         t3 = self._login(*E3)
-        cid = "R2-DUP-RESUB"; self.created.append(cid)
+        cid = "940107"; self.created.append(cid)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-903"), t3)[0], 200)
         s, _ = self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-903"), t3)
         self.assertEqual(s, 200)   # same owner + same club: explicit resubmission kept
 
     def test_duplicate_reg_no_blocked_on_update(self):
         t3, t4 = self._login(*E3), self._login(*E4)
-        cid = "R2-UPD-A"; self.created.append(cid)
-        cid2 = "R2-UPD-B"; self.created.append(cid2)
+        cid = "940108"; self.created.append(cid)
+        cid2 = "940109"; self.created.append(cid2)
         self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-551"), t3)[0], 200)
         self.assertEqual(self._call("/api/clubs/create", _club(cid2, "EMP04", reg_no="R2-REG-552", state="Bihar"), t4)[0], 200)
 
@@ -263,14 +263,28 @@ class TestIdentifierCharset(Round2TestBase):
 
     def test_hostile_reg_no_rejected(self):
         t3 = self._login(*E3)
-        cid = "R2-CHARSET-1"; self.created.append(cid)
+        cid = "940110"; self.created.append(cid)
         s, j = self._call("/api/clubs/create", _club(cid, "EMP03", reg_no='R"><script>'), t3)
         self.assertEqual(s, 422)
         self.assertTrue(any("Registration Number" in e for e in j.get("validation_errors", [])))
 
+    def test_club_id_must_be_whole_number(self):
+        """Client requisition (2026-09-26): Club ID is a WHOLE NUMBER — digits only."""
+        t3 = self._login(*E3)
+        bad_ids = ["NDLI-UP-205", "20A5", "20 51", "-2051", 'X"><img src=x>', "9" * 16, ""]
+        for i, bad in enumerate(bad_ids):
+            if bad == "":
+                continue  # empty is covered by 'required' validation
+            s, j = self._call("/api/clubs/create", _club(bad, "EMP03", reg_no=f"R2-REG-N{i}"), t3)
+            self.assertEqual(s, 422, f"club_id {bad!r} must be rejected")
+            self.assertTrue(any("whole number" in e for e in j.get("validation_errors", [])))
+        # A plain whole number is accepted
+        cid = "940112"; self.created.append(cid)
+        self.assertEqual(self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="R2-REG-912"), t3)[0], 200)
+
     def test_normal_formats_accepted(self):
         t3 = self._login(*E3)
-        cid = "NDLI-R2-001"; self.created.append(cid)
+        cid = "940111"; self.created.append(cid)
         s, _ = self._call("/api/clubs/create", _club(cid, "EMP03", reg_no="REG-2026/R2 001"), t3)
         self.assertEqual(s, 200)
 

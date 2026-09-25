@@ -113,7 +113,7 @@ class TestAPIEndpoints(unittest.TestCase):
         # SEC C payload
         payload = {
             "emp_id": emp_id,
-            "club_id": "NDLI-UP-201",
+            "club_id": "910201",
             "reg_no": "REG-2026-UP-201",
             "institution_name": "Aligarh Muslim University",
             "state": "Uttar Pradesh",

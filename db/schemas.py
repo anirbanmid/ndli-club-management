@@ -93,7 +93,11 @@ import re
 # Round-2 (2026-09-25): strict server-side charset whitelists. Free-form text in
 # these identifiers previously allowed stored-XSS payloads (inline onclick
 # contexts) and made club IDs unreliable as keys.
-CLUB_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{2,63}$")
+# Round-3 (2026-09-26, CLIENT REQUISITION): Club ID is a WHOLE NUMBER — digits
+# only (e.g. 2051). Applied strictly on NEW club entries; legacy club IDs that
+# predate this rule remain editable so existing records never become orphans.
+CLUB_ID_PATTERN = re.compile(r"^[0-9]{1,15}$")
+LEGACY_CLUB_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{2,63}$")
 REG_NO_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._\-/]{0,63}$")
 
 
@@ -114,12 +118,12 @@ def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
         if not val:
             errors.append(f"{label} is required.")
 
-    # Identifier charset whitelists (round 2)
+    # Identifier charset whitelists (round 2/3)
     club_id_val = str(payload.get("club_id", "")).strip()
     if club_id_val and not CLUB_ID_PATTERN.match(club_id_val):
         errors.append(
-            "Club ID may only contain letters, digits, dots, underscores and hyphens "
-            "(3-64 characters, must start with a letter or digit)."
+            "Club ID must be a whole number (digits only, e.g. 2051) as per client requisition. "
+            "No letters, spaces or symbols."
         )
     reg_no_val = str(payload.get("reg_no", "")).strip()
     if reg_no_val and not REG_NO_PATTERN.match(reg_no_val):

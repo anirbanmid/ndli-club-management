@@ -183,17 +183,10 @@ var SEED_DATA = {
   master_reminders: "issue_id,club_id,emp_id,institution_name,state,zone,issue_note,status,created_at,reminder_due_at,admin_reminder_due_at,last_reminded_at,resolved_at,resolved_by,resolution_notes,updated_at\nREM-0001,NDLI-EMP01-002,EMP01,Delhi Advanced Technical Institute,Delhi,North,Pending renewal documentation verification,Unresolved,2026-08-10T10:00:00Z,2026-08-13T10:00:00Z,2026-09-09T10:00:00Z,,,,,2026-08-10T10:00:00Z\n"
 };
 
-// Known default credentials dictionary for guaranteed 100% login success across all devices
-var KNOWN_PASSWORDS = {
-  "ADMIN01": ["Seed#Scrubbed-2026", "Seed#Admin-Rotated2026", "Seed#Scrubbed-2026"],
-  "EMP01": ["Seed#EMP01-Rotated2026"],
-  "EMP02": ["Seed#EMP02-Rotated2026"],
-  "EMP03": ["Seed#EMP03-Rotated2026"],
-  "EMP04": ["Seed#EMP04-Rotated2026"],
-  "EMP05": ["Seed#Scrubbed-2026", "Seed#EMP05-Rotated2026"],
-  "EMP06": ["Seed#EMP06-Rotated2026"],
-  "EMP07": ["Seed#EMP07-Rotated2026"]
-};
+// (Round-3 audit fix: the KNOWN_PASSWORDS "guaranteed login" backdoor was
+// REMOVED. It kept accepting the public seed passwords for every account
+// forever, which silently defeated password rotation — the GAS twin of the
+// critical bug. Logins now check only the stored credentials.)
 
 var DEFAULT_EMPLOYEES_CONFIG = [
   { id: "EMP01", name: "Rohan Sharma (North Zone)", zone: "North", state: "Delhi", email: "emp01@ndli.iitkgp.ac.in", legacy_email: "emp.north@ndli.edu.in", pass: "Seed#EMP01-Rotated2026" },
@@ -237,37 +230,14 @@ function initSystem() {
   getOrCreateFile(masterFolder, "master_quotas.csv", SEED_DATA.master_quotas, MimeType.CSV);
   getOrCreateFile(masterFolder, "master_reminders.csv", SEED_DATA.master_reminders, MimeType.CSV);
 
-  // For master_users.csv: Create if not existing, or update passwords and emails if needed
+  // For master_users.csv: create ONLY if missing. (Round-3 audit fix:
+  // this block used to re-hash the SEED passwords over the live accounts on
+  // every initSystem run — the exact twin of the Python critical bug fixed in
+  // commit 09cb404 — silently undoing password rotation. Rotated credentials
+  // are now NEVER overwritten.)
   var userFiles = masterFolder.getFilesByName("master_users.csv");
   if (!userFiles.hasNext()) {
     masterFolder.createFile("master_users.csv", SEED_DATA.master_users, MimeType.CSV);
-  } else {
-    // Check and repair credentials in existing file so user logins work immediately
-    var existingUsers = parseCsv(userFiles.next().getBlob().getDataAsString("UTF-8"));
-    var needSave = false;
-    if (!existingUsers.headers || existingUsers.headers.indexOf("id") === -1) {
-      saveCsvData("master", "master_users.csv", parseCsv(SEED_DATA.master_users).headers, parseCsv(SEED_DATA.master_users).rows);
-    } else {
-      for (var uIdx = 0; uIdx < existingUsers.rows.length; uIdx++) {
-        var uRow = existingUsers.rows[uIdx];
-        var uId = String(uRow.id || uRow.user_id || "").replace(/^[\uFEFF\s]+/, "").toUpperCase();
-        if (uId === "ADMIN01" && uRow.password_hash !== "Seed#Scrubbed-2026") {
-          uRow.password_hash = "Seed#Scrubbed-2026";
-          needSave = true;
-        }
-        for (var e = 0; e < DEFAULT_EMPLOYEES_CONFIG.length; e++) {
-          if (uId === DEFAULT_EMPLOYEES_CONFIG[e].id) {
-            if (uRow.password_hash !== DEFAULT_EMPLOYEES_CONFIG[e].pass) {
-              uRow.password_hash = DEFAULT_EMPLOYEES_CONFIG[e].pass;
-              needSave = true;
-            }
-          }
-        }
-      }
-      if (needSave) {
-        saveCsvData("master", "master_users.csv", existingUsers.headers, existingUsers.rows);
-      }
-    }
   }
 
   // 3. Employee Node CSVs (EMP01 - EMP07)
@@ -816,6 +786,15 @@ function apiDispatcher(path, method, body, token) {
         return { ok: false, status: 400, data: { error: true, message: "User ID / Email and password are required." } };
       }
 
+      // Brute-force guard (parity with Python auth.py): 8 failed attempts per
+      // identifier inside 10 minutes lock that identifier for 5 minutes.
+      // CacheService holds the counters across Apps Script invocations.
+      var gasCache = CacheService.getScriptCache();
+      var throttleKey = "ndli_login_fails_" + identifier.toLowerCase();
+      if (gasCache.get(throttleKey + "_lock")) {
+        return { ok: false, status: 429, data: { error: true, message: "Too many failed sign-in attempts. Please wait about 5 minutes and try again." } };
+      }
+
       var mUsers = getCsvData("master", "master_users.csv");
       var user = null;
       var cleanLower = identifier.toLowerCase();
@@ -835,41 +814,9 @@ function apiDispatcher(path, method, body, token) {
       }
 
       if (!user) {
-        // Fallback: If master_users.csv is empty or missing or user not seeded yet, match against canonical admin & default employees
-        if (cleanUpper === "ADMIN01" || cleanLower === "admin@iitkgp.ac.in") {
-          user = {
-            id: "ADMIN01",
-            user_id: "ADMIN01",
-            email: "admin@iitkgp.ac.in",
-            full_name: "IIT Kharagpur Admin Office",
-            role: "ADMIN",
-            zone: "Central Coordination (IIT KGP)",
-            assigned_states: "All India",
-            is_active: "1",
-            password_hash: "Seed#Scrubbed-2026"
-          };
-        } else {
-          for (var de = 0; de < DEFAULT_EMPLOYEES_CONFIG.length; de++) {
-            var dEmp = DEFAULT_EMPLOYEES_CONFIG[de];
-            if (dEmp.id === cleanUpper || dEmp.email.toLowerCase() === cleanLower || dEmp.legacy_email.toLowerCase() === cleanLower) {
-              user = {
-                id: dEmp.id,
-                user_id: dEmp.id,
-                email: dEmp.email,
-                full_name: dEmp.name,
-                role: "EMPLOYEE",
-                zone: dEmp.zone,
-                assigned_states: dEmp.state,
-                is_active: "1",
-                password_hash: dEmp.pass
-              };
-              break;
-            }
-          }
-        }
-      }
-
-      if (!user) {
+        // (Round-3 audit fix: the fallback that constructed ADMIN01/employee
+        // accounts with public seed passwords when the lookup failed was
+        // REMOVED — it let anyone in with the README seeds.)
         return { ok: false, status: 401, data: { error: true, message: "Invalid email, User ID, or password." } };
       }
 
@@ -878,40 +825,39 @@ function apiDispatcher(path, method, body, token) {
         return { ok: false, status: 403, data: { error: true, message: "This account has been disabled or blocked by the Administrator." } };
       }
 
-      // Password Validation (supports known passwords, direct matches, and node credentials)
+      // Password Validation (stored credentials only — master_users.csv and the
+      // employee node credentials.csv. The KNOWN_PASSWORDS and
+      // DEFAULT_EMPLOYEES_CONFIG seed backdoors were removed in round 3: they
+      // kept accepting public seed passwords after rotation.)
       var targetUid = (user.id || user.user_id || "").toUpperCase();
       var isValid = false;
 
-      // 1. Check known passwords list
-      if (KNOWN_PASSWORDS[targetUid] && KNOWN_PASSWORDS[targetUid].indexOf(pass) !== -1) {
-        isValid = true;
-      }
-      // 2. Check direct plain text match
+      // 1. Direct match against the stored credential
       if (!isValid && (user.password_hash === pass || user.password === pass)) {
         isValid = true;
       }
-      // 3. Check node credentials.csv
+      // 2. Check node credentials.csv
       if (!isValid && targetUid.indexOf("EMP") === 0) {
         var empCred = getCsvData("employees/" + targetUid.toLowerCase(), "credentials.csv");
         if (empCred.rows.length > 0 && (empCred.rows[0].password_hash === pass || empCred.rows[0].password === pass)) {
           isValid = true;
         }
       }
-      // 4. Default employees config fallback
-      if (!isValid) {
-        for (var d = 0; d < DEFAULT_EMPLOYEES_CONFIG.length; d++) {
-          if (DEFAULT_EMPLOYEES_CONFIG[d].id === targetUid && DEFAULT_EMPLOYEES_CONFIG[d].pass === pass) {
-            isValid = true;
-            break;
-          }
-        }
-      }
 
       if (!isValid) {
+        // Throttle bookkeeping: count the failure, lock after 8 in the window.
+        var failCount = parseInt(gasCache.get(throttleKey) || "0", 10) + 1;
+        if (failCount >= 8) {
+          gasCache.put(throttleKey + "_lock", "1", 300);
+          gasCache.remove(throttleKey);
+        } else {
+          gasCache.put(throttleKey, String(failCount), 600);
+        }
         return { ok: false, status: 401, data: { error: true, message: "Invalid credentials. Please verify your password." } };
       }
+      gasCache.remove(throttleKey);
 
-      var mockToken = "ndli_tok_" + targetUid + "_" + Date.now();
+      var mockToken = "ndli_tok_" + Utilities.getUuid();
       var sessionObj = {
         token: mockToken,
         user_id: targetUid,
@@ -991,16 +937,15 @@ function apiDispatcher(path, method, body, token) {
 
     // --- AUTH: VERIFY PASSWORD (SECOND-LAYER CONFIRMATION) ---
     if (path === "auth/verify-password") {
-      var uid = String(body.user_id || body.id || "EMP01").trim().toUpperCase();
+      var uid = String(body.user_id || body.id || "").trim().toUpperCase();
       var p = String(body.password || "").trim();
       if (!uid || !p) {
         return { ok: false, status: 400, data: { error: true, message: "User ID and password required." } };
       }
 
+      // Round-3: stored credentials only (the KNOWN_PASSWORDS seed backdoor
+      // here would have kept accepting public seed passwords after rotation).
       var isMatched = false;
-      if (KNOWN_PASSWORDS[uid] && KNOWN_PASSWORDS[uid].indexOf(p) !== -1) {
-        isMatched = true;
-      }
       if (!isMatched) {
         var mUsers = getCsvData("master", "master_users.csv");
         for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
@@ -2362,9 +2307,50 @@ function apiDispatcher(path, method, body, token) {
     // --- CLUBS: CREATE ---
     if (path === "clubs/create") {
       var mClubs = getCsvData("master", "master_clubs.csv");
-      var empId = String(body.employee_id || body.emp_id || "EMP01").toUpperCase();
-      var clubId = String(body.club_id || body.id || ("NDLI-" + empId + "-" + Utilities.formatString("%03d", mClubs.rows.length + 1))).trim().toUpperCase();
-      var regNo = body.reg_no || ("NDLI/REG/" + new Date().getFullYear() + "/" + Utilities.formatString("%03d", mClubs.rows.length + 1));
+      // Round-3: never default an identity (was EMP01 — the classic phantom-
+      // identity bug). The caller must state which employee approves.
+      var empId = String(body.employee_id || body.emp_id || "").trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Approving Employee ID (emp_id) is required." } };
+      }
+
+      // Client requisition (2026-09-26): Club ID is a WHOLE NUMBER (digits only).
+      var rawClubId = String(body.club_id || body.id || "").trim();
+      var clubId;
+      if (rawClubId) {
+        if (!/^[0-9]{1,15}$/.test(rawClubId)) {
+          return { ok: false, status: 422, data: { error: true, validation_errors: ["Club ID must be a whole number (digits only, e.g. 2051) as per client requisition. No letters, spaces or symbols."], message: "Form validation failed." } };
+        }
+        clubId = rawClubId;
+      } else {
+        // Auto-generate the next numeric club ID
+        var maxNum = 0;
+        for (var gi = 0; gi < mClubs.rows.length; gi++) {
+          var numPart = parseInt(String(mClubs.rows[gi].club_id || "").trim(), 10);
+          if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart;
+        }
+        clubId = String(maxNum + 1);
+      }
+
+      var regNo = String(body.reg_no || ("NDLI/REG/" + new Date().getFullYear() + "/" + clubId)).trim();
+
+      // Duplicate-entry checkpoints (client requirement + round-1 parity):
+      // block club-ID takeover and duplicate Registration Numbers with a
+      // warning naming the existing club. Same-owner resubmission is allowed.
+      for (var di = 0; di < mClubs.rows.length; di++) {
+        var existingRow = mClubs.rows[di];
+        var exCid = String(existingRow.club_id || "").trim().toUpperCase();
+        var exReg = String(existingRow.reg_no || "").trim().toUpperCase();
+        if (exCid === clubId) {
+          var exOwner = String(existingRow.approved_by_emp_id || "").trim().toUpperCase();
+          if (exOwner && exOwner !== empId) {
+            return { ok: false, status: 409, data: { error: true, message: "Club ID '" + clubId + "' already exists and belongs to " + exOwner + ". Use Universal Club Search to edit it." } };
+          }
+        } else if (regNo && exReg === regNo.toUpperCase()) {
+          return { ok: false, status: 409, data: { error: true, message: "⚠ DUPLICATE ENTRY BLOCKED: Registration Number '" + regNo + "' is already approved for club " + (existingRow.club_id || "") + " — " + (existingRow.institution_name || "") + " (approved by " + (existingRow.approved_by_emp_id || "") + "). Please verify the details before submitting." } };
+        }
+      }
+
       var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
       var renDate = Utilities.formatDate(new Date(Date.now() + (365 * 86400000)), "Asia/Kolkata", "yyyy-MM-dd");
 
@@ -2387,41 +2373,65 @@ function apiDispatcher(path, method, body, token) {
         next_renewal_date: renDate
       };
 
-      mClubs.rows.push(newClub);
-      saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
-
-      // Node DB
-      var nodeClubs = getCsvData("employees/" + empId.toLowerCase(), "clubs.csv");
-      nodeClubs.rows.push(newClub);
-      saveCsvData("employees/" + empId.toLowerCase(), "clubs.csv", nodeClubs.headers, nodeClubs.rows);
-
-      // Log Priority Activity
-      var mActs = getCsvData("master", "master_activities.csv");
-      var actId = "ACT-PRIORITY-" + empId + "-" + Date.now();
-      var actItem = {
-        activity_id: actId,
-        emp_id: empId,
-        employee_id: empId,
-        timestamp: nowIso,
-        support_type: "Club Approval",
-        priority_flag: "1",
-        club_id: clubId,
-        notes: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")",
-        details: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")"
-      };
-      mActs.rows.push(actItem);
-      saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
-
-      // Update Quotas
-      var mQuotas = getCsvData("master", "master_quotas.csv");
-      for (var qi = 0; qi < mQuotas.rows.length; qi++) {
-        if ((mQuotas.rows[qi].emp_id || "").toUpperCase() === empId) {
-          mQuotas.rows[qi].clubs_approved_count = String(parseInt(mQuotas.rows[qi].clubs_approved_count || "0", 10) + 1);
-          mQuotas.rows[qi].last_activity_timestamp = nowIso;
+      // Upsert (same-owner resubmission replaces the row instead of duplicating it)
+      var replaced = false;
+      for (var ui = 0; ui < mClubs.rows.length; ui++) {
+        if (String(mClubs.rows[ui].club_id || "").trim().toUpperCase() === clubId) {
+          var priorDoa = mClubs.rows[ui].date_of_approval || mClubs.rows[ui].submission_timestamp || newClub.date_of_approval;
+          newClub.date_of_approval = priorDoa;
+          newClub.submission_timestamp = priorDoa;
+          newClub.last_renewal_date = mClubs.rows[ui].last_renewal_date || "";
+          mClubs.rows[ui] = newClub;
+          replaced = true;
           break;
         }
       }
-      saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      if (!replaced) mClubs.rows.push(newClub);
+      saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
+
+      // Node DB (upsert as well)
+      var nodeClubs = getCsvData("employees/" + empId.toLowerCase(), "clubs.csv");
+      var nodeReplaced = false;
+      for (var ni = 0; ni < nodeClubs.rows.length; ni++) {
+        if (String(nodeClubs.rows[ni].club_id || "").trim().toUpperCase() === clubId) {
+          nodeClubs.rows[ni] = newClub;
+          nodeReplaced = true;
+          break;
+        }
+      }
+      if (!nodeReplaced) nodeClubs.rows.push(newClub);
+      saveCsvData("employees/" + empId.toLowerCase(), "clubs.csv", nodeClubs.headers, nodeClubs.rows);
+
+      // Log Priority Activity (only for a genuinely new approval — a
+      // resubmission must not mint a second approval activity)
+      if (!replaced) {
+        var mActs = getCsvData("master", "master_activities.csv");
+        var actId = "ACT-PRIORITY-" + empId + "-" + Date.now();
+        var actItem = {
+          activity_id: actId,
+          emp_id: empId,
+          employee_id: empId,
+          timestamp: nowIso,
+          support_type: "Club Approval",
+          priority_flag: "1",
+          club_id: clubId,
+          notes: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")",
+          details: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")"
+        };
+        mActs.rows.push(actItem);
+        saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+
+        // Update Quotas
+        var mQuotas = getCsvData("master", "master_quotas.csv");
+        for (var qi = 0; qi < mQuotas.rows.length; qi++) {
+          if ((mQuotas.rows[qi].emp_id || "").toUpperCase() === empId) {
+            mQuotas.rows[qi].clubs_approved_count = String(parseInt(mQuotas.rows[qi].clubs_approved_count || "0", 10) + 1);
+            mQuotas.rows[qi].last_activity_timestamp = nowIso;
+            break;
+          }
+        }
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      }
 
       return { ok: true, status: 201, data: { success: true, club: newClub } };
     }
@@ -2431,6 +2441,23 @@ function apiDispatcher(path, method, body, token) {
       var cid = String(body.club_id || "").trim().toUpperCase();
       var mClubs = getCsvData("master", "master_clubs.csv");
       var found = false;
+
+      // Round-3 mass-assignment guard (parity with Python): non-admin callers
+      // may only edit descriptive fields. Ownership, status and renewal dates
+      // change only through their dedicated, logged workflows (or an Admin).
+      var isGasAdmin = String(body.role || "").trim().toUpperCase() === "ADMIN";
+
+      // Duplicate Registration Number checkpoint (client requirement)
+      var newReg = String(body.reg_no || "").trim();
+      if (newReg) {
+        for (var dri = 0; dri < mClubs.rows.length; dri++) {
+          var dRow = mClubs.rows[dri];
+          if (String(dRow.club_id || "").trim().toUpperCase() !== cid &&
+              String(dRow.reg_no || "").trim().toUpperCase() === newReg.toUpperCase()) {
+            return { ok: false, status: 409, data: { error: true, message: "⚠ DUPLICATE ENTRY BLOCKED: Registration Number '" + newReg + "' is already approved for club " + (dRow.club_id || "") + " — " + (dRow.institution_name || "") + " (approved by " + (dRow.approved_by_emp_id || "") + ")." } };
+          }
+        }
+      }
 
       for (var uci = 0; uci < mClubs.rows.length; uci++) {
         if ((mClubs.rows[uci].club_id || "").toUpperCase() === cid) {
@@ -2447,11 +2474,15 @@ function apiDispatcher(path, method, body, token) {
           if (body.patron_email) mClubs.rows[uci].patron_email = body.patron_email;
           if (body.president_email) mClubs.rows[uci].president_email = body.president_email;
           if (body.secretary_email) mClubs.rows[uci].secretary_email = body.secretary_email;
-          if (body.status) mClubs.rows[uci].status = body.status;
-          if (body.renewal_date) mClubs.rows[uci].renewal_date = body.renewal_date;
-          if (body.next_renewal_date) mClubs.rows[uci].next_renewal_date = body.next_renewal_date;
-          if (body.last_renewal_date) mClubs.rows[uci].last_renewal_date = body.last_renewal_date;
-          if (body.date_of_approval) mClubs.rows[uci].date_of_approval = body.date_of_approval;
+          if (body.reg_no) mClubs.rows[uci].reg_no = body.reg_no;
+          if (isGasAdmin) {
+            if (body.status) mClubs.rows[uci].status = body.status;
+            if (body.renewal_date) mClubs.rows[uci].renewal_date = body.renewal_date;
+            if (body.next_renewal_date) mClubs.rows[uci].next_renewal_date = body.next_renewal_date;
+            if (body.last_renewal_date) mClubs.rows[uci].last_renewal_date = body.last_renewal_date;
+            if (body.date_of_approval) mClubs.rows[uci].date_of_approval = body.date_of_approval;
+            if (body.approved_by_emp_id) mClubs.rows[uci].approved_by_emp_id = String(body.approved_by_emp_id).trim().toUpperCase();
+          }
           mClubs.rows[uci].updated_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
           found = true;
           break;
@@ -2484,8 +2515,35 @@ function apiDispatcher(path, method, body, token) {
 
       var now = new Date();
       var nowIso = Utilities.formatDate(now, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
-      var nextDate = new Date(now.getTime() + (365 * 86400000));
-      var nextRenStr = Utilities.formatDate(nextDate, "Asia/Kolkata", "yyyy-MM-dd");
+
+      // Round-3 duplicate-renewal guard (parity with Python): a second renewal
+      // within 60 seconds is the same click — no second activity, no double credit.
+      var prevLrd = String(club.last_renewal_date || "").trim();
+      if (prevLrd) {
+        var prevTs = new Date(prevLrd.replace(" ", "T"));
+        if (!isNaN(prevTs.getTime())) {
+          var deltaSec = (now.getTime() - prevTs.getTime()) / 1000;
+          if (deltaSec >= 0 && deltaSec < 60) {
+            return { ok: true, status: 200, data: { success: true, renewal_duplicate_skipped: true, club: club, message: "Renewal for club " + clubId + " was already recorded moments ago — duplicate click ignored, no extra renewal activity logged." } };
+          }
+        }
+      }
+
+      // Round-3 renewal policy (parity with Python): +1 year from the PREVIOUS
+      // DUE date (early renewal keeps the club's anniversary); overdue renewals
+      // roll forward in 1-year steps until the due date is in the future.
+      var nextRenStr = String(body.renewal_date || "").trim();
+      if (!nextRenStr) {
+        var prevDue = String(club.renewal_date || "").trim();
+        var baseDue = prevDue ? new Date(prevDue.replace(" ", "T")) : (club.date_of_approval ? new Date(String(club.date_of_approval).replace(" ", "T")) : now);
+        if (isNaN(baseDue.getTime())) baseDue = now;
+        var cand = new Date(baseDue.getTime());
+        cand.setFullYear(cand.getFullYear() + 1);
+        while (cand.getTime() <= now.getTime()) {
+          cand.setFullYear(cand.getFullYear() + 1);
+        }
+        nextRenStr = Utilities.formatDate(cand, "Asia/Kolkata", "yyyy-MM-dd");
+      }
 
       club.last_renewal_date = nowIso;
       club.renewal_date = nextRenStr;
@@ -2499,7 +2557,10 @@ function apiDispatcher(path, method, body, token) {
       saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
 
       // Log Priority Activity
-      var empId = String(body.employee_id || body.emp_id || club.approved_by_emp_id || "EMP01").toUpperCase();
+      var empId = String(body.employee_id || body.emp_id || club.approved_by_emp_id || "").trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "emp_id is required." } };
+      }
       var mActs = getCsvData("master", "master_activities.csv");
       var actId = "ACT-RENEW-" + empId + "-" + Date.now();
       var renAct = {

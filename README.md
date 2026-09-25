@@ -100,23 +100,28 @@ The system strictly enforces the official NDLI regional grouping:
 
 ---
 
-## 4. Default Seed Credentials
+## 4. Default Accounts
 
 ### Master Admin (IIT Kharagpur Office)
 - **Email:** `admin@iitkgp.ac.in`
-- **Password:** `Seed#Admin-Rotated2026`
 - **Role:** `ADMIN`
 
 ### 7 Regional Employees
-| Employee ID | Name | Zone | Email | Pre-generated Password |
-| :--- | :--- | :--- | :--- | :--- |
-| `EMP01` | Rohan Sharma | North | `emp.north@ndli.edu.in` | `Seed#EMP01-Rotated2026` |
-| `EMP02` | Pooja Verma | Central | `emp.central@ndli.edu.in` | `Seed#EMP02-Rotated2026` |
-| `EMP03` | Amit Patel | West | `emp.west@ndli.edu.in` | `Seed#EMP03-Rotated2026` |
-| `EMP04` | Debabrata Ghosh | East | `emp.east@ndli.edu.in` | `Seed#EMP04-Rotated2026` |
-| `EMP05` | Mayanglambam Singh | North East | `emp.northeast@ndli.edu.in` | `Seed#EMP05-Rotated2026` |
-| `EMP06` | K. Venkatesh | South 1 | `emp.south1@ndli.edu.in` | `Seed#EMP06-Rotated2026` |
-| `EMP07` | Ananya Nair | South 2 | `emp.south2@ndli.edu.in` | `Seed#EMP07-Rotated2026` |
+| Employee ID | Name | Zone | Email |
+| :--- | :--- | :--- | :--- |
+| `EMP01` | Rohan Sharma | North | `emp.north@ndli.edu.in` |
+| `EMP02` | Pooja Verma | Central | `emp.central@ndli.edu.in` |
+| `EMP03` | Amit Patel | West | `emp.west@ndli.edu.in` |
+| `EMP04` | Debabrata Ghosh | East | `emp.east@ndli.edu.in` |
+| `EMP05` | Mayanglambam Singh | North East | `emp.northeast@ndli.edu.in` |
+| `EMP06` | K. Venkatesh | South 1 | `emp.south1@ndli.edu.in` |
+| `EMP07` | Ananya Nair | South 2 | `emp.south2@ndli.edu.in` |
+
+> **Security note:** seed passwords are intentionally NOT published here. Fresh
+> deployments generate credentials via `init_db.py` (see `config.py` for the
+> development-only seed values), and every account's password is rotated through
+> the in-app **🔑 Change Password** provision. Rotated passwords survive server
+> restarts (PythonAnywhere Reloads) — see `HANDOVER_SECURITY_CHECKLIST.md`.
 
 ---
 

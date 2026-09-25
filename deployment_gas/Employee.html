@@ -1882,7 +1882,7 @@ tbody tr:hover {
           <div class="grid-3">
             <div class="form-group">
               <label for="c-club-id" class="label-required">Club ID</label>
-              <input type="text" id="c-club-id" required placeholder="e.g. NDLI-UP-205">
+              <input type="text" id="c-club-id" required placeholder="e.g. 2051" inputmode="numeric" pattern="[0-9]{1,15}" title="Club ID must be a whole number (digits only, e.g. 2051)">
             </div>
 
             <div class="form-group">
@@ -4908,6 +4908,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
       if (!clubId || !regNo || !instName || !state || !patron || !president || !secretary) {
         showAlert("global-alert", "Please fill in all required fields marked with *.", "danger");
+        return;
+      }
+
+      // Client requisition (2026-09-26): Club ID is a WHOLE NUMBER — digits only.
+      if (!/^[0-9]{1,15}$/.test(clubId)) {
+        showAlert("global-alert", "⚠ Club ID must be a whole number (digits only, e.g. 2051) as per client requisition. No letters, spaces or symbols.", "danger");
         return;
       }
 
