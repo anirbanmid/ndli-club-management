@@ -18,7 +18,7 @@
    - Navigation action buttons ("Employee Login" and "Employee Portals") use vibrant complementary color highlighting.
    - The Employee Login interface features equalized officer chip grids, compact field spacing, and zero vertical scrolling on standard viewports.
 5. **Business Logic & Statutory Rules**:
-   - 48-hour response window, 7-day resolution deadlines, 24-hour quota resets, and +1 year renewal calculations from Date of Approval (DOA) are strict system invariants.
+   - 48-hour response window, 7-day resolution deadlines, 24-hour quota resets, and renewal calculations of +1 year from the PREVIOUS DUE DATE (rolled forward if in the past; the anniversary from Date of Approval is kept) are strict system invariants.
 
 ---
 

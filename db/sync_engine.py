@@ -30,6 +30,10 @@ from db.csv_engine import CSVEngine
 from state_zone_mapper import get_zone_for_state
 
 _SYNC_LOCK = threading.RLock()
+# Round-2 duplicate-renewal guard: a second "Renewal Approved" for the same club
+# inside this window (seconds) is treated as the same click — logged once, credited once.
+# 60s comfortably covers double-clicks while never blocking a deliberate correction.
+RENEWAL_DEDUPE_WINDOW_SEC = 60
 
 
 def parse_iso_or_date(val: Any) -> Optional[date]:
@@ -110,6 +114,51 @@ def calculate_next_renewal_date(
             return parsed_prop.isoformat()
 
     return computed_next.isoformat()
+
+
+def parse_iso_datetime(val: Any) -> Optional[datetime]:
+    """
+    Safely parses an ISO datetime string into a UTC-aware datetime.
+    Bare dates map to midnight UTC. (Round-2: needed for the duplicate-renewal
+    guard — a date-only parse would truncate to midnight and defeat the window.)
+    """
+    s = str(val or "").strip()
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        d = parse_iso_or_date(s)
+        return datetime(d.year, d.month, d.day, tzinfo=timezone.utc) if d else None
+
+
+def _add_one_year(d: date) -> date:
+    """d + 1 calendar year, with Feb 29 rolling to Feb 28."""
+    try:
+        return d.replace(year=d.year + 1)
+    except ValueError:
+        return d.replace(year=d.year + 1, month=2, day=28)
+
+
+def calculate_next_renewal_due(
+    previous_renewal_date: Optional[str] = None,
+    date_of_approval: Optional[str] = None
+) -> str:
+    """
+    Round-2 renewal policy (2026-09-25, client-approved): the new due date is
+    +1 year from the PREVIOUS DUE DATE, so renewing early never shortens the
+    cycle and the club keeps its anniversary. If no previous due date is known,
+    the date of approval is the base. If the computed date already lies in the
+    past (overdue renewal), it is rolled forward in 1-year steps until it is in
+    the future, so a renewal always yields a usable validity window.
+    """
+    today = datetime.now(timezone.utc).date()
+    base = parse_iso_or_date(previous_renewal_date) or parse_iso_or_date(date_of_approval) or today
+    cand = _add_one_year(base)
+    while cand <= today:
+        cand = _add_one_year(cand)
+    return cand.isoformat()
 
 
 class SyncEngine:
@@ -1063,6 +1112,23 @@ class SyncEngine:
 
             return target_record
 
+    @staticmethod
+    def find_club_by_reg_no(reg_no: str, exclude_club_id: str = "") -> Optional[Dict[str, str]]:
+        """
+        Round-2 duplicate-entry checkpoint: finds an approved master club whose
+        Registration Number matches (case-insensitive, whitespace-trimmed),
+        optionally excluding one club_id (for edit/resubmission flows).
+        """
+        clean_reg = str(reg_no or "").strip().upper()
+        if not clean_reg:
+            return None
+        clean_excl = str(exclude_club_id or "").strip().upper()
+        for c in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS):
+            if c.get("reg_no", "").strip().upper() == clean_reg and \
+                    c.get("club_id", "").strip().upper() != clean_excl:
+                return c
+        return None
+
     @classmethod
     def renew_club_registration(
         cls,
@@ -1075,22 +1141,45 @@ class SyncEngine:
         SEC B & C: Registration Renewal Approval ("Renewal Approved").
         Employee checks conditions and approves renewal for another year.
         1. Instantly captures current submission timestamp and logs it as 'Last Renewal Date' (last_renewal_date).
-        2. Based on 'Last Renewal Date', automatically calculates upcoming renewal due date (+1 year).
+        2. Upcoming renewal due date = +1 year from the PREVIOUS DUE date
+           (calculate_next_renewal_due; round-2 policy — renewing early never
+           shortens the cycle); an explicit renewal_date from the caller wins.
         3. Updates club record in node and master CSVs.
         4. Logs priority renewal activity in activity_log.csv and master_activities.csv.
         5. Increments employee quota counters.
+        6. Duplicate guard: a second renewal for the same club inside
+           RENEWAL_DEDUPE_WINDOW_SEC returns the unchanged club with
+           renewal_duplicate_skipped=True (no activity, no quota credit).
         """
         with _SYNC_LOCK:
             now_iso = datetime.now(timezone.utc).isoformat()
             clean_cid = club_id.strip().upper()
 
+            # 0. Current club record: due-date base + duplicate-renewal guard.
+            existing = CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", clean_cid, CLUB_FIELDS, copy=False)
+            if not existing:
+                return None
+
+            prev_lrd_dt = parse_iso_datetime(existing.get("last_renewal_date", ""))
+            if prev_lrd_dt:
+                delta_sec = (datetime.now(timezone.utc) - prev_lrd_dt).total_seconds()
+                if 0 <= delta_sec < RENEWAL_DEDUPE_WINDOW_SEC:
+                    skipped = dict(existing)
+                    skipped["renewal_duplicate_skipped"] = True
+                    return skipped
+
             # 1. Instantly capture current date and time as Last Renewal Date
             clean_last_renewal = str(last_renewal_date or "").strip() or now_iso
 
-            # 2. Re-compute upcoming renewal date as +1 year from that Last Renewal Date
+            # 2. New due date = +1 year from the previous DUE date (anniversary
+            #    kept; rolled forward if it would land in the past).
             clean_renewal = str(renewal_date or "").strip()
             if not clean_renewal:
-                clean_renewal = calculate_next_renewal_date(last_renewal_date=clean_last_renewal)
+                clean_renewal = calculate_next_renewal_due(
+                    previous_renewal_date=(existing.get("renewal_date", "").strip()
+                                           or existing.get("next_renewal_date", "").strip()),
+                    date_of_approval=existing.get("date_of_approval", "").strip()
+                )
 
             updated = cls.update_club(emp_id, clean_cid, {
                 "last_renewal_date": clean_last_renewal,

@@ -6,3 +6,7 @@ __pycache__/
 Thumbs.db
 *.zip
 data/backups/backup_*/
+
+# Runtime session tokens / pull marker must never be committed
+data/sessions.json
+data/.drive_pull_done

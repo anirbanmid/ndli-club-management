@@ -3124,10 +3124,10 @@
             <td><span class="pill pill-success">${escapeHtml(c.status || 'Approved')}</span></td>
             <td>
               <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-outline btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}')">
+                <button class="btn btn-outline btn-sm" data-club-id="${escapeHtml(c.club_id)}" onclick="openEditModalById(this.dataset.clubId)">
                   Edit / Renew
                 </button>
-                <button class="btn btn-warning btn-sm" onclick="openEditModalById('${escapeHtml(c.club_id)}', true)" title="Report unresolved issue and set reminder">
+                <button class="btn btn-warning btn-sm" data-club-id="${escapeHtml(c.club_id)}" onclick="openEditModalById(this.dataset.clubId, true)" title="Report unresolved issue and set reminder">
                   Report Issue
                 </button>
               </div>

@@ -971,7 +971,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><code>master_clubs.csv</code></td><td><code>id, reg_no, name, state, zone, patron_email, president_email, secretary_email, approved_by, approval_date, last_renewal_date, renewal_date</code></td><td>Stores all active NDLI Clubs nationwide. Enforces strict +1 year renewal date invariants from establishment or last renewal.</td></tr>
+        <tr><td><code>master_clubs.csv</code></td><td><code>id, reg_no, name, state, zone, patron_email, president_email, secretary_email, approved_by, approval_date, last_renewal_date, renewal_date</code></td><td>Stores all active NDLI Clubs nationwide. Enforces strict +1 year renewal invariants from the previous due date (rolled forward when in the past).</td></tr>
         <tr><td><code>master_activities.csv</code></td><td><code>id, emp_id, timestamp, support_type, notes, state, zone</code></td><td>Aggregated log of all field interactions (calls, ticket closures, webinars, offline campus visits) across India.</td></tr>
         <tr><td><code>master_quotas.csv</code></td><td><code>emp_id, emp_name, zone, clubs_approved, total_activities, last_activity, updated_at</code></td><td>Scoreboard tracking individual employee performance quotas and daily logging volume.</td></tr>
         <tr><td><code>master_users.csv</code></td><td><code>id, email, password_hash, salt, full_name, role, zone, assigned_states, is_active, created_at</code></td><td>Credentials database. Passwords secured using PBKDF2-HMAC-SHA256 (100,000 rounds) with per-user 16-byte random salts.</td></tr>
@@ -1129,7 +1129,7 @@
     <div class="callout callout-warning">
       <div class="callout-title">⚠️ Mandatory Next Renewal Date Invariant (Rule 10)</div>
       Upon club approval, the system enforces <strong>Rule 10</strong>: the upcoming renewal date is automatically set to
-      <em>exactly 1 calendar year (+1 year)</em> from the Date of Approval (DOA). Under no circumstances can a renewal date precede DOA.
+      <em>exactly 1 calendar year (+1 year)</em> from the <strong>previous renewal due date</strong> (keeping the club's anniversary from the Date of Approval). If a club is renewed late/overdue, the due date is rolled forward in 1-year steps until it lies in the future. Under no circumstances can a renewal date precede DOA.
     </div>
   </div>
 
@@ -1154,7 +1154,7 @@
 
     <div class="step-box"><div class="step-num">1</div><div class="step-content"><strong>Instant In-Memory Cache:</strong> The entire club registry is pre-cached client-side (<code>ALL_CLUBS_CACHE</code>) upon login. Switching to Tab 2 renders in <strong>0ms</strong> without network latency.</div></div>
     <div class="step-box"><div class="step-num">2</div><div class="step-content"><strong>Sub-35ms Search &amp; 50-Row Pagination:</strong> Typing in the query box filters records instantly in under 35ms. Smooth pagination controls (First, Prev, Next, Last) preserve fluid UI frame rates even with thousands of clubs.</div></div>
-    <div class="step-box"><div class="step-num">3</div><div class="step-content"><strong>Inspect, Edit &amp; Annual Renewal:</strong> Click <strong>"Inspect / Edit"</strong> to modify stakeholder emails, or click <strong>"🔄 Process Renewal"</strong> to advance renewal by +1 year and export vector certificates.</div></div>
+    <div class="step-box"><div class="step-num">3</div><div class="step-content"><strong>Inspect, Edit &amp; Annual Renewal:</strong> Click <strong>"Inspect / Edit"</strong> to modify stakeholder emails, or click <strong>"🔄 Process Renewal"</strong> to advance renewal by +1 year (from the previous due date) and export vector certificates.</div></div>
 
     <h2>6.5 Node Activity Logs (Tab 3) Auto-Loading &amp; 72-Hour Reminders</h2>
     <p style="margin-bottom: 3px;"><strong>Instant Activity Rendering:</strong> Navigating to <em>My Node Activity History</em> automatically pre-renders from <code>ALL_ACTIVITIES_CACHE</code> with 0ms delay (no manual refresh needed). An animated loader appears during live updates, with an inline <code>↻ Retry</code> button for connection resilience.</p>

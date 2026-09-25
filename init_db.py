@@ -217,21 +217,38 @@ def initialize_database(force: bool = False) -> None:
     existing_users = {u.get("id", "").strip().upper(): u for u in CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)} if MASTER_USERS_CSV.exists() else {}
 
     admin_active = existing_users.get("ADMIN01", {}).get("is_active", "1") if not force else "1"
-    AuthService.register_or_update_user(
-        user_id="ADMIN01",
-        email=DEFAULT_ADMIN_EMAIL,
-        password=DEFAULT_ADMIN_PASSWORD,
-        full_name=DEFAULT_ADMIN_NAME,
-        role="ADMIN",
-        zone="Central Coordination (IIT KGP)",
-        assigned_states="All India",
-        is_active=admin_active
-    )
-    print(f"[2/5] Registered IIT Kharagpur Master Admin: {DEFAULT_ADMIN_EMAIL}")
+    # BUG-FIX (bughunt 2026-09-25): seed accounts are created ONCE. Previously every
+    # start-up / Reload re-hashed the seed password over the live account, silently
+    # undoing password rotation (and admin edits of employee name/email/zone).
+    # Only force=True (an explicit reset) may overwrite an existing account.
+    if existing_users.get("ADMIN01") and not force:
+        print(f"[2/5] Master Admin already provisioned (kept as-is): {DEFAULT_ADMIN_EMAIL}")
+    else:
+        AuthService.register_or_update_user(
+            user_id="ADMIN01",
+            email=DEFAULT_ADMIN_EMAIL,
+            password=DEFAULT_ADMIN_PASSWORD,
+            full_name=DEFAULT_ADMIN_NAME,
+            role="ADMIN",
+            zone="Central Coordination (IIT KGP)",
+            assigned_states="All India",
+            is_active=admin_active
+        )
+        print(f"[2/5] Registered IIT Kharagpur Master Admin: {DEFAULT_ADMIN_EMAIL}")
 
     # 3. Provision 7 Employee Nodes - Idempotent & status-preserving
     for emp in INITIAL_EMPLOYEES:
         emp_active = existing_users.get(emp["id"].upper(), {}).get("is_active", "1") if not force else "1"
+        _ex = existing_users.get(emp["id"].upper())
+        if _ex and not force:
+            # Keep the live credentials/profile; only make sure the node copy exists.
+            SyncEngine.provision_employee_node(
+                emp_id=emp["id"], email=_ex.get("email", ""), password_hash=_ex.get("password_hash", ""),
+                salt=_ex.get("salt", ""), full_name=_ex.get("full_name", ""), zone=_ex.get("zone", ""),
+                assigned_states=_ex.get("assigned_states", ""), is_active=_ex.get("is_active", "1"),
+                created_at=_ex.get("created_at", ""))
+            print(f"[3/5] Employee node already provisioned (kept as-is): {emp['id']}")
+            continue
         AuthService.register_or_update_user(
             user_id=emp["id"],
             email=emp["email"],

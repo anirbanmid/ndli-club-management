@@ -35,7 +35,8 @@ from db.schemas import (
     QUOTA_FIELDS,
     USER_FIELDS,
     ISSUE_FIELDS,
-    validate_club_payload
+    validate_club_payload,
+    REG_NO_PATTERN
 )
 from db.csv_engine import CSVEngine
 from db.sync_engine import SyncEngine, parse_iso_or_date, calculate_next_renewal_date
@@ -1650,23 +1651,53 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 }, status=422)
                 return
 
+            # BUG-FIX (bughunt): never silently overwrite a club that belongs to
+            # ANOTHER employee (previously any employee could hijack an existing
+            # club_id and double-log an approval). Same-owner resubmission is kept.
+            _existing = CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", str(body.get("club_id", "")).strip().upper(), CLUB_FIELDS, copy=False)
+            if _existing:
+                _owner = str(_existing.get("approved_by_emp_id", "")).strip().upper()
+                if _owner and _owner != emp_id:
+                    self._send_error(
+                        f"Club ID '{str(body.get('club_id', '')).strip().upper()}' already exists and belongs to {_owner}. "
+                        f"Use Universal Club Search to edit it.", status=409)
+                    return
+
+            # Round-2 duplicate-entry checkpoint (client requirement): match the
+            # submitted Club ID AND Registration Number against already approved
+            # clubs and stop accidental re-entry with a clear warning.
+            _reg = str(body.get("reg_no", "")).strip()
+            _dup = SyncEngine.find_club_by_reg_no(_reg, exclude_club_id=str(body.get("club_id", "")).strip().upper())
+            if _dup:
+                self._send_error(
+                    f"⚠ DUPLICATE ENTRY BLOCKED: Registration Number '{_reg}' is already approved for club "
+                    f"{_dup.get('club_id', '')} — { _dup.get('institution_name', '') } "
+                    f"(approved by {_dup.get('approved_by_emp_id', '')}). Please verify the details before "
+                    f"submitting; if this is the same club, use Universal Club Search to edit it instead.",
+                    status=409)
+                return
+
             # Auto-map zone if not provided or to ensure strict compliance
             state = str(body.get("state", "")).strip()
             body["zone"] = get_zone_for_state(state) or "Unknown"
 
             created_club = SyncEngine.approve_new_club(emp_id=emp_id, club_data=body)
             cloud_confirmed = created_club.get("cloud_sync_confirmed", True)
+            if cloud_confirmed is True:
+                _msg = f"NDLI Club {created_club['club_id']} approved successfully. Cloud sync confirmed."
+            elif cloud_confirmed is None:
+                # Non-blocking sync mode (PythonAnywhere): saved locally, upload queued.
+                _msg = (f"NDLI Club {created_club['club_id']} approved and saved locally. "
+                        f"Cloud sync queued — the record is safe on this server's disk.")
+            else:
+                _msg = (f"NDLI Club {created_club['club_id']} saved, but cloud backup "
+                        f"could not be confirmed. This server has no persistent disk, "
+                        f"so this record may be lost if the server restarts before the "
+                        f"sync succeeds. Please notify an administrator and avoid "
+                        f"relying on this save until confirmed.")
             self._send_json({
                 "success": True,
-                "message": (
-                    f"NDLI Club {created_club['club_id']} approved successfully."
-                    if cloud_confirmed else
-                    f"NDLI Club {created_club['club_id']} saved, but cloud backup "
-                    f"could not be confirmed. This server has no persistent disk, "
-                    f"so this record may be lost if the server restarts before the "
-                    f"sync succeeds. Please notify an administrator and avoid "
-                    f"relying on this save until confirmed."
-                ),
+                "message": _msg,
                 "cloud_sync_confirmed": cloud_confirmed,
                 "club": created_club
             })
@@ -1806,6 +1837,32 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
                 return
 
+            # BUG-FIX (bughunt): mass-assignment. Non-admin sessions may only edit
+            # descriptive fields; ownership, status, renewal dates and audit fields
+            # change only through their dedicated, logged workflows (or by an Admin).
+            _sess = self._get_auth_session() or {}
+            if _sess.get("role") != "ADMIN":
+                _allowed = {"institution_name", "state", "zone", "reg_no",
+                            "patron_email", "president_email", "secretary_email"}
+                body = {k: v for k, v in body.items() if k in _allowed}
+
+            # Round-2 duplicate-entry checkpoint: an edited Registration Number
+            # must stay unique across approved clubs (and keep its charset).
+            _new_reg = str(body.get("reg_no", "")).strip()
+            if _new_reg:
+                if not REG_NO_PATTERN.match(_new_reg):
+                    self._send_error(
+                        "Registration Number may only contain letters, digits, spaces, dots, "
+                        "underscores, hyphens and slashes (max 64 characters).", status=422)
+                    return
+                _dup = SyncEngine.find_club_by_reg_no(_new_reg, exclude_club_id=club_id)
+                if _dup:
+                    self._send_error(
+                        f"⚠ DUPLICATE ENTRY BLOCKED: Registration Number '{_new_reg}' is already approved for club "
+                        f"{_dup.get('club_id', '')} — { _dup.get('institution_name', '') } "
+                        f"(approved by {_dup.get('approved_by_emp_id', '')}).", status=409)
+                    return
+
             updated = SyncEngine.update_club(emp_id=emp_id, club_id=club_id, updated_fields=body)
             if not updated:
                 self._send_error(f"Club with ID '{club_id}' not found.", status=404)
@@ -1844,6 +1901,16 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             )
             if not updated:
                 self._send_error(f"Club with ID '{club_id}' not found.", status=404)
+                return
+
+            if updated.get("renewal_duplicate_skipped"):
+                self._send_json({
+                    "success": True,
+                    "message": (f"Renewal for club {club_id} was already recorded moments ago — "
+                                f"duplicate click ignored, no extra renewal activity logged."),
+                    "renewal_duplicate_skipped": True,
+                    "club": updated
+                })
                 return
 
             final_renewal_date = updated.get("renewal_date", renewal_date)
@@ -2025,8 +2092,26 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 else:
                     self._send_error("No backup available to restore.", status=400)
                     return
+            # Round-2 safety: take an undo point BEFORE restoring. A restore is
+            # destructive (it replaces live data with an older snapshot); without
+            # a pre-restore checkpoint the post-backup data would be unrecoverable.
+            checkpoint = None
+            try:
+                checkpoint = BackupEngine.create_backup(note="Auto Checkpoint before Restore (undo point)")
+            except Exception:
+                checkpoint = None
+            if not checkpoint or not checkpoint.get("success"):
+                self._send_error(
+                    "Pre-restore safety checkpoint failed — restoration aborted so the current "
+                    "data is never replaced without an undo point.", status=500)
+                return
             try:
                 res = BackupEngine.restore_backup(target_source)
+                res["checkpoint_backup_id"] = checkpoint.get("backup_id", "")
+                res["message"] = (
+                    f"{res.get('message', 'Restoration complete.') } "
+                    f"Pre-restore checkpoint (undo point): {checkpoint.get('backup_id', '')}."
+                )
                 self._send_json(res)
             except Exception as e:
                 import traceback

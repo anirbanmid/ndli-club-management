@@ -131,43 +131,54 @@ class TestEmployeeEditAndSync(unittest.TestCase):
     def test_employee_edit_details_and_node_sync(self):
         admin_token = self._get_admin_token()
 
-        # Update EMP02: name, email, zone, states
-        update_payload = {
-            "old_emp_id": "EMP02",
-            "new_emp_id": "EMP02",
-            "full_name": "Pooja V. Verma",
-            "email": "pooja.verma@ndli.edu.in",
-            "zone": "Central",
-            "assigned_states": "Madhya Pradesh, Chhattisgarh, Vidarbha",
-            "is_active": "1"
-        }
+        try:
+            # Update EMP02: name, email, zone, states
+            update_payload = {
+                "old_emp_id": "EMP02",
+                "new_emp_id": "EMP02",
+                "full_name": "Pooja V. Verma",
+                "email": "pooja.verma@ndli.edu.in",
+                "zone": "Central",
+                "assigned_states": "Madhya Pradesh, Chhattisgarh, Vidarbha",
+                "is_active": "1"
+            }
 
-        status, res = self._post_json("/api/admin/employees/update", update_payload, token=admin_token)
-        self.assertEqual(status, 200)
-        self.assertTrue(res.get("success"))
-        self.assertEqual(res["employee"]["full_name"], "Pooja V. Verma")
+            status, res = self._post_json("/api/admin/employees/update", update_payload, token=admin_token)
+            self.assertEqual(status, 200)
+            self.assertTrue(res.get("success"))
+            self.assertEqual(res["employee"]["full_name"], "Pooja V. Verma")
 
-        # 1. Verify in Master Users CSV
-        users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
-        emp02_m = next((u for u in users if u["id"] == "EMP02"), None)
-        self.assertIsNotNone(emp02_m)
-        self.assertEqual(emp02_m["full_name"], "Pooja V. Verma")
-        self.assertEqual(emp02_m["email"], "pooja.verma@ndli.edu.in")
-        self.assertIn("Vidarbha", emp02_m["assigned_states"])
+            # 1. Verify in Master Users CSV
+            users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+            emp02_m = next((u for u in users if u["id"] == "EMP02"), None)
+            self.assertIsNotNone(emp02_m)
+            self.assertEqual(emp02_m["full_name"], "Pooja V. Verma")
+            self.assertEqual(emp02_m["email"], "pooja.verma@ndli.edu.in")
+            self.assertIn("Vidarbha", emp02_m["assigned_states"])
 
-        # 2. Verify in dedicated Node credentials.csv
-        node_cred = SyncEngine.get_employee_credentials_path("EMP02")
-        self.assertTrue(node_cred.exists())
-        node_users = CSVEngine.read_all(node_cred, USER_FIELDS)
-        self.assertEqual(len(node_users), 1)
-        self.assertEqual(node_users[0]["full_name"], "Pooja V. Verma")
-        self.assertEqual(node_users[0]["email"], "pooja.verma@ndli.edu.in")
+            # 2. Verify in dedicated Node credentials.csv
+            node_cred = SyncEngine.get_employee_credentials_path("EMP02")
+            self.assertTrue(node_cred.exists())
+            node_users = CSVEngine.read_all(node_cred, USER_FIELDS)
+            self.assertEqual(len(node_users), 1)
+            self.assertEqual(node_users[0]["full_name"], "Pooja V. Verma")
+            self.assertEqual(node_users[0]["email"], "pooja.verma@ndli.edu.in")
 
-        # 3. Verify in Master Quotas (Quota counts preserved!)
-        quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
-        emp02_q = next((q for q in quotas if q["emp_id"] == "EMP02"), None)
-        self.assertIsNotNone(emp02_q)
-        self.assertEqual(emp02_q["employee_name"], "Pooja V. Verma")
+            # 3. Verify in Master Quotas (Quota counts preserved!)
+            quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
+            emp02_q = next((q for q in quotas if q["emp_id"] == "EMP02"), None)
+            self.assertIsNotNone(emp02_q)
+            self.assertEqual(emp02_q["employee_name"], "Pooja V. Verma")
+        finally:
+            # Restore EMP02's seed profile: startup no longer re-seeds existing
+            # accounts (bughunt fix), so tests must clean up after themselves.
+            # Leaving the renamed email behind broke test_auth's seed-email
+            # logins in every subsequent run (verified: 2 cascading failures).
+            self._post_json("/api/admin/employees/update", {
+                "old_emp_id": "EMP02", "new_emp_id": "EMP02", "full_name": "Pooja Verma (Central Zone)",
+                "email": "emp.central@ndli.edu.in", "zone": "Central",
+                "assigned_states": "Madhya Pradesh, Chhattisgarh"
+            }, token=admin_token)
 
     # -------------------------------------------------------------
     # 2. Test Password Change & Retention
@@ -175,55 +186,65 @@ class TestEmployeeEditAndSync(unittest.TestCase):
     def test_employee_password_change_and_retention(self):
         admin_token = self._get_admin_token()
 
-        # Update EMP03 with new password
-        new_pwd = "NewWestPass#2026!"
-        update_payload = {
-            "old_emp_id": "EMP03",
-            "new_emp_id": "EMP03",
-            "full_name": "Amit Patel",
-            "email": "emp.west@ndli.edu.in",
-            "password": new_pwd,
-            "zone": "West",
-            "assigned_states": "Rajasthan, Gujarat, Maharashtra, Goa"
-        }
+        try:
 
-        status, res = self._post_json("/api/admin/employees/update", update_payload, token=admin_token)
-        self.assertEqual(status, 200)
+            # Update EMP03 with new password
+            new_pwd = "NewWestPass#2026!"
+            update_payload = {
+                "old_emp_id": "EMP03",
+                "new_emp_id": "EMP03",
+                "full_name": "Amit Patel",
+                "email": "emp.west@ndli.edu.in",
+                "password": new_pwd,
+                "zone": "West",
+                "assigned_states": "Rajasthan, Gujarat, Maharashtra, Goa"
+            }
 
-        # Verify old password fails
-        old_status, old_res = self._post_json("/api/auth/login", {
-            "email": "EMP03",
-            "password": "Seed#EMP03-Rotated2026"
-        })
-        self.assertEqual(old_status, 401)
+            status, res = self._post_json("/api/admin/employees/update", update_payload, token=admin_token)
+            self.assertEqual(status, 200)
 
-        # Verify new password succeeds
-        new_status, new_res = self._post_json("/api/auth/login", {
-            "email": "EMP03",
-            "password": new_pwd
-        })
-        self.assertEqual(new_status, 200)
-        self.assertTrue(new_res.get("success"))
+            # Verify old password fails
+            old_status, old_res = self._post_json("/api/auth/login", {
+                "email": "EMP03",
+                "password": "Seed#EMP03-Rotated2026"
+            })
+            self.assertEqual(old_status, 401)
 
-        # Now edit EMP03 WITHOUT password field — verify password is retained
-        update_payload2 = {
-            "old_emp_id": "EMP03",
-            "new_emp_id": "EMP03",
-            "full_name": "Amit K. Patel",
-            "email": "emp.west@ndli.edu.in",
-            "password": "",  # Empty password must keep existing hash!
-            "zone": "West",
-            "assigned_states": "Rajasthan, Gujarat, Maharashtra, Goa"
-        }
-        status2, res2 = self._post_json("/api/admin/employees/update", update_payload2, token=admin_token)
-        self.assertEqual(status2, 200)
+            # Verify new password succeeds
+            new_status, new_res = self._post_json("/api/auth/login", {
+                "email": "EMP03",
+                "password": new_pwd
+            })
+            self.assertEqual(new_status, 200)
+            self.assertTrue(new_res.get("success"))
 
-        # Verify new password STILL works
-        new_status2, new_res2 = self._post_json("/api/auth/login", {
-            "email": "EMP03",
-            "password": new_pwd
-        })
-        self.assertEqual(new_status2, 200)
+            # Now edit EMP03 WITHOUT password field — verify password is retained
+            update_payload2 = {
+                "old_emp_id": "EMP03",
+                "new_emp_id": "EMP03",
+                "full_name": "Amit K. Patel",
+                "email": "emp.west@ndli.edu.in",
+                "password": "",  # Empty password must keep existing hash!
+                "zone": "West",
+                "assigned_states": "Rajasthan, Gujarat, Maharashtra, Goa"
+            }
+            status2, res2 = self._post_json("/api/admin/employees/update", update_payload2, token=admin_token)
+            self.assertEqual(status2, 200)
+
+            # Verify new password STILL works
+            new_status2, new_res2 = self._post_json("/api/auth/login", {
+                "email": "EMP03",
+                "password": new_pwd
+            })
+            self.assertEqual(new_status2, 200)
+        finally:
+            # Restore EMP03's seed credentials/profile: startup no longer re-seeds
+            # existing accounts (bughunt fix), so tests must clean up after themselves.
+            self._post_json("/api/admin/employees/update", {
+                "old_emp_id": "EMP03", "new_emp_id": "EMP03", "full_name": "Amit Patel (West Zone)",
+                "email": "emp.west@ndli.edu.in", "password": "Seed#EMP03-Rotated2026", "zone": "West",
+                "assigned_states": "Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar & Nagar Haveli"
+            }, token=admin_token)
 
     # -------------------------------------------------------------
     # 3. Test Employee Code/ID Change & Folder Rename & Relinking

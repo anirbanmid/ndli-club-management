@@ -169,13 +169,15 @@ class TestSyncEngine(unittest.TestCase):
         self.assertEqual(created.get("last_renewal_date", ""), "")
 
         # Now approve renewal without passing renewal_date ("Renewal Approved" action)
-        # Should instantly capture submission timestamp as last_renewal_date and calculate renewal_date as +1 year from that timestamp
+        # Round-2 policy: the new due date is +1 year from the PREVIOUS DUE date
+        # (renewing immediately keeps the club's anniversary).
         renewed = SyncEngine.renew_club_registration(emp_id=emp_id, club_id=club_id, renewal_date=None)
         self.assertIsNotNone(renewed)
         self.assertEqual(renewed.get("zone"), "North East")
         self.assertTrue(len(renewed.get("last_renewal_date", "")) > 0)
         self.assertEqual(renewed["date_of_approval"], created["date_of_approval"])
-        expected_next = calculate_next_renewal_date(last_renewal_date=renewed["last_renewal_date"])
+        from db.sync_engine import calculate_next_renewal_due
+        expected_next = calculate_next_renewal_due(previous_renewal_date=created["renewal_date"])
         self.assertEqual(renewed["renewal_date"], expected_next)
 
     def test_ai_decision_renewal_attention(self):

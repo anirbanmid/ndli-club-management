@@ -21,6 +21,15 @@ from db.sync_engine import SyncEngine
 
 _AUTH_LOCK = threading.RLock()
 
+# Login throttle (bughunt 2026-09-25): the CAPTCHA on the login page is client-side
+# only, so the API itself must slow down password guessing. After
+# _MAX_LOGIN_FAILS wrong attempts for one identifier inside _FAIL_WINDOW_SEC the
+# identifier is locked for _LOCK_SEC. A correct login clears the counter.
+_MAX_LOGIN_FAILS = 8
+_FAIL_WINDOW_SEC = 600
+_LOCK_SEC = 300
+_LOGIN_FAILS: Dict[str, Dict[str, float]] = {}
+
 # Active Session Store: in-memory cache backed by persistent DATA_DIR / "sessions.json"
 _ACTIVE_SESSIONS: Dict[str, Dict[str, Any]] = {}
 _SESSIONS_FILE = DATA_DIR / "sessions.json"
@@ -139,9 +148,33 @@ class AuthService:
         Authenticates an email or user ID and password against master_users.csv.
         Returns: (success: bool, error_message_or_none, session_dict_or_none)
         """
+        throttle_key = str(email or "").strip().lower()
+        now_ts = datetime.now(timezone.utc).timestamp()
+        with _AUTH_LOCK:
+            st = _LOGIN_FAILS.get(throttle_key)
+            if st and st.get("locked_until", 0) > now_ts:
+                wait_min = int((st["locked_until"] - now_ts) // 60) + 1
+                return False, f"Too many failed sign-in attempts. Please wait about {wait_min} minute(s) and try again.", None
+
         ok, err, user_record = cls._find_and_verify(email, password)
         if not ok:
+            with _AUTH_LOCK:
+                st = _LOGIN_FAILS.get(throttle_key)
+                if not st or now_ts - st.get("first", now_ts) > _FAIL_WINDOW_SEC:
+                    st = {"count": 0, "first": now_ts, "locked_until": 0}
+                st["count"] += 1
+                if st["count"] >= _MAX_LOGIN_FAILS:
+                    st["locked_until"] = now_ts + _LOCK_SEC
+                    st["count"] = 0
+                    st["first"] = now_ts
+                if throttle_key:
+                    _LOGIN_FAILS[throttle_key] = st
+                if len(_LOGIN_FAILS) > 5000:
+                    for k in [k for k, v in _LOGIN_FAILS.items() if v.get("locked_until", 0) < now_ts and now_ts - v.get("first", 0) > _FAIL_WINDOW_SEC]:
+                        _LOGIN_FAILS.pop(k, None)
             return False, err, None
+        with _AUTH_LOCK:
+            _LOGIN_FAILS.pop(throttle_key, None)
 
         # Create session
         token = secrets.token_hex(24)

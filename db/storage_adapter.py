@@ -17,6 +17,16 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 _UPLOAD_SEMAPHORE = threading.BoundedSemaphore(value=4)
 
+
+def _is_persistent_host() -> bool:
+    """True on hosts whose local disk survives restarts (PythonAnywhere, Render disk, any NDLI_DATA_DIR)."""
+    return bool(
+        os.getenv("PYTHONANYWHERE_DOMAIN")
+        or os.getenv("NDLI_DATA_DIR")
+        or os.getenv("NDLI_STORAGE_PERSISTENT") == "true"
+    )
+
+
 def _dispatch_upload(target_func, *args):
     """Dispatches background sync in a daemon thread bounded by semaphore."""
     def _worker():
@@ -513,12 +523,24 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 files_map = data_obj.get("files", {})
 
                 pulled_files = []
+                # BUG-FIX (bughunt 2026-09-25): on a persistent-disk host the local
+                # copy is authoritative once this instance has completed one
+                # successful pull. The Drive copy is written asynchronously and is
+                # therefore always equal-or-OLDER than local; merging it back on a
+                # restart resurrected deleted clubs, reverted password changes
+                # (old password valid again) and un-blocked blocked employees.
+                # After the first successful pull we only fill files that are
+                # missing locally (true disaster recovery) and never touch existing ones.
+                marker = self.local.root_dir / ".drive_pull_done"
+                local_authoritative = _is_persistent_host() and marker.exists()
                 for rel_path, content in files_map.items():
                     if not content or not content.strip():
                         continue
                     clean_rel = rel_path.replace("\\", "/").lstrip("/")
                     target_file = (self.local.root_dir / clean_rel).resolve()
                     if not target_file.is_relative_to(self.local.root_dir.resolve()):
+                        continue
+                    if local_authoritative and target_file.exists() and target_file.stat().st_size > 0:
                         continue
                     target_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -542,6 +564,12 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
 
                 from db.csv_engine import CSVEngine
                 CSVEngine.clear_cache()
+
+                if _is_persistent_host() and not marker.exists():
+                    try:
+                        marker.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+                    except Exception:
+                        pass
 
                 self.last_sync_time = datetime.now(timezone.utc).isoformat()
                 self.last_sync_status = "pulled_from_drive"

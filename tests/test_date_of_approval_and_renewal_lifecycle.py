@@ -19,7 +19,7 @@ from http.server import HTTPServer
 
 from app import NDLIRequestHandler
 from init_db import initialize_database
-from db.sync_engine import SyncEngine, calculate_next_renewal_date, parse_iso_or_date
+from db.sync_engine import SyncEngine, calculate_next_renewal_date, calculate_next_renewal_due, parse_iso_or_date
 from db.csv_engine import CSVEngine
 from db.schemas import CLUB_FIELDS, ACTIVITY_FIELDS
 from config import MASTER_CLUBS_CSV, MASTER_ACTIVITIES_CSV
@@ -157,8 +157,9 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         today_date = datetime.now(timezone.utc).date()
         self.assertEqual(lrd_date, today_date)
 
-        # 2. Upcoming renewal due date automatically calculated as 1 year from submission date
-        expected_ren = calculate_next_renewal_date(last_renewal_date=club["last_renewal_date"])
+        # 2. Upcoming renewal due date = +1 year from the PREVIOUS DUE date
+        #    (round-2 policy: renewing early keeps the anniversary).
+        expected_ren = calculate_next_renewal_due(previous_renewal_date=created["renewal_date"])
         self.assertEqual(club.get("renewal_date"), expected_ren)
 
         # 3. Date of approval remains immutable
@@ -198,7 +199,12 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         created = SyncEngine.approve_new_club(emp_id=emp_id, club_data=club_payload)
         doa = created["date_of_approval"]
 
-        # First renewal
+        # Pin the due date to 2027-01-10 to model a mid-cycle club
+        SyncEngine.update_club(emp_id, club_id, {
+            "renewal_date": "2027-01-10", "next_renewal_date": "2027-01-10"})
+
+        # First renewal (early, on 2027-01-10): the due date keeps the club's
+        # anniversary — +1 year from the PREVIOUS due date (round-2 policy).
         ren1 = SyncEngine.renew_club_registration(
             emp_id=emp_id,
             club_id=club_id,
@@ -208,14 +214,14 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         self.assertEqual(ren1["renewal_date"], "2028-01-10")
         self.assertEqual(ren1["date_of_approval"], doa)
 
-        # Second renewal a year later
+        # Second renewal a year later: anniversary still kept
         ren2 = SyncEngine.renew_club_registration(
             emp_id=emp_id,
             club_id=club_id,
             last_renewal_date="2028-01-15T15:30:00Z"
         )
         self.assertEqual(ren2["last_renewal_date"], "2028-01-15T15:30:00Z")
-        self.assertEqual(ren2["renewal_date"], "2029-01-15")
+        self.assertEqual(ren2["renewal_date"], "2029-01-10")
         self.assertEqual(ren2["date_of_approval"], doa)
 
         # In DB only Date of Approval, Last Renewal Date, and Upcoming Renewal Date exist
@@ -223,7 +229,7 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         match = next((r for r in rows if r.get("club_id") == club_id), None)
         self.assertEqual(match["date_of_approval"], doa)
         self.assertEqual(match["last_renewal_date"], "2028-01-15T15:30:00Z")
-        self.assertEqual(match["renewal_date"], "2029-01-15")
+        self.assertEqual(match["renewal_date"], "2029-01-10")
 
     def test_api_club_details_returns_all_lifecycle_fields(self):
         # Using seeded benchmark club NDLI-EMP01-002

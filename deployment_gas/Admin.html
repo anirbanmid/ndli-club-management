@@ -4565,7 +4565,7 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
         const urgencyText = c.badge_label || (isOverdue ? `${c.days_overdue || Math.abs(c.days_diff)} days overdue` : `${c.days_left || c.days_diff} days left`);
         const statusType = isOverdue ? "🔴 Overdue" : "🟡 Expiring Soon";
         const cid = c.club_id || "";
-        const cidSafe = cid.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const cidSafe = cid.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
         const doaVal = c.date_of_approval || c.submission_timestamp || "";
         const doaDisplay = doaVal ? (typeof formatDateDisplay === "function" ? formatDateDisplay(doaVal) : doaVal.split("T")[0]) : "-";
