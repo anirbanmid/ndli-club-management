@@ -832,6 +832,130 @@ function requireSelfOrAdminGas_(authSession, empId) {
   return String(authSession.user_id || "").trim().toUpperCase() === String(empId || "").trim().toUpperCase();
 }
 
+// ===== ROUND 4.1: PBKDF2-HMAC-SHA256 CREDENTIAL VERIFICATION ==============
+// The Python twin stores PBKDF2-HMAC-SHA256 hashes (auth.py hash_password:
+// password + salt as UTF-8, 100,000 iterations, hex digest) and its values
+// reach the Drive CSVs through the sync. Apps Script has no built-in PBKDF2,
+// so this is a compact SHA-256 / HMAC / PBKDF2 stack — verified bit-for-bit
+// against Python's output by test_code_gs.js (Test 30).
+function gasUtf8Bytes_(str) {
+  var out = [];
+  str = String(str || "");
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    if (c < 0x80) {
+      out.push(c);
+    } else if (c < 0x800) {
+      out.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    } else if (c >= 0xd800 && c <= 0xdbff && i + 1 < str.length) {
+      var c2 = str.charCodeAt(i + 1);
+      var cp = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00);
+      i++;
+      out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    } else {
+      out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+    }
+  }
+  return out;
+}
+
+function gasSha256_(msg) {
+  var K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  var l = msg.length;
+  var padded = msg.slice();
+  padded.push(0x80);
+  while (padded.length % 64 !== 56) padded.push(0);
+  var bitHi = Math.floor(l / 536870912); // floor(l*8 / 2^32)
+  var bitLo = (l * 8) % 4294967296;
+  padded.push((bitHi >>> 24) & 0xff, (bitHi >>> 16) & 0xff, (bitHi >>> 8) & 0xff, bitHi & 0xff);
+  padded.push((bitLo >>> 24) & 0xff, (bitLo >>> 16) & 0xff, (bitLo >>> 8) & 0xff, bitLo & 0xff);
+  function rotr(x, n) { return ((x >>> n) | (x << (32 - n))) >>> 0; }
+  for (var b = 0; b < padded.length; b += 64) {
+    var w = new Array(64);
+    for (var i = 0; i < 16; i++) {
+      var o = b + i * 4;
+      w[i] = ((padded[o] << 24) | (padded[o + 1] << 16) | (padded[o + 2] << 8) | padded[o + 3]) >>> 0;
+    }
+    for (i = 16; i < 64; i++) {
+      var s0 = (rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3)) >>> 0;
+      var s1 = (rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10)) >>> 0;
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+    }
+    var a = H[0], bb = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (i = 0; i < 64; i++) {
+      var S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
+      var ch = ((e & f) ^ ((~e) & g)) >>> 0;
+      var t1 = (h + S1 + ch + K[i] + w[i]) >>> 0;
+      var S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
+      var maj = ((a & bb) ^ (a & c) ^ (bb & c)) >>> 0;
+      var t2 = (S0 + maj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = bb; bb = a; a = (t1 + t2) >>> 0;
+    }
+    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + bb) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+  }
+  var out = [];
+  for (var k = 0; k < 8; k++) {
+    out.push((H[k] >>> 24) & 0xff, (H[k] >>> 16) & 0xff, (H[k] >>> 8) & 0xff, H[k] & 0xff);
+  }
+  return out;
+}
+
+function gasHmacSha256_(key, msg) {
+  if (key.length > 64) key = gasSha256_(key);
+  var ipad = [], opad = [];
+  for (var i = 0; i < 64; i++) {
+    var kb = i < key.length ? key[i] : 0;
+    ipad.push(kb ^ 0x36);
+    opad.push(kb ^ 0x5c);
+  }
+  return gasSha256_(opad.concat(gasSha256_(ipad.concat(msg))));
+}
+
+function gasPbkdf2Hex_(password, salt, iterations) {
+  // Parity with Python auth.py: pbkdf2_hmac('sha256', pw.encode('utf-8'),
+  // salt.encode('utf-8'), 100000).hex() — 32-byte derived key.
+  var pw = gasUtf8Bytes_(password);
+  var sl = gasUtf8Bytes_(salt);
+  var u = gasHmacSha256_(pw, sl.concat([0, 0, 0, 1]));
+  var t = u.slice();
+  for (var i = 1; i < iterations; i++) {
+    u = gasHmacSha256_(pw, u);
+    for (var j = 0; j < 32; j++) t[j] = (t[j] ^ u[j]) & 0xff;
+  }
+  var hex = "";
+  for (var k = 0; k < 32; k++) hex += ("0" + t[k].toString(16)).slice(-2);
+  return hex;
+}
+
+function verifyStoredGasCredential_(stored, salt, pass) {
+  // Round 4.1: a 64-hex stored value (Python sync format) is verified as a
+  // PBKDF2-HMAC-SHA256 hash; legacy plaintext rows (pre-sync data, test
+  // fixtures) compare directly — their stored secret IS the credential.
+  stored = String(stored || "").trim();
+  pass = String(pass || "");
+  if (!stored || !pass) return false;
+  if (/^[0-9a-fA-F]{64}$/.test(stored) && String(salt || "")) {
+    try {
+      return gasPbkdf2Hex_(pass, String(salt), 100000) === stored.toLowerCase();
+    } catch (e) {
+      return false;
+    }
+  }
+  return stored === pass;
+}
+
 function apiDispatcher(path, method, body, token) {
   var lock = LockService.getScriptLock();
   try {
@@ -968,14 +1092,16 @@ function apiDispatcher(path, method, body, token) {
       var targetUid = (user.id || user.user_id || "").toUpperCase();
       var isValid = false;
 
-      // 1. Direct match against the stored credential
-      if (!isValid && (user.password_hash === pass || user.password === pass)) {
+      // 1. Direct match against the stored credential (round 4.1: PBKDF2
+      // hashes synced from the Python twin now VERIFY as hashes — the old
+      // plaintext compare could never match them and locked everyone out).
+      if (!isValid && verifyStoredGasCredential_(user.password_hash || user.password, user.salt, pass)) {
         isValid = true;
       }
       // 2. Check node credentials.csv
       if (!isValid && targetUid.indexOf("EMP") === 0) {
         var empCred = getCsvData("employees/" + targetUid.toLowerCase(), "credentials.csv");
-        if (empCred.rows.length > 0 && (empCred.rows[0].password_hash === pass || empCred.rows[0].password === pass)) {
+        if (empCred.rows.length > 0 && verifyStoredGasCredential_(empCred.rows[0].password_hash || empCred.rows[0].password, empCred.rows[0].salt, pass)) {
           isValid = true;
         }
       }
@@ -1068,7 +1194,7 @@ function apiDispatcher(path, method, body, token) {
         for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
           var uRow = mUsers.rows[i2];
           if ((uRow.id || uRow.user_id || "").toUpperCase() === uid) {
-            if (uRow.password_hash === p || uRow.password === p) {
+            if (verifyStoredGasCredential_(uRow.password_hash || uRow.password, uRow.salt, p)) {
               isMatched = true;
               break;
             }
@@ -1077,7 +1203,7 @@ function apiDispatcher(path, method, body, token) {
       }
       if (!isMatched && uid.indexOf("EMP") === 0) {
         var empCred = getCsvData("employees/" + uid.toLowerCase(), "credentials.csv");
-        if (empCred.rows.length > 0 && (empCred.rows[0].password_hash === p || empCred.rows[0].password === p)) {
+        if (empCred.rows.length > 0 && verifyStoredGasCredential_(empCred.rows[0].password_hash || empCred.rows[0].password, empCred.rows[0].salt, p)) {
           isMatched = true;
         }
       }

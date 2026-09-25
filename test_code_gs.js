@@ -655,8 +655,47 @@ async function runTests() {
 
   console.log('PASS: session identity enforced, spoofed body identity rejected.\n');
 
+  // Test 30: Round-4.1 — PBKDF2-HMAC-SHA256 credentials (Python sync format).
+  // The Drive CSVs carry the Python twin's hashes; the GAS twin used to compare
+  // plaintext and could never match them (everyone locked out after rotation).
+  console.log('[Test 30] Round-4.1: PBKDF2 credential verification (Python parity)...');
+  const crypto30 = require('crypto');
+  const t30pass = 'Rotated#EMP02-2026!';
+  const t30salt = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+  const t30hash = crypto30.pbkdf2Sync(t30pass, t30salt, 100000, 32, 'sha256').toString('hex');
+
+  // 30a. The pure-JS implementation must be bit-for-bit identical to the
+  // reference PBKDF2-HMAC-SHA256 (same output as Python's hashlib).
+  const t30start = Date.now();
+  console.assert(gasPbkdf2Hex_(t30pass, t30salt, 100000) === t30hash, 'gasPbkdf2Hex_ must match PBKDF2-HMAC-SHA256 reference output');
+  console.log('  (pbkdf2 x100k in JS: ' + (Date.now() - t30start) + 'ms)');
+
+  // 30b. Log in against a HASHED row (the live Drive format) — correct and wrong password
+  const mU30 = getCsvData('master', 'master_users.csv');
+  for (const row of mU30.rows) {
+    if ((row.id || row.user_id || '').toUpperCase() === 'EMP02') {
+      row.password_hash = t30hash;
+      row.salt = t30salt;
+    }
+  }
+  saveCsvData('master', 'master_users.csv', mU30.headers, mU30.rows);
+  const hashLogin = __rawDispatch('auth/login', 'POST', { id: 'EMP02', password: t30pass }, null);
+  console.assert(hashLogin.ok === true && hashLogin.data.token, 'PBKDF2-hashed row must accept the correct password');
+  const hashLoginBad = __rawDispatch('auth/login', 'POST', { id: 'EMP02', password: 'wrong-guess' }, null);
+  console.assert(hashLoginBad.ok === false && hashLoginBad.status === 401, 'PBKDF2-hashed row must reject a wrong password');
+
+  // 30c. Second-layer verify-password works against hashed rows too
+  const vp30 = __rawDispatch('auth/verify-password', 'POST', { user_id: 'EMP02', password: t30pass }, hashLogin.data.token);
+  console.assert(vp30.ok === true && vp30.data.valid === true, 'verify-password must accept the correct password for a hashed row');
+
+  // 30d. Legacy plaintext rows (pre-sync data / fixtures) keep working
+  const legacyLogin = __rawDispatch('auth/login', 'POST', { id: 'EMP01', password: 'Seed#EMP01-Rotated2026' }, null);
+  console.assert(legacyLogin.ok === true, 'Legacy plaintext rows must keep working');
+
+  console.log('PASS: PBKDF2 credentials verified (Python sync format + legacy rows).\n');
+
   console.log('=============================================');
-  console.log('ALL 30 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 31 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 
