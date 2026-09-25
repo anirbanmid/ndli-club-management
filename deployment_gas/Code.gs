@@ -708,7 +708,7 @@ function doPost(e) {
     var body = raw ? JSON.parse(raw) : {};
     var path = body.path || (e && e.parameter ? e.parameter.path : "") || "";
     var method = body.method || "POST";
-    var token = body.token || "";
+    var token = body.token || (e && e.parameter && e.parameter.token ? e.parameter.token : "");
     result = apiDispatcher(path, method, body.data || body, token);
   } catch (err) {
     result = { ok: false, status: 500, data: { error: true, message: err.message } };
@@ -721,6 +721,116 @@ function doPost(e) {
 // ====================================================================
 // 7. UNIFIED API DISPATCHER (google.script.run & REST compatible)
 // ====================================================================
+
+// ====================================================================
+// ROUND 4 (2026-09-26): SESSION TOKENS + ROUTE AUTHORIZATION
+// The dispatcher used to accept ANY request without verifying a token —
+// effectively an open API. Every non-public route now requires a valid
+// session token, admin routes require the ADMIN role, and the Drive-sync
+// transport routes accept the relay secret once one is configured.
+// ====================================================================
+var GAS_SESSION_TTL_SEC = 21600; // 6h sliding window
+
+function gasProps_() {
+  try { return (typeof PropertiesService !== "undefined") ? PropertiesService.getScriptProperties() : null; } catch (e) { return null; }
+}
+function gasCache_() {
+  try { return (typeof CacheService !== "undefined") ? CacheService.getScriptCache() : null; } catch (e) { return null; }
+}
+
+function createGasSession(user) {
+  var token = "ndli_tok_" + Utilities.getUuid();
+  var sess = {
+    user_id: String(user.user_id || user.id || "").toUpperCase(),
+    id: String(user.id || user.user_id || "").toUpperCase(),
+    email: user.email || "",
+    full_name: user.full_name || user.name || "",
+    role: String(user.role || "EMPLOYEE").toUpperCase(),
+    zone: user.zone || "",
+    assigned_states: user.assigned_states || "",
+    created: Date.now(),
+    exp: Date.now() + (7 * 86400000)
+  };
+  var raw = JSON.stringify(sess);
+  var c = gasCache_();
+  if (c) { try { c.put("ndli_sess_" + token, raw, GAS_SESSION_TTL_SEC); } catch (e) {} }
+  var p = gasProps_();
+  if (p) { try { p.setProperty("ndli_sess_" + token, raw); } catch (e) {} }
+  return token;
+}
+
+function verifyGasSession(token) {
+  if (!token) return null;
+  var key = "ndli_sess_" + String(token).trim();
+  var raw = null;
+  var c = gasCache_();
+  if (c) { try { raw = c.get(key); } catch (e) {} }
+  var p = gasProps_();
+  if (!raw && p) { try { raw = p.getProperty(key); } catch (e) {} }
+  if (!raw) return null;
+  var sess = null;
+  try { sess = JSON.parse(raw); } catch (e) { return null; }
+  if (!sess || (sess.exp && sess.exp < Date.now())) {
+    invalidateGasSession(token);
+    return null;
+  }
+  if (c) { try { c.put(key, raw, GAS_SESSION_TTL_SEC); } catch (e) {} } // sliding window
+  return sess;
+}
+
+function invalidateGasSession(token) {
+  if (!token) return;
+  var key = "ndli_sess_" + String(token).trim();
+  var c = gasCache_();
+  if (c) { try { c.remove(key); } catch (e) {} }
+  var p = gasProps_();
+  if (p) { try { p.deleteProperty(key); } catch (e) {} }
+}
+
+function verifyRelayKey_(key) {
+  if (!key) return false;
+  var p = gasProps_();
+  var expected = p ? String(p.getProperty("RELAY_SECRET") || "") : "";
+  return !!expected && expected === String(key);
+}
+
+function isRelayConfigured_() {
+  var p = gasProps_();
+  return !!(p && String(p.getProperty("RELAY_SECRET") || ""));
+}
+
+function isPublicGasRoute_(path) {
+  return path === "" || path === "health" || path === "auth/login" ||
+         path === "state-zone/map" || path === "state-zone/lookup" ||
+         path === "states-zones" || path === "states";
+}
+
+function isRelayGasRoute_(path) {
+  // Drive-sync transport routes used by the Python AppsScriptRelaySyncAdapter
+  return path === "sync/mirror-file" || path === "sync/pull-all" || path === "sync/fetch-all" ||
+         path === "sync/pull-file" || path === "sync/fetch-file" || path === "sync/upload-backup";
+}
+
+function isAdminGasRoute_(path) {
+  // Round 4 (parity with Python app.py _check_admin_access call sites):
+  // issues/admin-reminders and the certificate PI settings/signature routes
+  // are admin-only, exactly like their Python twins.
+  return path.indexOf("admin/") === 0 || path === "auth/block-toggle" ||
+         path === "backup/restore" || path === "backup/upload" || path === "backup/run-manual" ||
+         path === "sync/reconcile" ||
+         path === "issues/admin-reminders" ||
+         path === "certificate/settings" || path === "certificate/signature";
+}
+
+function requireSelfOrAdminGas_(authSession, empId) {
+  // Round 4: identity gate for employee-scoped operations (parity with Python
+  // app.py _require_self_or_admin): an Admin may operate for anyone; any other
+  // role only for the identity carried by their VERIFIED session. Never trust
+  // a bare body claim about who the caller is.
+  if (!authSession) return false;
+  if (String(authSession.role || "").toUpperCase() === "ADMIN") return true;
+  return String(authSession.user_id || "").trim().toUpperCase() === String(empId || "").trim().toUpperCase();
+}
 
 function apiDispatcher(path, method, body, token) {
   var lock = LockService.getScriptLock();
@@ -771,6 +881,32 @@ function apiDispatcher(path, method, body, token) {
     if (body.club_id && !body.id) body.id = body.club_id;
     if (body.issue_id && !body.reminder_id) body.reminder_id = body.issue_id;
     if (body.reminder_id && !body.issue_id) body.issue_id = body.reminder_id;
+
+    // ===== ROUND 4: SESSION AUTHORIZATION ==================================
+    // Tokens travel in body.token / ?token= (Apps Script web apps cannot read
+    // Authorization headers — the HTML clients therefore embed body.token).
+    var authSession = verifyGasSession(String(token || body.token || queryObj.token || "").trim());
+    if (!isPublicGasRoute_(path)) {
+      var relayAllowed = false;
+      if (isRelayGasRoute_(path)) {
+        if (!isRelayConfigured_()) {
+          // Legacy compatibility: the relay secret is not configured yet, so
+          // the sync transport stays open (the deploy guide turns enforcement
+          // on by setting RELAY_SECRET in Script Properties).
+          relayAllowed = true;
+        } else {
+          relayAllowed = verifyRelayKey_(String(body.relay_key || queryObj.relay_key || "").trim());
+        }
+      }
+      if (!relayAllowed) {
+        if (!authSession) {
+          return { ok: false, status: 401, data: { error: true, message: "Authentication required. Please log in." } };
+        }
+        if (isAdminGasRoute_(path) && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+          return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot access this operation." } };
+        }
+      }
+    }
 
     // --- HEALTH ---
     if (path === "health" || path === "") {
@@ -857,9 +993,7 @@ function apiDispatcher(path, method, body, token) {
       }
       gasCache.remove(throttleKey);
 
-      var mockToken = "ndli_tok_" + Utilities.getUuid();
       var sessionObj = {
-        token: mockToken,
         user_id: targetUid,
         id: targetUid,
         email: user.email || (targetUid.toLowerCase() + "@ndli.iitkgp.ac.in"),
@@ -871,13 +1005,16 @@ function apiDispatcher(path, method, body, token) {
         is_active: "1",
         status: "ACTIVE"
       };
+      // Round 4: real verified session token (stored server-side)
+      var issuedToken = createGasSession(sessionObj);
+      sessionObj.token = issuedToken;
 
       return {
         ok: true,
         status: 200,
         data: {
           success: true,
-          token: mockToken,
+          token: issuedToken,
           session: sessionObj,
           user: sessionObj
         }
@@ -886,37 +1023,15 @@ function apiDispatcher(path, method, body, token) {
 
     // --- AUTH: ME (ACTIVE SESSION CHECK) ---
     if (path === "auth/me") {
-      var authTok = token || body.token || "";
-      var foundUid = "EMP01";
-      if (authTok.indexOf("ADMIN") !== -1) foundUid = "ADMIN01";
-      else {
-        var match = authTok.match(/ndli_tok_([A-Z0-9]+)_/);
-        if (match) foundUid = match[1];
+      // Round 4: identity comes from the VERIFIED server-side session only.
+      var authTok = String(token || body.token || queryObj.token || "").trim();
+      var meSession = verifyGasSession(authTok);
+      if (!meSession) {
+        return { ok: false, status: 401, data: { error: true, message: "No active session. Please log in." } };
       }
-
-      var mUsers = getCsvData("master", "master_users.csv");
-      var user = null;
-      for (var u1 = 0; u1 < mUsers.rows.length; u1++) {
-        if ((mUsers.rows[u1].id || "").toUpperCase() === foundUid) {
-          user = mUsers.rows[u1];
-          break;
-        }
-      }
-
-      var role = (user && user.role) ? user.role : (foundUid === "ADMIN01" ? "ADMIN" : "EMPLOYEE");
-      var sessionData = {
-        token: authTok || ("ndli_tok_" + foundUid + "_active"),
-        user_id: foundUid,
-        id: foundUid,
-        email: user ? user.email : (foundUid.toLowerCase() + "@ndli.iitkgp.ac.in"),
-        full_name: user ? (user.full_name || user.name) : (foundUid === "ADMIN01" ? "IIT Kharagpur Admin Office" : "Regional Officer (" + foundUid + ")"),
-        name: user ? (user.full_name || user.name) : foundUid,
-        role: role,
-        zone: user ? user.zone : "Central Coordination (IIT KGP)",
-        assigned_states: user ? user.assigned_states : "All India",
-        is_active: user ? String(user.is_active || "1") : "1",
-        status: "ACTIVE"
-      };
+      meSession.token = authTok;
+      meSession.is_active = "1";
+      meSession.status = "ACTIVE";
 
       return {
         ok: true,
@@ -924,20 +1039,22 @@ function apiDispatcher(path, method, body, token) {
         data: {
           authenticated: true,
           success: true,
-          session: sessionData,
-          user: sessionData
+          session: meSession,
+          user: meSession
         }
       };
     }
 
     // --- AUTH: LOGOUT ---
     if (path === "auth/logout") {
+      // Round 4: destroy the server-side session.
+      invalidateGasSession(String(token || body.token || queryObj.token || "").trim());
       return { ok: true, status: 200, data: { success: true, message: "Logged out successfully." } };
     }
 
     // --- AUTH: VERIFY PASSWORD (SECOND-LAYER CONFIRMATION) ---
     if (path === "auth/verify-password") {
-      var uid = String(body.user_id || body.id || "").trim().toUpperCase();
+      var uid = String(body.user_id || body.id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
       var p = String(body.password || "").trim();
       if (!uid || !p) {
         return { ok: false, status: 400, data: { error: true, message: "User ID and password required." } };
@@ -1037,7 +1154,12 @@ function apiDispatcher(path, method, body, token) {
 
     // --- EMPLOYEES: LIVE PROFILE ---
     if (path === "employees/profile") {
-      var targetId = String(body.id || body.emp_id || "EMP01").trim().toUpperCase();
+      // Round 4: identity comes from the verified session — never a hard-coded
+      // default employee (was EMP01) and never a bare body claim.
+      var targetId = String(body.id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!targetId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee id is required." } };
+      }
       var mUsers = getCsvData("master", "master_users.csv");
       var mQuotas = getCsvData("master", "master_quotas.csv");
 
@@ -2307,11 +2429,16 @@ function apiDispatcher(path, method, body, token) {
     // --- CLUBS: CREATE ---
     if (path === "clubs/create") {
       var mClubs = getCsvData("master", "master_clubs.csv");
-      // Round-3: never default an identity (was EMP01 — the classic phantom-
-      // identity bug). The caller must state which employee approves.
-      var empId = String(body.employee_id || body.emp_id || "").trim().toUpperCase();
+      // Round-3/4: never default an identity (was EMP01). The caller must state
+      // which employee approves; fall back to the VERIFIED session identity.
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
       if (!empId) {
         return { ok: false, status: 400, data: { error: true, message: "Approving Employee ID (emp_id) is required." } };
+      }
+      // Round 4 (parity with Python app.py): employees create clubs only under
+      // their own identity; admins may approve for anyone.
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
       }
 
       // Client requisition (2026-09-26): Club ID is a WHOLE NUMBER (digits only).
@@ -2442,10 +2569,22 @@ function apiDispatcher(path, method, body, token) {
       var mClubs = getCsvData("master", "master_clubs.csv");
       var found = false;
 
-      // Round-3 mass-assignment guard (parity with Python): non-admin callers
-      // may only edit descriptive fields. Ownership, status and renewal dates
-      // change only through their dedicated, logged workflows (or an Admin).
-      var isGasAdmin = String(body.role || "").trim().toUpperCase() === "ADMIN";
+      // Round-4 mass-assignment guard: the AUTHORITATIVE session role decides —
+      // non-admin callers may only edit descriptive fields. Ownership, status
+      // and renewal dates change only through their dedicated, logged workflows
+      // (or an Admin).
+      var isGasAdmin = !!authSession && String(authSession.role || "").toUpperCase() === "ADMIN";
+      // Round 4 (parity with Python app.py): a caller who names an employee
+      // must be that employee (or an Admin); a caller who names nobody must be
+      // an Admin. The spoofable body cannot mint identity.
+      var updEmpId = String(body.emp_id || body.employee_id || "").trim().toUpperCase();
+      if (updEmpId) {
+        if (!requireSelfOrAdminGas_(authSession, updEmpId)) {
+          return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+        }
+      } else if (!isGasAdmin) {
+        return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot update clubs without their own employee identity." } };
+      }
 
       // Duplicate Registration Number checkpoint (client requirement)
       var newReg = String(body.reg_no || "").trim();
@@ -2557,9 +2696,14 @@ function apiDispatcher(path, method, body, token) {
       saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
 
       // Log Priority Activity
-      var empId = String(body.employee_id || body.emp_id || club.approved_by_emp_id || "").trim().toUpperCase();
+      var empId = String(body.employee_id || body.emp_id || club.approved_by_emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
       if (!empId) {
         return { ok: false, status: 400, data: { error: true, message: "emp_id is required." } };
+      }
+      // Round 4 (parity with Python app.py): renewals run only under the
+      // caller's own identity (or by an Admin acting for anyone).
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
       }
       var mActs = getCsvData("master", "master_activities.csv");
       var actId = "ACT-RENEW-" + empId + "-" + Date.now();
@@ -2582,7 +2726,15 @@ function apiDispatcher(path, method, body, token) {
 
     // --- ACTIVITIES: LOG & LIST ---
     if (path === "activity/log" || path === "activities/log") {
-      var empId = String(body.employee_id || body.emp_id || "EMP01").toUpperCase();
+      // Round 4: identity comes from the verified session — never a hard-coded
+      // default employee (was EMP01) and never a bare body claim.
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee ID (emp_id) is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
       var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
       var mActs = getCsvData("master", "master_activities.csv");
       var actId = "ACT-" + empId + "-" + Date.now();
@@ -2622,7 +2774,14 @@ function apiDispatcher(path, method, body, token) {
     }
 
     if (path === "activities/bulk-log") {
-      var empId = String(body.employee_id || body.emp_id || "EMP01").toUpperCase();
+      // Round 4: verified-session identity + self-or-admin gate (was EMP01 default).
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee ID (emp_id) is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
       var count = parseInt(body.count || "1", 10);
       var supportType = body.support_type || body.activity_type || "Phone call and remote assistance";
       var notes = body.notes || body.details || "Bulk support session";
@@ -2680,6 +2839,18 @@ function apiDispatcher(path, method, body, token) {
     // --- ISSUES & REMINDERS (72H EMPLOYEE / 30D ADMIN RED KPI STACK) ---
     if (path === "issues/employee-reminders" || path === "reminders/list" || path === "reminders") {
       var empId = String(body.emp_id || body.employee_id || "").trim().toUpperCase();
+      // Round 4 (parity with Python app.py): employees see only their own
+      // reminders; an unfiltered listing is admin-only; an explicit emp_id
+      // must be the caller's own identity unless the caller is an Admin.
+      if (!empId && authSession && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+        empId = String(authSession.user_id || "").trim().toUpperCase();
+      }
+      if (!empId && (!authSession || String(authSession.role || "").toUpperCase() !== "ADMIN")) {
+        return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot list reminders across all employees." } };
+      }
+      if (empId && !requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only view your own reminders." } };
+      }
       var mRem = getCsvData("master", "master_reminders.csv");
       var results = mRem.rows.filter(function(r) {
         var matchEmp = !empId || (r.emp_id || r.employee_id || "").toUpperCase() === empId;
@@ -2766,10 +2937,20 @@ function apiDispatcher(path, method, body, token) {
       var due30d = new Date(now.getTime() + (30 * 86400000));
       var newId = "REM-" + Utilities.formatString("%04d", mRem.rows.length + 1);
 
+      // Round 4 (parity with Python app.py /api/issues/create): identity comes
+      // from the verified session — no hard-coded default employee (was EMP01).
+      var issueEmpId = String(body.emp_id || body.employee_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!issueEmpId) {
+        return { ok: false, status: 400, data: { error: true, message: "emp_id is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, issueEmpId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+
       var newIssue = {
         issue_id: newId,
         club_id: body.club_id || "",
-        emp_id: String(body.emp_id || body.employee_id || "EMP01").toUpperCase(),
+        emp_id: issueEmpId,
         institution_name: body.institution_name || "",
         state: body.state || "",
         zone: body.zone || getZoneForState(body.state),
@@ -2794,13 +2975,23 @@ function apiDispatcher(path, method, body, token) {
     if (path === "issues/resolve" || path === "reminders/resolve") {
       var iid = String(body.issue_id || body.reminder_id || "").trim().toUpperCase();
       var resolutionNotes = body.resolution_notes || body.resolution_note || "Resolved by officer";
-      var resolvedBy = body.resolved_by || "Admin/Officer";
+      // Round 4 (parity with Python app.py): the resolver identity falls back
+      // to the VERIFIED session, not a hard-coded officer label.
+      var resolvedBy = body.resolved_by || (authSession ? (authSession.email || authSession.user_id) : "") || "Admin/Officer";
 
       var mRem = getCsvData("master", "master_reminders.csv");
       var updated = false;
 
       for (var rIdx = 0; rIdx < mRem.rows.length; rIdx++) {
         if ((mRem.rows[rIdx].issue_id || mRem.rows[rIdx].reminder_id || "").toUpperCase() === iid) {
+          // Round 4 (parity with Python app.py): non-admins may only resolve
+          // the issues raised under their own identity.
+          if (authSession && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+            var ownerEmp = String(mRem.rows[rIdx].emp_id || mRem.rows[rIdx].employee_id || "").trim().toUpperCase();
+            if (ownerEmp !== String(authSession.user_id || "").trim().toUpperCase()) {
+              return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only resolve your own issues." } };
+            }
+          }
           mRem.rows[rIdx].status = "Resolved";
           mRem.rows[rIdx].resolved_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
           mRem.rows[rIdx].resolved_by = resolvedBy;

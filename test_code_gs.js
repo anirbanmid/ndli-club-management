@@ -216,8 +216,34 @@ const codeGsPath = path.join(__dirname, 'deployment_gas', 'Code.gs');
 const codeContent = fs.readFileSync(codeGsPath, 'utf8');
 eval(codeContent);
 
+// Round 4: PropertiesService mock (server-side session store)
+global.PropertiesService = (() => {
+  const props = new Map();
+  return {
+    getScriptProperties: () => ({
+      getProperty: (k) => (props.has(k) ? props.get(k) : null),
+      setProperty: (k, v) => { props.set(k, String(v)); },
+      deleteProperty: (k) => { props.delete(k); },
+      getKeys: () => Array.from(props.keys())
+    })
+  };
+})();
+
+// Round 4: every test call rides a valid ADMIN session unless a test explicitly
+// passes its own token (or null = deliberately unauthenticated).
+const __rawDispatch = apiDispatcher;
+let __autoToken = null;
+apiDispatcher = function (path, method, body, token) {
+  const t = (token === undefined) ? (__autoToken || undefined) : token;
+  return __rawDispatch(path, method, body, t);
+};
+
 async function runTests() {
   console.log('=== TEST SUITE: Code.gs GAS Backend ===\n');
+
+  // Round 4: bootstrap an admin session for the suite
+  const __bootLogin = __rawDispatch('auth/login', 'POST', { email: 'admin@iitkgp.ac.in', password: 'Seed#Scrubbed-2026' });
+  __autoToken = __bootLogin.data && __bootLogin.data.token ? __bootLogin.data.token : null;
 
   // Test 1: initSystem
   console.log('[Test 1] Running initSystem()...');
@@ -525,12 +551,14 @@ async function runTests() {
   const ren2Res = apiDispatcher('clubs/renew', 'POST', { emp_id: 'EMP03', club_id: '930001' });
   console.assert(ren2Res.ok === true && ren2Res.data.renewal_duplicate_skipped === true, 'Double-click renewal must be ignored as duplicate');
 
-  // 27f. Mass-assignment guard: non-admin cannot change status/renewal dates
+  // 27f. Mass-assignment guard: a non-admin SESSION cannot change status/renewal
+  // dates (round 4: the verified session role is authoritative)
   apiDispatcher('clubs/create', 'POST', {
     emp_id: 'EMP04', club_id: '930003', reg_no: 'REG-R3-3',
     institution_name: 'Mass Test Institute', state: 'Bihar'
   });
-  const massRes = apiDispatcher('clubs/update', 'POST', { club_id: '930003', institution_name: 'Renamed R3', status: 'Hacked', renewal_date: '1999-01-01' });
+  const empTokR3 = apiDispatcher('auth/login', 'POST', { email: 'EMP03', password: 'Seed#EMP03-Rotated2026' }).data.token;
+  const massRes = apiDispatcher('clubs/update', 'POST', { emp_id: 'EMP03', club_id: '930003', institution_name: 'Renamed R3', status: 'Hacked', renewal_date: '1999-01-01' }, empTokR3);
   console.assert(massRes.ok === true, 'Descriptive update should succeed');
   const massCheck = apiDispatcher('clubs/details', 'POST', { club_id: '930003' });
   console.assert(massCheck.data.club.status !== 'Hacked' && massCheck.data.club.renewal_date !== '1999-01-01', 'Non-admin must not change status/renewal dates');
@@ -538,8 +566,97 @@ async function runTests() {
 
   console.log('PASS: Round-3 numeric IDs, duplicate checkpoints, renewal policy & mass-assignment guard verified.\n');
 
+  // Test 28: Round-4 session authorization — tokens are verified, role-gated
+  // and invalidated on logout (the dispatcher used to be an open API).
+  console.log('[Test 28] Round-4: session tokens required, role-gated, invalidated...');
+
+  // 28a. No token -> 401
+  const noTokRes = __rawDispatch('clubs/search?q=delhi', 'GET', {}, null);
+  console.assert(noTokRes.status === 401, 'Request without a session token must be rejected with 401');
+
+  // 28b. Bogus token -> 401
+  const badTokRes = __rawDispatch('clubs/search?q=delhi', 'GET', {}, 'ndli_tok_bogus');
+  console.assert(badTokRes.status === 401, 'Bogus session token must be rejected with 401');
+
+  // 28c. Employee token on an ADMIN route -> 403
+  const empLogin28 = __rawDispatch('auth/login', 'POST', { email: 'EMP03', password: 'Seed#EMP03-Rotated2026' });
+  const empTok28 = empLogin28.data.token;
+  const empOnAdmin = __rawDispatch('admin/metrics', 'GET', {}, empTok28);
+  console.assert(empOnAdmin.status === 403, 'Employee session on admin route must be rejected with 403');
+
+  // 28d. Employee token on its own routes -> 200
+  const empOwn = __rawDispatch('clubs/search?q=delhi', 'GET', {}, empTok28);
+  console.assert(empOwn.ok === true, 'Employee session must access clubs routes');
+
+  // 28e. Logout invalidates the token
+  __rawDispatch('auth/logout', 'POST', {}, empTok28);
+  const afterLogout = __rawDispatch('clubs/search?q=delhi', 'GET', {}, empTok28);
+  console.assert(afterLogout.status === 401, 'Token must be invalid after logout');
+
+  // 28f. auth/me returns the VERIFIED session (no more token-parsing identity)
+  const meRes28 = __rawDispatch('auth/me', 'GET', {}, __autoToken);
+  console.assert(meRes28.ok === true && meRes28.data.user.role === 'ADMIN', 'auth/me must return the verified session');
+
+  // 28g. health & login stay public
+  const pubHealth = __rawDispatch('health', 'GET', {}, null);
+  const pubLogin = __rawDispatch('auth/login', 'POST', { email: 'EMP03', password: 'WrongPassword' }, null);
+  console.assert(pubHealth.ok === true && pubLogin.status === 401, 'health/login must remain public');
+
+  console.log('PASS: session authorization enforced everywhere.\n');
+
+  // Test 29: Round-4 identity alignment — identity and role decisions come
+  // from the VERIFIED session, never from the spoofable request body, and the
+  // hard-coded default-employee fallbacks (EMP01) are gone.
+  console.log('[Test 29] Round-4: identity spoofing rejected, session identity enforced...');
+
+  const empLogin29 = __rawDispatch('auth/login', 'POST', { email: 'EMP03', password: 'Seed#EMP03-Rotated2026' });
+  const empTok29 = empLogin29.data.token;
+
+  // 29a. Employee cannot log activity under another employee's identity
+  const spoofAct = __rawDispatch('activity/log', 'POST', { employee_id: 'EMP01', support_type: 'Phone call and remote assistance', notes: 'spoof attempt' }, empTok29);
+  console.assert(spoofAct.status === 403, 'Employee must not log activity as another employee');
+
+  // 29b. Blank identity falls back to the SESSION identity (never a default EMP01)
+  const ownAct = __rawDispatch('activity/log', 'POST', { support_type: 'Phone call and remote assistance', notes: 'session identity' }, empTok29);
+  console.assert(ownAct.ok === true && ownAct.data.activity && String(ownAct.data.activity.emp_id).toUpperCase() === 'EMP03', 'Activity must carry the VERIFIED session identity (EMP03)');
+
+  // 29c. issues/create identity gate
+  const spoofIssue = __rawDispatch('issues/create', 'POST', { club_id: '910201', emp_id: 'EMP01', issue_note: 'spoof attempt' }, empTok29);
+  console.assert(spoofIssue.status === 403, 'Employee must not raise issues under another identity');
+
+  // 29d. employees/profile without an id resolves to the caller's OWN profile
+  const prof29 = __rawDispatch('employees/profile', 'GET', {}, empTok29);
+  console.assert(prof29.ok === true && String(prof29.data.employee.id).toUpperCase() === 'EMP03', 'Profile without id must resolve to the session identity');
+
+  // 29e. Admin sessions may act for other employees (parity: self-or-admin)
+  const adminAct29 = __rawDispatch('activity/log', 'POST', { employee_id: 'EMP02', support_type: 'Phone call and remote assistance', notes: 'admin on behalf' }, __autoToken);
+  console.assert(adminAct29.ok === true, 'Admin must be able to log for another employee');
+
+  // 29f. issues/resolve ownership: employees resolve only their own issues
+  const mkIssue29 = __rawDispatch('issues/create', 'POST', { club_id: '910201', emp_id: 'EMP01', issue_note: 'ownership probe' }, __autoToken);
+  const issueId29 = mkIssue29.data.issue.issue_id;
+  const resolveSpoof = __rawDispatch('issues/resolve', 'POST', { issue_id: issueId29 }, empTok29);
+  console.assert(resolveSpoof.status === 403, 'Employee must not resolve another employee\'s issue');
+  const resolveAdmin = __rawDispatch('issues/resolve', 'POST', { issue_id: issueId29 }, __autoToken);
+  console.assert(resolveAdmin.ok === true, 'Admin must be able to resolve any issue');
+
+  // 29g. Reminder listing is self-scoped for employees
+  const ownRem = __rawDispatch('issues/employee-reminders', 'GET', {}, empTok29);
+  console.assert(ownRem.ok === true && ownRem.data.reminders.every(function (r) { return String(r.emp_id || r.employee_id).toUpperCase() === 'EMP03'; }), 'Employee reminder listing must be scoped to own identity');
+  const crossRem = __rawDispatch('issues/employee-reminders?emp_id=EMP01', 'GET', {}, empTok29);
+  console.assert(crossRem.status === 403, 'Employee must not list another employee\'s reminders');
+
+  // 29h. Role gates tightened to Python parity: issues/admin-reminders and
+  // certificate/* are admin-only
+  const certEmp = __rawDispatch('certificate/settings', 'GET', {}, empTok29);
+  console.assert(certEmp.status === 403, 'certificate/* must be admin-only (parity with Python app.py)');
+  const admRemEmp = __rawDispatch('issues/admin-reminders', 'GET', {}, empTok29);
+  console.assert(admRemEmp.status === 403, 'issues/admin-reminders must be admin-only');
+
+  console.log('PASS: session identity enforced, spoofed body identity rejected.\n');
+
   console.log('=============================================');
-  console.log('ALL 28 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 30 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

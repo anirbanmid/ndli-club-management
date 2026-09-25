@@ -2221,6 +2221,10 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
   }
   if (authTok) {
     headers["Authorization"] = `Bearer ${authTok}`;
+    // Round 4: Apps Script web apps cannot read Authorization headers, so
+    // also embed the token where the server CAN read it (body + query).
+    if (body && typeof body === "object" && !Array.isArray(body)) { body.token = authTok; }
+    path += (String(path).indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(authTok);
   }
 
   const options = { method, headers };
@@ -2428,7 +2432,12 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
   // 2. Standard Web Fetch Fallback
   const headers = { "Content-Type": "application/json" };
-  if (authTok) headers["Authorization"] = "Bearer " + authTok;
+  if (authTok) {
+    headers["Authorization"] = "Bearer " + authTok;
+    // Round 4: fetch fallback — embed the token where the server can read it
+    if (body && typeof body === "object" && !Array.isArray(body)) { body.token = authTok; }
+    path += (String(path).indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(authTok);
+  }
   const options = { method, headers };
   if (body) options.body = JSON.stringify(body);
   try {
