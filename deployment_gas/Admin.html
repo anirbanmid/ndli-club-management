@@ -1476,6 +1476,377 @@ tbody tr:hover {
       }
     };
   </script>
+  <style id="ui-layer-css">
+/* ==========================================================================
+   NDLI CLUB MANAGEMENT — UI MOTION & POLISH LAYER (Round 5)
+   PLAN_UI_OVERHAUL.md slices A + B · design tokens only, additive layer
+   Brand: #103125 / #1A503E / #0D7751 · accent #F59E0B
+   Rules honoured here:
+     - motion ONLY on transform/opacity (no layout thrash)
+     - prefers-reduced-motion: reduce -> <=150ms opacity fades
+     - no existing element id/class semantics changed (additive file)
+   ========================================================================== */
+
+:root {
+  /* --- Motion vocabulary (plan §3) --- */
+  --t-fast: 150ms;
+  --t-base: 250ms;
+  --t-slow: 400ms;
+  --ease-out:   cubic-bezier(.22, 1, .36, 1);   /* entrances: swift out */
+  --ease-spring: cubic-bezier(.34, 1.4, .64, 1); /* modals & FAB only */
+  --ease-io:    cubic-bezier(.65, 0, .35, 1);   /* exits and swaps */
+
+  /* --- Brand scale (single source for this layer) --- */
+  --ui-green-50:  #EDF6F2;
+  --ui-green-100: #D6ECE2;
+  --ui-green-200: #AAD8C5;
+  --ui-green-300: #71BCA0;
+  --ui-green-400: #2F9A70;
+  --ui-green-500: #0D7751;
+  --ui-green-600: #156347;
+  --ui-green-700: #1A503E;
+  --ui-green-800: #143D2E;
+  --ui-green-900: #103125;
+
+  --ui-amber-100: #FDECCC;
+  --ui-amber-400: #F59E0B;
+  --ui-amber-500: #D98703;
+  --ui-amber-600: #B46D02;
+
+  --ui-ink:       #0C2018;
+  --ui-ink-soft:  #4E6358;
+  --ui-surface:   #FFFFFF;
+  --ui-bg:        #F7FAF9;
+  --ui-border:    #E4EBE8;
+
+  --ui-success:   #2E9E56;
+  --ui-warning:   #D97706;
+  --ui-danger:    #DC2626;
+  --ui-info:      #2563EB;
+
+  /* --- Focus ring: primary @ 40% alpha, 2px offset feel --- */
+  --ui-focus: 0 0 0 3px rgba(13, 119, 81, 0.40);
+  --ui-focus-amber: 0 0 0 3px rgba(245, 158, 11, 0.40);
+}
+
+/* ==========================================================================
+   1. FOCUS CHOREOGRAPHY (keyboard only — never mouse)
+   ========================================================================== */
+.ui-focusable:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus);
+  transition: box-shadow var(--t-fast) var(--ease-out);
+}
+
+/* ==========================================================================
+   2. PRESS FEEDBACK — subtle scale on interactive elements
+   ========================================================================== */
+.ui-press {
+  transition: transform var(--t-fast) var(--ease-out),
+              opacity var(--t-fast) var(--ease-out);
+}
+.ui-press:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================================================
+   3. VIEW TRANSITIONS — opacity + transform only (flash-guard safe: we never
+   touch display or the auth-portal-unlocked class)
+   ========================================================================== */
+.ui-view-enter {
+  animation: uiViewIn var(--t-base) var(--ease-out) both;
+}
+.ui-view-exit {
+  animation: uiViewOut 180ms var(--ease-io) both;
+}
+
+@keyframes uiViewIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes uiViewOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Staggered children: 30ms apart, capped at 8 items (plan §3 moment 1) */
+.ui-stagger > * {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.ui-stagger.ui-in > * {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--t-base) var(--ease-out),
+              transform var(--t-base) var(--ease-out);
+}
+.ui-stagger.ui-in > *:nth-child(1) { transition-delay: 0ms; }
+.ui-stagger.ui-in > *:nth-child(2) { transition-delay: 30ms; }
+.ui-stagger.ui-in > *:nth-child(3) { transition-delay: 60ms; }
+.ui-stagger.ui-in > *:nth-child(4) { transition-delay: 90ms; }
+.ui-stagger.ui-in > *:nth-child(5) { transition-delay: 120ms; }
+.ui-stagger.ui-in > *:nth-child(6) { transition-delay: 150ms; }
+.ui-stagger.ui-in > *:nth-child(7) { transition-delay: 180ms; }
+.ui-stagger.ui-in > *:nth-child(8) { transition-delay: 210ms; }
+.ui-stagger.ui-in > *:nth-child(n+9) { transition-delay: 210ms; }
+
+/* Table/list rows: 25ms stagger after data load (plan §3 moment 4) */
+.ui-rows-in > tr {
+  animation: uiRowIn var(--t-base) var(--ease-out) both;
+}
+.ui-rows-in > tr:nth-child(1) { animation-delay: 0ms; }
+.ui-rows-in > tr:nth-child(2) { animation-delay: 25ms; }
+.ui-rows-in > tr:nth-child(3) { animation-delay: 50ms; }
+.ui-rows-in > tr:nth-child(4) { animation-delay: 75ms; }
+.ui-rows-in > tr:nth-child(5) { animation-delay: 100ms; }
+.ui-rows-in > tr:nth-child(6) { animation-delay: 125ms; }
+.ui-rows-in > tr:nth-child(7) { animation-delay: 150ms; }
+.ui-rows-in > tr:nth-child(8) { animation-delay: 175ms; }
+.ui-rows-in > tr:nth-child(n+9) { animation-delay: 175ms; }
+
+@keyframes uiRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   4. MODAL CHOREOGRAPHY — backdrop blur-fade 200ms, panel scale + rise with
+   spring overshoot (the ONE place springs are allowed besides FABs)
+   ========================================================================== */
+.ui-modal-backdrop {
+  animation: uiBackdropIn 200ms var(--ease-out) both;
+}
+.ui-modal-backdrop.ui-closing {
+  animation: uiBackdropOut 180ms var(--ease-io) both;
+}
+.ui-modal-panel {
+  animation: uiModalIn var(--t-slow) var(--ease-spring) both;
+}
+.ui-modal-panel.ui-closing {
+  animation: uiModalOut 180ms var(--ease-io) both;
+}
+
+@keyframes uiBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes uiBackdropOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes uiModalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes uiModalOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.97) translateY(8px); }
+}
+
+/* ==========================================================================
+   5. TOASTS — slide from top-right, auto-dismiss with a draining progress bar
+   ========================================================================== */
+.ui-toast-region {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.ui-toast {
+  pointer-events: auto;
+  min-width: 260px;
+  max-width: 380px;
+  background: var(--ui-green-800);
+  color: #FFFFFF;
+  border-radius: 12px;
+  padding: 12px 16px 14px 18px;
+  box-shadow: 0 16px 40px -6px rgba(16, 49, 37, 0.28);
+  position: relative;
+  overflow: hidden;
+  animation: uiToastIn var(--t-base) var(--ease-out) both;
+  border-left: 4px solid var(--ui-green-400);
+}
+.ui-toast.ui-toast-success { border-left-color: var(--ui-success); }
+.ui-toast.ui-toast-warning { border-left-color: var(--ui-warning); }
+.ui-toast.ui-toast-danger  { border-left-color: var(--ui-danger); }
+.ui-toast.ui-toast-info    { border-left-color: var(--ui-info); }
+
+.ui-toast.ui-toast-out {
+  animation: uiToastOut 180ms var(--ease-io) both;
+}
+
+.ui-toast-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.ui-toast-msg {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.82);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.ui-toast-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.ui-toast-close:hover { color: #FFFFFF; }
+
+.ui-toast-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.35);
+  transform-origin: left center;
+  animation: uiToastDrain linear both;
+}
+@keyframes uiToastDrain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+@keyframes uiToastIn {
+  from { opacity: 0; transform: translateX(16px) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(0) translateY(0); }
+}
+@keyframes uiToastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(24px); }
+}
+
+/* ==========================================================================
+   6. TOP PROGRESS BAR — slim, for API calls
+   ========================================================================== */
+.ui-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  z-index: 10060;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.ui-progress.ui-active { opacity: 1; }
+.ui-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, var(--ui-green-500), var(--ui-amber-400));
+  border-radius: 0 3px 3px 0;
+  animation: uiProgressSlide 1.1s var(--ease-io) infinite;
+}
+@keyframes uiProgressSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+/* ==========================================================================
+   7. SKELETONS — shimmer 1.2s instead of blank areas during fetches
+   ========================================================================== */
+.ui-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--ui-green-50);
+  border-radius: 8px;
+  color: transparent !important;
+}
+.ui-skeleton * { visibility: hidden; }
+.ui-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+              rgba(255, 255, 255, 0) 0%,
+              rgba(255, 255, 255, 0.65) 50%,
+              rgba(255, 255, 255, 0) 100%);
+  transform: translateX(-100%);
+  animation: uiShimmer 1.2s var(--ease-io) infinite;
+}
+@keyframes uiShimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ==========================================================================
+   8. KPI COUNT-UP + HOVER LIFT
+   ========================================================================== */
+.ui-lift {
+  transition: transform var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
+}
+.ui-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -6px rgba(16, 49, 37, 0.16);
+}
+
+/* ==========================================================================
+   9. BUTTON SUCCESS FLASH — checkmark pop on successful action
+   ========================================================================== */
+.ui-flash-success {
+  animation: uiFlashSuccess 600ms var(--ease-out) both;
+}
+@keyframes uiFlashSuccess {
+  0%   { box-shadow: 0 0 0 0 rgba(46, 158, 86, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(46, 158, 86, 0); }
+}
+
+/* Error shake — 2px, 200ms (plan §4 login) */
+.ui-shake {
+  animation: uiShake 200ms var(--ease-io) both;
+}
+@keyframes uiShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-2px); }
+  75%      { transform: translateX(2px); }
+}
+
+/* ==========================================================================
+   10. REDUCED MOTION — everything collapses to <=150ms opacity fades
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 150ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 150ms !important;
+    transition-delay: 0ms !important;
+  }
+  .ui-view-enter, .ui-view-exit,
+  .ui-modal-panel, .ui-modal-panel.ui-closing,
+  .ui-modal-backdrop, .ui-modal-backdrop.ui-closing,
+  .ui-toast, .ui-toast.ui-toast-out,
+  .ui-rows-in > tr, .ui-shake, .ui-flash-success {
+    animation-name: uiFadeOnly !important;
+  }
+  .ui-stagger > * { transform: none !important; }
+  .ui-stagger.ui-in > * { transition-property: opacity !important; }
+  .ui-skeleton::after { animation: none !important; display: none; }
+  .ui-progress::before { animation: none !important; width: 100%; opacity: 0.5; }
+  .ui-lift:hover, .ui-press:active { transform: none !important; }
+}
+
+@keyframes uiFadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+  </style>
 </head>
 <body>
   <header class="navbar">
@@ -5497,5 +5868,503 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     </div>
   </footer>
   <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <script id="ui-layer-js">
+/* ==========================================================================
+   NDLI CLUB MANAGEMENT — UI MOTION RUNTIME (Round 5, slice B)
+   PLAN_UI_OVERHAUL.md §3 "motion vocabulary" · zero dependencies, vanilla JS
+   Exposes window.UI = { enter, exit, swap, modal, toast, countUp, staggerIn,
+                         rowsIn, progress, flashSuccess, shake, reduced }
+   Everything is transform/opacity only and honours prefers-reduced-motion.
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  var mq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  function reduced() {
+    return !!(mq && mq.matches);
+  }
+
+  function anim(el, frames, opts) {
+    if (!el) return null;
+    opts = opts || {};
+    if (reduced() || typeof el.animate !== "function") {
+      if (opts.done) opts.done();
+      return null;
+    }
+    var a = el.animate(frames, {
+      duration: opts.duration || 250,
+      easing: opts.easing || "cubic-bezier(.22,1,.36,1)",
+      fill: "both",
+      delay: opts.delay || 0
+    });
+    if (opts.done) {
+      a.onfinish = opts.done;
+    }
+    return a;
+  }
+
+  /* --- 1. View transitions ------------------------------------------------ */
+  function enter(el, opts) {
+    opts = opts || {};
+    if (!el) return;
+    el.classList.remove("ui-view-exit");
+    void el.offsetWidth;
+    el.classList.add("ui-view-enter");
+    anim(el, [
+      { opacity: 0, transform: "translateY(12px)" },
+      { opacity: 1, transform: "translateY(0)" }
+    ], { duration: opts.duration || 250, easing: "cubic-bezier(.22,1,.36,1)" });
+    if (opts.stagger !== false) {
+      staggerIn(el, true);
+    }
+  }
+
+  function exit(el, done) {
+    if (!el) { if (done) done(); return; }
+    el.classList.remove("ui-view-enter");
+    void el.offsetWidth;
+    el.classList.add("ui-view-exit");
+    anim(el, [
+      { opacity: 1, transform: "translateY(0)" },
+      { opacity: 0, transform: "translateY(-8px)" }
+    ], {
+      duration: 180,
+      easing: "cubic-bezier(.65,0,.35,1)",
+      done: function () {
+        el.classList.remove("ui-view-exit");
+        if (done) done();
+      }
+    });
+  }
+
+  /* Crossfade/swap two views without ever touching display (flash-guard safe:
+     the caller keeps owning display + the auth-portal-unlocked class). */
+  function swap(outEl, inEl, opts) {
+    opts = opts || {};
+    exit(outEl, function () {
+      if (opts.hideOut !== false && outEl) outEl.style.visibility = "hidden";
+      if (inEl) inEl.style.visibility = "";
+      enter(inEl, opts);
+    });
+    if (inEl) inEl.style.visibility = "hidden";
+  }
+
+  /* --- 2. Staggered children (30ms apart, capped at 8) -------------------- */
+  function staggerIn(container, instant) {
+    if (!container) return;
+    var targets = container.querySelectorAll(".ui-stagger");
+    if (container.classList && container.classList.contains("ui-stagger")) {
+      targets = [container];
+    }
+    Array.prototype.forEach.call(targets, function (t) {
+      if (instant) {
+        t.classList.add("ui-in");
+        return;
+      }
+      requestAnimationFrame(function () {
+        t.classList.add("ui-in");
+      });
+    });
+  }
+
+  /* --- 3. Table rows fade+slide (25ms stagger) ---------------------------- */
+  function rowsIn(tbody) {
+    if (!tbody) return;
+    tbody.classList.remove("ui-rows-in");
+    void tbody.offsetWidth;
+    tbody.classList.add("ui-rows-in");
+  }
+
+  /* --- 4. Modal choreography ---------------------------------------------- */
+  var modal = {
+    open: function (backdropEl, panelEl) {
+      if (!backdropEl) return;
+      backdropEl.classList.remove("ui-closing");
+      backdropEl.classList.add("ui-modal-backdrop");
+      if (panelEl) {
+        panelEl.classList.remove("ui-closing");
+        panelEl.classList.add("ui-modal-panel");
+      }
+    },
+    close: function (backdropEl, panelEl, done) {
+      if (!backdropEl) { if (done) done(); return; }
+      backdropEl.classList.add("ui-closing");
+      if (panelEl) panelEl.classList.add("ui-closing");
+      window.setTimeout(function () {
+        backdropEl.classList.remove("ui-modal-backdrop", "ui-closing");
+        if (panelEl) panelEl.classList.remove("ui-modal-panel", "ui-closing");
+        if (done) done();
+      }, reduced() ? 150 : 180);
+    }
+  };
+
+  /* --- 5. Toasts ---------------------------------------------------------- */
+  var region = null;
+  function toastRegion() {
+    if (!region) {
+      region = document.createElement("div");
+      region.className = "ui-toast-region";
+      region.setAttribute("aria-live", "polite");
+      document.body.appendChild(region);
+    }
+    return region;
+  }
+
+  function toast(message, opts) {
+    opts = opts || {};
+    var type = opts.type || "info";
+    var dur = typeof opts.duration === "number" ? opts.duration : 4000;
+    var el = document.createElement("div");
+    el.className = "ui-toast ui-toast-" + type;
+
+    var title = document.createElement("div");
+    title.className = "ui-toast-title";
+    title.textContent = opts.title || ({
+      success: "Done",
+      warning: "Attention",
+      danger: "Something went wrong",
+      info: "Notice"
+    })[type];
+
+    var body = document.createElement("div");
+    body.className = "ui-toast-msg";
+    body.textContent = String(message == null ? "" : message);
+
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "ui-toast-close";
+    closeBtn.setAttribute("aria-label", "Dismiss");
+    closeBtn.innerHTML = "&times;";
+    closeBtn.addEventListener("click", function () { dismiss(); });
+
+    var timer = document.createElement("div");
+    timer.className = "ui-toast-timer";
+    timer.style.animationDuration = dur + "ms";
+
+    el.appendChild(title);
+    el.appendChild(body);
+    el.appendChild(closeBtn);
+    el.appendChild(timer);
+    toastRegion().appendChild(el);
+
+    var killTimer = null;
+    function dismiss() {
+      if (killTimer) window.clearTimeout(killTimer);
+      el.classList.add("ui-toast-out");
+      window.setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, reduced() ? 150 : 180);
+    }
+    if (dur > 0) killTimer = window.setTimeout(dismiss, dur);
+    return { dismiss: dismiss, el: el };
+  }
+
+  /* --- 6. KPI count-up (300ms, ease-out) ---------------------------------- */
+  function countUp(el, to, opts) {
+    if (!el) return;
+    opts = opts || {};
+    var target = typeof to === "number" ? to : parseFloat(to);
+    if (isNaN(target)) return;
+    var dur = opts.duration || 300;
+    if (reduced()) {
+      el.textContent = format(target, opts);
+      return;
+    }
+    var start = null;
+    function step(ts) {
+      if (start === null) start = ts;
+      var p = Math.min((ts - start) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3); /* ease-out cubic */
+      el.textContent = format(target * eased, opts);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = format(target, opts);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function format(v, opts) {
+    opts = opts || {};
+    var n = opts.decimals ? v.toFixed(opts.decimals) : Math.round(v).toString();
+    if (opts.prefix) n = opts.prefix + n;
+    if (opts.suffix) n = n + opts.suffix;
+    return n;
+  }
+
+  /* --- 7. Success flash + error shake ------------------------------------- */
+  function flashSuccess(el) {
+    if (!el) return;
+    el.classList.remove("ui-flash-success");
+    void el.offsetWidth;
+    el.classList.add("ui-flash-success");
+    window.setTimeout(function () {
+      el.classList.remove("ui-flash-success");
+    }, 650);
+  }
+
+  function shake(el) {
+    if (!el) return;
+    el.classList.remove("ui-shake");
+    void el.offsetWidth;
+    el.classList.add("ui-shake");
+    window.setTimeout(function () {
+      el.classList.remove("ui-shake");
+    }, 260);
+  }
+
+  /* --- 8. Slim top progress bar (wired to fetch + XHR) -------------------- */
+  var progressEl = null;
+  var progressCount = 0;
+
+  function ensureProgress() {
+    if (!progressEl) {
+      progressEl = document.createElement("div");
+      progressEl.className = "ui-progress";
+      document.body.appendChild(progressEl);
+    }
+    return progressEl;
+  }
+
+  var progress = {
+    start: function () {
+      progressCount += 1;
+      ensureProgress().classList.add("ui-active");
+    },
+    done: function () {
+      progressCount = Math.max(0, progressCount - 1);
+      if (progressCount === 0 && progressEl) {
+        progressEl.classList.remove("ui-active");
+      }
+    }
+  };
+
+  function wrapFetch() {
+    if (typeof window.fetch !== "function") return;
+    var nativeFetch = window.fetch;
+    window.fetch = function () {
+      progress.start();
+      var finish = function (v) { progress.done(); return v; };
+      var fail = function (e) { progress.done(); throw e; };
+      try {
+        return nativeFetch.apply(this, arguments).then(finish, fail);
+      } catch (e) {
+        progress.done();
+        throw e;
+      }
+    };
+  }
+
+  function wrapXhr() {
+    if (typeof window.XMLHttpRequest !== "function") return;
+    var proto = window.XMLHttpRequest.prototype;
+    var open = proto.open;
+    var send = proto.send;
+    proto.open = function () {
+      this.__uiTracked = true;
+      return open.apply(this, arguments);
+    };
+    proto.send = function () {
+      if (this.__uiTracked) {
+        progress.start();
+        var done = false;
+        var finish = function () {
+          if (done) return;
+          done = true;
+          progress.done();
+        };
+        this.addEventListener("loadend", finish);
+      }
+      return send.apply(this, arguments);
+    };
+  }
+
+  /* --- 8b. Automatic modal choreography ------------------------------------
+     Any element whose id/class looks like a modal/overlay and becomes visible
+     gets the backdrop + panel animation. No template surgery required. */
+  function isVisible(el) {
+    if (!el || !window.getComputedStyle) return false;
+    var cs = window.getComputedStyle(el);
+    return cs.display !== "none" && cs.visibility !== "hidden";
+  }
+
+  function watchModals() {
+    if (typeof window.MutationObserver !== "function") return;
+    var obs = new window.MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        var el = m.target;
+        if (!el || !el.getAttribute) return;
+        var id = el.id || "";
+        var cls = (typeof el.className === "string" ? el.className : "") || "";
+        if (!/modal|overlay|lock-screen/i.test(id + " " + cls)) return;
+        var visible = isVisible(el);
+        if (visible && !el.__uiModalShown) {
+          el.__uiModalShown = true;
+          var panel = el.querySelector(".modal-content, .modal-box, .modal-card, .modal-dialog");
+          modal.open(el, panel || el.firstElementChild);
+        } else if (!visible && el.__uiModalShown) {
+          el.__uiModalShown = false;
+          el.classList.remove("ui-modal-backdrop", "ui-modal-panel", "ui-closing");
+        }
+      });
+    });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["style", "class"]
+    });
+  }
+
+  /* --- 9. alert() routing: non-critical -> toast, critical stays native ---- */
+  var CRITICAL = /(error|fail(ed|ure)?|denied|invalid|unable|cannot|unable to|exception|expired|wrong|incorrect|not allowed|forbidden|unauthori[sz]ed)/i;
+
+  function routeAlerts() {
+    var nativeAlert = window.alert ? window.alert.bind(window) : null;
+    if (!nativeAlert) return;
+    window.alert = function (msg) {
+      var text = String(msg == null ? "" : msg);
+      if (CRITICAL.test(text)) {
+        nativeAlert(text);           /* critical errors keep the blocking dialog */
+      } else {
+        toast(text, { type: "info", title: "Notice", duration: 5000 });
+      }
+    };
+    window.alert.native = nativeAlert;
+  }
+
+  /* --- 10b. Auto behaviours: KPI count-up, row stagger, error shake -------- */
+
+  /* Numbers rendered by the app count up whenever their text value changes. */
+  var NUMBER_SEL = ".stat-value, .stat-number, .kpi-value, .metric-value, [data-countup]," +
+                   "#quota-clubs-count, #quota-support-count," +
+                   "#attn-total-count, #attn-expiring-count, #attn-overdue-count";
+
+  function parseNum(s) {
+    var t = String(s || "").replace(/[,\s]/g, "");
+    return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : null;
+  }
+
+  function watchNumbers() {
+    if (typeof window.MutationObserver !== "function") return;
+    var obs = new window.MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        var el = m.target;
+        while (el && el.nodeType !== 1) el = el.parentNode;
+        if (!el) return;
+        var host = el.closest ? el.closest(NUMBER_SEL) : null;
+        if (!host) return;
+        var next = parseNum(host.textContent);
+        if (next === null) return;
+        var prev = host.__uiNum;
+        host.__uiNum = next;
+        if (prev === undefined || prev === next) return;
+        countUp(host, next, { duration: 300 });
+      });
+    });
+    obs.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true
+    });
+    /* seed initial values so the first real change animates */
+    Array.prototype.forEach.call(document.querySelectorAll(NUMBER_SEL), function (el) {
+      var n = parseNum(el.textContent);
+      if (n !== null) el.__uiNum = n;
+    });
+  }
+
+  /* Table rows fade + slide whenever a tbody receives new rows (25ms stagger). */
+  function watchRows() {
+    if (typeof window.MutationObserver !== "function") return;
+    var queued = [];
+    var scheduled = false;
+    var obs = new window.MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        var t = m.target;
+        if (t && t.nodeType === 1 && String(t.tagName).toUpperCase() === "TBODY") {
+          if (queued.indexOf(t) === -1) queued.push(t);
+        }
+      });
+      if (!scheduled) {
+        scheduled = true;
+        requestAnimationFrame(function () {
+          scheduled = false;
+          queued.forEach(function (tb) {
+            rowsIn(tb);
+          });
+          queued = [];
+        });
+      }
+    });
+    obs.observe(document.body, { subtree: true, childList: true });
+  }
+
+  /* Form-level error shake: when an alert box fills with an error, shake its form. */
+  function watchAlerts() {
+    if (typeof window.MutationObserver !== "function") return;
+    var obs = new window.MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        var el = m.target;
+        while (el && el.nodeType !== 1) el = el.parentNode;
+        if (!el || !el.id || !/-alert$/.test(el.id)) return;
+        if (!String(el.textContent || "").trim()) return;
+        var form = el.querySelector("form") ||
+                   (el.closest ? el.closest("form") : null) ||
+                   (el.parentNode ? el.parentNode.querySelector("form") : null);
+        shake(form || el);
+      });
+    });
+    obs.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributeFilter: ["style", "class"]
+    });
+  }
+
+  /* --- 11. Auto-init ------------------------------------------------------ */
+  function autoInit() {
+    /* count-up elements: <span data-countup="42"></span> */
+    Array.prototype.forEach.call(document.querySelectorAll("[data-countup]"), function (el) {
+      var to = parseFloat(el.getAttribute("data-countup"));
+      if (!isNaN(to)) {
+        countUp(el, to, {
+          decimals: parseInt(el.getAttribute("data-countup-decimals") || "0", 10),
+          prefix: el.getAttribute("data-countup-prefix") || "",
+          suffix: el.getAttribute("data-countup-suffix") || ""
+        });
+      }
+    });
+    staggerIn(document, false);
+  }
+
+  wrapFetch();
+  wrapXhr();
+  routeAlerts();
+  watchModals();
+  watchNumbers();
+  watchRows();
+  watchAlerts();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", autoInit);
+  } else {
+    autoInit();
+  }
+
+  window.UI = {
+    enter: enter,
+    exit: exit,
+    swap: swap,
+    modal: modal,
+    toast: toast,
+    countUp: countUp,
+    staggerIn: staggerIn,
+    rowsIn: rowsIn,
+    progress: progress,
+    flashSuccess: flashSuccess,
+    shake: shake,
+    reduced: reduced
+  };
+})();
+
+  </script>
 </body>
 </html>

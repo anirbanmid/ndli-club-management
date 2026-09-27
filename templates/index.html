@@ -6,6 +6,7 @@
   <meta name="author" content="Dr. Anirban Mukherjee">
   <title>NDLI Club Management System | IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/ui.css">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky lock-screen flash when navigating between portals */
     (function() {
@@ -503,7 +504,7 @@
         </div>
       </div>
 
-      <div class="lock-org-line">National Digital Library of India</div>
+      <div class="lock-org-line"><img src="/static/img/NDLI_Main_Logo_Small_Green.png" alt="NDLI" style="height: 18px; width: 18px; vertical-align: -4px; margin-right: 6px; object-fit: contain;">National Digital Library of India</div>
       <h1 class="lock-title">NDLI Club Management System</h1>
       <p class="lock-sub">
         IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones
@@ -835,6 +836,9 @@
           <div class="footer-logo-card">
             <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
           </div>
+          <div class="footer-logo-card">
+            <img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img">
+          </div>
           <div class="footer-meta">
             <div class="footer-title">National Digital Library of India Club Management System</div>
             <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones</div>
@@ -849,6 +853,7 @@
   </div>
 
   <script src="/static/js/app.js"></script>
+  <script src="/static/js/ui.js"></script>
   <script>
     // Global Captcha Store
     let currentCaptchaCode = "";
@@ -999,6 +1004,7 @@
       // Smoothly unveil main landing page
       mainContent.classList.remove("content-locked");
       mainContent.classList.add("content-unlocked");
+      if (window.UI && UI.enter) UI.enter(mainContent);
 
       // Update navbar session indicator
       updateNavbarSessionState(session);

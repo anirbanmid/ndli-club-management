@@ -6,6 +6,7 @@
   <meta name="author" content="Dr. Anirban Mukherjee">
   <title>NDLI Club Employee Portal | NDLI IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/ui.css">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky login-card flash when navigating to employee portal */
     (function() {
@@ -206,19 +207,25 @@
     .chip-name {
       color: #475569;
       font-size: 0.66rem;
-      white-space: nowrap;
+      white-space: normal;
       overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.15;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+      line-height: 1.2;
     }
     .chip-zone {
       color: var(--accent);
       font-size: 0.62rem;
       font-weight: 600;
-      white-space: nowrap;
+      white-space: normal;
       overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.15;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+      line-height: 1.2;
     }
     .password-toggle-btn {
       position: absolute;
@@ -1728,6 +1735,7 @@
 
   <script src="/static/js/certificate_engine.js"></script>
   <script src="/static/js/app.js"></script>
+  <script src="/static/js/ui.js"></script>
   <script>
     // Default initial profiles fallback (dynamically updated from master backend database)
     let EMP_PROFILES = {
@@ -2001,7 +2009,7 @@
       container.innerHTML = Object.entries(EMP_PROFILES).map(([empId, prof]) => {
         const isBlocked = String(prof.is_active) === "0";
         const zoneStr = prof.zone.endsWith("Zone") ? prof.zone : `${prof.zone} Zone`;
-        const cleanName = (prof.name || '').replace(/\s*\([^)]*Zone\)/gi, '').trim();
+        const cleanName = (prof.name || '').replace(/\s*\([^)]*\)/g, '').trim();
         return `
           <button
             type="button"
@@ -2171,6 +2179,7 @@
         loginView.classList.remove("view-fade-in");
         void loginView.offsetWidth;
         loginView.classList.add("view-fade-in");
+        if (window.UI && UI.enter) UI.enter(loginView);
       }
 
       updateNavAuth(false);
@@ -2216,6 +2225,7 @@
         portalView.classList.remove("view-fade-in");
         void portalView.offsetWidth;
         portalView.classList.add("view-fade-in");
+        if (window.UI && UI.enter) UI.enter(portalView);
       }
 
       // Preload clubs database and node activities concurrently in background (non-blocking)
@@ -4450,6 +4460,9 @@
       <div class="footer-brand">
         <div class="footer-logo-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
+        </div>
+        <div class="footer-logo-card">
+          <img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img">
         </div>
         <div class="footer-meta">
           <div class="footer-title">National Digital Library of India Club Management System</div>
