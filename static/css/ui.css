@@ -339,6 +339,22 @@
 }
 
 /* ==========================================================================
+   11. INTERACTION SNAPPINESS — hover/press transitions restricted to
+   compositor-friendly properties at 150ms (busy pages felt sluggish/jerky
+   when hovering because `transition: all` animated layout-affecting props)
+   ========================================================================== */
+.btn, .nav-link, .nav-link-admin, .nav-link-employee, .nav-link-login,
+.tab-btn, .officer-chip, .pill, .badge-tag, .club-name-link {
+  transition-property: transform, opacity, box-shadow, background-color, border-color, color !important;
+  transition-duration: var(--t-fast) !important;
+  transition-timing-function: var(--ease-out) !important;
+}
+
+.ui-lift, .ui-press, .stat-card, .btn {
+  backface-visibility: hidden;
+}
+
+/* ==========================================================================
    10. REDUCED MOTION — everything collapses to <=150ms opacity fades
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

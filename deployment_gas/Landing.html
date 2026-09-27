@@ -1765,6 +1765,22 @@ tbody tr:hover {
 }
 
 /* ==========================================================================
+   11. INTERACTION SNAPPINESS — hover/press transitions restricted to
+   compositor-friendly properties at 150ms (busy pages felt sluggish/jerky
+   when hovering because `transition: all` animated layout-affecting props)
+   ========================================================================== */
+.btn, .nav-link, .nav-link-admin, .nav-link-employee, .nav-link-login,
+.tab-btn, .officer-chip, .pill, .badge-tag, .club-name-link {
+  transition-property: transform, opacity, box-shadow, background-color, border-color, color !important;
+  transition-duration: var(--t-fast) !important;
+  transition-timing-function: var(--ease-out) !important;
+}
+
+.ui-lift, .ui-press, .stat-card, .btn {
+  backface-visibility: hidden;
+}
+
+/* ==========================================================================
    10. REDUCED MOTION — everything collapses to <=150ms opacity fades
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -2538,27 +2554,63 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     return { dismiss: dismiss, el: el };
   }
 
-  /* --- 6. KPI count-up (300ms, ease-out) ---------------------------------- */
+  /* --- 6. KPI count-up (300ms, ease-out) ----------------------------------
+     One animation per element at a time: a newer target cancels+retargets the
+     running one (fixes flicker / wrong final values when the app re-renders),
+     and every write records `__uiWritten` so our own frames never re-trigger
+     the number observer. */
   function countUp(el, to, opts) {
     if (!el) return;
     opts = opts || {};
     var target = typeof to === "number" ? to : parseFloat(to);
     if (isNaN(target)) return;
     var dur = opts.duration || 300;
-    if (reduced()) {
-      el.textContent = format(target, opts);
+
+    /* cancel any animation already running on this element */
+    el.__uiGen = (el.__uiGen || 0) + 1;
+    var gen = el.__uiGen;
+    if (el.__uiRaf) { cancelAnimationFrame(el.__uiRaf); el.__uiRaf = null; }
+
+    function write(v) {
+      var s = format(v, opts);
+      el.__uiWritten = s;   /* tag our own writes for the observer */
+      el.textContent = s;
+    }
+
+    var from = parseNum(el.textContent);
+    if (from === null) from = 0;
+
+    if (reduced() || from === target) {
+      write(target);
+      el.__uiAnimating = false;
+      el.__uiNum = target;
       return;
     }
+
+    el.__uiAnimating = true;
+    el.__uiNum = target;
     var start = null;
     function step(ts) {
+      if (gen !== el.__uiGen) return;               /* superseded — stop */
       if (start === null) start = ts;
       var p = Math.min((ts - start) / dur, 1);
-      var eased = 1 - Math.pow(1 - p, 3); /* ease-out cubic */
-      el.textContent = format(target * eased, opts);
-      if (p < 1) requestAnimationFrame(step);
-      else el.textContent = format(target, opts);
+      var eased = 1 - Math.pow(1 - p, 3);           /* ease-out cubic */
+      write(from + (target - from) * eased);
+      if (p < 1) {
+        el.__uiRaf = requestAnimationFrame(step);
+      } else {
+        el.__uiRaf = null;
+        el.__uiAnimating = false;
+        write(target);
+      }
     }
-    requestAnimationFrame(step);
+    el.__uiRaf = requestAnimationFrame(step);
+  }
+
+  /* parse a plain number out of an element's text (shared with watchNumbers) */
+  function parseNum(s) {
+    var t = String(s || "").replace(/[,\s]/g, "");
+    return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : null;
   }
 
   function format(v, opts) {
@@ -2711,42 +2763,82 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
 
   /* --- 10b. Auto behaviours: KPI count-up, row stagger, error shake -------- */
 
-  /* Numbers rendered by the app count up whenever their text value changes. */
+  /* Numbers rendered by the app count up whenever their text value changes.
+     Watched elements are MARKED at scan time (cheap parent-walk lookup at
+     runtime — no selector matching per mutation), changes are coalesced over a
+     100ms settle window, and writes we made ourselves are ignored. */
   var NUMBER_SEL = ".stat-value, .stat-number, .kpi-value, .metric-value, [data-countup]," +
                    "#quota-clubs-count, #quota-support-count," +
                    "#attn-total-count, #attn-expiring-count, #attn-overdue-count";
 
-  function parseNum(s) {
-    var t = String(s || "").replace(/[,\s]/g, "");
-    return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : null;
+  function markWatched(root) {
+    if (!root || root.nodeType !== 1) return;
+    var list = [];
+    if (root.matches && root.matches(NUMBER_SEL)) list.push(root);
+    if (root.querySelectorAll) {
+      Array.prototype.push.apply(list, root.querySelectorAll(NUMBER_SEL));
+    }
+    list.forEach(function (el) {
+      if (el.__uiWatched) return;
+      el.__uiWatched = true;
+      var n = parseNum(el.textContent);
+      if (n !== null) el.__uiNum = n;
+    });
+  }
+
+  function findWatched(el) {
+    while (el && el.nodeType === 1) {
+      if (el.__uiWatched) return el;
+      el = el.parentNode;
+    }
+    return null;
   }
 
   function watchNumbers() {
     if (typeof window.MutationObserver !== "function") return;
+    markWatched(document.documentElement);
+
+    var pending = [];
+    var timer = null;
+
+    function flush() {
+      timer = null;
+      var els = pending.slice();
+      pending = [];
+      els.forEach(function (el) {
+        if (!el.parentNode) return;                 /* detached */
+        var raw = String(el.textContent || "").trim();
+        if (raw === el.__uiWritten) return;         /* our own animation frame */
+        var next = parseNum(raw);
+        if (next === null) return;
+        var prev = el.__uiNum;
+        el.__uiNum = next;
+        if (prev === undefined || prev === next) return;
+        countUp(el, next, { duration: 300 });       /* cancels + retargets */
+      });
+    }
+
+    function schedule(el) {
+      if (pending.indexOf(el) === -1) pending.push(el);
+      if (!timer) timer = window.setTimeout(flush, 100);
+    }
+
     var obs = new window.MutationObserver(function (muts) {
       muts.forEach(function (m) {
-        var el = m.target;
-        while (el && el.nodeType !== 1) el = el.parentNode;
-        if (!el) return;
-        var host = el.closest ? el.closest(NUMBER_SEL) : null;
-        if (!host) return;
-        var next = parseNum(host.textContent);
-        if (next === null) return;
-        var prev = host.__uiNum;
-        host.__uiNum = next;
-        if (prev === undefined || prev === next) return;
-        countUp(host, next, { duration: 300 });
+        if (m.type === "childList") {
+          for (var i = 0; i < m.addedNodes.length; i++) markWatched(m.addedNodes[i]);
+        }
+        var t = m.target;
+        if (t && t.nodeType !== 1) t = t.parentNode;
+        if (!t) return;
+        var host = t.__uiWatched ? t : findWatched(t);
+        if (host) schedule(host);
       });
     });
-    obs.observe(document.body, {
+    obs.observe(document.documentElement, {
       subtree: true,
       childList: true,
       characterData: true
-    });
-    /* seed initial values so the first real change animates */
-    Array.prototype.forEach.call(document.querySelectorAll(NUMBER_SEL), function (el) {
-      var n = parseNum(el.textContent);
-      if (n !== null) el.__uiNum = n;
     });
   }
 
