@@ -2247,6 +2247,20 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(f"Invalid base64 image data: {e}", status=400)
                 return
 
+            # BUG-FIX (bughunt round 5): now that every employee may replace the PI
+            # signature printed on official certificates, the upload is validated
+            # (real PNG/JPEG bytes, max 2 MB) and the change is attributed.
+            if len(raw_bytes) > 2 * 1024 * 1024:
+                self._send_error("Signature image is too large (max 2 MB).", status=413)
+                return
+            if raw_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+                ext = ".png"
+            elif raw_bytes.startswith(b"\xff\xd8\xff"):
+                ext = ".jpg"
+            else:
+                self._send_error("Signature must be a valid PNG or JPEG image.", status=422)
+                return
+
             sig_dir = DATA_DIR / "signatures"
             sig_dir.mkdir(parents=True, exist_ok=True)
             # Remove any alternate format to avoid confusion
@@ -2272,6 +2286,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     pass
             saved["has_signature"] = True
             saved["signature_filename"] = f"pi_signature{ext}"
+            _who = self._get_auth_session() or {}
+            saved["signature_updated_by"] = str(_who.get("user_id", ""))
+            saved["signature_updated_at"] = datetime.now(timezone.utc).isoformat()
             if body.get("pi_name"):
                 saved["pi_name"] = str(body.get("pi_name")).strip()
             if body.get("pi_affiliation"):

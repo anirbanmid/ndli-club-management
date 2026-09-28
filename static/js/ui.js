@@ -378,7 +378,7 @@
   }
 
   /* --- 9. alert() routing: non-critical -> toast, critical stays native ---- */
-  var CRITICAL = /(error|fail(ed|ure)?|denied|invalid|unable|cannot|unable to|exception|expired|wrong|incorrect|not allowed|forbidden|unauthori[sz]ed)/i;
+  var CRITICAL = /(error|fail(ed|ure)?|denied|invalid|unable|cannot|unable to|exception|expired|wrong|incorrect|not allowed|forbidden|unauthori[sz]ed|could not|not confirmed|be confirmed|blocked|duplicate|warning|may be lost|notify an administrator|required|too many|\u26a0)/i;
 
   function routeAlerts() {
     var nativeAlert = window.alert ? window.alert.bind(window) : null;

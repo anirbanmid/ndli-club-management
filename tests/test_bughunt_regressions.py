@@ -167,3 +167,38 @@ class TestDrivePullNeverRegressesLocal(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSignatureUploadValidation(unittest.TestCase):
+    """Round 5: employees may upload the PI signature, but only real, small PNG/JPEG images."""
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+        cls.server = HTTPServer(("127.0.0.1", 0), NDLIRequestHandler)
+        cls.base = f"http://127.0.0.1:{cls.server.server_port}"
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown(); cls.server.server_close()
+
+    def _post(self, body, token):
+        req = urllib.request.Request(self.base + "/api/certificate/signature", data=json.dumps(body).encode(),
+                                     method="POST", headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req) as r: return r.status
+        except urllib.error.HTTPError as e:
+            return e.code
+
+    def test_signature_upload_validation(self):
+        import base64
+        _LOGIN_FAILS.clear()
+        req = urllib.request.Request(self.base + "/api/auth/login", method="POST",
+              data=json.dumps({"email": E3[0], "password": E3[1]}).encode(), headers={"Content-Type": "application/json"})
+        tok = json.loads(urllib.request.urlopen(req).read())["session"]["token"]
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+        b64 = lambda b: "data:image/png;base64," + base64.b64encode(b).decode()
+        self.assertEqual(self._post({"image_data": b64(b"<svg onload=alert(1)>not an image")}, tok), 422)
+        self.assertEqual(self._post({"image_data": b64(b"\x89PNG\r\n\x1a\n" + b"\x00" * (2 * 1024 * 1024 + 1))}, tok), 413)
+        self.assertEqual(self._post({"image_data": b64(png)}, tok), 200)

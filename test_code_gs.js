@@ -1,6 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Round 5: console.assert only PRINTS in Node (exit code stayed 0 on failure).
+// Make every assertion in this suite fatal so a regression can never pass silently.
+console.assert = function (cond, ...msg) {
+  if (!cond) throw new Error('ASSERTION FAILED: ' + msg.join(' '));
+};
+
 // Mock Google Apps Script environment
 class MockBlob {
   constructor(content, name = 'blob') {
@@ -188,7 +194,9 @@ global.Utilities = {
       return width ? val.padStart(parseInt(width), '0') : val;
     });
   },
-  zip: (blobs, filename) => new MockBlob('mock_zip_content', filename)
+  zip: (blobs, filename) => new MockBlob('mock_zip_content', filename),
+  base64Decode: (s) => Array.from(Buffer.from(String(s), 'base64')),
+  base64Encode: (bytes) => Array.from(bytes).map(b => String.fromCharCode(b)).join('')
 };
 
 global.ContentService = {
@@ -695,8 +703,56 @@ async function runTests() {
 
   console.log('PASS: PBKDF2 credentials verified (Python sync format + legacy rows).\n');
 
+  // Test 31: Round-5 bug hunt — relay routes are never open to employees/anonymous;
+  // Emergency Restore authenticates a real admin credential (strict asserts: they THROW).
+  console.log('[Test 31] Round-5: relay-route gate + restore auth...');
+  const strict = require('assert');
+  const props31 = PropertiesService.getScriptProperties();
+  props31.deleteProperty('RELAY_SECRET');
+  const emp31 = createGasSession({ id: 'EMP03', user_id: 'EMP03', role: 'EMPLOYEE', email: 'e@x', full_name: 'E3' });
+  const adm31 = createGasSession({ id: 'ADMIN01', user_id: 'ADMIN01', role: 'ADMIN', email: 'a@x', full_name: 'A' });
+  // 31a. secret UNSET: anonymous + employee refused, admin allowed (fail closed)
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', {}, null).status, 401, 'anonymous relay pull must be refused');
+  strict.strictEqual(__rawDispatch('sync/mirror-file', 'POST', { subPath: 'master', fileName: 'master_users.csv', content: 'x' }, null).status, 401);
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', {}, emp31).status, 403, 'employee must not use relay routes');
+  strict.strictEqual(__rawDispatch('sync/mirror-file', 'POST', { subPath: 'master', fileName: 'master_users.csv', content: 'x' }, emp31).status, 403);
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', {}, adm31).status, 200, 'admin session may use relay routes');
+  // 31b. secret SET: correct key allowed, wrong key refused, employee still refused
+  props31.setProperty('RELAY_SECRET', 'relay-secret-test-key');
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', { relay_key: 'relay-secret-test-key' }, null).status, 200, 'correct relay key accepted');
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', { relay_key: 'wrong' }, null).status, 401);
+  strict.strictEqual(__rawDispatch('sync/pull-all', 'POST', {}, emp31).status, 403, 'employee refused even when relay secret is set');
+  props31.deleteProperty('RELAY_SECRET');
+  // 31c. Emergency Restore: no crash, no seed bypass, wrong password / non-admin refused
+  const rBad = __rawDispatch('admin/backup/restore', 'POST', { password: 'totally-wrong', user_id: 'ADMIN01', backup_id: 'x' }, adm31);
+  strict.strictEqual(rBad.status, 403, 'wrong password must be 403 (was: 500 ReferenceError)');
+  const rEmpId = __rawDispatch('admin/backup/restore', 'POST', { password: 'Seed#EMP03-Rotated2026', user_id: 'EMP03', backup_id: 'x' }, adm31);
+  strict.strictEqual(rEmpId.status, 403, 'a non-admin identity can never authorize a restore');
+  strict.ok(!/Seed#(Admin-Rotated2026|Scrubbed-2026)/.test(fs.readFileSync(codeGsPath, 'utf8').split('\n').filter(l => /pass ===/.test(l)).join('\n')), 'no seed-password literal comparisons remain');
+  const rOk = __rawDispatch('admin/backup/restore', 'POST', { password: 'Seed#Scrubbed-2026', user_id: 'ADMIN01', backup_id: 'x' }, adm31);
+  strict.notStrictEqual(rOk.status, 403, 'genuine stored admin credential passes authentication');
+  strict.ok(!/KNOWN_PASSWORDS/.test(String(rOk.data && rOk.data.message)), 'restore no longer crashes on KNOWN_PASSWORDS');
+  console.log('PASS: relay routes closed to anonymous/employees; restore auth verified.\n');
+
+  // Test 32: Round-5 addendum — the GAS twin must validate the PI signature
+  // upload exactly like app.py: real PNG/JPEG magic bytes only, max 2 MB.
+  console.log('[Test 32] Round-5 addendum: GAS signature upload validation...');
+  const emp32 = createGasSession({ id: 'EMP03', user_id: 'EMP03', role: 'EMPLOYEE', email: 'e@x', full_name: 'E3' });
+  const pngB64 = 'data:image/png;base64,' + Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)
+  ]).toString('base64');
+  const junkB64 = 'data:image/png;base64,' + Buffer.from('<svg onload=alert(1)>not an image').toString('base64');
+  const bigB64 = 'data:image/png;base64,' + Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(2 * 1024 * 1024 + 1)
+  ]).toString('base64');
+  strict.strictEqual(__rawDispatch('certificate/signature', 'POST', { image_data: junkB64 }, emp32).status, 422, 'non-image bytes must be refused');
+  strict.strictEqual(__rawDispatch('certificate/signature', 'POST', { image_data: bigB64 }, emp32).status, 413, 'oversized signature must be refused');
+  strict.strictEqual(__rawDispatch('certificate/signature', 'POST', { image_data: pngB64 }, emp32).status, 200, 'real PNG accepted');
+  strict.strictEqual(__rawDispatch('certificate/signature', 'POST', { image_data: 'not-base64!!' }, emp32).status, 422, 'garbage payload refused');
+  console.log('PASS: GAS signature upload validated (magic bytes + 2 MB cap).\n');
+
   console.log('=============================================');
-  console.log('ALL 31 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 33 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

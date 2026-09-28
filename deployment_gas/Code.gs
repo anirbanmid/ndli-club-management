@@ -1013,21 +1013,20 @@ function apiDispatcher(path, method, body, token) {
     var authSession = verifyGasSession(String(token || body.token || queryObj.token || "").trim());
     if (!isPublicGasRoute_(path)) {
       var relayAllowed = false;
-      if (isRelayGasRoute_(path)) {
-        if (!isRelayConfigured_()) {
-          // Legacy compatibility: the relay secret is not configured yet, so
-          // the sync transport stays open (the deploy guide turns enforcement
-          // on by setting RELAY_SECRET in Script Properties).
-          relayAllowed = true;
-        } else {
-          relayAllowed = verifyRelayKey_(String(body.relay_key || queryObj.relay_key || "").trim());
-        }
+      // BUG-FIX (bughunt round 5): the Drive-sync transport routes used to be
+      // (a) fully open to the internet while RELAY_SECRET was unset and
+      // (b) reachable by ANY logged-in employee session even when it was set,
+      // so an employee could pull every CSV (incl. credential hashes) or
+      // overwrite master_users.csv to mint themselves an ADMIN. They now
+      // require the relay key; without one only an ADMIN session may use them.
+      if (isRelayGasRoute_(path) && isRelayConfigured_()) {
+        relayAllowed = verifyRelayKey_(String(body.relay_key || queryObj.relay_key || "").trim());
       }
       if (!relayAllowed) {
         if (!authSession) {
           return { ok: false, status: 401, data: { error: true, message: "Authentication required. Please log in." } };
         }
-        if (isAdminGasRoute_(path) && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+        if ((isAdminGasRoute_(path) || isRelayGasRoute_(path)) && String(authSession.role || "").toUpperCase() !== "ADMIN") {
           return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot access this operation." } };
         }
       }
@@ -2439,26 +2438,25 @@ function apiDispatcher(path, method, body, token) {
         return { ok: false, status: 401, data: { error: true, message: "Master Admin password is required to authorize emergency database restoration." } };
       }
 
+      // BUG-FIX (bughunt round 5): this block still referenced the deleted
+      // KNOWN_PASSWORDS table (ReferenceError -> HTTP 500 on EVERY call, so
+      // Emergency Restore was unusable), still carried a literal seed-password
+      // bypass, and compared the hash column to plaintext (never matching a
+      // PBKDF2 row). It now verifies the stored credential of an ACTIVE ADMIN
+      // account with the same PBKDF2-aware helper auth/login uses.
       var isMatched = false;
-      if (KNOWN_PASSWORDS[uid] && KNOWN_PASSWORDS[uid].indexOf(pass) !== -1) {
-        isMatched = true;
-      }
-      if (!isMatched) {
-        var mUsers = getCsvData("master", "master_users.csv");
-        for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
-          var uRow = mUsers.rows[i2];
-          var uId = (uRow.id || uRow.user_id || "").toUpperCase();
-          var uEmail = (uRow.email || "").toLowerCase();
-          if (uId === uid || uEmail === uid.toLowerCase() || uRow.role === "ADMIN") {
-            if (uRow.password_hash === pass || uRow.password === pass) {
-              isMatched = true;
-              break;
-            }
+      var mUsers = getCsvData("master", "master_users.csv");
+      for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
+        var uRow = mUsers.rows[i2];
+        var uId = (uRow.id || uRow.user_id || "").toUpperCase();
+        var uEmail = (uRow.email || "").toLowerCase();
+        if ((uId === uid || uEmail === uid.toLowerCase()) && String(uRow.role).toUpperCase() === "ADMIN") {
+          if (String(uRow.is_active) !== "0" &&
+              (verifyStoredGasCredential_(uRow.password_hash, uRow.salt, pass) || (uRow.password && uRow.password === pass))) {
+            isMatched = true;
           }
+          break;
         }
-      }
-      if (!isMatched && (pass === "Seed#Admin-Rotated2026" || pass === "Seed#Scrubbed-2026")) {
-        isMatched = true;
       }
       if (!isMatched) {
         return { ok: false, status: 403, data: { error: true, message: "Authentication failed: Invalid Master Admin password. Restoration aborted." } };
@@ -3178,10 +3176,31 @@ function apiDispatcher(path, method, body, token) {
       }
 
       if (method === "POST") {
-        var imgData = body.image_data || "";
+        var imgData = String(body.image_data || "");
         if (!imgData) return { ok: false, status: 400, data: { error: true, message: "image_data required" } };
+        // BUG-FIX (bughunt round 5 addendum): every employee may replace the PI
+        // signature printed on official certificates, so the upload must be a
+        // real PNG or JPEG of at most 2 MB — parity with the app.py fix — and
+        // the change is attributed to the verified session.
+        var sigBytes;
+        try {
+          var comma = imgData.indexOf(",");
+          sigBytes = Utilities.base64Decode(comma >= 0 ? imgData.substring(comma + 1) : imgData);
+        } catch (e) {
+          return { ok: false, status: 422, data: { error: true, message: "Signature must be a valid base64 PNG or JPEG image." } };
+        }
+        if (sigBytes.length > 2 * 1024 * 1024) {
+          return { ok: false, status: 413, data: { error: true, message: "Signature image is too large (max 2 MB)." } };
+        }
+        var isPng = sigBytes.length >= 8 && sigBytes[0] === 0x89 && sigBytes[1] === 0x50 && sigBytes[2] === 0x4e && sigBytes[3] === 0x47;
+        var isJpg = sigBytes.length >= 3 && sigBytes[0] === 0xff && sigBytes[1] === 0xd8 && sigBytes[2] === 0xff;
+        if (!isPng && !isJpg) {
+          return { ok: false, status: 422, data: { error: true, message: "Signature must be a PNG or JPEG image." } };
+        }
         current.signature_data = imgData;
         current.has_signature = true;
+        current.signature_updated_by = authSession ? String(authSession.user_id || "") : "";
+        current.signature_updated_at = new Date().toISOString();
         sFile.setContent(JSON.stringify(current, null, 2));
         return { ok: true, status: 200, data: { success: true, signature_url: imgData } };
       } else {
