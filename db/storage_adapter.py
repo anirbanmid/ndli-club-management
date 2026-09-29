@@ -10,6 +10,7 @@ import json
 import time
 import threading
 import urllib.request
+urllib.request.install_opener(urllib.request.build_opener(urllib.request.ProxyHandler({})))
 import urllib.parse
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -215,6 +216,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
         }
         if RELAY_SECRET:
             payload["relay_key"] = RELAY_SECRET
+            payload["data"]["relay_key"] = RELAY_SECRET
         last_err: Optional[Exception] = None
         for attempt in range(1, max_attempts + 1):
             try:
@@ -224,7 +226,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                     headers={"Content-Type": "application/json"},
                     method="POST"
                 )
-                with urllib.request.urlopen(req, timeout=15) as resp:
+                with urllib.request.urlopen(req, timeout=60) as resp:
                     raw_body = resp.read().decode("utf-8", errors="replace")
 
                 # CRITICAL: Google Apps Script web apps almost always return
@@ -509,6 +511,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
         }
         if RELAY_SECRET:
             payload["relay_key"] = RELAY_SECRET
+            payload["data"]["relay_key"] = RELAY_SECRET
         try:
             req = urllib.request.Request(
                 self.relay_url,
@@ -516,7 +519,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 raw_bytes = resp.read().decode("utf-8")
                 resp_json = json.loads(raw_bytes)
                 data_obj = resp_json.get("data", resp_json)
@@ -606,6 +609,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
         }
         if RELAY_SECRET:
             payload["relay_key"] = RELAY_SECRET
+            payload["data"]["relay_key"] = RELAY_SECRET
         try:
             req = urllib.request.Request(
                 self.relay_url,
@@ -613,7 +617,7 @@ class AppsScriptRelaySyncAdapter(StorageAdapter):
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 raw_bytes = resp.read().decode("utf-8")
                 resp_json = json.loads(raw_bytes)
                 data_obj = resp_json.get("data", resp_json)
