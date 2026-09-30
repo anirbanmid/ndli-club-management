@@ -326,6 +326,19 @@ function runWeeklyBackup(customId) {
       }
     }
 
+    // Gather Digital Signature Assets (pi_signature.png, settings.json)
+    try {
+      var sigFolder = getOrCreateSubfolder(root, "signatures");
+      var sFiles = sigFolder.getFiles();
+      while (sFiles.hasNext()) {
+        var sf = sFiles.next();
+        var sb = sf.getBlob().setName("signatures/" + sf.getName());
+        blobs.push(sb);
+      }
+    } catch (sigErr) {
+      Logger.log("[NDLI Backup] Warning: Could not archive signatures folder: " + sigErr);
+    }
+
     // Create Zip Archive
     var zipBlob = Utilities.zip(blobs, filename);
     backupFolder.createFile(zipBlob);
@@ -424,6 +437,22 @@ function restoreBackup(backupFileName) {
             subFolder.createFile(csvName, b.getDataAsString("UTF-8"), MimeType.CSV);
           }
           restoredFilesCount++;
+        }
+      } else if (entryPath.indexOf("signatures/") === 0) {
+        try {
+          var sigName = entryPath.replace("signatures/", "");
+          if (sigName) {
+            var sFolder = getOrCreateSubfolder(root, "signatures");
+            var existingSig = sFolder.getFilesByName(sigName);
+            if (existingSig.hasNext()) {
+              existingSig.next().setContent(b.getDataAsString("UTF-8"));
+            } else {
+              sFolder.createFile(sigName, b.getDataAsString("UTF-8"), MimeType.PLAIN_TEXT);
+            }
+            restoredFilesCount++;
+          }
+        } catch (sigRestErr) {
+          Logger.log("[NDLI Restore] Warning: Could not restore signature asset " + entryPath + ": " + sigRestErr);
         }
       }
     }
@@ -2478,7 +2507,7 @@ function apiDispatcher(path, method, body, token) {
       }
       var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), "application/zip", fileName);
       var f = backupFolder.createFile(blob);
-      enforceBackupRetention(backupFolder, 2);
+      enforceBackupRetention(backupFolder, 6);
       return {
         ok: true,
         status: 200,
