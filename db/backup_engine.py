@@ -228,6 +228,11 @@ class BackupEngine:
                     try:
                         payload = {
                             "path": "admin/backup/trigger",
+                            # BUG-FIX (bughunt BUG-5): belt-and-suspenders parity with
+                            # db/storage_adapter.py — relay_key rides BOTH top-level and
+                            # inside the data envelope, in case the unwrapping layer ever
+                            # changes which level it reads.
+                            "relay_key": RELAY_SECRET,
                             "data": {
                                 "backup_id": backup_id,
                                 "relay_key": RELAY_SECRET,

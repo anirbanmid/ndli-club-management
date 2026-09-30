@@ -2339,7 +2339,7 @@
     }
 
     async function downloadEmployeeCSV(url, filename) {
-      const token = sessionStorage.getItem("ndli_token");
+      const token = sessionStorage.getItem("ndli_employee_token") || sessionStorage.getItem("ndli_token");
       try {
         const res = await fetch(url, {
           headers: token ? { "Authorization": `Bearer ${token}` } : {}
@@ -4178,6 +4178,7 @@
           const res = await apiRequest("/api/auth/me", "GET", null, token);
           if (res.status === 401) {
             sessionStorage.removeItem("ndli_token");
+            sessionStorage.removeItem("ndli_employee_token");
             sessionStorage.removeItem("ndli_employee_session");
             showLoginView(res.data && res.data.message ? res.data.message : "Your employee account has been suspended or session expired. Access denied.");
             return;

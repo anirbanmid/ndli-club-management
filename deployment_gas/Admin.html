@@ -2943,17 +2943,35 @@ async function apiRequest(path, method = "GET", body = null, token = null) {
     // FEATURE 1: DOWNLOAD MASTER CSV (master_clubs.csv)
     // =========================================================================
     function downloadMasterCSV() {
+      fetchMasterCSVAsBlob();
+    }
+
+    // BUG-FIX (bughunt BUG-2): the server's _get_auth_session() only reads the
+    // `Authorization: Bearer` header (never URL query tokens), so the old anchor-click
+    // download pattern arrived unauthenticated and failed with 401. Mirrors the working
+    // helper in templates/admin.html: fetch() + Authorization header + blob download.
+    async function fetchMasterCSVAsBlob() {
       const adminToken = sessionStorage.getItem("ndli_admin_token");
-      let url = "/api/admin/download/master-clubs";
-      if (adminToken) {
-        url += `?token=${encodeURIComponent(adminToken)}`;
+      try {
+        const res = await fetch("/api/admin/download/master-clubs", {
+          headers: adminToken ? { "Authorization": `Bearer ${adminToken}` } : {}
+        });
+        if (!res.ok) {
+          showAlert("global-alert", "Master CSV download failed. Please sign in as Administrator and try again.", "danger");
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        const objUrl = URL.createObjectURL(blob);
+        a.href = objUrl;
+        a.download = "master_clubs.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+      } catch (err) {
+        showAlert("global-alert", "Master CSV download failed: " + err.message, "danger");
       }
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "master_clubs.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
     }
 
     // =========================================================================
