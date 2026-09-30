@@ -205,7 +205,7 @@ class BackupEngine:
         and the rolling retention policy is enforced directly in Google Drive.
         """
         try:
-            from config import DRIVE_STORAGE_MODE, APPS_SCRIPT_SYNC_URL
+            from config import DRIVE_STORAGE_MODE, APPS_SCRIPT_SYNC_URL, RELAY_SECRET
             import urllib.request
 
             # Skip live HTTP network calls during automated test suites
@@ -230,6 +230,7 @@ class BackupEngine:
                             "path": "admin/backup/trigger",
                             "data": {
                                 "backup_id": backup_id,
+                                "relay_key": RELAY_SECRET,
                                 "note": note
                             }
                         }
@@ -239,11 +240,13 @@ class BackupEngine:
                             headers={"Content-Type": "application/json"},
                             method="POST"
                         )
-                        with urllib.request.urlopen(req, timeout=30) as resp:
+                        with urllib.request.urlopen(req, timeout=90) as resp:
                             resp_content = resp.read().decode("utf-8")
+                            if not resp_content: print("[!] Backup relay: EMPTY response from GAS (schedule NOT updated)")
                             if resp_content:
                                 try:
                                     data = json.loads(resp_content)
+                                    if not data.get("ok"): print("[!] Backup relay rejected: " + str(data.get("data", "")))
                                     drive_data = data.get("data", {})
                                     schedule_file = cls.get_schedule_file()
                                     if schedule_file.exists():
@@ -251,14 +254,13 @@ class BackupEngine:
                                             with open(schedule_file, "r", encoding="utf-8") as sf:
                                                 sdata = json.load(sf)
                                             sdata["drive_sync"] = {
-                                                "status": "SUCCESS",
+                                                "status": ("SUCCESS" if data.get("ok") else "FAILED"),
                                                 "filename": drive_data.get("filename"),
                                                 "timestamp": drive_data.get("timestamp")
                                             }
                                             with open(schedule_file, "w", encoding="utf-8") as sf:
                                                 json.dump(sdata, sf, indent=2)
-                                        except Exception:
-                                            pass
+                                        except Exception as ue: print("[!] Backup relay schedule update failed: " + str(ue))
                                 except Exception as parse_err:
                                     print(f"[!] Warning: Could not parse GAS response as JSON: {parse_err}")
                     except Exception as e:
