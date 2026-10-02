@@ -382,6 +382,16 @@
       margin: 7px 0 10px 0;
       font-size: 7.8pt;
     }
+    table.dense, table.dense td, table.dense th {
+      font-size: 6.6pt;
+      line-height: 1.16;
+    }
+    table.dense td, table.dense th {
+      padding: 2px 5px;
+    }
+    table.dense {
+      margin: 4px 0 6px 0;
+    }
 
     th, td {
       border: 1px solid #CBD5E1;
@@ -659,6 +669,7 @@
       line-height: 1.20;
       background: transparent;
       padding: 0;
+      color: inherit;
     }
 
     pre {
@@ -974,7 +985,7 @@
     </p>
 
     <h2>4.1 Master Database Schema Specifications</h2>
-    <table>
+    <table class="dense">
       <thead>
         <tr>
           <th style="width:22%;">Database File</th>
@@ -992,7 +1003,7 @@
     </table>
 
     <h2>4.2 Regional Zonal Jurisdiction Roster</h2>
-    <table>
+    <table class="dense">
       <thead>
         <tr>
           <th style="width:11%;">User ID</th>
@@ -1041,7 +1052,7 @@
     </div>
 
     <div class="screenshot-figure">
-      <div class="screenshot-container" style="max-height: 98mm;">
+      <div class="screenshot-container" style="max-height: 62mm;">
         <img src="images/12_master_login_screen.png" alt="Master Login Screen">
       </div>
       <div class="screenshot-caption">Figure 5.1: Master Login Gateway — Full-Viewport Glassmorphic Security Screen with NDLI Orbit Rings, Live IST Clock &amp; CAPTCHA</div>
@@ -1279,6 +1290,12 @@
 
     <h1>6.7 Robu — Your NDLI Club AI Assistant</h1>
     <p>Both portals include <strong>Robu</strong>, a floating AI assistant (bottom-right button) that opens a chat panel. Robu is named after the resourceful robot from Satyajit Ray's <em>Professor Shonku</em> stories — built modestly, worth considerably more.</p>
+    <div class="screenshot-figure">
+      <div class="screenshot-container" style="max-height: 52mm;">
+        <img src="images/17_robu_assistant_chat.png" alt="Robu Assistant Chat Panel">
+      </div>
+      <div class="screenshot-caption">Figure 6.4: Robu in Action — the Floating Launcher Opens the Chat Panel (shown answering "who are you?" with her Professor Shonku origin story)</div>
+    </div>
     <ul>
       <li><strong>Live data questions:</strong> "How many clubs did I onboard this month?", "Which renewals need attention?" — answered from your own portal data. Regional officers see only their own records; administrators see the national picture. Robu is strictly read-only: she never creates, edits, or deletes anything.</li>
       <li><strong>Documentation questions:</strong> "How do I approve a renewal?" — answered from this manual and the Technical Reference Manual, with numbered citations so you can verify the source section.</li>
@@ -1349,7 +1366,7 @@
       <div class="screenshot-container" style="max-height: 80mm;">
         <img src="images/08_admin_dashboard_full_view.png" alt="Admin Full Dashboard with Matrices">
       </div>
-      <div class="screenshot-caption">Figure 7.2: Admin Portal Lower Section — Penetration Roster, Employee Performance Matrix &amp; Escalation Monitors</div>
+      <div class="screenshot-caption">Figure 7.2: Admin Portal Lower Section — Support Activity Breakdown, Renewal &amp; Retention Health, Monthly Registration Trajectory &amp; Zone-Wise Club Share</div>
     </div>
 
     <ol>
@@ -1639,7 +1656,9 @@
     <h2 style="margin-top: 0;">7.11 Modern Minimalist UI &amp; Complementary Navigation System <span class="badge badge-new">Enterprise</span></h2>
     <p>
       The user interface incorporates an ergonomic design system across all three portals
-      (Master Landing, Employee Workspace, and Admin Control Center), ensuring visual hierarchy, high contrast, and fluid motion:
+      (Master Landing, Employee Workspace, and Admin Control Center), ensuring visual hierarchy, high contrast, and fluid motion.
+      Since the Round-5 overhaul, every colour, spacing step, corner radius and elevation level comes from one shared <strong>design-token</strong> set,
+      feedback is delivered through <strong>toast notifications</strong>, and the floating <strong>Robu assistant</strong> launcher (§6.7) sits in the corner of both working portals:
     </p>
 
     <div class="screenshot-figure">
@@ -1668,12 +1687,12 @@
         <p class="highlight-card-desc">Compact form heights and equal-width officer chip grids eliminate vertical scrolling on standard viewports, maximizing active workspace visibility.</p>
       </div>
       <div class="highlight-card new">
-        <div class="highlight-card-title">🌊 Spring Physics Modals</div>
-        <p class="highlight-card-desc">Modals open with natural spring physics: <code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>. Buttons feature material-style ripple effects on click with automatic cleanup.</p>
+        <div class="highlight-card-title">🌊 Motion System: Spring Physics &amp; Scroll-Reveals</div>
+        <p class="highlight-card-desc">Modals open with spring physics (<code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>), buttons ripple on click, and cards cascade in via an <code>IntersectionObserver</code> hook — one consistent motion language across both portals.</p>
       </div>
       <div class="highlight-card new">
-        <div class="highlight-card-title">📜 Scroll-Reveal Cascades</div>
-        <p class="highlight-card-desc">Cards and infographic panels reveal themselves smoothly using an <code>IntersectionObserver</code> hook, with staggered entry delays creating an organic flow.</p>
+        <div class="highlight-card-title">🔔 Toasts, Focus States &amp; Accessibility</div>
+        <p class="highlight-card-desc">Save/delete confirmations arrive as non-blocking toast notifications (auto-dismiss, action-aware colours). Every interactive element shows a visible focus ring (<code>ui-focusable</code>) for keyboard users, dialogs carry ARIA labels and focus traps, and status changes are announced to screen readers.</p>
       </div>
     </div>
   </div>
@@ -1712,7 +1731,7 @@
 │   └── test_scale_50k_and_concurrency.py   # 200 Concurrent Requests Stress Test
 ├── docs/
 │   ├── user_manual.html       # This document (HTML source)
-│   └── NDLI_Club_Management_User_Manual.pdf  # Compiled 20-Page User Manual
+│   └── NDLI_Club_Management_User_Manual.pdf  # Compiled 21-Page User Manual
 └── templates/ &amp; deployment_gas/  # Dual-Deployment 100% Synced Portals</code></pre>
 
     <h2 style="margin-top: 3px; margin-bottom: 2px;">8.2 Operational Frequently Asked Questions (FAQs)</h2>
