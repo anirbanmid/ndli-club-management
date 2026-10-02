@@ -233,6 +233,58 @@ const CertificateEngine = (function () {
   }
 
   /**
+   * Helper: Renders an official verification QR code onto the certificate canvas
+   */
+  function drawVerificationQRCode(ctx, text, centerX, centerY, targetSize) {
+    if (typeof qrcode === "undefined") {
+      return;
+    }
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(text);
+      qr.make();
+      const count = qr.getModuleCount();
+      const cellSize = Math.floor(targetSize / count);
+      const actualSize = cellSize * count;
+      const startX = Math.round(centerX - (actualSize / 2));
+      const startY = Math.round(centerY - (actualSize / 2));
+
+      // Crisp white background behind QR with padding
+      const pad = Math.round(cellSize * 1.5);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(startX - pad, startY - pad, actualSize + (pad * 2), actualSize + (pad * 2));
+
+      // Draw QR modules
+      ctx.fillStyle = "#0f2942"; // Deep official navy
+      for (let r = 0; r < count; r++) {
+        for (let c = 0; c < count; c++) {
+          if (qr.isDark(r, c)) {
+            ctx.fillRect(startX + c * cellSize, startY + r * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+
+      // Border rule around QR code
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(startX - pad, startY - pad, actualSize + (pad * 2), actualSize + (pad * 2));
+
+      // Labeling below QR
+      ctx.font = "bold 24px 'Calibri', 'Segoe UI', Arial, sans-serif";
+      ctx.fillStyle = "#0f2942";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText("SCAN TO VERIFY", centerX, startY + actualSize + pad + 10);
+
+      ctx.font = "19px 'Calibri', 'Segoe UI', Arial, sans-serif";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText("Official NDLI Club Authenticity", centerX, startY + actualSize + pad + 38);
+    } catch (err) {
+      console.warn("[CertificateEngine] Failed to render QR code:", err);
+    }
+  }
+
+  /**
    * Main Render Method: Renders the entire renewal certificate onto the canvas
    * matching D:\Download\Club Renewal Certificate - Copy.docx 1:1
    * 
@@ -416,6 +468,15 @@ const CertificateEngine = (function () {
     ctx.fillStyle = "rgba(100, 116, 139, 0.65)";
     ctx.textAlign = "right";
     ctx.fillText(`Ref: ${certSerial}`, CANVAS_WIDTH - 90, CANVAS_HEIGHT - 35);
+
+    // -------------------------------------------------------------
+    // 6. BLOCK 5: OFFICIAL VERIFICATION QR CODE (CENTERED SYMMETRY)
+    // -------------------------------------------------------------
+    const originUrl = (typeof window !== "undefined" && window.location && window.location.origin)
+      ? window.location.origin
+      : "https://anirbanmid.pythonanywhere.com";
+    const verificationUrl = `${originUrl}/verify?reg=${encodeURIComponent(regNo || clubData.club_id || '')}`;
+    drawVerificationQRCode(ctx, verificationUrl, 1240, 2920, 240);
 
     return canvas;
   }

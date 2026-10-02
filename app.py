@@ -7,6 +7,7 @@ import os
 import json
 import base64
 import urllib.parse
+import re
 from http import HTTPStatus
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -359,6 +360,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
         if path == "/employee" or path.startswith("/employee/"):
             self._serve_file(BASE_DIR / "templates" / "employee.html")
+            return
+
+        # Public Certificate Verification Portal
+        if path in ["/verify", "/certificate/verify", "/verify-certificate"]:
+            self._serve_file(BASE_DIR / "templates" / "verify.html", "text/html; charset=utf-8")
             return
 
         # Health / Root endpoint
@@ -1418,6 +1424,101 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._serve_file(sig_path, ctype, extra_root=sig_dir)
             else:
                 self._send_error("No PI signature uploaded yet.", status=404)
+            return
+
+        # Public Certificate Verification API (Publicly accessible, no session required)
+        if path == "/api/certificate/verify":
+            query_val = (
+                query_params.get("reg", [""])[0].strip()
+                or query_params.get("reg_no", [""])[0].strip()
+                or query_params.get("id", [""])[0].strip()
+                or query_params.get("club_id", [""])[0].strip()
+            )
+            if not query_val:
+                self._send_error("Registration number or Club ID is required.", status=400)
+                return
+
+            clean_q = query_val.upper()
+            all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS, copy=False)
+            matched_club = None
+
+            # 1. Exact match on reg_no or club_id
+            for c in all_clubs:
+                c_reg = str(c.get("reg_no", "")).strip().upper()
+                c_cid = str(c.get("club_id", "")).strip().upper()
+                if clean_q in (c_reg, c_cid):
+                    matched_club = c
+                    break
+
+            # 2. Normalized alphanumeric match (ignores punctuation/slashes)
+            if not matched_club:
+                clean_q_norm = re.sub(r"[^A-Z0-9]", "", clean_q)
+                if clean_q_norm:
+                    for c in all_clubs:
+                        c_reg_norm = re.sub(r"[^A-Z0-9]", "", str(c.get("reg_no", "")).upper())
+                        c_cid_norm = re.sub(r"[^A-Z0-9]", "", str(c.get("club_id", "")).upper())
+                        if clean_q_norm in (c_reg_norm, c_cid_norm):
+                            matched_club = c
+                            break
+
+            # 3. Fallback search in employee nodes
+            if not matched_club and EMPLOYEE_NODES_DIR.exists():
+                clean_q_norm = re.sub(r"[^A-Z0-9]", "", clean_q)
+                for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
+                    if emp_dir.is_dir() and (emp_dir / "clubs.csv").exists():
+                        emp_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS, copy=False)
+                        for c in emp_clubs:
+                            c_reg = str(c.get("reg_no", "")).strip().upper()
+                            c_cid = str(c.get("club_id", "")).strip().upper()
+                            if clean_q in (c_reg, c_cid) or (clean_q_norm and clean_q_norm in (re.sub(r"[^A-Z0-9]", "", c_reg), re.sub(r"[^A-Z0-9]", "", c_cid))):
+                                matched_club = c
+                                break
+                    if matched_club:
+                        break
+
+            if not matched_club:
+                self._send_json({
+                    "success": True,
+                    "valid": False,
+                    "status": "UNVERIFIED",
+                    "message": f"No registered NDLI Club found matching '{query_val}'.",
+                    "query": query_val,
+                    "verified_at": datetime.now(timezone.utc).isoformat()
+                })
+                return
+
+            raw_ren = matched_club.get("renewal_date", "").strip() or matched_club.get("next_renewal_date", "").strip()
+            parsed_ren = parse_iso_or_date(raw_ren) if raw_ren else None
+            now_date = datetime.now(timezone.utc).date()
+
+            is_active = True
+            status_text = "ACTIVE & VALID"
+            if parsed_ren and parsed_ren < now_date:
+                is_active = False
+                status_text = "EXPIRED (RENEWAL DUE)"
+
+            if str(matched_club.get("status", "")).strip().lower() in ("blocked", "inactive", "suspended"):
+                is_active = False
+                status_text = "SUSPENDED"
+
+            self._send_json({
+                "success": True,
+                "valid": True,
+                "is_active": is_active,
+                "status": status_text,
+                "club": {
+                    "club_id": matched_club.get("club_id", ""),
+                    "reg_no": matched_club.get("reg_no", ""),
+                    "institution_name": matched_club.get("institution_name", ""),
+                    "state": matched_club.get("state", ""),
+                    "zone": matched_club.get("zone", ""),
+                    "date_of_approval": matched_club.get("date_of_approval", "") or matched_club.get("submission_timestamp", ""),
+                    "renewal_date": raw_ren,
+                    "last_renewal_date": matched_club.get("last_renewal_date", ""),
+                    "issuing_authority": "National Digital Library of India Project, Central Library, IIT Kharagpur"
+                },
+                "verified_at": datetime.now(timezone.utc).isoformat()
+            })
             return
 
         # Trigger Immediate Google Drive Sync

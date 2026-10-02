@@ -1703,6 +1703,10 @@
               <button type="button" class="btn btn-outline btn-sm" onclick="printActiveCertificate()" style="width: 100%; justify-content: center;">
                 <span>🖨️</span> Print Certificate
               </button>
+
+              <button type="button" class="btn btn-outline btn-sm" onclick="openActiveCertificateVerificationLink()" style="width: 100%; justify-content: center; margin-top: 0.25rem;" title="Open Public Online Verification Link">
+                <span>🛡️</span> Verify Online / Open Public Link
+              </button>
             </div>
           </div>
         </div>
@@ -1734,6 +1738,7 @@
     </div>
   </footer>
 
+  <script src="/static/js/qrcode.min.js"></script>
   <script src="/static/js/certificate_engine.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
@@ -4162,6 +4167,17 @@
         return;
       }
       await CertificateEngine.printCertificate(canvas);
+    }
+
+    // Opens Public Online Certificate Verification Page
+    function openActiveCertificateVerificationLink() {
+      if (!ACTIVE_CERT_CLUB) {
+        alert("No active certificate club selected.");
+        return;
+      }
+      const reg = ACTIVE_CERT_CLUB.reg_no || ACTIVE_CERT_CLUB.club_id || "";
+      const url = `/verify?reg=${encodeURIComponent(reg)}`;
+      window.open(url, "_blank");
     }
 
     // =============================================================
