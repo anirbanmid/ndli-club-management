@@ -237,6 +237,7 @@ const CertificateEngine = (function () {
    */
   function drawVerificationQRCode(ctx, text, centerX, centerY, targetSize) {
     if (typeof qrcode === "undefined") {
+      console.error("[CertificateEngine] qrcode library is not loaded. Cannot render QR code.");
       return;
     }
     try {
@@ -472,9 +473,13 @@ const CertificateEngine = (function () {
     // -------------------------------------------------------------
     // 6. BLOCK 5: OFFICIAL VERIFICATION QR CODE (CENTERED SYMMETRY)
     // -------------------------------------------------------------
-    const originUrl = (typeof window !== "undefined" && window.location && window.location.origin)
-      ? window.location.origin
-      : "https://anirbanmid.pythonanywhere.com";
+    let originUrl = "https://anirbanmid.pythonanywhere.com";
+    if (typeof window !== "undefined" && window.location) {
+      const hostname = window.location.hostname || "";
+      if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "0.0.0.0" && hostname !== "::1" && hostname !== "[::1]" && !hostname.startsWith("127.")) {
+        originUrl = window.location.origin || "https://anirbanmid.pythonanywhere.com";
+      }
+    }
     const verificationUrl = `${originUrl}/verify?reg=${encodeURIComponent(regNo || clubData.club_id || '')}`;
     drawVerificationQRCode(ctx, verificationUrl, 1240, 2920, 240);
 
@@ -648,18 +653,23 @@ const CertificateEngine = (function () {
             size: A4 portrait;
             margin: 0;
           }
-          body {
+          html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+          }
+          body {
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #ffffff;
           }
           img {
-            width: 100vw;
-            height: 100vh;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: fill;
           }
         </style>
       </head>

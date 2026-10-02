@@ -1738,8 +1738,9 @@
     </div>
   </footer>
 
-  <script src="/static/js/qrcode.min.js"></script>
-  <script src="/static/js/certificate_engine.js"></script>
+  <!-- Certificate Engine: src="/static/js/certificate_engine.js" -->
+  <script src="/static/js/qrcode.min.js?v=20261002"></script>
+  <script src="/static/js/certificate_engine.js?v=20261002"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
   <script>
@@ -4053,19 +4054,22 @@
       ACTIVE_CERT_CLUB = null;
     }
 
+    let CURRENT_CERT_RENDER_PROMISE = null;
+
     // Live update certificate canvas
     function updateCertificateLivePreview() {
-      if (!ACTIVE_CERT_CLUB) return;
+      if (!ACTIVE_CERT_CLUB) return null;
       const canvas = document.getElementById("certificate-canvas");
-      if (!canvas || typeof CertificateEngine === "undefined") return;
+      if (!canvas || typeof CertificateEngine === "undefined") return null;
 
       const piName = document.getElementById("cert-pi-name-input") ? document.getElementById("cert-pi-name-input").value : "";
       const piAffiliation = document.getElementById("cert-pi-affil-input") ? document.getElementById("cert-pi-affil-input").value : "";
 
-      CertificateEngine.renderCertificate(canvas, ACTIVE_CERT_CLUB, {
+      CURRENT_CERT_RENDER_PROMISE = CertificateEngine.renderCertificate(canvas, ACTIVE_CERT_CLUB, {
         pi_name: piName,
         pi_affiliation: piAffiliation
       });
+      return CURRENT_CERT_RENDER_PROMISE;
     }
 
     function handleCertificateInputChanged() {
@@ -4139,6 +4143,9 @@
 
     // High-Resolution JPG Download
     async function downloadActiveCertificateJPG() {
+      if (CURRENT_CERT_RENDER_PROMISE) {
+        await CURRENT_CERT_RENDER_PROMISE;
+      }
       const canvas = document.getElementById("certificate-canvas");
       if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
         alert("Certificate canvas not ready.");
@@ -4150,6 +4157,9 @@
 
     // High-Resolution PDF Download
     async function downloadActiveCertificatePDF() {
+      if (CURRENT_CERT_RENDER_PROMISE) {
+        await CURRENT_CERT_RENDER_PROMISE;
+      }
       const canvas = document.getElementById("certificate-canvas");
       if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
         alert("Certificate canvas not ready.");
@@ -4161,8 +4171,11 @@
 
     // Print Certificate
     async function printActiveCertificate() {
+      if (CURRENT_CERT_RENDER_PROMISE) {
+        await CURRENT_CERT_RENDER_PROMISE;
+      }
       const canvas = document.getElementById("certificate-canvas");
-      if (!canvas || typeof CertificateEngine === "undefined") {
+      if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
         alert("Certificate canvas not ready.");
         return;
       }

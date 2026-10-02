@@ -8,12 +8,17 @@ Unit and Integration Tests for:
 import unittest
 import json
 import base64
+import sys
 from pathlib import Path
 from http.server import HTTPServer
 import threading
 import urllib.request
 import urllib.parse
 import urllib.error
+
+TESTS_DIR = Path(__file__).resolve().parent
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
 
 from config import BASE_DIR, SERVER_HOST
 from app import NDLIRequestHandler
