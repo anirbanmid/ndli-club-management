@@ -751,8 +751,30 @@ async function runTests() {
   strict.strictEqual(__rawDispatch('certificate/signature', 'POST', { image_data: 'not-base64!!' }, emp32).status, 422, 'garbage payload refused');
   console.log('PASS: GAS signature upload validated (magic bytes + 2 MB cap).\n');
 
+  // Test 33: Round-6 regression -- admin/backup/trigger's relay_key must
+  // actually pass the gate THROUGH THE REAL doPost() PARSER, not just
+  // apiDispatcher() directly (that gap is exactly how this bug slipped past
+  // every earlier test run: apiDispatcher-level calls skip doPost's
+  // `body.data || body` unwrap entirely).
+  console.log('[Test 33] Round-6: admin/backup/trigger relay-key gate via real doPost()...');
+  const strict33 = require('assert');
+  const props33 = PropertiesService.getScriptProperties();
+  props33.setProperty('RELAY_SECRET', 'relay-secret-test-key-33');
+  function __callDoPost33(bodyObj) {
+    return JSON.parse(doPost({ postData: { contents: JSON.stringify(bodyObj) } }).content);
+  }
+  const backupBody33 = { path: 'admin/backup/trigger', data: { backup_id: 'bh_t33', relay_key: 'relay-secret-test-key-33', note: '' } };
+  const rGood33 = __callDoPost33(backupBody33);
+  strict33.strictEqual(rGood33.ok, true, 'correct relay_key must authorize admin/backup/trigger via doPost()');
+  const backupBodyBad33 = { path: 'admin/backup/trigger', data: { backup_id: 'bh_t33', relay_key: 'wrong-key', note: '' } };
+  strict33.strictEqual(__callDoPost33(backupBodyBad33).status, 401, 'wrong relay_key must still be refused');
+  const backupBodyNone33 = { path: 'admin/backup/trigger', data: { backup_id: 'bh_t33', note: '' } };
+  strict33.strictEqual(__callDoPost33(backupBodyNone33).status, 401, 'missing relay_key must still be refused');
+  props33.deleteProperty('RELAY_SECRET');
+  console.log('PASS: admin/backup/trigger relay-key gate verified end-to-end via doPost().\n');
+
   console.log('=============================================');
-  console.log('ALL 33 BACKEND TEST SUITES PASSED FLAWLESSLY!');
+  console.log('ALL 34 BACKEND TEST SUITES PASSED FLAWLESSLY!');
   console.log('=============================================');
 }
 

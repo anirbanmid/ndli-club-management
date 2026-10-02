@@ -835,9 +835,22 @@ function isPublicGasRoute_(path) {
 }
 
 function isRelayGasRoute_(path) {
-  // Drive-sync transport routes used by the Python AppsScriptRelaySyncAdapter
+  // Drive-sync transport routes used by the Python AppsScriptRelaySyncAdapter.
+  // BUG-FIX (2026-09-30): admin/backup/trigger is also a server-to-server call
+  // from backup_engine.py's weekly-backup relay, carrying no session token --
+  // only a relay_key. A prior commit added relay_key to its payload believing
+  // that alone would satisfy the round-5 gate, but the gate only consults
+  // relay_key for routes listed HERE (isRelayGasRoute_); admin/backup/trigger
+  // was never added, so every automated backup relay still got 401
+  // "Authentication required" (verified live via doPost(), not just
+  // apiDispatcher()). admin/backup/trigger is added below so the relay key
+  // that already rides in its payload is actually honored. It stays inside
+  // isAdminGasRoute_() too (path starts with "admin/"), which is fine: the
+  // gate accepts EITHER a valid relay key OR an ADMIN session for any route
+  // that satisfies isRelayGasRoute_().
   return path === "sync/mirror-file" || path === "sync/pull-all" || path === "sync/fetch-all" ||
-         path === "sync/pull-file" || path === "sync/fetch-file" || path === "sync/upload-backup";
+         path === "sync/pull-file" || path === "sync/fetch-file" || path === "sync/upload-backup" ||
+         path === "admin/backup/trigger";
 }
 
 function isAdminGasRoute_(path) {
