@@ -471,7 +471,15 @@ const CertificateEngine = (function () {
     ctx.fillText(`Ref: ${certSerial}`, CANVAS_WIDTH - 90, CANVAS_HEIGHT - 35);
 
     // -------------------------------------------------------------
-    // 6. BLOCK 5: OFFICIAL VERIFICATION QR CODE (CENTERED SYMMETRY)
+    // 6. BLOCK 5: OFFICIAL VERIFICATION QR CODE
+    // Positioned just below the Registration Details block (Block 2):
+    //   - Registration block rows at Y = 2182, 2264, 2346 (82px spacing)
+    //   - Bottom edge of last row ≈ Y = 2387
+    //   - QR centerY = 2560 → top of QR box ≈ 2435 (clear of block bottom)
+    // Horizontally centred in the right-half zone (X = 1290 – 2390):
+    //   - centerX = 1840 ≈ midpoint of right half, directly under reg details
+    //   - QR box spans X ≈ 1715 – 1965 → no overlap with PI sig (ends at X = 1060)
+    // QR bottom + label ≈ Y = 2745 → well clear of Ref serial at Y = 3473
     // -------------------------------------------------------------
     let originUrl = "https://anirbanmid.pythonanywhere.com";
     if (typeof window !== "undefined" && window.location) {
@@ -481,7 +489,7 @@ const CertificateEngine = (function () {
       }
     }
     const verificationUrl = `${originUrl}/verify?reg=${encodeURIComponent(regNo || clubData.club_id || '')}`;
-    drawVerificationQRCode(ctx, verificationUrl, 1240, 2920, 240);
+    drawVerificationQRCode(ctx, verificationUrl, 1840, 2560, 240);
 
     return canvas;
   }
