@@ -290,6 +290,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
+        # /images/ alias for the user manual figures: docs/user_manual.html references
+        # images/<file>; those files live in docs/images/, so map /images/* to /docs/images/*
+        # (falls through to the static/docs branch below) and /manual can render screenshots.
+        if path.startswith("/images/"):
+            path = "/docs" + path
+
         # Static assets serving (static/ and docs/)
         if path.startswith("/static/") or path.startswith("/docs/"):
             rel_path = urllib.parse.unquote(path).lstrip("/")
