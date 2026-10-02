@@ -297,6 +297,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         if path.startswith("/images/"):
             path = "/docs" + path
 
+        # Browsers request /favicon.ico from root — serve it directly
+        if path == "/favicon.ico":
+            self._serve_file(BASE_DIR / "static" / "favicon.ico", "image/x-icon")
+            return
+
         # Static assets serving (static/ and docs/)
         if path.startswith("/static/") or path.startswith("/docs/"):
             rel_path = urllib.parse.unquote(path).lstrip("/")
@@ -314,6 +319,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 content_type = "text/html; charset=utf-8"
             elif path.endswith(".svg"):
                 content_type = "image/svg+xml"
+            elif path.endswith(".ico"):
+                content_type = "image/x-icon"
             elif path.endswith(".png"):
                 content_type = "image/png"
             elif path.endswith(".jpg") or path.endswith(".jpeg"):
