@@ -7,6 +7,7 @@
   <title>NDLI Club Employee Portal | NDLI IIT Kharagpur</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/ui.css">
+  <link rel="stylesheet" href="/static/css/assistant.css">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky login-card flash when navigating to employee portal */
     (function() {
@@ -4477,5 +4478,57 @@
     </div>
   </footer>
   <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
+  <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
+    <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"
+            aria-expanded="false" aria-controls="ndli-asst-panel"
+            aria-label="Open Robu, the NDLI Club assistant">
+      <span class="ndli-asst-fab-ring" aria-hidden="true"></span>
+      <span class="ndli-asst-fab-core" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+          <g><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.3V3.7" stroke-width="1.3"/><rect x="3.7" y="8.6" width="1.5" height="3" rx="0.75" stroke-width="1.2"/><rect x="18.8" y="8.6" width="1.5" height="3" rx="0.75" stroke-width="1.2"/><rect x="5.2" y="5.3" width="13.6" height="8.5" rx="2.3"/><path d="M10.4 12.4h1.2M12.4 12.4h1.2" stroke-width="1"/><path d="M12 13.8v1.3" stroke-width="1.3"/><rect x="5.5" y="15.1" width="13" height="6.6" rx="1.8"/></g><circle cx="12" cy="2.55" r="1.8" fill="#F59E0B" opacity="0.28"/><circle cx="12" cy="2.55" r="1.05" fill="#F59E0B"/><rect x="8.5" y="8.5" width="2.4" height="2.6" rx="0.7" fill="currentColor"/><rect x="13.1" y="8.5" width="2.4" height="2.6" rx="0.7" fill="currentColor"/><rect x="9.45" y="9.6" width="0.85" height="1" rx="0.2" fill="#15342A"/><rect x="14.05" y="9.6" width="0.85" height="1" rx="0.2" fill="#15342A"/><circle cx="7.4" cy="16.7" r="0.55" fill="#F59E0B"/><circle cx="16.6" cy="16.7" r="0.55" fill="#F59E0B"/><rect x="7.7" y="16.5" width="8.6" height="3.6" rx="0.8" fill="#15342A" stroke="currentColor" stroke-width="0.7"/><circle cx="8.85" cy="18.3" r="0.42" fill="#F59E0B"/><path fill="currentColor" d="M9.09 18.45V19.05H8.94V18.45H8.71V18.34H9.32V18.45Z M9.4 19.05V18.34H9.96V18.45H9.55V18.63H9.93V18.75H9.55V18.93H9.98V19.05Z M10.68 19.05V18.62Q10.68 18.59 10.68 18.57Q10.68 18.54 10.68 18.52Q10.68 18.49 10.68 18.46Q10.67 18.5 10.66 18.54Q10.66 18.56 10.66 18.57Q10.65 18.59 10.65 18.6Q10.64 18.62 10.64 18.63Q10.63 18.64 10.63 18.65L10.5 19.05H10.4L10.27 18.65Q10.27 18.64 10.26 18.63Q10.26 18.62 10.25 18.6Q10.25 18.59 10.25 18.57Q10.24 18.56 10.24 18.54Q10.23 18.5 10.22 18.46Q10.22 18.49 10.22 18.52Q10.22 18.55 10.22 18.57Q10.22 18.6 10.22 18.62V19.05H10.09V18.34H10.29L10.42 18.74Q10.42 18.75 10.43 18.78Q10.43 18.8 10.44 18.82Q10.44 18.84 10.45 18.87Q10.46 18.84 10.46 18.82Q10.47 18.81 10.47 18.8Q10.47 18.79 10.48 18.78Q10.48 18.77 10.48 18.76Q10.49 18.75 10.49 18.74L10.61 18.34H10.81V19.05Z M11.53 18.56Q11.53 18.61 11.52 18.65Q11.5 18.7 11.47 18.73Q11.44 18.76 11.39 18.78Q11.34 18.8 11.27 18.8H11.1V19.05H10.95V18.34H11.27Q11.34 18.34 11.39 18.36Q11.44 18.37 11.47 18.4Q11.5 18.43 11.52 18.47Q11.53 18.51 11.53 18.56ZM11.38 18.57Q11.38 18.51 11.35 18.48Q11.32 18.45 11.25 18.45H11.1V18.69H11.26Q11.29 18.69 11.31 18.68Q11.34 18.67 11.35 18.65Q11.37 18.64 11.38 18.61Q11.38 18.59 11.38 18.57Z M12.33 18.69Q12.33 18.77 12.3 18.84Q12.28 18.91 12.23 18.96Q12.19 19.01 12.12 19.03Q12.05 19.06 11.97 19.06Q11.88 19.06 11.81 19.03Q11.75 19.01 11.7 18.96Q11.66 18.91 11.63 18.84Q11.61 18.77 11.61 18.69Q11.61 18.61 11.64 18.54Q11.66 18.47 11.7 18.43Q11.75 18.38 11.82 18.35Q11.88 18.33 11.97 18.33Q12.06 18.33 12.12 18.35Q12.19 18.38 12.24 18.43Q12.28 18.47 12.31 18.54Q12.33 18.61 12.33 18.69ZM12.18 18.69Q12.18 18.64 12.16 18.59Q12.15 18.55 12.12 18.51Q12.1 18.48 12.06 18.46Q12.02 18.45 11.97 18.45Q11.92 18.45 11.88 18.46Q11.84 18.48 11.81 18.51Q11.79 18.55 11.77 18.59Q11.76 18.64 11.76 18.69Q11.76 18.75 11.78 18.79Q11.79 18.84 11.81 18.87Q11.84 18.91 11.88 18.92Q11.92 18.94 11.97 18.94Q12.02 18.94 12.06 18.92Q12.1 18.91 12.13 18.87Q12.15 18.84 12.17 18.79Q12.18 18.75 12.18 18.69Z M12.93 19.05 12.77 18.78H12.59V19.05H12.44V18.34H12.8Q12.86 18.34 12.91 18.35Q12.96 18.37 13 18.4Q13.03 18.42 13.05 18.46Q13.06 18.5 13.06 18.55Q13.06 18.59 13.05 18.62Q13.04 18.66 13.02 18.68Q13 18.71 12.97 18.73Q12.94 18.74 12.91 18.75L13.1 19.05ZM12.91 18.56Q12.91 18.51 12.88 18.48Q12.84 18.45 12.78 18.45H12.59V18.66H12.79Q12.82 18.66 12.84 18.66Q12.87 18.65 12.88 18.63Q12.9 18.62 12.91 18.6Q12.91 18.58 12.91 18.56Z M13.69 19.05 13.63 18.87H13.36L13.29 19.05H13.14L13.4 18.34H13.58L13.84 19.05ZM13.52 18.55Q13.52 18.53 13.51 18.52Q13.51 18.5 13.5 18.48Q13.5 18.47 13.5 18.46Q13.49 18.45 13.49 18.45Q13.49 18.45 13.49 18.46Q13.49 18.47 13.48 18.48Q13.48 18.5 13.47 18.52Q13.47 18.53 13.46 18.55L13.39 18.76H13.59Z M14.42 19.05 14.26 18.78H14.08V19.05H13.93V18.34H14.29Q14.36 18.34 14.41 18.35Q14.46 18.37 14.49 18.4Q14.52 18.42 14.54 18.46Q14.55 18.5 14.55 18.55Q14.55 18.59 14.54 18.62Q14.53 18.66 14.51 18.68Q14.49 18.71 14.46 18.73Q14.43 18.74 14.4 18.75L14.59 19.05ZM14.4 18.56Q14.4 18.51 14.37 18.48Q14.34 18.45 14.27 18.45H14.08V18.66H14.28Q14.31 18.66 14.33 18.66Q14.36 18.65 14.37 18.63Q14.39 18.62 14.4 18.6Q14.4 18.58 14.4 18.56Z M15.03 18.76V19.05H14.88V18.76L14.63 18.34H14.78L14.95 18.64L15.13 18.34H15.28Z"/></g>
+        </svg>
+      </span>
+      <span class="ndli-asst-fab-badge" id="ndli-asst-badge" hidden>1</span>
+    </button>
+
+    <div class="ndli-asst-panel" id="ndli-asst-panel" role="dialog" aria-modal="true"
+         aria-labelledby="ndli-asst-title" hidden>
+      <div class="ndli-asst-head">
+        <div class="ndli-asst-head-text">
+          <h2 id="ndli-asst-title">Robu</h2>
+          <p class="ndli-asst-sub">NDLI Club Assistant — renewals · quotas · clubs · strategy (live data)</p>
+        </div>
+        <button type="button" class="ndli-asst-icon-btn ui-focusable" id="ndli-asst-close" aria-label="Close assistant">✕</button>
+      </div>
+
+      <div class="ndli-asst-chips" id="ndli-asst-chips" role="group" aria-label="Quick actions">
+        <button type="button" class="ndli-asst-chip ui-focusable" data-asst-chip="My week">My week</button>
+        <button type="button" class="ndli-asst-chip ui-focusable" data-asst-chip="Renewals due">Renewals due</button>
+        <button type="button" class="ndli-asst-chip ui-focusable" data-asst-chip="How do I…?">How do I…?</button>
+        <button type="button" class="ndli-asst-chip ui-focusable" data-asst-chip="Strategy summary">Strategy summary</button>
+      </div>
+
+      <div class="ndli-asst-log" id="ndli-asst-log" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Assistant conversation"></div>
+      <div class="ndli-asst-sr" id="ndli-asst-live" role="status" aria-live="polite"></div>
+
+      <div class="ndli-asst-typing" id="ndli-asst-typing" role="status" hidden>
+        <span class="ndli-asst-dots" aria-hidden="true"><span class="ndli-asst-dot"></span><span class="ndli-asst-dot"></span><span class="ndli-asst-dot"></span></span>
+        <span class="ndli-asst-typing-label">Assistant is typing…</span>
+      </div>
+
+      <form class="ndli-asst-form" id="ndli-asst-form">
+        <label class="ndli-asst-sr" for="ndli-asst-input">Ask Robu, the NDLI Club assistant</label>
+        <textarea class="ndli-asst-input" id="ndli-asst-input" rows="1" placeholder="Ask about renewals, quotas, workflows…"></textarea>
+        <button type="submit" class="ndli-asst-send ui-focusable" id="ndli-asst-send" aria-label="Send message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+            <path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4 20-7z"></path>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+  <script src="/static/js/assistant.js"></script>
+  <!-- ===== end NDLI AI ASSISTANT WIDGET ===== -->
 </body>
 </html>

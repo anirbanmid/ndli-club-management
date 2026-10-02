@@ -263,19 +263,37 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         """
         Tests that AppsScriptRelaySyncAdapter.pull_all_from_drive() merges incoming
         remote clubs and activities cleanly into local storage without wiping existing records.
+
+        Runs against an isolated scratch storage root so it is deterministic on ANY
+        host: on persistent-disk hosts (e.g. PythonAnywhere) the real data root has
+        a .drive_pull_done marker which engages local-authoritative pull mode
+        (remote files that exist locally are skipped -> res['files'] == []), and the
+        real master CSVs may already contain previously merged test clubs.
         """
         import json
+        import shutil
+        import tempfile
         from unittest.mock import patch, MagicMock
         adapter = AppsScriptRelaySyncAdapter()
         adapter.relay_url = "https://mock.relay.url/exec"
         adapter._allow_test_pull = True
 
-        # Initial clubs
-        initial_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-        initial_count = len(initial_clubs)
+        # Isolated scratch storage root (no marker, no pre-existing data)
+        tmp_root = Path(tempfile.mkdtemp(prefix="ndli_pull_parity_"))
+        adapter.local.root_dir = tmp_root
+        master_dir = tmp_root / "master"
+        master_dir.mkdir(parents=True, exist_ok=True)
+        master_path = master_dir / "master_clubs.csv"
+
+        # One pre-existing local club that must survive the merge
+        header = "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date"
+        local_row = "NDLI-EMP01-001,REG-2026-EMP01-001,Pre Existing Institute,Delhi,North,pi@p.edu.in,pre.club@p.edu.in,pre.sec@p.edu.in,2026-01-01T00:00:00Z,,2027-01-01,Approved,EMP01,2026-01-01T00:00:00.000000+00:00,2026-01-01T00:00:00Z,2027-01-01"
+        master_path.write_text(header + "\n" + local_row + "\n", encoding="utf-8")
+        initial_count = len(CSVEngine.read_all(str(master_path), CLUB_FIELDS))
+        self.assertEqual(initial_count, 1)
 
         # Prepare mock response with Club 26 from Google Drive
-        club26_csv = "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date\n"
+        club26_csv = header + "\n"
         club26_csv += "NDLI-EMP01-026,REG-2026-EMP01-026,Delhi Institute of Advanced Scientific Studies,Delhi,North,director@diass.edu.in,president.club@diass.edu.in,secretary.club@diass.edu.in,2026-09-19T10:00:00Z,,2027-09-19,Approved,EMP01,2026-09-19T10:00:00.000000+00:00,2026-09-19T10:00:00Z,2027-09-19\n"
 
         mock_payload = {
@@ -294,15 +312,19 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         mock_resp.read.return_value = json.dumps(mock_payload).encode("utf-8")
         mock_resp.__enter__.return_value = mock_resp
 
-        with patch("urllib.request.urlopen", return_value=mock_resp):
-            res = adapter.pull_all_from_drive(force=True)
-            self.assertTrue(res["success"])
-            self.assertIn("master/master_clubs.csv", res["files"])
+        try:
+            with patch("urllib.request.urlopen", return_value=mock_resp):
+                res = adapter.pull_all_from_drive(force=True)
+                self.assertTrue(res["success"])
+                self.assertIn("master/master_clubs.csv", res["files"])
 
-        # Verify Club 26 was merged and initial clubs preserved
-        merged_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-        self.assertEqual(len(merged_clubs), initial_count + 1)
-        self.assertTrue(any(c.get("club_id") == "NDLI-EMP01-026" for c in merged_clubs))
+            # Verify Club 26 was merged and the pre-existing club preserved
+            merged_clubs = CSVEngine.read_all(str(master_path), CLUB_FIELDS)
+            self.assertEqual(len(merged_clubs), initial_count + 1)
+            self.assertTrue(any(c.get("club_id") == "NDLI-EMP01-026" for c in merged_clubs))
+            self.assertTrue(any(c.get("club_id") == "NDLI-EMP01-001" for c in merged_clubs))
+        finally:
+            shutil.rmtree(tmp_root, ignore_errors=True)
 
     def test_user_status_preserved_across_reinit(self):
         """

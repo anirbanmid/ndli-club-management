@@ -1,0 +1,493 @@
+/* ==========================================================================
+   NDLI CLUB MANAGEMENT — AI ASSISTANT WIDGET (Round 6 · Slice A)
+   PLAN_AI_ASSISTANT.md §5 UX · additive layer alongside Round-5 ui.css
+   Rules honoured here (same contract as the Round-5 motion layer):
+     - vanilla CSS only, no build step, no frameworks
+     - reuses the Round-5 design tokens (--ui-green-*, --ui-amber-*, --t-*,
+       --ease-*) declared in static/css/ui.css — single source of truth
+     - motion ONLY on transform/opacity (compositor-friendly)
+     - prefers-reduced-motion: reduce -> <=150ms opacity fades, no springs
+     - every selector namespaced .ndli-asst-* / #ndli-asst-* so nothing in the
+       existing, test-asserted markup is ever matched or restyled
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. ROOT / STACKING
+   -------------------------------------------------------------------------- */
+.ndli-asst {
+  /* tokens fall back to the ui.css palette values if ui.css is missing */
+  --asst-green-50:  var(--ui-green-50,  #EDF6F2);
+  --asst-green-100: var(--ui-green-100, #D6ECE2);
+  --asst-green-300: var(--ui-green-300, #71BCA0);
+  --asst-green-400: var(--ui-green-400, #2F9A70);
+  --asst-green-500: var(--ui-green-500, #0D7751);
+  --asst-green-600: var(--ui-green-600, #156347);
+  --asst-green-700: var(--ui-green-700, #1A503E);
+  --asst-green-800: var(--ui-green-800, #143D2E);
+  --asst-amber-100: var(--ui-amber-100, #FDECCC);
+  --asst-amber-400: var(--ui-amber-400, #F59E0B);
+  --asst-amber-500: var(--ui-amber-500, #D98703);
+  --asst-ink:       var(--ui-ink,       #0C2018);
+  --asst-ink-soft:  var(--ui-ink-soft,  #4E6358);
+  --asst-surface:   var(--ui-surface,   #FFFFFF);
+  --asst-bg:        var(--ui-bg,        #F7FAF9);
+  --asst-border:    var(--ui-border,    #E4EBE8);
+  --asst-danger:    var(--ui-danger,    #DC2626);
+  --asst-t-fast:    var(--t-fast, 150ms);
+  --asst-t-base:    var(--t-base, 250ms);
+  --asst-t-slow:    var(--t-slow, 400ms);
+  --asst-ease-out:   var(--ease-out,   cubic-bezier(.22, 1, .36, 1));
+  --asst-ease-spring: var(--ease-spring, cubic-bezier(.34, 1.4, .64, 1));
+  --asst-ease-io:    var(--ease-io,    cubic-bezier(.65, 0, .35, 1));
+  --asst-focus: var(--ui-focus, 0 0 0 3px rgba(13, 119, 81, 0.40));
+
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10040; /* below the Round-5 toast region (10050) and progress bar */
+  font-family: inherit;
+  color: var(--asst-ink);
+}
+
+/* Screen-reader-only helper (namespaced — never reuse global .sr-only) */
+.ndli-asst-sr {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ndli-asst :focus-visible {
+  outline: none;
+  box-shadow: var(--asst-focus);
+}
+
+/* --------------------------------------------------------------------------
+   2. FLOATING ACTION BUTTON — green core + amber ring (plan §5)
+   -------------------------------------------------------------------------- */
+.ndli-asst-fab {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-fab:hover  { transform: translateY(-2px); }
+.ndli-asst-fab:active { transform: scale(0.96); }
+
+.ndli-asst-fab-core {
+  position: absolute;
+  inset: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--asst-green-500), var(--asst-green-700));
+  color: #FFFFFF;
+  box-shadow: 0 10px 26px -6px rgba(16, 49, 37, 0.45);
+}
+.ndli-asst-fab-core svg { width: 24px; height: 24px; display: block; }
+
+.ndli-asst-fab-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--asst-amber-400);
+  opacity: 0.9;
+  animation: asstRingPulse 2.6s var(--asst-ease-io) infinite;
+}
+@keyframes asstRingPulse {
+  0%   { transform: scale(0.94); opacity: 0.9; }
+  55%  { transform: scale(1.06); opacity: 0.35; }
+  100% { transform: scale(0.94); opacity: 0.9; }
+}
+
+/* Proactive nudge badge (plan §5 / decision #4) — hidden in Slice A;
+   exposed via window.NDLIAssistant.showBadge() for Slice E. */
+.ndli-asst-fab-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--asst-amber-400);
+  color: var(--asst-green-900, #103125);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(16, 49, 37, 0.3);
+}
+.ndli-asst-fab-badge[hidden] { display: none; }
+
+/* --------------------------------------------------------------------------
+   3. CHAT POPUP — dialog panel above the FAB
+   -------------------------------------------------------------------------- */
+.ndli-asst-panel {
+  position: absolute;
+  right: 0;
+  bottom: 72px;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 128px));
+  background: var(--asst-surface);
+  border: 1px solid var(--asst-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 28px 64px -12px rgba(16, 49, 37, 0.35);
+  animation: asstPanelIn var(--asst-t-slow) var(--asst-ease-spring) both;
+}
+.ndli-asst-panel[hidden] { display: none; }
+.ndli-asst-panel.ndli-asst-closing {
+  animation: asstPanelOut 180ms var(--asst-ease-io) both;
+}
+@keyframes asstPanelIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes asstPanelOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.97) translateY(8px); }
+}
+
+/* --- header ------------------------------------------------------------- */
+.ndli-asst-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 13px 16px;
+  background: linear-gradient(140deg, var(--asst-green-800), var(--asst-green-700));
+  color: #FFFFFF;
+}
+.ndli-asst-head h2 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.ndli-asst-sub {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+.ndli-asst-head-text { flex: 1 1 auto; min-width: 0; }
+
+.ndli-asst-icon-btn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--asst-t-fast) var(--asst-ease-out),
+              transform var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-icon-btn:hover  { background: rgba(255, 255, 255, 0.2); }
+.ndli-asst-icon-btn:active { transform: scale(0.95); }
+
+/* --- quick-action chips -------------------------------------------------- */
+.ndli-asst-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--asst-border);
+  background: var(--asst-bg);
+}
+.ndli-asst-chip {
+  padding: 6px 11px;
+  border: 1px solid var(--asst-green-200, #AAD8C5);
+  border-radius: 999px;
+  background: var(--asst-surface);
+  color: var(--asst-green-700);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--asst-t-fast) var(--asst-ease-out),
+              border-color var(--asst-t-fast) var(--asst-ease-out),
+              transform var(--asst-t-fast) var(--asst-ease-out),
+              opacity var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-chip:hover {
+  background: var(--asst-green-50);
+  border-color: var(--asst-green-400);
+}
+.ndli-asst-chip:active { transform: scale(0.97); }
+
+/* --- message list (ARIA live region) ------------------------------------ */
+.ndli-asst-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 12px 8px;
+  background: var(--asst-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ndli-asst-msg {
+  max-width: 88%;
+  padding: 9px 12px;
+  border-radius: 13px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  animation: asstMsgIn var(--asst-t-base) var(--asst-ease-out) both;
+}
+@keyframes asstMsgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ndli-asst-msg-user {
+  align-self: flex-end;
+  background: var(--asst-green-500);
+  color: #FFFFFF;
+  border-bottom-right-radius: 4px;
+}
+.ndli-asst-msg-bot {
+  align-self: flex-start;
+  background: var(--asst-surface);
+  border: 1px solid var(--asst-border);
+  border-bottom-left-radius: 4px;
+}
+.ndli-asst-msg-bot p { margin: 0; white-space: pre-wrap; }
+
+/* source-citation line on answers */
+.ndli-asst-sources {
+  margin: 8px 0 0;
+  padding-top: 7px;
+  border-top: 1px dashed var(--asst-border);
+  font-size: 0.71rem;
+  color: var(--asst-ink-soft);
+}
+.ndli-asst-sources-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--asst-green-600);
+}
+.ndli-asst-sources ul { margin: 3px 0 0; padding-left: 14px; }
+.ndli-asst-sources li { margin: 1px 0; }
+.ndli-asst-sources em { font-style: normal; color: var(--asst-green-600); }
+
+/* 👍 / 👎 feedback row */
+.ndli-asst-feedback {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ndli-asst-fb-btn {
+  width: 28px;
+  height: 26px;
+  border: 1px solid var(--asst-border);
+  border-radius: 8px;
+  background: var(--asst-surface);
+  font-size: 0.82rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--asst-t-fast) var(--asst-ease-out),
+              border-color var(--asst-t-fast) var(--asst-ease-out),
+              transform var(--asst-t-fast) var(--asst-ease-out),
+              opacity var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-fb-btn:hover:not([aria-pressed="true"]) {
+  background: var(--asst-green-50);
+  border-color: var(--asst-green-300);
+}
+.ndli-asst-fb-btn[aria-pressed="true"] {
+  background: var(--asst-green-100);
+  border-color: var(--asst-green-400);
+}
+.ndli-asst-fb-btn:disabled { cursor: default; opacity: 0.75; }
+.ndli-asst-fb-note {
+  font-size: 0.7rem;
+  color: var(--asst-ink-soft);
+}
+
+/* suggestion cards with placeholder deep links */
+.ndli-asst-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 9px;
+}
+.ndli-asst-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--asst-green-200, #AAD8C5);
+  border-radius: 11px;
+  background: var(--asst-green-50);
+}
+.ndli-asst-card-text { flex: 1 1 auto; min-width: 0; }
+.ndli-asst-card-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--asst-green-800);
+}
+.ndli-asst-card-detail {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--asst-ink-soft);
+}
+.ndli-asst-card-link {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid var(--asst-green-400);
+  border-radius: 8px;
+  background: var(--asst-surface);
+  color: var(--asst-green-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--asst-t-fast) var(--asst-ease-out),
+              transform var(--asst-t-fast) var(--asst-ease-out),
+              opacity var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-card-link:hover  { background: var(--asst-green-100); }
+.ndli-asst-card-link:active { transform: scale(0.96); }
+
+/* --- typing indicator ---------------------------------------------------- */
+.ndli-asst-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: 1px solid var(--asst-border);
+  border-radius: 13px;
+  border-bottom-left-radius: 4px;
+  background: var(--asst-surface);
+}
+.ndli-asst-typing[hidden] { display: none; }
+.ndli-asst-typing-label {
+  font-size: 0.74rem;
+  color: var(--asst-ink-soft);
+}
+.ndli-asst-dots { display: inline-flex; gap: 4px; }
+.ndli-asst-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--asst-green-400);
+  animation: asstDot 1.1s var(--asst-ease-io) infinite;
+}
+.ndli-asst-dot:nth-child(2) { animation-delay: 150ms; }
+.ndli-asst-dot:nth-child(3) { animation-delay: 300ms; }
+@keyframes asstDot {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  40%      { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* --- composer ----------------------------------------------------------- */
+.ndli-asst-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--asst-border);
+  background: var(--asst-surface);
+}
+.ndli-asst-input {
+  flex: 1 1 auto;
+  min-height: 38px;
+  max-height: 96px;
+  padding: 9px 12px;
+  border: 1px solid var(--asst-border);
+  border-radius: 11px;
+  background: var(--asst-bg);
+  color: var(--asst-ink);
+  font: inherit;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  resize: none;
+}
+.ndli-asst-input:focus-visible {
+  background: var(--asst-surface);
+  border-color: var(--asst-green-400);
+}
+.ndli-asst-input::placeholder { color: var(--asst-ink-soft); opacity: 0.8; }
+
+.ndli-asst-send {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 11px;
+  background: var(--asst-green-500);
+  color: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--asst-t-fast) var(--asst-ease-out),
+              transform var(--asst-t-fast) var(--asst-ease-out);
+}
+.ndli-asst-send:hover  { background: var(--asst-green-600); }
+.ndli-asst-send:active { transform: scale(0.95); }
+.ndli-asst-send svg { width: 17px; height: 17px; display: block; }
+
+/* --------------------------------------------------------------------------
+   4. SMALL SCREENS — panel fills the viewport width above the FAB
+   -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+  .ndli-asst { right: 16px; bottom: 16px; }
+  .ndli-asst-panel {
+    width: calc(100vw - 32px);
+    height: min(560px, calc(100vh - 112px));
+    bottom: 66px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. REDUCED MOTION — collapse to <=150ms opacity fades (mirrors ui.css §10)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ndli-asst-fab,
+  .ndli-asst-fab-badge,
+  .ndli-asst-icon-btn,
+  .ndli-asst-chip,
+  .ndli-asst-fb-btn,
+  .ndli-asst-card-link,
+  .ndli-asst-send {
+    transition-duration: var(--asst-t-fast) !important;
+    transition-property: opacity, background-color, border-color, color !important;
+  }
+  .ndli-asst-fab:hover,
+  .ndli-asst-fab:active { transform: none !important; }
+  .ndli-asst-fab-ring { animation: none !important; opacity: 0.85; }
+  .ndli-asst-panel,
+  .ndli-asst-panel.ndli-asst-closing,
+  .ndli-asst-msg,
+  .ndli-asst-dot {
+    animation-name: asstFadeOnly !important;
+    animation-duration: var(--asst-t-fast) !important;
+  }
+  .ndli-asst-dot { animation-delay: 0ms !important; }
+}
+@keyframes asstFadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>NDLI Club Management & Regional Employee Activity Tracking System — User Manual v3.1 (Enterprise Edition)</title>
+  <title>NDLI Club Management & Regional Employee Activity Tracking System — User Manual v4.0 (Enterprise Edition)</title>
   <style>
     /* =========================================================================
        CSS PAGED MEDIA STANDARDS — 20-PAGE PUBLICATION PDF
@@ -11,13 +11,13 @@
       size: A4 portrait;
       margin: 12mm 15mm 14mm 15mm;
       @bottom-right {
-        content: "Page " counter(page) " of 20";
+        content: "Page " counter(page) " of 21";
         font-family: 'Segoe UI', Arial, sans-serif;
         font-size: 7.5pt;
         color: #64748B;
       }
       @bottom-left {
-        content: "NDLI Club Management System • Central Administration IIT Kharagpur • Enterprise Edition v3.1";
+        content: "NDLI Club Management System • Central Administration IIT Kharagpur • Enterprise Edition v4.0";
         font-family: 'Segoe UI', Arial, sans-serif;
         font-size: 7.5pt;
         color: #64748B;
@@ -712,7 +712,7 @@
     <div class="cover-body">
       <div>
         <span class="cover-tag">Official Operational Handbook &amp; User Manual</span>
-        <span class="cover-version-tag">Edition v3.1 Enterprise • September 2026</span>
+        <span class="cover-version-tag">Edition v4.0 Enterprise • September 2026</span>
       </div>
       <h1 class="cover-title">NDLI Club Management &amp; Regional Employee Activity Tracking System</h1>
       <p class="cover-subtitle">
@@ -740,7 +740,7 @@
       <div>
         <div class="cover-meta-item">
           <div class="cover-meta-label">Document Release</div>
-          <div class="cover-meta-val">Enterprise Handover Edition v3.1 • September 2026</div>
+          <div class="cover-meta-val">Enterprise Handover Edition v4.0 • September 2026</div>
         </div>
         <div class="cover-meta-item">
           <div class="cover-meta-label">System Deployment Target</div>
@@ -760,19 +760,30 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 2: PREFACE & WHAT'S NEW IN v3.0
+       PAGE 2: PREFACE & WHAT'S NEW IN v4.0
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 2 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 2 of 21</span>
     </div>
 
-    <h1>1. Preface &amp; What's New in Enterprise Edition v3.1</h1>
+    <h1>1. Preface &amp; What's New in Enterprise Edition v4.0</h1>
 
     <div class="new-feature-banner">
-      <div class="new-feature-banner-title">✦ Enterprise Scalability &amp; High-Throughput Upgrades (Edition v3.1)</div>
+      <div class="new-feature-banner-title">✦ v4.0 — Security Hardening, Round-5 UI Overhaul &amp; Robu AI Assistant (2026)</div>
+      This release closes the security review findings and modernizes the operator experience:
+      (1) <strong>Security Hardening:</strong> relay-key authenticated sync transport, PBKDF2-HMAC-SHA256 credential verification, automated login brute-force lockout, and validated signature uploads;
+      (2) <strong>Emergency Restore re-engineered:</strong> database restoration now requires a verified active administrator credential;
+      (3) <strong>Employee Self-Service Certificates:</strong> regional officers generate renewal certificates and manage the Principal-Investigator signature directly;
+      (4) <strong>Round-5 UI Overhaul:</strong> motion system, toast notifications, and unified design tokens across both portals;
+      (5) <strong>Robu — the NDLI Club AI Assistant:</strong> a floating assistant in both portals answering live-data and documentation questions (read-only, role-scoped, with cited sources);
+      (6) <strong>Backup Resilience:</strong> 6-archive rolling retention, signature files bundled into Drive archives, and point-in-time Google Drive copies before destructive actions with drive_sync status reporting.
+    </div>
+
+    <div class="new-feature-banner">
+      <div class="new-feature-banner-title">✦ Enterprise Scalability &amp; High-Throughput Upgrades (Edition v3.1 — previous release)</div>
       This definitive client-handover edition certifies enterprise capacity and fluid operational ergonomics:
       <strong>(1) 50,000+ Club Database Scaling</strong> with in-memory hash indexing ($O(1)$ sub-millisecond retrieval) and fast-path append;
       <strong>(2) 200 Real-Time Concurrent Task Capacity</strong> tested under high-throughput HTTP queue stress with 0 errors;
@@ -826,8 +837,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 3 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 3 of 21</span>
     </div>
 
     <h1>2. Feature Highlights &amp; Executive Overview</h1>
@@ -898,15 +909,15 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 4 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 4 of 21</span>
     </div>
 
     <h1>3. Table of Contents &amp; Navigation Index</h1>
     <p>This index details all operational chapters and technical specifications contained within this manual:</p>
 
     <div class="toc-container">
-      <div class="toc-row"><span class="toc-chapter">1. Preface &amp; What's New in Enterprise Edition v3.1</span><span class="toc-dots"></span><span class="toc-page-num">Page 2</span></div>
+      <div class="toc-row"><span class="toc-chapter">1. Preface &amp; What's New in Enterprise Edition v4.0</span><span class="toc-dots"></span><span class="toc-page-num">Page 2</span></div>
       <div class="toc-row"><span class="toc-chapter">2. Feature Highlights &amp; Executive Matrix</span><span class="toc-dots"></span><span class="toc-page-num">Page 3</span></div>
       <div class="toc-row"><span class="toc-chapter">3. Table of Contents &amp; Navigation Index</span><span class="toc-dots"></span><span class="toc-page-num">Page 4</span></div>
       <div class="toc-row"><span class="toc-chapter">4. Database Schemas &amp; Zonal Jurisdiction Roster</span><span class="toc-dots"></span><span class="toc-page-num">Page 5</span></div>
@@ -924,24 +935,25 @@
       <div class="toc-row"><span class="toc-section">6.4 Universal Search, 0ms In-Memory Cache &amp; Pagination <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 9</span></div>
       <div class="toc-row"><span class="toc-section">6.5 Activity Logs Auto-Loading, Reminders &amp; Retry Actions <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 9</span></div>
       <div class="toc-row"><span class="toc-section">6.6 Integrated Tool Box — 12 Operational Utilities</span><span class="toc-dots"></span><span class="toc-page-num">Page 10</span></div>
+      <div class="toc-row"><span class="toc-section">6.7 Robu — Your NDLI Club AI Assistant <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
 
-      <div class="toc-row"><span class="toc-chapter">7. Central Administration Office Portal</span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
-      <div class="toc-row"><span class="toc-section">7.1 Admin Security &amp; Executive KPI Telemetry</span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
-      <div class="toc-row"><span class="toc-section">7.2 Statistical Infographics &amp; Geographic Scope Filtering</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
-      <div class="toc-row"><span class="toc-section">7.3 30-Day Administrative Escalations</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
-      <div class="toc-row"><span class="toc-section">7.4 Employee Performance Evaluation &amp; Star Rating Formula</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
-      <div class="toc-row"><span class="toc-section">7.5 National State-Wise Penetration &amp; Density Roster</span><span class="toc-dots"></span><span class="toc-page-num">Page 14</span></div>
-      <div class="toc-row"><span class="toc-section">7.6 AI Strategic Decision Module &amp; Policy Roadmaps</span><span class="toc-dots"></span><span class="toc-page-num">Page 15</span></div>
-      <div class="toc-row"><span class="toc-section">7.7 Node-to-Master Reconciliation Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
-      <div class="toc-row"><span class="toc-section">7.8 Automated 7-Day Backups &amp; Cloud Mirroring</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
-      <div class="toc-row"><span class="toc-section">7.9 Emergency Restore: Dual-Layer DB &amp; Codebase Scripts <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
-      <div class="toc-row"><span class="toc-section">7.10 Employee Management &amp; Dynamic Certificate Customization</span><span class="toc-dots"></span><span class="toc-page-num">Page 18</span></div>
-      <div class="toc-row"><span class="toc-section">7.11 Modern Minimalist UI &amp; Complementary Navigation <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 19</span></div>
+      <div class="toc-row"><span class="toc-chapter">7. Central Administration Office Portal</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
+      <div class="toc-row"><span class="toc-section">7.1 Admin Security &amp; Executive KPI Telemetry</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
+      <div class="toc-row"><span class="toc-section">7.2 Statistical Infographics &amp; Geographic Scope Filtering</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
+      <div class="toc-row"><span class="toc-section">7.3 30-Day Administrative Escalations</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
+      <div class="toc-row"><span class="toc-section">7.4 Employee Performance Evaluation &amp; Star Rating Formula</span><span class="toc-dots"></span><span class="toc-page-num">Page 14</span></div>
+      <div class="toc-row"><span class="toc-section">7.5 National State-Wise Penetration &amp; Density Roster</span><span class="toc-dots"></span><span class="toc-page-num">Page 15</span></div>
+      <div class="toc-row"><span class="toc-section">7.6 AI Strategic Decision Module &amp; Policy Roadmaps</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
+      <div class="toc-row"><span class="toc-section">7.7 Node-to-Master Reconciliation Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
+      <div class="toc-row"><span class="toc-section">7.8 Automated 7-Day Backups &amp; Cloud Mirroring</span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
+      <div class="toc-row"><span class="toc-section">7.9 Emergency Restore: Dual-Layer DB &amp; Codebase Scripts <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 18</span></div>
+      <div class="toc-row"><span class="toc-section">7.10 Employee Management &amp; Dynamic Certificate Customization</span><span class="toc-dots"></span><span class="toc-page-num">Page 19</span></div>
+      <div class="toc-row"><span class="toc-section">7.11 Modern Minimalist UI &amp; Complementary Navigation <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
 
-      <div class="toc-row"><span class="toc-chapter">8. Maintenance, Cloud Deployment &amp; 50k Architecture <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
-      <div class="toc-row"><span class="toc-section">8.1 Enterprise 50k Database &amp; 200 Concurrency Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
-      <div class="toc-row"><span class="toc-section">8.2 Global UI Error Boundary &amp; Crash Handling Subsystem</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
-      <div class="toc-row"><span class="toc-section">8.3 Directory Topology, Cloud Deployment &amp; FAQs</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
+      <div class="toc-row"><span class="toc-chapter">8. Maintenance, Cloud Deployment &amp; 50k Architecture <span class="toc-new">NEW</span></span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
+      <div class="toc-row"><span class="toc-section">8.1 Enterprise 50k Database &amp; 200 Concurrency Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
+      <div class="toc-row"><span class="toc-section">8.2 Global UI Error Boundary &amp; Crash Handling Subsystem</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
+      <div class="toc-row"><span class="toc-section">8.3 Directory Topology, Cloud Deployment &amp; FAQs</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
     </div>
   </div>
 
@@ -951,8 +963,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 5 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 5 of 21</span>
     </div>
 
     <h1>4. Detailed Specifications &amp; Database Schemas</h1>
@@ -1014,8 +1026,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 6 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 6 of 21</span>
     </div>
 
     <h1>5. Master Login Gateway — Enterprise Secure Access</h1>
@@ -1042,6 +1054,8 @@
       <li><strong>Dynamic Canvas Anti-Bot CAPTCHA:</strong> A 5-character randomized alphanumeric challenge is rendered on an HTML5 canvas with random distortion angles, lines, and background noise. It regenerates on each reload or refresh click.</li>
       <li><strong>Cryptographic Session Tokens:</strong> Upon authentication, a secure 24-byte random session token is stored in <code>sessionStorage</code>, automatically expiring when the browser tab is closed.</li>
       <li><strong>Synchronous Auth Pre-Unlock:</strong> Legitimate ongoing sessions bypass the lock screen instantly via a synchronous script guard, preventing any jerky screen flash during portal navigation.</li>
+      <li><strong>Automated Brute-Force Lockout:</strong> 8 failed sign-in attempts for the same identifier inside 10 minutes trigger an automatic 5-minute lockout (HTTP 429, "Too many failed sign-in attempts"), throttling credential-guessing attacks.</li>
+      <li><strong>Transport &amp; Upload Hardening:</strong> the server-to-server sync/backup transport is relay-key authenticated, certificate signature uploads are validated (image magic bytes, 2&nbsp;MB cap), and file downloads carry short-lived bearer tokens with automatic stale-token cleanup.</li>
     </ul>
 
     <h2>5.2 Step-by-Step: Unlocking the Master System Access</h2>
@@ -1058,8 +1072,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 7 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 7 of 21</span>
     </div>
 
     <h1>6. Regional Employee Portal Operations</h1>
@@ -1079,7 +1093,7 @@
 
     <div class="step-box"><div class="step-num">1</div><div class="step-content"><strong>Navigate to Portal:</strong> Open <code>/employee</code> or click <strong>"Sign In to Portal"</strong> on any EMP card in the main landing page.</div></div>
     <div class="step-box"><div class="step-num">2</div><div class="step-content"><strong>Quick-Select Regional Officer Chip:</strong> Click any of the 7 officer chips (e.g., <em>EMP01 — Rohan Sharma — North Zone</em>). The User ID is automatically filled into the login form.</div></div>
-    <div class="step-box"><div class="step-num">3</div><div class="step-content"><strong>Password Authentication:</strong> Enter the assigned regional password (e.g., <code>Seed#EMP01-Rotated2026</code>) and click <strong>"Sign In to Regional Portal →"</strong>.</div></div>
+    <div class="step-box"><div class="step-num">3</div><div class="step-content"><strong>Password Authentication:</strong> Enter the regional password issued to you by your administrator and click <strong>"Sign In to Regional Portal →"</strong>.</div></div>
     <div class="step-box"><div class="step-num">4</div><div class="step-content"><strong>Workspace Activation:</strong> An encrypted 24-byte session token is generated, loading the officer's dedicated workspace with their node database pre-cached.</div></div>
 
     <div class="callout callout-info">
@@ -1094,8 +1108,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 8 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 8 of 21</span>
     </div>
 
     <h2>6.2 Step-by-Step: Logging Daily Support Activities (SEC A)</h2>
@@ -1139,8 +1153,8 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 9 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 9 of 21</span>
     </div>
 
     <h2>6.4 Universal Search, 0ms In-Memory Cache &amp; 50-Row Pagination</h2>
@@ -1170,11 +1184,11 @@
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 10 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 10 of 21</span>
     </div>
 
-    <h2 style="margin-top: 0;">6.6 Integrated Tool Box — 12 Operational Utilities <span class="badge badge-new">v3.0 Feature</span></h2>
+    <h2 style="margin-top: 0;">6.6 Integrated Tool Box — 12 Operational Utilities <span class="badge badge-new">v4.0 Feature</span></h2>
     <p>
       The <strong>Tool Box</strong> tab in the Employee Portal centralizes all daily external services used by Regional Zonal Officers
       into a single-click launcher. Tools are strategically ordered: operational helpdesk first, followed by Google Workspace services,
@@ -1254,13 +1268,32 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 11: CENTRAL ADMIN DASHBOARD & KPIS
+       PAGE 11: ROBU — YOUR NDLI CLUB AI ASSISTANT (NEW)
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 11 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 11 of 21</span>
+    </div>
+
+    <h1>6.7 Robu — Your NDLI Club AI Assistant</h1>
+    <p>Both portals include <strong>Robu</strong>, a floating AI assistant (bottom-right button) that opens a chat panel. Robu is named after the resourceful robot from Satyajit Ray's <em>Professor Shonku</em> stories — built modestly, worth considerably more.</p>
+    <ul>
+      <li><strong>Live data questions:</strong> "How many clubs did I onboard this month?", "Which renewals need attention?" — answered from your own portal data. Regional officers see only their own records; administrators see the national picture. Robu is strictly read-only: she never creates, edits, or deletes anything.</li>
+      <li><strong>Documentation questions:</strong> "How do I approve a renewal?" — answered from this manual and the Technical Reference Manual, with numbered citations so you can verify the source section.</li>
+      <li><strong>Honest limits:</strong> when a question is outside her data or documentation, Robu says so plainly instead of guessing. If no AI language-model key is configured on the server, she operates in clearly-labelled template mode (deterministic answers from the live data).</li>
+      <li><strong>Feedback:</strong> every answer has 👍/👎 buttons — your feedback is recorded to improve future answers.</li>
+      <li><strong>Privacy:</strong> Robu only sees the data your own login is allowed to see; questions and feedback are logged for quality purposes with the platform's standard retention.</li>
+    </ul>
+  </div>
+
+         PAGE 12: CENTRAL ADMIN DASHBOARD & KPIS
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 12 of 21</span>
     </div>
 
     <h1>7. Central Administration Office Portal</h1>
@@ -1291,13 +1324,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 12: ANALYTICS, CHARTS & ESCALATIONS
+       PAGE 13: ANALYTICS, CHARTS & ESCALATIONS
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 12 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 13 of 21</span>
     </div>
 
     <h2>7.2 Statistical Infographics &amp; Geographic Scope Filtering</h2>
@@ -1327,13 +1360,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 13: EMPLOYEE PERFORMANCE MATRIX
+       PAGE 14: EMPLOYEE PERFORMANCE MATRIX
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 13 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 14 of 21</span>
     </div>
 
     <h2>7.4 Employee Performance Evaluation &amp; Star Rating Matrix</h2>
@@ -1389,13 +1422,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 14: STATE ROSTER & PENETRATION DENSITY
+       PAGE 15: STATE ROSTER & PENETRATION DENSITY
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 14 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 15 of 21</span>
     </div>
 
     <h2>7.5 National State-Wise Penetration &amp; Density Roster</h2>
@@ -1426,13 +1459,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 15: AI STRATEGIC DECISION MODULE
+       PAGE 16: AI STRATEGIC DECISION MODULE
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 15 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 16 of 21</span>
     </div>
 
     <h2>7.6 AI Strategic Decision Module &amp; Policy Roadmaps</h2>
@@ -1457,13 +1490,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 16: RECONCILIATION & 7-DAY BACKUPS
+       PAGE 17: RECONCILIATION & 7-DAY BACKUPS
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 16 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 17 of 21</span>
     </div>
 
     <h2>7.7 Node-to-Master Database Reconciliation Engine</h2>
@@ -1493,17 +1526,20 @@
       <li><strong>Autonomous 7-Day Cadence:</strong> Archives both Central Master DBs and all 7 Regional Node DBs into compressed ZIP snapshots.</li>
       <li><strong>Strict 6-Version Retention Invariant:</strong> Preserves only the last 6 historical snapshots. All older archives are automatically pruned, preventing storage bloat.</li>
       <li><strong>Google Drive Webhook Relay:</strong> Every backup automatically mirrors a timestamped ZIP archive directly into the Google Drive <code>backups/</code> repository via Webhook Relay.</li>
+      <li><strong>Signature Files Included:</strong> the authorized signatory signature assets are bundled inside every Drive archive, so a restored backup is immediately certificate-ready.</li>
+      <li><strong>Point-in-Time Drive Copies:</strong> every local backup event — including the automatic checkpoint taken just before a destructive operation (test-data wipe, club deletion, restore) — immediately attempts its own Google Drive copy. The backup console reports the outcome in the <code>drive_sync</code> status field ("SUCCESS" only when the Drive relay confirmed receipt; "FAILED" otherwise).</li>
+      <li><strong>Troubleshooting:</strong> relay or sync failures are written to <code>sync_issues.log</code> in the data directory together with a loud entry in the server log — an empty log with "SUCCESS" statuses is the healthy state.</li>
     </ul>
   </div>
 
   <!-- ===================================================================
-       PAGE 17: ONE-CLICK EMERGENCY RESTORE (NEW)
+       PAGE 18: ONE-CLICK EMERGENCY RESTORE (NEW)
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 17 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 18 of 21</span>
     </div>
 
     <h2 style="margin-top: 0;">7.9 One-Click Emergency Database Restoration &amp; Codebase Scripts <span class="badge badge-new">Enterprise</span></h2>
@@ -1535,7 +1571,7 @@
         <span class="security-badge amber">Layer 2</span>
         <strong>Master Administrator Password Re-Authentication</strong>
       </div>
-      Executing database rollback strictly requires re-entering the Master Administrator password (<code>admin@iitkgp.ac.in</code>), defeating session hijacking.
+      Executing database rollback strictly requires re-authenticating as an active administrator: the entered credential is verified against the stored PBKDF2-HMAC-SHA256 hash of an ACTIVE admin account (no fallback or seed credentials are accepted), defeating session hijacking.
     </div>
 
     <div class="callout callout-info" style="margin-top: 5px; padding: 4px 8px; font-size: 7.8pt;">
@@ -1545,13 +1581,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 18: EMPLOYEE MANAGEMENT & CERTIFICATES
+       PAGE 19: EMPLOYEE MANAGEMENT & CERTIFICATES
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.0</span>
-      <span class="header-tag-right">Page 18 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0</span>
+      <span class="header-tag-right">Page 19 of 21</span>
     </div>
 
     <h2>7.10 Employee Management &amp; Dynamic Certificate Customization</h2>
@@ -1584,16 +1620,20 @@
       </div>
       <div class="screenshot-caption">Figure 7.9: Dynamic Renewal Certificate Engine — Institutional Seals, Signatory Vectors &amp; Sutradhar Typography</div>
     </div>
+    <div class="callout callout-info" style="margin-top: 6px; padding: 5px 9px; font-size: 7.8pt;">
+      <div class="callout-title">📌 Employee Self-Service (client requirement, 2026-09-26)</div>
+      Regional officers may generate renewal certificates themselves from their own portal and may also update the Principal-Investigator signature image used on certificates. Admin-side layout and asset configuration above remains available for standardization.
+    </div>
   </div>
 
   <!-- ===================================================================
-       PAGE 19: MODERN MINIMALIST UI v3.0 DESIGN SYSTEM (NEW)
+       PAGE 20: MODERN MINIMALIST UI v4.0 DESIGN SYSTEM (NEW)
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 19 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 20 of 21</span>
     </div>
 
     <h2 style="margin-top: 0;">7.11 Modern Minimalist UI &amp; Complementary Navigation System <span class="badge badge-new">Enterprise</span></h2>
@@ -1639,13 +1679,13 @@
   </div>
 
   <!-- ===================================================================
-       PAGE 20: MAINTENANCE, DEPLOYMENT & FAQS
+       PAGE 21: MAINTENANCE, DEPLOYMENT & FAQS
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
-      <span class="header-title-left">NDLI Club Management System — Operational Manual v3.1 (Enterprise Edition)</span>
-      <span class="header-tag-right">Page 20 of 20</span>
+      <span class="header-title-left">NDLI Club Management System — Operational Manual v4.0 (Enterprise Edition)</span>
+      <span class="header-tag-right">Page 21 of 21</span>
     </div>
 
     <h1 style="margin-bottom: 2px;">8. Maintenance, Enterprise 50k Scaling &amp; FAQs</h1>
@@ -1694,7 +1734,7 @@
     <div style="margin-top: 4px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 3px; font-size: 7.0pt; color: #64748B;">
       <strong>National Digital Library of India (NDLI) Club Management System</strong><br>
       Developed &amp; Architected by <strong>Dr. Anirban Mukherjee</strong> • Indian Institute of Technology Kharagpur<br>
-      © 2026 NDLI IIT Kharagpur. All Rights Reserved. Official Operational Handbook v3.1 (Enterprise Edition).
+      © 2026 NDLI IIT Kharagpur. All Rights Reserved. Official Operational Handbook v4.0 (Enterprise Edition).
     </div>
   </div>
 

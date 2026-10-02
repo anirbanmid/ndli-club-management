@@ -51,6 +51,7 @@ from state_zone_mapper import (
     ZONE_STATE_MAP
 )
 from ai.decision_module import AIDecisionEngine
+from ai.assistant_core import ask_assistant, log_assistant_issue, record_feedback
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -268,7 +269,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "GET  /api/issues/employee-reminders",
                 "GET  /api/issues/admin-reminders",
                 "GET  /api/issues/list",
-                "POST /api/sync/reconcile"
+                "POST /api/sync/reconcile",
+                "POST /api/assistant/ask",
+                "POST /api/assistant/feedback"
             ]
         })
 
@@ -1439,6 +1442,46 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         body = self._parse_json_body()
+
+        # ---- AI Assistant (Round 6 · Slice B) -------------------------------
+        # POST /api/assistant/ask -> {answer, sources[], suggestions[]}
+        if path == "/api/assistant/ask":
+            session = self._require_session()
+            if not session:
+                return
+            question = str(body.get("question", "") or body.get("q", "")).strip()
+            if not question:
+                self._send_error("question is required.", status=400)
+                return
+            if len(question) > 1000:
+                self._send_error("question is too long (max 1000 characters).", status=400)
+                return
+            result = ask_assistant(question, session)
+            self._send_json({"success": True, **result})
+            return
+
+        # POST /api/assistant/feedback -> append-only CSV under the data dir
+        if path == "/api/assistant/feedback":
+            session = self._require_session()
+            if not session:
+                return
+            question = str(body.get("question", "")).strip()
+            verdict = str(body.get("verdict", "")).strip().lower()
+            comment = str(body.get("comment", "")).strip()
+            try:
+                ok, err = record_feedback(session, question, verdict, comment)
+            except Exception as exc:
+                # record_feedback logs its own write failures; this catches
+                # validation-layer crashes and stays LOUD (never 200-on-error).
+                log_assistant_issue("app.assistant_feedback", f"feedback endpoint error: {exc!r}",
+                                    {"user": session.get("user_id"), "question": question[:120]})
+                self._send_error("Feedback could not be recorded (server error).", status=500)
+                return
+            if not ok:
+                self._send_error(err, status=400)
+                return
+            self._send_json({"success": True, "message": "Feedback recorded. Thank you."})
+            return
 
         # Authentication: Login
         if path == "/api/auth/login":

@@ -28,12 +28,16 @@ MINIMAL_PNG_B64 = (
 class TestRenewalCertificateAndSecurity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Pick an ephemeral test port
-        cls.server_port = 8991
-        cls.server = HTTPServer((SERVER_HOST, cls.server_port), NDLIRequestHandler)
+        # Pick an ephemeral test port on the loopback interface.
+        # (Previously: fixed port 8991 on config.SERVER_HOST. On sandboxed hosts
+        # such as PythonAnywhere the console may expose SERVER_HOST as 0.0.0.0,
+        # which made every request in this file fail to connect. Every other
+        # test file already uses 127.0.0.1 + an ephemeral port; this now matches.)
+        cls.server = HTTPServer(("127.0.0.1", 0), NDLIRequestHandler)
+        cls.server_port = cls.server.server_address[1]
         cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.server_thread.start()
-        cls.base_url = f"http://{SERVER_HOST}:{cls.server_port}"
+        cls.base_url = f"http://127.0.0.1:{cls.server_port}"
 
     @classmethod
     def tearDownClass(cls):
