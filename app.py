@@ -52,7 +52,7 @@ from state_zone_mapper import (
     ZONE_STATE_MAP
 )
 from ai.decision_module import AIDecisionEngine
-from ai.assistant_core import ask_assistant, log_assistant_issue, record_feedback
+from ai.assistant_core import ask_assistant, log_assistant_issue, nudges_for, record_feedback
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -272,7 +272,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "GET  /api/issues/list",
                 "POST /api/sync/reconcile",
                 "POST /api/assistant/ask",
-                "POST /api/assistant/feedback"
+                "POST /api/assistant/feedback",
+                "GET /api/assistant/nudges"
             ]
         })
 
@@ -1118,6 +1119,22 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             return
 
         # Sync Status
+        # AI Assistant (Round 6 · Slice E) — proactive nudge for the FAB badge
+        if path == "/api/assistant/nudges":
+            session = self._require_session()
+            if not session:
+                return
+            try:
+                result = nudges_for(session)
+            except Exception as exc:
+                # LOUD: a broken nudge check must never look like "no nudges".
+                log_assistant_issue("app.assistant_nudges", f"nudges endpoint error: {exc!r}",
+                                    {"user": session.get("user_id")})
+                self._send_error("Nudge check failed (server error).", status=500)
+                return
+            self._send_json({"success": True, **result})
+            return
+
         if path == "/api/sync/status":
             master_clubs = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
             master_acts = len(CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS))

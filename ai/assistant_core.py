@@ -276,6 +276,27 @@ _PERSONAL_DATA_RE = re.compile(
     r"\brecommend(?:ation|ations|ed|s)?\b|\bsuggest(?:ion|ions|ed|s)?\b",
     re.IGNORECASE)
 
+_EXPLAIN_REPORT_RE = re.compile(
+    r"\bexplain\b[^?]*\b(strategic\w*|report|roadmap|recommend\w*|insight\w*|analytics)\b"
+    r"|\bwhat does (?:the |this )?(?:strategic |ai )?(?:report|roadmap|recommend\w*) (?:mean|say|show)\b"
+    r"|\bwhy (?:do|did|does|is|are)\b[^?]*\brecommend\w*\b"
+    r"|\b(walk|talk|guide)\s+me\s+through\b[^?]*\b(report|recommend\w*|insight\w*)\b"
+    r"|\bbreak\s+(?:it|this|the report|the recommendations|things)\s+down\b",
+    re.IGNORECASE)
+
+_REC_INDEX_RE = re.compile(
+    r"\b(?:recommendation|rec|point|item|suggestion)\s*#?\s*(\d+)\b", re.IGNORECASE)
+
+# Section explainers: ordered so "unrepresented" beats "states".
+_EXPLAIN_SECTION_RES: List[Tuple[str, re.Pattern]] = [
+    ("unrepresented", re.compile(r"\bunrepresented\b", re.IGNORECASE)),
+    ("top_states", re.compile(r"\btop states?\b|\bstate (?:spread|coverage|ranking)\b", re.IGNORECASE)),
+    ("zone", re.compile(r"\bzone\b", re.IGNORECASE)),
+    ("activity", re.compile(r"\bactivit\w*\b", re.IGNORECASE)),
+    ("target", re.compile(r"\btarget\b|\bquarterly\b", re.IGNORECASE)),
+    ("renewal", re.compile(r"\brenewal\w*\b|\bchurn\b", re.IGNORECASE)),
+]
+
 _INTENT_RULES: List[Tuple[str, re.Pattern]] = [
     ("renewals", re.compile(
         r"\brenew(al|als|ed|ing)?\b|\bexpir(e|es|ed|ing|y|ies)?\b|\boverdue\b|\battention window\b", re.IGNORECASE)),
@@ -350,6 +371,12 @@ _SUGGESTIONS_BY_INTENT: Dict[str, List[Dict[str, str]]] = {
         {"title": "Strategic report", "detail": "Full AI analytics report",
          "href": "/admin#ai-insights", "label": "Open"},
     ],
+    "explain_report": [
+        {"title": "Strategic report", "detail": "Full AI analytics report",
+         "href": "/admin#ai-insights", "label": "Open"},
+        {"title": "Renewal attention", "detail": "Clubs needing renewal action",
+         "href": "/portal#renewal-attention", "label": "Open"},
+    ],
     "help": [
         {"title": "User manual", "detail": "Full NDLI Club Management manual",
          "href": "/manual", "label": "Open"},
@@ -384,6 +411,18 @@ def _route(question: str) -> Tuple[str, Dict[str, Any]]:
         return "greeting", {}
     if _ABOUT_RE.search(q):
         return "about", {}
+    # Slice E: explain-shaped questions about the strategic report win BEFORE
+    # the app-help gate (they are live-data explainers, not manual lookups).
+    if _EXPLAIN_REPORT_RE.search(q):
+        ep: Dict[str, Any] = {}
+        rm = _REC_INDEX_RE.search(q)
+        if rm:
+            ep["rec_index"] = int(rm.group(1))
+        for section, pattern in _EXPLAIN_SECTION_RES:
+            if pattern.search(q):
+                ep["section"] = section
+                break
+        return "explain_report", ep
     # Slice C: app/FAQ/how-does-it-work phrasing (definitional/explanatory and
     # NOT a first-person live-data request) -> documentation knowledge base.
     # Checked before the data intents so "what is a renewal certificate" is
@@ -481,7 +520,11 @@ def _compose_renewals(result: Dict[str, Any]) -> str:
     for c in clubs[:3]:
         name = c.get("institution_name") or c.get("club_id") or "unknown club"
         rid = c.get("club_id", "")
-        badge = c.get("badge") or ("overdue" if c.get("days_overdue") is not None else "expiring soon")
+        # badge_label is the decision module's own wording ("414 days overdue" /
+        # "12 days left"); days_overdue is 0 (not None) for expiring clubs, so
+        # it must NOT be used to decide "overdue".
+        badge = (c.get("badge_label") or c.get("attention_type")
+                 or ("overdue" if (c.get("days_overdue") or 0) else "expiring soon"))
         lines.append(f"- {name} ({rid}): {badge}.")
     if len(clubs) > 3:
         lines.append(f"...and {len(clubs) - 3} more in the attention list.")
@@ -560,6 +603,165 @@ def _compose_strategy(result: Dict[str, Any]) -> str:
     if not recs:
         lines.append("- No outstanding strategic recommendations right now.")
     return "\n".join(lines)
+
+
+# --- Slice E: strategic report EXPLAINERS -------------------------------
+
+def _report_headline(report: Dict[str, Any]) -> str:
+    m = report.get("metrics") or {}
+    ts = str(report.get("timestamp", ""))[:19]
+    return (
+        f"Strategic report, explained ({ts} UTC). "
+        f"Headline: {m.get('total_clubs', 0)} clubs, {m.get('total_activities', 0)} activities, "
+        f"{m.get('unrepresented_states_count', 0)} states with zero clubs, "
+        f"{m.get('renewal_attention_count', 0)} clubs need renewal attention "
+        f"({m.get('overdue_count', 0)} overdue, {m.get('expiring_soon_count', 0)} expiring soon)."
+    )
+
+
+def _compose_report_explainer(result: Dict[str, Any], params: Dict[str, Any]) -> str:
+    """Plain-language walkthrough of the strategic report: WHAT each
+    recommendation means and WHAT to do about it (grounded in the report
+    data -- never invented). Supports numbered zoom-in and section explainers."""
+    report = result.get("report") or {}
+    m = report.get("metrics") or {}
+    recs = report.get("strategic_recommendations") or []
+    ts = str(report.get("timestamp", ""))[:19]
+
+    idx = params.get("rec_index")
+    if idx:
+        if 1 <= int(idx) <= len(recs):
+            r = recs[int(idx) - 1]
+            return "\n".join([
+                f"Recommendation {idx} of {len(recs)} \u2014 "
+                f"[{r.get('priority', '?')}] {r.get('title', 'Recommendation')} "
+                f"(category: {r.get('category', '?')})",
+                f"What it means: {r.get('insight', '')}",
+                f"What to do: {r.get('action', '')}",
+                f"Context ({ts} UTC): {m.get('total_clubs', 0)} clubs, "
+                f"{m.get('renewal_attention_count', 0)} need renewal attention.",
+            ])
+        top = max(len(recs), 1)
+        return f"The report has {len(recs)} recommendations right now \u2014 ask for recommendation 1 to {top}."
+
+    section = params.get("section")
+    if section == "zone":
+        dist = report.get("zone_distribution") or {}
+        rows = ", ".join(f"{z}: {n} clubs" for z, n in sorted(dist.items(), key=lambda kv: -kv[1]))
+        return (f"Zone distribution \u2014 how the clubs are spread across zones: {rows}. "
+                "Zones with few or no clubs are the expansion opportunities the "
+                "recommendations target.")
+    if section == "activity":
+        dist = report.get("activity_distribution") or {}
+        rows = ", ".join(f"{a}: {n}" for a, n in sorted(dist.items(), key=lambda kv: -kv[1]))
+        return (f"Activity distribution \u2014 what the team has been logging: {rows}. "
+                "A healthy mix needs trainings and offline workshops too, not just "
+                "remote support \u2014 that is what the capacity-building recommendation is about.")
+    if section == "top_states":
+        top = report.get("top_states") or []
+        rows = ", ".join(f"{s} ({n} clubs)" for s, n in top[:5]) or "none yet"
+        return (f"Top states \u2014 strongest club presence: {rows}. These anchor the "
+                "footprint; the growth plays target the opposite end (unrepresented states).")
+    if section == "unrepresented":
+        missing = report.get("unrepresented_states") or []
+        rows = ", ".join(missing[:8]) or "none \u2014 every state has a club"
+        more = f" (and {len(missing) - 8} more)" if len(missing) > 8 else ""
+        return (f"Unrepresented states \u2014 states with zero NDLI clubs: {rows}{more}. "
+                "Each one is an outreach opportunity \u2014 that is the core of the "
+                "Regional Outreach recommendation.")
+    if section == "target":
+        return (f"Suggested quarterly target: {report.get('suggested_quarterly_target', 0)} "
+                "\u2014 a pacing goal derived from current activity levels, meant to keep "
+                "the quarter's growth on trend (not a hard quota per person).")
+    if section == "renewal":
+        ra = report.get("renewal_attention") or {}
+        return (f"Renewal attention window \u2014 as of {ra.get('today', ts[:10])}: "
+                f"{ra.get('total_attention_count', 0)} clubs need attention "
+                f"({ra.get('overdue_count', 0)} already overdue, "
+                f"{ra.get('expiring_soon_count', 0)} expiring soon). Overdue clubs risk "
+                "registration churn \u2014 the Retention & Renewal recommendation targets these.")
+
+    lines = [_report_headline(report), "What the report recommends, and why:"]
+    if not recs:
+        lines.append("- No outstanding strategic recommendations right now.")
+    for i, r in enumerate(recs, 1):
+        lines.append(f"{i}. [{r.get('priority', '?')}] {r.get('title', 'Recommendation')} "
+                     f"(category: {r.get('category', '?')})")
+        lines.append(f"   What it means: {r.get('insight', '')}")
+        lines.append(f"   What to do: {r.get('action', '')}")
+    lines.append("Ask \"explain recommendation 2\" to zoom into one, or ask about a "
+                 "part (zone distribution, top states, unrepresented states, "
+                 "activity distribution, quarterly target, renewal window).")
+    return "\n".join(lines)
+
+
+# --- Slice E: proactive nudge -------------------------------------------
+
+_NUDGE_PRIORITY = ("renewals", "escalations", "quota")
+
+
+def _nudge_signature(*ids: str) -> str:
+    """Stable signature of the underlying condition: the nudge id changes only
+    when the set of flagged items changes, so a dismissed nudge does not come
+    back while nothing changed (no nagging)."""
+    import hashlib
+    return hashlib.sha1("|".join(ids).encode("utf-8")).hexdigest()[:10]
+
+
+def nudges_for(session: Dict[str, Any]) -> Dict[str, Any]:
+    """Slice E: compute at most ONE proactive nudge for the badge.
+    Priority: renewals (deadline) > escalations (30+ day unresolved) > quota
+    at risk (30+ days inactive). Raises ToolAuthError for unverified sessions
+    and ToolError loudly on bad data -- callers must NOT swallow either."""
+    ctx = build_context(session)
+    signals = call_tool("advisor.nudges", ctx)
+    nudge: Optional[Dict[str, Any]] = None
+
+    ren = signals.get("renewals") or {}
+    esc = signals.get("escalations") or {}
+    quota = signals.get("quota") or {}
+
+    if ren.get("count"):
+        nudge = {
+            "id": "renewals-" + _nudge_signature(*ren.get("club_ids", [])),
+            "kind": "renewals",
+            "title": "Renewals need attention",
+            "detail": (f"{ren['count']} club(s) are overdue or renewing within 14 days "
+                       f"({ren.get('overdue_count', 0)} already overdue)."),
+            "href": "/portal#renewal-attention",
+            "suggested_question": "which renewals need attention?",
+        }
+    elif esc.get("count"):
+        nudge = {
+            "id": "escalations-" + _nudge_signature(*esc.get("issue_ids", [])),
+            "kind": "escalations",
+            "title": "Issues are escalating",
+            "detail": f"{esc['count']} unresolved issue(s) have been open past 30 days.",
+            "href": "/portal#issues",
+            "suggested_question": "which issues need attention?",
+        }
+    elif quota.get("count"):
+        if ctx.is_admin:
+            nudge = {
+                "id": "quota-" + _nudge_signature(*quota.get("emp_ids", [])),
+                "kind": "quota",
+                "title": "Team quota at risk",
+                "detail": (f"{quota['count']} employee(s) have logged no activity in 30+ "
+                           "days \u2014 their quarterly quota is at risk."),
+                "href": "/admin#dashboard",
+                "suggested_question": "how is the team quota doing?",
+            }
+        else:
+            nudge = {
+                "id": "quota-" + _nudge_signature(ctx.user_id),
+                "kind": "quota",
+                "title": "Your quota is at risk",
+                "detail": "You have logged no activity in 30+ days \u2014 your quarterly quota is at risk.",
+                "href": "/portal#my-quota",
+                "suggested_question": "how is my quota doing?",
+            }
+
+    return {"nudge": nudge, "checked_at": signals.get("today", ""), "scope": signals.get("scope", "")}
 
 
 def _compose_help(result: Dict[str, Any]) -> str:
@@ -659,6 +861,8 @@ def _plan(intent: str, params: Dict[str, Any], ctx: ToolContext) -> Tuple[Option
         return "metrics.get", {}, lambda r, c: _compose_metrics(r)
     if intent == "strategy":
         return "analytics.strategic_report", {}, lambda r, c: _compose_strategy(r)
+    if intent == "explain_report":
+        return "analytics.strategic_report", {}, lambda r, c: _compose_report_explainer(r, params)
     if intent == "help":
         return "help.steps", {"task_id": params.get("task_id", "")}, lambda r, c: _compose_help(r)
     return None, {}, lambda r, c: ""

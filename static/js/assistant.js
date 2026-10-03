@@ -381,6 +381,17 @@
     });
   }
 
+  function nudgesLive() {
+    return fetch("/api/assistant/nudges", {
+      headers: { "Authorization": "Bearer " + authToken() }
+    }).then(function (r) {
+      if (!r.ok) {
+        throw new Error("assistant nudges HTTP " + r.status);
+      }
+      return r.json();
+    });
+  }
+
   var AssistantAPI = {
     version: "slice-b-live",
     ask: function (question) {
@@ -390,6 +401,15 @@
           console.warn("[NDLI Assistant] live /api/assistant/ask failed — using offline demo answers:", err);
         }
         return askMock(text);
+      });
+    },
+    nudges: function () {
+      // Best-effort: a failed nudge check just means no badge this load.
+      return nudgesLive().catch(function (err) {
+        if (window.console && console.warn) {
+          console.warn("[NDLI Assistant] nudge check failed (badge stays hidden):", err);
+        }
+        return { nudge: null };
       });
     }
   };
@@ -480,6 +500,7 @@
         suggestions: []
       });
     }
+    flushPendingNudge();
     window.setTimeout(function () {
       if (input) input.focus();
     }, 40);
@@ -690,6 +711,61 @@
   }
 
   /* ---- wiring ----------------------------------------------------------- */
+  /* ---- Slice E: proactive nudge badge ----------------------------------
+     At most one nudge (the server picks by priority). Dismissible: opening
+     the chat records the nudge's id in localStorage, and because the id is a
+     signature of the flagged set, the badge only comes back when that set
+     changes. Silent during quiet hours (21:00-08:00 local). */
+  var pendingNudge = null;
+
+  function nudgeDismissed(id) {
+    try {
+      return !!window.localStorage && localStorage.getItem("ndli-asst-nudge-dismissed") === id;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function nudgeDismiss(id) {
+    try {
+      if (window.localStorage) localStorage.setItem("ndli-asst-nudge-dismissed", id);
+    } catch (e) { /* storage unavailable: the badge simply reappears next load */ }
+    pendingNudge = null;
+    window.NDLIAssistant.hideBadge();
+  }
+
+  function nudgeQuietHours() {
+    var h = new Date().getHours();
+    return h >= 21 || h < 8;
+  }
+
+  function loadNudge() {
+    AssistantAPI.nudges().then(function (data) {
+      var n = data && data.nudge;
+      if (!n || !n.id) return;
+      if (nudgeDismissed(n.id) || nudgeQuietHours()) return;
+      pendingNudge = n;
+      window.NDLIAssistant.showBadge(1);
+    });
+  }
+
+  function flushPendingNudge() {
+    if (!pendingNudge || !logEl) return;
+    var n = pendingNudge;
+    appendAssistant({
+      answer: "Heads up — " + n.title + ": " + n.detail +
+        (n.suggested_question ? " Ask me: \u201c" + n.suggested_question + "\u201d" : ""),
+      sources: [{ title: "Proactive check", detail: "role-scoped live signals" }],
+      suggestions: [{
+        title: n.title,
+        detail: "Open the list this points to",
+        href: n.href,
+        label: "Open"
+      }]
+    });
+    nudgeDismiss(n.id);
+  }
+
   function init() {
     root = $("ndli-asst-root");
     if (!root) return; // widget markup not present on this page — nothing to do
@@ -740,6 +816,9 @@
     // Slice E: run any deep link that arrived via the URL hash
     // (cross-portal links and login-gate passes land here).
     processDeepLinkHash();
+    // Slice E: check for one high-value nudge (badge only; quiet hours +
+    // localStorage dismissal apply).
+    loadNudge();
   }
 
   /* ========================================================================
@@ -974,7 +1053,7 @@
      3. Public handle (tests, quick actions, Slice E proactive badge)
      ==================================================================== */
   window.NDLIAssistant = {
-    version: "slice-e-deeplinks",
+    version: "slice-e-advisor",
     open: open,
     close: close,
     toggle: toggle,

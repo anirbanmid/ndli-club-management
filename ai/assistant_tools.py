@@ -31,7 +31,7 @@ Tool whitelist (exactly these names, nothing else is reachable):
     activities.summary            quota.get
     issues.list                   renewals.due
     metrics.get                   analytics.strategic_report
-    help.steps
+    help.steps                    advisor.nudges
 """
 from typing import Any, Callable, Dict, List, Optional
 
@@ -494,6 +494,119 @@ def _help_steps(ctx: ToolContext, task_id: str = "", **_params: Any) -> Dict[str
 
 
 # ---------------------------------------------------------------------------
+# Slice E — proactive nudge signals
+# ---------------------------------------------------------------------------
+
+# Renewals inside this window (or already overdue) trigger the nudge.
+NUDGE_RENEWAL_WINDOW_DAYS = 14
+# No logged activity for this long => "quota at risk".
+NUDGE_STALE_ACTIVITY_DAYS = 30
+
+
+def _advisor_nudges(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
+    """Proactive-nudge RAW signals (Slice E). Employee -> own clubs / own
+    issues / own quota only. Admin -> org-wide. Read-only. Priority selection
+    and wording live in assistant_core.nudges_for().
+
+    Signals:
+      renewals   — clubs overdue, or renewing within NUDGE_RENEWAL_WINDOW_DAYS
+      escalations — unresolved issues past their 30-day admin reminder date
+      quota      — employees with no logged activity in 30+ days
+    """
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    # 1. Renewal risk (same role scoping as renewals.due).
+    if ctx.is_admin:
+        attention = AIDecisionEngine.get_renewal_attention_data()
+    else:
+        my_clubs = [c for c in _read_master_clubs()
+                    if c.get("approved_by_emp_id", "").strip().upper() == ctx.user_id]
+        attention = AIDecisionEngine.get_renewal_attention_data(clubs=my_clubs)
+    renewal_clubs = []
+    for c in attention.get("clubs", []):
+        # SEMANTICS (verified against get_renewal_attention_data output):
+        # "Overdue" rows carry days_overdue > 0 and days_left == 0; "Expiring
+        # Soon" rows carry days_overdue == 0 (NOT None!) and days_left > 0.
+        # So overdue must be detected via attention_type / days_overdue > 0.
+        atype = str(c.get("attention_type", "")).strip().lower()
+        days_overdue = c.get("days_overdue")
+        days_left = c.get("days_left")
+        try:
+            is_overdue = atype == "overdue" or (
+                isinstance(days_overdue, (int, float)) and days_overdue > 0)
+            soon = (not is_overdue) and days_left is not None \
+                and int(days_left) <= NUDGE_RENEWAL_WINDOW_DAYS
+        except (TypeError, ValueError):
+            raise ToolError(f"advisor.nudges: unparseable days_left {days_left!r} in {c.get('club_id')}")
+        if is_overdue or soon:
+            c = dict(c)
+            c["_nudge_overdue"] = is_overdue
+            renewal_clubs.append(c)
+
+    # 2. Escalations: unresolved issues past their 30-day admin reminder date.
+    issues = IssueManager.get_issues(emp_id=None if ctx.is_admin else ctx.user_id)
+    escalations = []
+    for i in issues:
+        if str(i.get("status", "")).strip().lower() == "resolved":
+            continue
+        due_raw = str(i.get("admin_reminder_due_at", "")).strip()
+        if not due_raw:
+            continue
+        due_date = parse_iso_or_date(due_raw)
+        if due_date is None:
+            raise ToolError(
+                f"advisor.nudges: unparseable admin_reminder_due_at {due_raw!r} in {i.get('issue_id')}")
+        if due_date <= today:
+            escalations.append(i)
+
+    # 3. Quota at risk: no logged activity in NUDGE_STALE_ACTIVITY_DAYS days.
+    if ctx.is_admin:
+        emp_ids = [u.get("id", "").strip().upper()
+                   for u in CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
+                   if u.get("role") == "EMPLOYEE" and u.get("id", "")]
+    else:
+        emp_ids = [ctx.user_id]
+    stale = []
+    for eid in emp_ids:
+        q = derived_quota(eid)
+        ts = str(q.get("last_activity_timestamp", "")).strip()
+        is_stale = True
+        if ts:
+            last_date = parse_iso_or_date(ts)
+            if last_date is None:
+                raise ToolError(
+                    f"advisor.nudges: unparseable last_activity_timestamp {ts!r} for {eid}")
+            is_stale = (today - last_date).days >= NUDGE_STALE_ACTIVITY_DAYS
+        if is_stale:
+            stale.append({"emp_id": eid, "employee_name": q.get("employee_name", "") or eid})
+
+    return {
+        "tool": "advisor.nudges",
+        "scope": "all" if ctx.is_admin else f"employee:{ctx.user_id}",
+        "today": today.isoformat(),
+        "renewals": {
+            "count": len(renewal_clubs),
+            "overdue_count": sum(1 for c in renewal_clubs if c.get("_nudge_overdue")),
+            "club_ids": sorted({c.get("club_id", "") for c in renewal_clubs if c.get("club_id")}),
+            "clubs": renewal_clubs[:3],
+        },
+        "escalations": {
+            "count": len(escalations),
+            "issue_ids": sorted({i.get("issue_id", "") for i in escalations if i.get("issue_id")}),
+            "issues": escalations[:3],
+        },
+        "quota": {
+            "count": len(stale),
+            "emp_ids": sorted(s["emp_id"] for s in stale),
+            "employees": stale[:3],
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Registry + single entry point
 # ---------------------------------------------------------------------------
 
@@ -509,6 +622,7 @@ TOOL_WHITELIST: Dict[str, Callable[..., Dict[str, Any]]] = {
     "metrics.get": _metrics_get,
     "analytics.strategic_report": _analytics_strategic_report,
     "help.steps": _help_steps,
+    "advisor.nudges": _advisor_nudges,
 }
 
 TOOL_NAMES = frozenset(TOOL_WHITELIST.keys())
