@@ -186,6 +186,7 @@ class TestAssistantReadOnlyTools(_AssistantAPITestBase):
             "issues.list", "renewals.due", "metrics.get",
             "analytics.strategic_report", "help.steps",
             "advisor.nudges",  # Slice E: proactive nudge signals
+            "learning.insights",  # Slice F: learning-loop report (visibility-gated)
         }))
 
     def test_unknown_tool_rejected(self):

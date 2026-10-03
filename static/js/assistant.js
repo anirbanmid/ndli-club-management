@@ -444,6 +444,33 @@
     });
   });
 
+  /* Slice F: outcome signals — did the user act on a suggestion or a nudge?
+     Best-effort POST to /api/assistant/outcome (append-only learning log, same
+     privacy rules as the interaction log). A failed send is logged loudly but
+     never breaks the chat UI. */
+  function reportOutcome(eventName, detail) {
+    fetch("/api/assistant/outcome", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + authToken()
+      },
+      body: JSON.stringify({
+        event: eventName,
+        question: lastAskedQuestion.slice(0, 1000),
+        detail: (detail || "").slice(0, 200)
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        throw new Error("assistant outcome HTTP " + r.status);
+      }
+    }).catch(function (err) {
+      if (window.console && console.warn) {
+        console.warn("[NDLI Assistant] outcome POST failed:", err);
+      }
+    });
+  }
+
   /* ========================================================================
      2. Widget UI
      ==================================================================== */
@@ -637,6 +664,7 @@
       document.dispatchEvent(
         new CustomEvent("ndli:assistant-deep-link", { detail: { href: target } })
       );
+      reportOutcome("suggestion_click", (s.title || "") + " " + target);
       executeDeepLink(target);
     });
     card.appendChild(link);
@@ -763,6 +791,7 @@
         label: "Open"
       }]
     });
+    reportOutcome("nudge_open", n.id);
     nudgeDismiss(n.id);
   }
 

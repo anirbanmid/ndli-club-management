@@ -39,6 +39,7 @@ import json
 import os
 import re
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -54,6 +55,7 @@ from ai.assistant_tools import (
     call_tool,
 )
 from ai import knowledge_base
+from ai import assistant_learning  # Slice F: interaction log (writes live THERE, not here)
 
 # ---------------------------------------------------------------------------
 # Loud logging (never-trust-200 discipline)
@@ -872,7 +874,65 @@ def _plan(intent: str, params: Dict[str, Any], ctx: ToolContext) -> Tuple[Option
 # Public entry points
 # ---------------------------------------------------------------------------
 
+def _learn_meta(question: str, result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Slice F: classifies one answered question for the learning log (intent, answer
+    mode, answered-or-not). Deterministic classification of the STABLE source
+    markers _src() stamps on every answer -- no guessing from free text, and the
+    question is never interpreted as anything but data.
+    """
+    intent = _route(question)[0] if question else "empty"
+    sources = result.get("sources") or []
+    details = " | ".join(str(s.get("detail", "")) for s in sources)
+    titles = " | ".join(str(s.get("title", "")) for s in sources)
+    if "session unverified" in details:
+        mode, answered = "denied", False
+    elif "generated answer" in details:
+        mode, answered = "llm", True
+    elif "\u203a" in details:
+        mode, answered = "kb", True
+    elif "denied for role" in details:
+        mode, answered = "denied", False
+    elif "failed (logged)" in details or "crashed (logged)" in details:
+        mode, answered = "error", False
+    elif "Live portal data" in titles:
+        mode, answered = "tool", True
+    elif "no matching" in details:
+        mode, answered = "template", False
+    else:
+        mode, answered = "template", True
+    return {"intent": intent, "mode": mode, "answered": answered}
+
+
 def ask_assistant(question: str, session: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Orchestrates one question. Returns {answer, sources, suggestions}.
+    Raises nothing at the caller: every internal failure is logged LOUDLY to
+    assistant_issues.log and answered honestly.
+
+    Slice F: every call also appends one interaction row to the learning store
+    (ai/assistant_learning -- the assistant stack's only learning-data writer),
+    after the answer is composed. A failed log write NEVER changes the answer;
+    it is logged loudly instead (see record_interaction).
+    """
+    clean_q = str(question or "").strip()
+    started = time.monotonic()
+    result = _ask_assistant_inner(clean_q, session)
+    if isinstance(result, dict):
+        meta = _learn_meta(clean_q, result)
+        try:
+            ctx = build_context(session)
+        except ToolAuthError:
+            ctx = None  # unverified: nothing to attribute the row to (never default an identity)
+        if ctx is not None:
+            assistant_learning.record_interaction(
+                ctx, question=clean_q, intent=meta["intent"], mode=meta["mode"],
+                answered=meta["answered"],
+                latency_ms=int((time.monotonic() - started) * 1000))
+    return result
+
+
+def _ask_assistant_inner(question: str, session: Dict[str, Any]) -> Dict[str, Any]:
     """
     Orchestrates one question. Returns {answer, sources, suggestions}.
     Raises nothing at the caller: every internal failure is logged LOUDLY to

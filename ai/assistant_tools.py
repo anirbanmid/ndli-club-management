@@ -8,10 +8,12 @@ Design rules enforced here (and asserted by tests/test_assistant_api.py):
 
 1. READ-ONLY BY CONSTRUCTION. Every tool only calls CSVEngine.read_all /
    CSVEngine.search / read-only helpers. This module NEVER writes to any CSV.
-   The only filesystem write the assistant stack may perform is the append-only
-   feedback CSV and the assistant_issues.log, and both live in
-   ai/assistant_core.py -- not here. `FORBIDDEN_WRITE_CALLS` lists the CSV write
-   APIs and the test suite asserts none of them appear in this module's source.
+   The only filesystem writes the assistant stack may perform are the learning
+   store (ai/assistant_learning: interactions/preferences + its sanctioned
+   retention & "forget this user" rewrites) plus the append-only feedback CSV
+   and assistant_issues.log in ai/assistant_core.py -- none of them here.
+   `FORBIDDEN_WRITE_CALLS` lists the CSV write APIs and the test suite asserts
+   none of them appear in this module's source.
 
 2. ROLE SCOPING SERVER-SIDE. Every tool receives a ToolContext built from the
    VERIFIED session (AuthService.validate_session result) -- never from client
@@ -32,6 +34,7 @@ Tool whitelist (exactly these names, nothing else is reachable):
     issues.list                   renewals.due
     metrics.get                   analytics.strategic_report
     help.steps                    advisor.nudges
+    learning.insights
 """
 from typing import Any, Callable, Dict, List, Optional
 
@@ -610,6 +613,29 @@ def _advisor_nudges(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
 # Registry + single entry point
 # ---------------------------------------------------------------------------
 
+
+def _learning_insights(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
+    """
+    Slice F: how Robu is doing -- what people ask, what they rate up/down and
+    what Robu could not answer (the gap list that drives the next docs revision).
+
+    READ-ONLY: it only aggregates the learning store (ai/assistant_learning) and
+    the Slice B feedback dataset. Visibility follows the server-side
+    NDLI_ASSISTANT_LOG_VISIBILITY mode (locked decision #5): `admin` mode makes
+    this administrator-only; `self` shows only the caller's own rows.
+    """
+    from ai import assistant_learning  # reads only; learning writes stay in that module
+    if assistant_learning.log_visibility() == "admin" and not ctx.is_admin:
+        raise ToolAuthError(
+            "learning.insights is administrator-only in the current visibility mode.")
+    return {
+        "tool": "learning.insights",
+        "scope": "admin" if ctx.is_admin else "user %s" % ctx.user_id,
+        "interactions": assistant_learning.interactions_summary(ctx),
+        "feedback": assistant_learning.feedback_summary(ctx),
+    }
+
+
 # The whitelisted, read-only tool surface. NOTHING outside this dict is
 # reachable through AssistantTools.call().
 TOOL_WHITELIST: Dict[str, Callable[..., Dict[str, Any]]] = {
@@ -623,6 +649,7 @@ TOOL_WHITELIST: Dict[str, Callable[..., Dict[str, Any]]] = {
     "analytics.strategic_report": _analytics_strategic_report,
     "help.steps": _help_steps,
     "advisor.nudges": _advisor_nudges,
+    "learning.insights": _learning_insights,
 }
 
 TOOL_NAMES = frozenset(TOOL_WHITELIST.keys())

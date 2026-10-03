@@ -53,6 +53,8 @@ from state_zone_mapper import (
 )
 from ai.decision_module import AIDecisionEngine
 from ai.assistant_core import ask_assistant, log_assistant_issue, nudges_for, record_feedback
+from ai.assistant_tools import ToolAuthError, build_context, call_tool
+from ai import assistant_learning
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -1135,6 +1137,47 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"success": True, **result})
             return
 
+        # AI Assistant (Round 6 · Slice F) — learning loop reads.
+        # Visibility is server-side (NDLI_ASSISTANT_LOG_VISIBILITY, locked decision #5).
+        if path == "/api/assistant/insights":
+            session = self._require_session()
+            if not session:
+                return
+            try:
+                result = call_tool("learning.insights", build_context(session))
+            except ToolAuthError as exc:
+                self._send_error(str(exc), status=403)
+                return
+            except Exception as exc:
+                # LOUD: a broken learning report must never look like an empty one.
+                log_assistant_issue("app.assistant_insights", f"insights endpoint error: {exc!r}",
+                                    {"user": session.get("user_id")})
+                self._send_error("Learning report failed (server error).", status=500)
+                return
+            self._send_json({"success": True, **result})
+            return
+
+        if path == "/api/assistant/interactions":
+            session = self._require_session()
+            if not session:
+                return
+            try:
+                limit = int(query_params.get("limit", ["200"])[0] or 200)
+            except (TypeError, ValueError):
+                limit = 200
+            try:
+                ctx = build_context(session)
+                rows = assistant_learning.read_interactions(ctx, limit=limit)
+            except Exception as exc:
+                log_assistant_issue("app.assistant_interactions", f"interactions endpoint error: {exc!r}",
+                                    {"user": session.get("user_id")})
+                self._send_error("Interaction log could not be read (server error).", status=500)
+                return
+            self._send_json({"success": True,
+                             "visibility": assistant_learning.log_visibility(),
+                             "interactions": rows})
+            return
+
         if path == "/api/sync/status":
             master_clubs = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
             master_acts = len(CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS))
@@ -1612,6 +1655,77 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error(err, status=400)
                 return
             self._send_json({"success": True, "message": "Feedback recorded. Thank you."})
+            return
+
+        # POST /api/assistant/outcome -> outcome signal row (Slice F learning loop)
+        if path == "/api/assistant/outcome":
+            session = self._require_session()
+            if not session:
+                return
+            event = str(body.get("event", "")).strip()
+            question = str(body.get("question", "")).strip()
+            detail = str(body.get("detail", "")).strip()
+            try:
+                ok = assistant_learning.record_outcome(
+                    build_context(session), event, question=question, detail=detail)
+            except ToolAuthError as exc:
+                self._send_error(str(exc), status=401)
+                return
+            except Exception as exc:
+                log_assistant_issue("app.assistant_outcome", f"outcome endpoint error: {exc!r}",
+                                    {"user": session.get("user_id"), "event": event})
+                self._send_error("Outcome could not be recorded (server error).", status=500)
+                return
+            if not ok:
+                self._send_error("Unknown outcome event.", status=400)
+                return
+            self._send_json({"success": True, "message": "Outcome recorded."})
+            return
+
+        # POST /api/assistant/preferences -> preference memory (own rows only)
+        if path == "/api/assistant/preferences":
+            session = self._require_session()
+            if not session:
+                return
+            try:
+                ctx = build_context(session)
+            except ToolAuthError as exc:
+                self._send_error(str(exc), status=401)
+                return
+            key = str(body.get("key", "")).strip()
+            if not key:
+                self._send_json({"success": True,
+                                 "preferences": assistant_learning.get_preferences(ctx.user_id)})
+                return
+            ok, err = assistant_learning.set_preference(
+                ctx, key, str(body.get("value", "")))
+            if not ok:
+                self._send_error(err, status=400)
+                return
+            self._send_json({"success": True,
+                             "preferences": assistant_learning.get_preferences(ctx.user_id)})
+            return
+
+        # POST /api/assistant/forget -> privacy control (handoff §6.5, ships WITH Slice F)
+        if path == "/api/assistant/forget":
+            session = self._require_session()
+            if not session:
+                return
+            target = str(body.get("user_id", "") or session.get("user_id", "")).strip()
+            try:
+                ok, message = assistant_learning.forget_user(build_context(session), target)
+            except ToolAuthError as exc:
+                self._send_error(str(exc), status=401)
+                return
+            except Exception as exc:
+                log_assistant_issue("app.assistant_forget", f"forget endpoint error: {exc!r}",
+                                    {"user": session.get("user_id"), "target": target})
+                self._send_error("Forget request failed (server error).", status=500)
+                return
+            if not ok:
+                self._send_error(message, status=403)
+                return
+            self._send_json({"success": True, "message": message})
             return
 
         # Authentication: Login
