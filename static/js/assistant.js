@@ -605,23 +605,18 @@
     card.appendChild(text);
 
     var link = el("a", "ndli-asst-card-link", s.label || "Open");
-    link.href = "#"; // placeholder deep link — routed via the event below
+    link.href = s.href || "#"; // real target; navigation is routed below
     link.setAttribute("data-deep-link", s.href || "#");
-    link.setAttribute("aria-label", (s.label || "Open") + ": " + (s.title || "suggestion") + " (placeholder link)");
+    link.setAttribute("aria-label", (s.label || "Open") + ": " + (s.title || "suggestion"));
     link.addEventListener("click", function (event) {
       event.preventDefault();
       var target = link.getAttribute("data-deep-link") || "#";
-      // Slice B/E seam: route deep links server-side aware.
+      // Slice B/E seam: still emitted for listeners, but the router below
+      // performs the actual navigation now (Slice E: real deep links).
       document.dispatchEvent(
         new CustomEvent("ndli:assistant-deep-link", { detail: { href: target } })
       );
-      if (window.UI && typeof window.UI.toast === "function") {
-        window.UI.toast("Deep link (placeholder): " + target, {
-          type: "info",
-          title: "Assistant",
-          dur: 3200
-        });
-      }
+      executeDeepLink(target);
     });
     card.appendChild(link);
     return card;
@@ -741,17 +736,222 @@
     });
 
     autosize();
+
+    // Slice E: run any deep link that arrived via the URL hash
+    // (cross-portal links and login-gate passes land here).
+    processDeepLinkHash();
+  }
+
+  /* ========================================================================
+     2c. Deep-link router (Slice E) — suggestion cards navigate for real.
+
+     Card hrefs look like /portal#renewal-attention, /admin#dashboard or
+     /manual. The router maps each key to the right SPA tab + scroll/modal
+     action on the page it belongs to, and navigates across portals (and
+     through the login gate) via the URL hash, which is re-processed on load.
+     ==================================================================== */
+  function toastNote(message) {
+    if (window.UI && typeof window.UI.toast === "function") {
+      window.UI.toast(message, { type: "info", title: "Assistant", dur: 3200 });
+    }
+  }
+
+  function currentPortal() {
+    var p = window.location.pathname || "";
+    if (p.indexOf("/employee") === 0) return "employee";
+    if (p.indexOf("/admin") === 0) return "admin";
+    return "landing";
+  }
+
+  function activateTab(target) {
+    if (!target) return;
+    var btn = document.querySelector('.tab-btn[data-target="' + target + '"]');
+    if (btn && !btn.classList.contains("active")) btn.click();
+  }
+
+  function scrollToEl(elx) {
+    if (elx && elx.scrollIntoView) elx.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function nearestCard(elx) {
+    return elx && elx.closest ? (elx.closest(".card") || elx) : elx;
+  }
+
+  function focusEl(elx) {
+    if (!elx) return;
+    setTimeout(function () {
+      try { elx.focus({ preventScroll: true }); } catch (e) { try { elx.focus(); } catch (e2) {} }
+    }, 350);
+  }
+
+  function openRemindersOrRenewals(portal) {
+    if (portal === "admin") {
+      if (typeof window.openRenewalAttentionModal === "function") {
+        window.openRenewalAttentionModal("ALL");
+      } else {
+        scrollToEl(document.getElementById("card-renewal-attention"));
+      }
+      return;
+    }
+    if (typeof window.openEmployeeRemindersListModal === "function") {
+      window.openEmployeeRemindersListModal();
+    } else {
+      scrollToEl(document.getElementById("employee-reminders-kpi-card"));
+    }
+  }
+
+  var DEEP_LINK_ACTIONS = {
+    "renewal-attention": {
+      portals: ["employee", "admin"],
+      tab: { employee: "tab-activity", admin: "tab-dashboard" },
+      run: openRemindersOrRenewals
+    },
+    "issues": {
+      portals: ["employee", "admin"],
+      tab: { employee: "tab-activity", admin: "tab-dashboard" },
+      run: openRemindersOrRenewals   // reported issues + reminders live in this list
+    },
+    "help-renewal": {
+      portals: ["employee", "admin", "landing"],
+      open: "/manual"
+    },
+    "my-quota": {
+      portals: ["employee"],
+      tab: { employee: "tab-activity" },
+      run: function () { scrollToEl(nearestCard(document.getElementById("quota-clubs-count"))); }
+    },
+    "log-activity": {
+      portals: ["employee"],
+      tab: { employee: "tab-activity" },
+      run: function () {
+        var form = document.getElementById("sec-a-form");
+        scrollToEl(nearestCard(form));
+        focusEl(form && form.querySelector("input, select, textarea"));
+      }
+    },
+    "activities": {
+      portals: ["employee"],
+      tab: { employee: "tab-history" },
+      run: function () {
+        scrollToEl(nearestCard(document.getElementById("activities-tbody")));
+      }
+    },
+    "clubs": {
+      portals: ["employee"],
+      tab: { employee: "tab-search" },
+      run: function () {
+        scrollToEl(nearestCard(document.getElementById("search-input")));
+        focusEl(document.getElementById("search-input"));
+      }
+    },
+    "new-issue": {
+      portals: ["employee"],
+      tab: { employee: "tab-search" },
+      run: function () {
+        scrollToEl(nearestCard(document.getElementById("search-input")));
+        focusEl(document.getElementById("search-input"));
+        toastNote("Find the club, open it, then use 'Report Issue' to log an unresolved issue.");
+      }
+    },
+    "dashboard": {
+      portals: ["admin"],
+      tab: { admin: "tab-dashboard" },
+      run: function () { scrollToEl(document.getElementById("tab-dashboard")); }
+    },
+    "ai-insights": {
+      portals: ["admin"],
+      tab: { admin: "tab-ai" },
+      run: function () { scrollToEl(document.getElementById("tab-ai")); }
+    }
+  };
+
+  function parseDeepLink(href) {
+    var h = String(href || "");
+    if (h.indexOf("/manual") === 0) return { kind: "manual" };
+    var hashIdx = h.indexOf("#");
+    var key = hashIdx >= 0 ? h.slice(hashIdx + 1) : "";
+    if (h.indexOf("/admin") === 0) return { kind: "route", portal: "admin", key: key };
+    if (h.indexOf("/portal") === 0 || h.indexOf("/employee") === 0) {
+      return { kind: "route", portal: "employee", key: key };
+    }
+    if (key) return { kind: "route", portal: null, key: key };
+    return { kind: "url", href: h };
+  }
+
+  function executeDeepLink(href) {
+    var parsed = parseDeepLink(href);
+    if (parsed.kind === "manual") {
+      window.open("/manual", "_blank", "noopener");
+      return;
+    }
+    if (parsed.kind === "url") {
+      if (parsed.href && parsed.href !== "#") window.location.href = parsed.href;
+      return;
+    }
+    var key = parsed.key;
+    var action = DEEP_LINK_ACTIONS[key];
+    if (!action) {
+      toastNote("That link is not available yet.");
+      return;
+    }
+    var here = currentPortal();
+    var target = parsed.portal || here;
+    // Landing page (or wrong portal) -> navigate; the hash is processed on load
+    // (retries until the portal view is past its login gate).
+    if (here === "landing" || (target !== here && action.portals.indexOf(target) >= 0)) {
+      var page = target === "admin" ? "/admin" : "/employee";
+      window.location.href = page + "#" + key;
+      return;
+    }
+    runDeepLinkAction(key, here);
+  }
+
+  function runDeepLinkAction(key, portal) {
+    var action = DEEP_LINK_ACTIONS[key];
+    if (!action) return false;
+    if (action.open) {
+      window.open(action.open, "_blank", "noopener");
+      return true;
+    }
+    if (action.portals.indexOf(portal) < 0) return false;
+    activateTab((action.tab || {})[portal]);
+    action.run(portal);
+    return true;
+  }
+
+  function portalReady(portal) {
+    var probe = portal === "admin"
+      ? document.getElementById("tab-dashboard")
+      : document.getElementById("employee-portal-view");
+    return !!probe && probe.offsetParent !== null;
+  }
+
+  function processDeepLinkHash(attempt) {
+    var key = String(window.location.hash || "").replace(/^#/, "");
+    if (!key || !DEEP_LINK_ACTIONS[key]) return;
+    var portal = currentPortal();
+    if (portal === "landing") return;
+    if (!portalReady(portal)) {
+      if ((attempt || 0) < 40) {
+        setTimeout(function () { processDeepLinkHash((attempt || 0) + 1); }, 1500);
+      }
+      return;
+    }
+    if (runDeepLinkAction(key, portal)) {
+      history.replaceState(null, "", window.location.pathname);
+    }
   }
 
   /* ========================================================================
      3. Public handle (tests, quick actions, Slice E proactive badge)
      ==================================================================== */
   window.NDLIAssistant = {
-    version: "slice-a-mock",
+    version: "slice-e-deeplinks",
     open: open,
     close: close,
     toggle: toggle,
     ask: send,
+    deepLink: executeDeepLink,
     showBadge: function (count) {
       var badge = $("ndli-asst-badge");
       if (!badge) return;
