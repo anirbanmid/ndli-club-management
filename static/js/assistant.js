@@ -784,12 +784,33 @@
     }, 350);
   }
 
-  function openRemindersOrRenewals(portal) {
+  // Slice E fix (2026-10-03): these two keys used to share one handler, so the
+  // renewal card opened the employee issue-reminders queue ("Due Unresolved
+  // Issue Reminders Queue"). Each key now opens the list it actually names.
+  function openRenewalAttention(portal) {
     if (portal === "admin") {
       if (typeof window.openRenewalAttentionModal === "function") {
         window.openRenewalAttentionModal("ALL");
       } else {
         scrollToEl(document.getElementById("card-renewal-attention"));
+      }
+      return;
+    }
+    // Employee renewal work happens in the clubs table (Last / Upcoming Renewal
+    // Date columns; clicking a row opens the Edit & Renewal panel).
+    var table = document.querySelector("#tab-search .table-scroll-container")
+      || document.getElementById("search-results-tbody")
+      || document.getElementById("search-input");
+    scrollToEl(table);
+    toastNote("Renewal dates for your clubs are in this table (Last / Upcoming Renewal Date). Click a row to open its renewal panel.");
+  }
+
+  function openIssuesList(portal) {
+    if (portal === "admin") {
+      if (typeof window.openAdminEscalationsListModal === "function") {
+        window.openAdminEscalationsListModal();
+      } else {
+        scrollToEl(document.getElementById("card-admin-escalations"));
       }
       return;
     }
@@ -803,13 +824,13 @@
   var DEEP_LINK_ACTIONS = {
     "renewal-attention": {
       portals: ["employee", "admin"],
-      tab: { employee: "tab-activity", admin: "tab-dashboard" },
-      run: openRemindersOrRenewals
+      tab: { employee: "tab-search", admin: "tab-dashboard" },
+      run: openRenewalAttention
     },
     "issues": {
       portals: ["employee", "admin"],
       tab: { employee: "tab-activity", admin: "tab-dashboard" },
-      run: openRemindersOrRenewals   // reported issues + reminders live in this list
+      run: openIssuesList
     },
     "help-renewal": {
       portals: ["employee", "admin", "landing"],
@@ -896,6 +917,13 @@
     }
     var here = currentPortal();
     var target = parsed.portal || here;
+    // Slice E fix: suggestion cards carry generic hrefs (/portal#key) even when
+    // shown on the admin portal. If THIS portal can handle the key, do it here
+    // instead of bouncing the user to the other portal's login gate.
+    if (here !== "landing" && action.portals.indexOf(here) >= 0) {
+      runDeepLinkAction(key, here);
+      return;
+    }
     // Landing page (or wrong portal) -> navigate; the hash is processed on load
     // (retries until the portal view is past its login gate).
     if (here === "landing" || (target !== here && action.portals.indexOf(target) >= 0)) {
