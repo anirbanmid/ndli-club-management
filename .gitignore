@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.class
+*.tmp*
+.DS_Store
+Thumbs.db
+*.zip
+
+# ---- Runtime data: NEVER in git (2026-10-04: tracking data/ leaked accounts,
+# ---- hashes, club contact emails and the PI signature into the repo history).
+# ---- init_db provisions this tree on first run; a fresh clone is code-only.
+data/
+
+# Generated seed credentials (never commit)
+data/.seed_credentials.json
+# Generated QR signing key (never commit -- losing control = forgeable QRs)
+data/.qr_signing_key
+data/backups/backup_*/
+
+# Runtime session tokens / pull marker must never be committed
+data/sessions.json
+data/.drive_pull_done
+
+# Local rollback scratch produced by deploy-kit installers -- NEVER commit
+*.bak
+*.pre_*
+
+# Dev tooling artifacts
+*.code-workspace
+ndli_promo_video.mp4
+restore_stable_v2.bat

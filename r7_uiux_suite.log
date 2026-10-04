@@ -1,0 +1,1649 @@
+.............................................................................................................................................................................................................s......................................................................Traceback (most recent call last):
+  File "/home/anirbanmid/ndli-club-management/app.py", line 1680, in do_POST
+    self._handle_do_POST()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/anirbanmid/ndli-club-management/app.py", line 1839, in _handle_do_POST
+    success, err, session_data = AuthService.authenticate(identifier, password)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/unittest/mock.py", line 1167, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/unittest/mock.py", line 1171, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/unittest/mock.py", line 1226, in _execute_mock_call
+    raise effect
+RuntimeError: Simulated internal exception
+................................................................................................................
+----------------------------------------------------------------------
+Ran 388 tests in 144.928s
+
+OK (skipped=1)
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 111, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:29] POST /api/auth/login
+[04/Oct/2026 10:32:29] GET /api/admin/metrics
+[04/Oct/2026 10:32:29] GET /api/admin/metrics
+[04/Oct/2026 10:32:29] GET /api/admin/metrics
+[04/Oct/2026 10:32:29] GET /api/admin/metrics
+[04/Oct/2026 10:32:29] GET /api/admin/metrics
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 111 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 111, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:30] POST /api/auth/login
+[04/Oct/2026 10:32:30] GET /api/admin/metrics
+[04/Oct/2026 10:32:30] GET /api/admin/ai-insights
+[04/Oct/2026 10:32:30] GET /api/admin/renewal-attention
+[04/Oct/2026 10:32:30] POST /api/auth/login
+[04/Oct/2026 10:32:30] GET /api/auth/me
+[04/Oct/2026 10:32:30] POST /api/clubs/create
+[04/Oct/2026 10:32:30] GET /api/clubs/search
+[04/Oct/2026 10:32:30] GET /api/clubs/details
+[04/Oct/2026 10:32:30] GET /api/clubs/details
+[04/Oct/2026 10:32:30] GET /api/clubs/details
+[04/Oct/2026 10:32:30] POST /api/clubs/renew
+[04/Oct/2026 10:32:30] POST /api/clubs/renew
+[04/Oct/2026 10:32:30] GET /
+[04/Oct/2026 10:32:30] GET /api/state-zone/lookup
+[04/Oct/2026 10:32:30] GET /api/state-zone/map
+[04/Oct/2026 10:32:30] GET /api/states
+[04/Oct/2026 10:32:30] GET /api/states-zones
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:31] POST /api/auth/login
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/auth/login
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+[04/Oct/2026 10:32:31] POST /api/assistant/ask
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:33] POST /api/auth/login
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/auth/login
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/auth/login
+[04/Oct/2026 10:32:33] POST /api/assistant/ask
+[04/Oct/2026 10:32:33] POST /api/assistant/feedback
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:34] POST /api/auth/login
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+[04/Oct/2026 10:32:34] POST /api/assistant/feedback
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:35] POST /api/auth/login
+[04/Oct/2026 10:32:35] POST /api/assistant/ask
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:37] POST /api/auth/login
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+[04/Oct/2026 10:32:37] POST /api/auth/login
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+[04/Oct/2026 10:32:37] POST /api/assistant/ask
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:40] POST /api/auth/login
+[04/Oct/2026 10:32:40] POST /api/assistant/ask
+[04/Oct/2026 10:32:40] POST /api/auth/login
+[04/Oct/2026 10:32:40] POST /api/assistant/ask
+[04/Oct/2026 10:32:40] POST /api/assistant/ask
+[04/Oct/2026 10:32:40] POST /api/assistant/ask
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:41] POST /api/auth/login
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+[04/Oct/2026 10:32:41] POST /api/assistant/ask
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:45] POST /api/auth/login
+[04/Oct/2026 10:32:45] POST /api/admin/clubs/delete
+[04/Oct/2026 10:32:45] POST /api/admin/clubs/delete
+[04/Oct/2026 10:32:46] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:46] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:46] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:46] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:46] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:47] POST /api/admin/data/reset-test-data
+[04/Oct/2026 10:32:49] GET /api/admin/backup/status
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/clubs/create
+[04/Oct/2026 10:32:55] POST /api/clubs/create
+[04/Oct/2026 10:32:55] POST /api/clubs/create
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:55] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/clubs/create
+[04/Oct/2026 10:32:56] POST /api/clubs/update
+[04/Oct/2026 10:32:56] POST /api/auth/login
+[04/Oct/2026 10:32:56] POST /api/clubs/update
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 23 existing clubs (non-destructive startup).
+[*] Preserving 111 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:00] POST /api/auth/login
+[04/Oct/2026 10:33:00] POST /api/certificate/signature
+[04/Oct/2026 10:33:00] POST /api/certificate/signature
+[04/Oct/2026 10:33:00] POST /api/certificate/signature
+[04/Oct/2026 10:33:01] GET /verify
+[04/Oct/2026 10:33:01] GET /certificate/verify
+[04/Oct/2026 10:33:01] GET /verify
+[04/Oct/2026 10:33:01] GET /api/certificate/verify
+[04/Oct/2026 10:33:01] GET /api/certificate/verify
+[04/Oct/2026 10:33:01] GET /api/certificate/verify
+[04/Oct/2026 10:33:01] GET /api/certificate/verify
+[04/Oct/2026 10:33:01] GET /static/js/qrcode.min.js
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 112 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 112, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:03] POST /api/auth/login
+[04/Oct/2026 10:33:03] GET /api/admin/renewal-attention
+[04/Oct/2026 10:33:03] GET /api/clubs/details
+[04/Oct/2026 10:33:03] GET /api/clubs/search
+[04/Oct/2026 10:33:03] POST /api/clubs/update
+[04/Oct/2026 10:33:03] GET /api/admin/metrics
+[04/Oct/2026 10:33:03] POST /api/clubs/renew
+[04/Oct/2026 10:33:03] GET /employee
+[04/Oct/2026 10:33:03] GET /admin
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:05] POST /api/auth/login
+[04/Oct/2026 10:33:05] POST /api/auth/login
+[04/Oct/2026 10:33:05] GET /api/admin/employees
+[04/Oct/2026 10:33:05] POST /api/auth/login
+[04/Oct/2026 10:33:05] POST /api/admin/employees/create
+[04/Oct/2026 10:33:05] POST /api/admin/employees/status
+[04/Oct/2026 10:33:05] POST /api/activity/log
+[04/Oct/2026 10:33:05] POST /api/clubs/create
+[04/Oct/2026 10:33:05] POST /api/auth/login
+[04/Oct/2026 10:33:05] POST /api/admin/employees/update
+[04/Oct/2026 10:33:05] POST /api/admin/employees/update
+[04/Oct/2026 10:33:05] POST /api/auth/login
+[04/Oct/2026 10:33:05] POST /api/admin/employees/create
+[04/Oct/2026 10:33:05] POST /api/admin/employees/create
+[04/Oct/2026 10:33:06] POST /api/auth/login
+[04/Oct/2026 10:33:06] POST /api/admin/employees/update
+[04/Oct/2026 10:33:06] POST /api/admin/employees/update
+[04/Oct/2026 10:33:06] POST /api/auth/login
+[04/Oct/2026 10:33:06] GET /api/admin/employees
+[04/Oct/2026 10:33:06] POST /api/admin/employees/status
+[04/Oct/2026 10:33:06] POST /api/admin/employees/create
+[04/Oct/2026 10:33:06] POST /api/admin/employees/update
+[04/Oct/2026 10:33:06] GET /api/admin/employees
+[04/Oct/2026 10:33:06] POST /api/admin/employees/status
+[04/Oct/2026 10:33:06] POST /api/admin/employees/create
+[04/Oct/2026 10:33:06] POST /api/admin/employees/update
+[04/Oct/2026 10:33:06] POST /api/auth/login
+[04/Oct/2026 10:33:06] POST /api/admin/employees/create
+[04/Oct/2026 10:33:06] POST /api/admin/employees/update
+[04/Oct/2026 10:33:06] POST /api/auth/login
+[04/Oct/2026 10:33:07] POST /api/admin/employees/create
+[04/Oct/2026 10:33:07] POST /api/auth/login
+[04/Oct/2026 10:33:07] POST /api/admin/employees/update
+[04/Oct/2026 10:33:07] GET /api/auth/me
+[04/Oct/2026 10:33:07] POST /api/auth/login
+[04/Oct/2026 10:33:07] POST /api/admin/employees/update
+[04/Oct/2026 10:33:07] POST /api/auth/login
+[04/Oct/2026 10:33:07] POST /api/auth/login
+[04/Oct/2026 10:33:07] POST /api/admin/employees/update
+[04/Oct/2026 10:33:08] POST /api/auth/login
+[04/Oct/2026 10:33:08] POST /api/admin/employees/update
+[04/Oct/2026 10:33:08] GET /api/employees/roster
+[04/Oct/2026 10:33:08] GET /api/employees/profile
+[04/Oct/2026 10:33:08] POST /api/auth/login
+[04/Oct/2026 10:33:08] GET /api/auth/me
+[04/Oct/2026 10:33:08] POST /api/auth/login
+[04/Oct/2026 10:33:08] POST /api/admin/employees/update
+[04/Oct/2026 10:33:08] GET /api/auth/me
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:10] POST /api/auth/login
+[04/Oct/2026 10:33:10] GET /api/admin/employee-performance
+[04/Oct/2026 10:33:10] GET /api/admin/employee-performance
+[04/Oct/2026 10:33:10] GET /api/admin/employee-performance
+[04/Oct/2026 10:33:10] GET /api/admin/employee-performance
+[04/Oct/2026 10:33:10] GET /api/admin/employee-performance
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:12] POST /api/auth/login
+[04/Oct/2026 10:33:12] POST /api/issues/resolve
+[04/Oct/2026 10:33:12] GET /docs/images/06_automated_backups.png
+[04/Oct/2026 10:33:12] GET /api/employee/download/activity-log
+[04/Oct/2026 10:33:12] POST /api/admin/backup/restore
+[04/Oct/2026 10:33:12] POST /api/admin/backup/restore
+[04/Oct/2026 10:33:15] POST /api/admin/backup/restore
+[04/Oct/2026 10:33:15] POST /api/issues/resolve
+[04/Oct/2026 10:33:15] GET /api/admin/download/master-clubs
+[04/Oct/2026 10:33:24] GET /api/admin/backup/status
+[04/Oct/2026 10:33:25] POST /api/admin/backup/trigger
+[04/Oct/2026 10:33:25] GET /api/employee/download/activity-log
+[04/Oct/2026 10:33:25] GET /api/employee/download/clubs-log
+[04/Oct/2026 10:33:25] GET /api/employee/download/activity-log
+[04/Oct/2026 10:33:25] POST /api/issues/create
+[04/Oct/2026 10:33:25] POST /api/issues/resolve
+[04/Oct/2026 10:33:25] POST /api/issues/resolve
+[04/Oct/2026 10:33:25] GET /api/issues/admin-reminders
+[04/Oct/2026 10:33:25] POST /api/issues/resolve
+[04/Oct/2026 10:33:25] POST /api/issues/resolve
+[04/Oct/2026 10:33:28] GET /api/download/user-manual
+[04/Oct/2026 10:33:28] GET /manual
+[04/Oct/2026 10:33:28] GET /user-manual
+[04/Oct/2026 10:33:28] GET /documentation
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 115 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 115, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /api/admin/employees
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /api/auth/me
+[04/Oct/2026 10:33:41] POST /api/admin/employees/status
+[04/Oct/2026 10:33:41] GET /api/auth/me
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] POST /api/activity/log
+[04/Oct/2026 10:33:41] POST /api/admin/employees/status
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /admin
+[04/Oct/2026 10:33:41] GET /employee
+[04/Oct/2026 10:33:41] GET /
+[04/Oct/2026 10:33:41] GET /admin
+[04/Oct/2026 10:33:41] GET /admin
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /api/auth/me
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /api/auth/me
+[04/Oct/2026 10:33:41] POST /api/auth/login
+[04/Oct/2026 10:33:41] GET /api/auth/me
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] GET /api/auth/me
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] GET /api/auth/me
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] GET /api/auth/me
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] GET /api/auth/me
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] POST /api/auth/login
+[04/Oct/2026 10:33:42] GET /employee
+[04/Oct/2026 10:33:42] POST /api/activity/log
+[04/Oct/2026 10:33:42] POST /api/activity/log
+[04/Oct/2026 10:33:42] POST /api/clubs/update
+[04/Oct/2026 10:33:42] GET /api/clubs/search
+[04/Oct/2026 10:33:42] POST /api/clubs/update
+[04/Oct/2026 10:33:42] GET /login
+[04/Oct/2026 10:33:42] GET /portal
+[04/Oct/2026 10:33:42] GET /admin
+[04/Oct/2026 10:33:42] GET /employee
+[04/Oct/2026 10:33:42] GET /employee/EMP01
+[04/Oct/2026 10:33:42] GET /employee/EMP02
+[04/Oct/2026 10:33:42] GET /employee/EMP03
+[04/Oct/2026 10:33:42] GET /employee/EMP04
+[04/Oct/2026 10:33:42] GET /employee/EMP05
+[04/Oct/2026 10:33:42] GET /employee/EMP06
+[04/Oct/2026 10:33:42] GET /employee/EMP07
+[04/Oct/2026 10:33:42] GET /employee
+[04/Oct/2026 10:33:42] GET /api/admin/metrics
+[04/Oct/2026 10:33:42] GET /
+[04/Oct/2026 10:33:42] GET /portal
+[04/Oct/2026 10:33:42] GET /login
+[04/Oct/2026 10:33:42] GET /employee/login
+[04/Oct/2026 10:33:42] GET /api/admin/renewal-attention
+[04/Oct/2026 10:33:42] GET /api/clubs/details
+[04/Oct/2026 10:33:42] GET /api/clubs/details
+[04/Oct/2026 10:33:42] GET /api/admin/renewal-attention
+[04/Oct/2026 10:33:42] GET /api/clubs/details
+[04/Oct/2026 10:33:42] GET /api/clubs/details
+[04/Oct/2026 10:33:42] GET /api/clubs/details
+[04/Oct/2026 10:33:42] GET /employee
+[04/Oct/2026 10:33:42] GET /static/js/app.js
+[04/Oct/2026 10:33:42] GET /static/css/style.css
+[04/Oct/2026 10:33:42] GET /static/css/style.css
+[04/Oct/2026 10:33:42] GET /static/js/app.js
+[04/Oct/2026 10:33:43] POST /api/auth/login
+[04/Oct/2026 10:33:43] GET /api/certificate/settings
+[04/Oct/2026 10:33:43] POST /api/certificate/settings
+[04/Oct/2026 10:33:43] GET /api/certificate/settings
+[04/Oct/2026 10:33:43] POST /api/certificate/signature
+[04/Oct/2026 10:33:43] POST /api/certificate/signature
+[04/Oct/2026 10:33:43] GET /api/certificate/signature
+[04/Oct/2026 10:33:43] GET /api/certificate/settings
+[04/Oct/2026 10:33:43] POST /api/auth/login
+[04/Oct/2026 10:33:43] GET /api/certificate/settings
+[04/Oct/2026 10:33:43] POST /api/certificate/settings
+[04/Oct/2026 10:33:43] POST /api/certificate/signature
+[04/Oct/2026 10:33:43] GET /api/certificate/signature
+[04/Oct/2026 10:33:43] POST /api/auth/verify-password
+[04/Oct/2026 10:33:43] POST /api/auth/verify-password
+[04/Oct/2026 10:33:43] POST /api/auth/verify-password
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 25 existing clubs (non-destructive startup).
+[*] Preserving 121 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 25, 'total_master_activities': 121, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 25 existing clubs (non-destructive startup).
+[*] Preserving 121 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 25, 'total_master_activities': 121, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[*] Cold boot recovery: Restoring latest backup backup_20261004_103351_796869...
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 25 existing clubs (non-destructive startup).
+[*] Preserving 121 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 25, 'total_master_activities': 121, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:18] POST /api/auth/login
+[04/Oct/2026 10:34:18] POST /api/clubs/create
+[04/Oct/2026 10:34:19] POST /api/clubs/renew
+[04/Oct/2026 10:34:19] POST /api/clubs/renew
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/auth/login
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/create
+[04/Oct/2026 10:34:20] POST /api/clubs/update
+[04/Oct/2026 10:34:20] POST /api/clubs/update
+[04/Oct/2026 10:34:21] POST /api/auth/login
+[04/Oct/2026 10:34:21] POST /api/clubs/create
+[04/Oct/2026 10:34:21] POST /api/clubs/create
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:22] POST /api/auth/login
+[04/Oct/2026 10:34:24] POST /api/admin/backup/emergency-restore
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:26] POST /api/auth/login
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/auth/login
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/auth/login
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+[04/Oct/2026 10:34:26] POST /api/auth/login
+[04/Oct/2026 10:34:26] POST /api/clubs/create
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:27] POST /api/auth/login
+[04/Oct/2026 10:34:27] POST /api/clubs/create
+[04/Oct/2026 10:34:28] POST /api/clubs/renew
+[04/Oct/2026 10:34:28] POST /api/auth/login
+[04/Oct/2026 10:34:28] POST /api/clubs/create
+[04/Oct/2026 10:34:28] POST /api/clubs/renew
+[04/Oct/2026 10:34:32] POST /api/auth/login
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/state-zone/map
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /api/health
+[04/Oct/2026 10:34:32] GET /api/clubs/search
+[04/Oct/2026 10:34:32] GET /api/sync/status
+[04/Oct/2026 10:34:32] GET /static/../../config.py
+[04/Oct/2026 10:34:32] GET /static/..%2f..%2fconfig.py
+[04/Oct/2026 10:34:32] GET /static/....//....//config.py
+[04/Oct/2026 10:34:32] POST /api/auth/login
+[04/Oct/2026 10:34:32] GET /api/health
+
+--- [BENCHMARK] Simulating 200 Real-Time Concurrent Requests ---
+[PASS] Handled 200 concurrent real-time requests in 222.8ms! Errors: 0
+
+--- [BENCHMARK] Generating 50,000 Club Records ---
+[*] Wrote 50,000 records to disk & built indexes in: 1479.6ms
+[*] CSV on-disk size: 12.55 MB
+[*] Executing 500 O(1) key lookups across 50,000 records...
+[PASS] 500 lookups completed in 39.01ms (Average: 0.0780ms per lookup - O(1) speed!)
+[*] Testing O(1) append for new record in 50,000 record database...
+[PASS] Inserted 50,001st club in 14.21ms (Instant fast-path append, zero full-file rewrite!)
+[*] Testing search across 50,000 records...
+[PASS] Search returned 1 matches in 5.69ms
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:36] POST /api/auth/login
+[04/Oct/2026 10:34:36] POST /api/auth/login
+[04/Oct/2026 10:34:36] GET /api/admin/metrics
+[04/Oct/2026 10:34:36] GET /api/admin/ai-insights
+[04/Oct/2026 10:34:36] GET /api/admin/download/master-clubs
+[04/Oct/2026 10:34:36] GET /api/admin/backup/status
+[04/Oct/2026 10:34:36] GET /api/admin/metrics
+[04/Oct/2026 10:34:36] GET /api/admin/metrics
+[04/Oct/2026 10:34:37] POST /api/auth/login
+[04/Oct/2026 10:34:37] POST /api/auth/change-password
+[04/Oct/2026 10:34:37] POST /api/auth/change-password
+[04/Oct/2026 10:34:37] POST /api/auth/change-password
+[04/Oct/2026 10:34:37] POST /api/auth/login
+[04/Oct/2026 10:34:37] POST /api/auth/login
+[04/Oct/2026 10:34:37] POST /api/auth/change-password
+[04/Oct/2026 10:34:37] GET /api/clubs/search
+[04/Oct/2026 10:34:38] POST /api/auth/login
+[04/Oct/2026 10:34:38] POST /api/activity/log
+[04/Oct/2026 10:34:38] POST /api/auth/login
+[04/Oct/2026 10:34:38] POST /api/auth/login
+[04/Oct/2026 10:34:38] POST /api/auth/login
+[04/Oct/2026 10:34:38] GET /static/../data/master/master_users.csv
+[04/Oct/2026 10:34:38] GET /docs/../data/employees/emp01/credentials.csv
+[04/Oct/2026 10:34:38] GET /static/../data/master/master_users.csv
+[04/Oct/2026 10:34:38] GET /static/..%2fdata/master/master_users.csv
+[04/Oct/2026 10:34:39] POST /api/auth/login
+[04/Oct/2026 10:34:39] GET /api/admin/metrics
+[04/Oct/2026 10:34:39] GET /static/css/style.css
+[04/Oct/2026 10:34:39] POST /api/activity/log
+[04/Oct/2026 10:34:39] POST /api/clubs/create
+[04/Oct/2026 10:34:39] POST /api/clubs/renew
+[04/Oct/2026 10:34:39] POST /api/issues/create
+[04/Oct/2026 10:34:39] POST /api/admin/backup/trigger
+[04/Oct/2026 10:34:39] POST /api/sync/reconcile
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:42] POST /api/auth/login
+[04/Oct/2026 10:34:42] GET /api/assistant/nudges
+[04/Oct/2026 10:34:42] POST /api/auth/login
+[04/Oct/2026 10:34:42] GET /api/assistant/nudges
+[04/Oct/2026 10:34:42] GET /api/assistant/nudges
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:47] POST /api/auth/login
+[04/Oct/2026 10:34:47] POST /api/assistant/forget
+[04/Oct/2026 10:34:47] POST /api/auth/login
+[04/Oct/2026 10:34:48] POST /api/assistant/forget
+[04/Oct/2026 10:34:48] POST /api/auth/login
+[04/Oct/2026 10:34:48] GET /api/assistant/insights
+[04/Oct/2026 10:34:48] POST /api/assistant/ask
+[04/Oct/2026 10:34:48] GET /api/assistant/interactions
+[04/Oct/2026 10:34:48] POST /api/auth/login
+[04/Oct/2026 10:34:48] GET /api/assistant/interactions
+[04/Oct/2026 10:34:48] GET /api/assistant/insights
+[04/Oct/2026 10:34:48] GET /api/assistant/interactions
+[04/Oct/2026 10:34:48] POST /api/assistant/outcome
+[04/Oct/2026 10:34:48] POST /api/assistant/preferences
+[04/Oct/2026 10:34:48] POST /api/assistant/forget
+[04/Oct/2026 10:34:48] POST /api/assistant/outcome
+[04/Oct/2026 10:34:48] POST /api/assistant/outcome
+[04/Oct/2026 10:34:48] POST /api/assistant/preferences
+[04/Oct/2026 10:34:48] POST /api/assistant/preferences
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================
+[04/Oct/2026 10:34:50] POST /api/auth/login
+[04/Oct/2026 10:34:50] POST /api/assistant/ask
+[04/Oct/2026 10:34:50] POST /api/assistant/ask
+[04/Oct/2026 10:34:50] POST /api/assistant/ask
+[04/Oct/2026 10:34:50] POST /api/auth/login
+[04/Oct/2026 10:34:50] POST /api/assistant/ask
+[04/Oct/2026 10:34:50] GET /api/assistant/audit
+[04/Oct/2026 10:34:50] GET /api/assistant/privacy
+[04/Oct/2026 10:34:50] GET /api/assistant/audit
+[04/Oct/2026 10:34:50] POST /api/auth/login
+[04/Oct/2026 10:34:50] GET /api/assistant/audit
+[04/Oct/2026 10:34:50] POST /api/auth/login
+[04/Oct/2026 10:34:50] POST /api/assistant/outcome
+[04/Oct/2026 10:34:50] POST /api/assistant/outcome
+[04/Oct/2026 10:34:50] GET /api/assistant/privacy
+======================================================================
+NDLI Club Management System: Initializing Database & Auth (force=False)...
+======================================================================
+[1/5] Initialized storage hierarchy and master CSV schemas.
+[2/5] Master Admin already provisioned (kept as-is): admin@iitkgp.ac.in
+[3/5] Employee node already provisioned (kept as-is): EMP01
+[3/5] Employee node already provisioned (kept as-is): EMP02
+[3/5] Employee node already provisioned (kept as-is): EMP03
+[3/5] Employee node already provisioned (kept as-is): EMP04
+[3/5] Employee node already provisioned (kept as-is): EMP05
+[3/5] Employee node already provisioned (kept as-is): EMP06
+[3/5] Employee node already provisioned (kept as-is): EMP07
+[*] Preserving 24 existing clubs (non-destructive startup).
+[*] Preserving 120 existing support activity logs.
+[4/5] Benchmark verification complete.
+[5/5] Reconciled all nodes with Master DB: {'total_master_clubs': 24, 'total_master_activities': 120, 'employees_synced': 7}
+======================================================================
+Database & Auth Initialization Complete!
+======================================================================

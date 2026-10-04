@@ -1,0 +1,3276 @@
+/**
+ * National Digital Library of India (NDLI) Club Management System
+ * Central Office: Indian Institute of Technology Kharagpur
+ * 
+ * Author & System Architect: Dr. Anirban Mukherjee | NDLI IIT Kharagpur
+ * 
+ * Production-Ready Self-Discovering Google Apps Script Backend Engine
+ * Features:
+ * 1. Operates 24x7 natively inside any Google Drive folder with ZERO hardcoded IDs.
+ * 2. Dynamic Folder Resolution: Automatically finds the parent Google Drive folder.
+ * 3. Self-Provisioning: Automatically seeds master CSVs, employee node CSVs, and backup folder.
+ * 4. Automated 7-Day Rolling Backups: Retains the last 6 archives and auto-deletes older backups.
+ * 5. Full REST API & google.script.run Dispatcher for multi-state real-time sync across India.
+ * 6. 100% Portable: Seamlessly shifts from personal test Drive to Admin Drive with 0 code changes.
+ */
+
+// ====================================================================
+// 1. DYNAMIC SYSTEM FOLDER RESOLUTION (ZERO HARDCODED IDs)
+// ====================================================================
+
+function getSystemFolder() {
+  // 1. Check persistent script properties cache
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var cachedId = props.getProperty("SYSTEM_ROOT_FOLDER_ID");
+    if (cachedId) {
+      try {
+        var cachedFolder = DriveApp.getFolderById(cachedId);
+        if (cachedFolder && !cachedFolder.isTrashed()) {
+          return cachedFolder;
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
+
+  // 2. Direct Auto-Discovery: Search for existing master_clubs.csv in Google Drive
+  try {
+    var masterFiles = DriveApp.getFilesByName("master_clubs.csv");
+    while (masterFiles.hasNext()) {
+      var mFile = masterFiles.next();
+      if (mFile.isTrashed()) continue;
+      var mParent = mFile.getParents().hasNext() ? mFile.getParents().next() : null;
+      if (mParent && mParent.getName().toLowerCase() === "master") {
+        var dbParent = mParent.getParents().hasNext() ? mParent.getParents().next() : null;
+        if (dbParent && dbParent.getName().toLowerCase() === "databases") {
+          var sysRoot = dbParent.getParents().hasNext() ? dbParent.getParents().next() : null;
+          if (sysRoot && !sysRoot.isTrashed()) {
+            try {
+              PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", sysRoot.getId());
+            } catch (e) {}
+            return sysRoot;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 3. Search for existing databases folder in Google Drive
+  try {
+    var dbFolders = DriveApp.getFoldersByName("databases");
+    while (dbFolders.hasNext()) {
+      var dbF = dbFolders.next();
+      if (dbF.isTrashed()) continue;
+      var sysRoot = dbF.getParents().hasNext() ? dbF.getParents().next() : null;
+      if (sysRoot && !sysRoot.isTrashed()) {
+        try {
+          PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", sysRoot.getId());
+        } catch (e) {}
+        return sysRoot;
+      }
+    }
+  } catch (e) {}
+
+  // 4. Try parent folder of this Apps Script file
+  try {
+    var scriptId = ScriptApp.getScriptId();
+    var scriptFile = DriveApp.getFileById(scriptId);
+    var parents = scriptFile.getParents();
+    if (parents.hasNext()) {
+      var pFolder = parents.next();
+      if (!pFolder.isTrashed()) {
+        try {
+          PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", pFolder.getId());
+        } catch (e) {}
+        return pFolder;
+      }
+    }
+  } catch (e) {}
+
+  // 5. Default Named Folder Fallback
+  var defaultName = "NDLI_Club_Central_IITKgp";
+  try {
+    var folders = DriveApp.getFoldersByName(defaultName);
+    while (folders.hasNext()) {
+      var f = folders.next();
+      if (!f.isTrashed()) {
+        try {
+          PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", f.getId());
+        } catch (e) {}
+        return f;
+      }
+    }
+  } catch (e) {}
+
+  var newFolder = DriveApp.createFolder(defaultName);
+  try {
+    PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", newFolder.getId());
+  } catch (e) {}
+  return newFolder;
+}
+
+function getOrCreateSubfolder(parentFolder, folderName) {
+  var subs = parentFolder.getFoldersByName(folderName);
+  if (subs.hasNext()) {
+    return subs.next();
+  }
+  return parentFolder.createFolder(folderName);
+}
+
+function getOrCreateFile(folder, fileName, defaultContent, mimeType) {
+  var files = folder.getFilesByName(fileName);
+  if (files.hasNext()) {
+    var f = files.next();
+    try {
+      var content = String(f.getBlob().getDataAsString("UTF-8") || "").trim();
+      if (!content && defaultContent) {
+        f.setContent(defaultContent);
+      }
+    } catch (e) {}
+    return f;
+  }
+  return folder.createFile(fileName, defaultContent, mimeType || MimeType.PLAIN_TEXT);
+}
+
+// ====================================================================
+// 2. STATE & ZONE MAPPINGS FOR ALL INDIA
+// ====================================================================
+
+var ALL_INDIAN_STATES = [
+  "Andaman & Nicobar Island", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+  "Chandigarh", "Chhattisgarh", "Dadar & Nagar Haveli", "Daman and Diu", "Delhi",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu & Kashmir",
+  "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+  "Uttarakhand", "West Bengal"
+];
+
+var ALL_ZONES = ["North", "Central", "West", "East", "North East", "South"];
+
+var ZONE_STATE_MAP = {
+  "North": ["Jammu & Kashmir", "Ladakh", "Uttarakhand", "Himachal Pradesh", "Chandigarh", "Punjab", "Haryana", "Delhi", "Uttar Pradesh"],
+  "Central": ["Madhya Pradesh", "Chhattisgarh"],
+  "West": ["Rajasthan", "Gujarat", "Maharashtra", "Goa", "Daman and Diu", "Dadar & Nagar Haveli", "Dadra & Nagar Haveli and Daman & Diu"],
+  "East": ["Bihar", "Jharkhand", "West Bengal", "Odisha", "Orissa"],
+  "North East": ["Sikkim", "Assam", "Arunachal Pradesh", "Meghalaya", "Manipur", "Tripura", "Nagaland", "Mizoram"],
+  "South": ["Andhra Pradesh", "Telangana", "Karnataka", "Tamil Nadu", "Puducherry", "Pondicherry", "Kerala", "Andaman & Nicobar Island", "Lakshadweep"]
+};
+
+function getZoneForState(state) {
+  state = String(state || "").trim();
+  for (var zone in ZONE_STATE_MAP) {
+    var states = ZONE_STATE_MAP[zone];
+    for (var i = 0; i < states.length; i++) {
+      if (states[i].toLowerCase() === state.toLowerCase()) {
+        return zone;
+      }
+    }
+  }
+  return "North";
+}
+
+// ====================================================================
+// 3. SEED DATA FOR FIRST-RUN INITIALIZATION
+// ====================================================================
+
+var SEED_DATA = {
+  master_clubs: "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,renewal_date,status,approved_by_emp_id,updated_at,submission_timestamp,next_renewal_date\nNDLI-EMP01-002,REG-2025-EMP01-002,Delhi Advanced Technical Institute,Delhi,North,director@dati.ac.in,pres.dati@dati.ac.in,sec.dati@dati.ac.in,2024-08-15T10:00:00Z,2026-09-12T18:11:35.896723+00:00,2027-09-12,Active (Renewed),EMP01,2026-09-12T18:12:44.467301+00:00,2024-08-15T10:00:00Z,2027-09-12\nNDLI-WB-101,REG-2024-WB-001,Indian Institute of Technology Kharagpur,West Bengal,East,director@iitkgp.ac.in,president.club@iitkgp.ac.in,secretary.club@iitkgp.ac.in,2025-03-31T10:00:00Z,2026-03-31T10:00:00Z,2027-03-31,Approved,EMP04,2026-09-12T17:53:11.386905+00:00,2025-03-31T10:00:00Z,2027-03-31\nNDLI-DL-102,REG-2024-DL-002,Delhi Technological University,Delhi,North,vc@dtu.ac.in,ndli.pres@dtu.ac.in,ndli.sec@dtu.ac.in,2024-12-15T11:30:00Z,2025-12-15T11:30:00Z,2026-12-15,Approved,EMP01,2026-09-12T17:53:11.417493+00:00,2024-12-15T11:30:00Z,2026-12-15\nNDLI-MH-103,REG-2024-MH-003,College of Engineering Pune (COEP),Maharashtra,West,director@coeptech.ac.in,club.head@coeptech.ac.in,club.sec@coeptech.ac.in,2025-11-20T11:00:00Z,2026-09-12T17:53:12.362528+00:00,2028-12-31,Active (Renewed),EMP03,2026-09-12T17:53:12.362572+00:00,2025-11-20T11:00:00Z,2028-12-31\nNDLI-TN-104,REG-2024-TN-004,Anna University Chennai,Tamil Nadu,South,vc@annauniv.edu,pres.ndli@annauniv.edu,sec.ndli@annauniv.edu,2025-01-10T12:00:00Z,2026-01-10T12:00:00Z,2027-01-10,Approved,EMP07,2026-09-12T17:53:11.487063+00:00,2025-01-10T12:00:00Z,2027-01-10\nNDLI-AS-105,REG-2024-AS-005,Gauhati University,Assam,North East,vc@gauhati.ac.in,ndli.gu@gauhati.ac.in,secretary.gu@gauhati.ac.in,2025-09-30T09:15:00Z,,2026-09-30,Approved,EMP05,2026-09-12T17:53:11.528444+00:00,2025-09-30T09:15:00Z,2026-09-30\nNDLI-MP-106,REG-2024-MP-006,Maulana Azad National Institute of Technology Bhopal,Madhya Pradesh,Central,director@manit.ac.in,ndli.head@manit.ac.in,ndli.coord@manit.ac.in,2025-10-15T14:20:00Z,,2026-10-15,Approved,EMP02,2026-09-12T17:53:11.569996+00:00,2025-10-15T14:20:00Z,2026-10-15\nNDLI-KA-107,REG-2024-KA-007,Indian Institute of Science Bengaluru,Karnataka,South,director@iisc.ac.in,pres.ndli@iisc.ac.in,sec.ndli@iisc.ac.in,2025-05-01T10:30:00Z,2026-05-01T10:30:00Z,2027-05-01,Approved,EMP06,2026-09-12T17:53:11.605239+00:00,2025-05-01T10:30:00Z,2027-05-01\nNDLI-TEST-999,REG-TEST-999,Test Engineering College Raipur,Chhattisgarh,Central,patron@test.edu,pres@test.edu,sec@test.edu,2026-09-12T17:53:12.028679+00:00,,2027-09-12,Approved,EMP02,2026-09-12T17:53:12.028679+00:00,2026-09-12T17:53:12.028679+00:00,2027-09-12\nNDLI-AUTO-REN-01,REG-AUTO-01,Automated Renewal University,Assam,North East,patron@auto.edu,pres@auto.edu,sec@auto.edu,2026-09-12T17:53:12.098579+00:00,2026-09-12T17:53:12.121991+00:00,2027-09-12,Active (Renewed),EMP05,2026-09-12T17:53:12.122066+00:00,2026-09-12T17:53:12.098579+00:00,2027-09-12\n",
+  master_activities: "activity_id,emp_id,timestamp,support_type,priority_flag,club_id,notes\nACT-PRIORITY-EMP01-1789235591371,EMP01,2026-09-12T17:53:11.360461+00:00,Club Approval,1,NDLI-EMP01-002,Approved new NDLI Club: Delhi Advanced Technical Institute (NDLI-EMP01-002)\nACT-PRIORITY-EMP04-1789235591405,EMP04,2026-09-12T17:53:11.386905+00:00,Club Approval,1,NDLI-WB-101,Approved new NDLI Club: Indian Institute of Technology Kharagpur (NDLI-WB-101)\nACT-PRIORITY-EMP01-1789235591438,EMP01,2026-09-12T17:53:11.417493+00:00,Club Approval,1,NDLI-DL-102,Approved new NDLI Club: Delhi Technological University (NDLI-DL-102)\nACT-PRIORITY-EMP03-1789235591471,EMP03,2026-09-12T17:53:11.453265+00:00,Club Approval,1,NDLI-MH-103,Approved new NDLI Club: College of Engineering Pune (COEP) (NDLI-MH-103)\nACT-PRIORITY-EMP07-1789235591508,EMP07,2026-09-12T17:53:11.487063+00:00,Club Approval,1,NDLI-TN-104,Approved new NDLI Club: Anna University Chennai (NDLI-TN-104)\nACT-PRIORITY-EMP05-1789235591553,EMP05,2026-09-12T17:53:11.528444+00:00,Club Approval,1,NDLI-AS-105,Approved new NDLI Club: Gauhati University (NDLI-AS-105)\nACT-PRIORITY-EMP02-1789235591589,EMP02,2026-09-12T17:53:11.569996+00:00,Club Approval,1,NDLI-MP-106,Approved new NDLI Club: Maulana Azad National Institute of Technology Bhopal (NDLI-MP-106)\nACT-PRIORITY-EMP06-1789235591627,EMP06,2026-09-12T17:53:11.605239+00:00,Club Approval,1,NDLI-KA-107,Approved new NDLI Club: Indian Institute of Science Bengaluru (NDLI-KA-107)\nACT-EMP01-1789235591641,EMP01,2026-09-12T17:53:11.641589+00:00,Phone call and remote assistance,0,,Assisted Delhi college with registration portal\nACT-EMP01-1789235591656,EMP01,2026-09-12T17:53:11.656410+00:00,Closing of OS Ticket,0,,Ticket #4491 resolved\nACT-EMP02-1789235591687,EMP02,2026-09-12T17:53:11.687117+00:00,Online training,0,,Conducted webinar for 15 MP schools\nACT-EMP03-1789235591703,EMP03,2026-09-12T17:53:11.703423+00:00,Offline training,0,,Workshop at Pune University\nACT-EMP04-1789235591716,EMP04,2026-09-12T17:53:11.716271+00:00,Closing of OS Ticket,0,,Ticket #4502 resolved\nACT-EMP06-1789235591731,EMP06,2026-09-12T17:53:11.731945+00:00,Phone call and remote assistance,0,,Assisted Bangalore tech campus\nACT-PRIORITY-EMP02-1789235592042,EMP02,2026-09-12T17:53:12.028679+00:00,Club Approval,1,NDLI-TEST-999,Approved new NDLI Club: Test Engineering College Raipur (NDLI-TEST-999)\nACT-PRIORITY-EMP05-1789235592113,EMP05,2026-09-12T17:53:12.098579+00:00,Club Approval,1,NDLI-AUTO-REN-01,Approved new NDLI Club: Automated Renewal University (NDLI-AUTO-REN-01)\nACT-RENEW-EMP05-1789235592167,EMP05,2026-09-12T17:53:12.121991+00:00,Registration Renewal,1,NDLI-AUTO-REN-01,\"Renewal Approved for Club NDLI-AUTO-REN-01. Last Renewal Date: 2026-09-12T17:53:12.121991+00:00, Upcoming Renewal Due Date: 2027-09-12\"\nACT-EMP01-1789235592190,EMP01,2026-09-12T17:53:12.190775+00:00,Closing of OS Ticket,0,,Ticket #9999 resolved\nACT-EMP02-1789235592267,EMP02,2026-09-12T17:53:12.267272+00:00,Online training,0,,Webinar with colleges\nACT-EMP01-1789235592291-1,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 1/5]\nACT-EMP01-1789235592291-2,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 2/5]\nACT-EMP01-1789235592291-3,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 3/5]\nACT-EMP01-1789235592291-4,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 4/5]\nACT-EMP01-1789235592291-5,EMP01,2026-09-12T17:53:12.291937+00:00,Phone call and remote assistance,0,NDLI-EMP01-001,Bulk assistance to northern regional clubs [Bulk Call 5/5]\nACT-RENEW-EMP03-1789235592393,EMP03,2026-09-12T17:53:12.362528+00:00,Registration Renewal,1,NDLI-MH-103,\"Renewal Approved for Club NDLI-MH-103. Last Renewal Date: 2026-09-12T17:53:12.362528+00:00, Upcoming Renewal Due Date: 2028-12-31\"\nACT-RENEW-EMP03-1789236541528,EMP03,2026-09-12T18:09:01.483204+00:00,Registration Renewal,1,NDLI-EMP01-002,\"Renewal Approved for Club NDLI-EMP01-002. Last Renewal Date: 2026-09-12T18:09:01.483204+00:00, Upcoming Renewal Due Date: 2027-09-12\"\nACT-RENEW-EMP03-1789236695934,EMP03,2026-09-12T18:11:35.896723+00:00,Registration Renewal,1,NDLI-EMP01-002,\"Renewal Approved for Club NDLI-EMP01-002. Last Renewal Date: 2026-09-12T18:11:35.896723+00:00, Upcoming Renewal Due Date: 2027-09-12\"\n",
+  master_users: "id,email,password_hash,salt,full_name,role,zone,assigned_states,is_active,created_at\nADMIN01,admin@iitkgp.ac.in,Seed#Scrubbed-2026,b23e1b728d321adac0f3f3887fe7b16c,IIT Kharagpur Admin Office,ADMIN,Central Coordination (IIT KGP),All India,1,2026-09-12T17:53:10.376368+00:00\nEMP01,emp01@ndli.iitkgp.ac.in,Seed#EMP01-Rotated2026,d867f9bd0a47f3d7a51827af7cb78be8,Rohan Sharma (North Zone),EMPLOYEE,North,\"Jammu & Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi, Uttar Pradesh\",1,2026-09-12T17:53:10.462151+00:00\nEMP02,emp02@ndli.iitkgp.ac.in,Seed#EMP02-Rotated2026,7853bd7618d5edb8414c673238c94de4,Pooja Verma (Central Zone),EMPLOYEE,Central,\"Madhya Pradesh, Chhattisgarh\",1,2026-09-12T17:53:10.614567+00:00\nEMP03,emp03@ndli.iitkgp.ac.in,Seed#EMP03-Rotated2026,4dece19f7203ded567cdadea3e78ec1b,Amit Patel (West Zone),EMPLOYEE,West,\"Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar & Nagar Haveli\",1,2026-09-12T17:53:10.766750+00:00\nEMP04,emp04@ndli.iitkgp.ac.in,Seed#EMP04-Rotated2026,e9f900456f8a7faab03d8999ab85e288,Debabrata Ghosh (East Zone),EMPLOYEE,East,\"Bihar, Jharkhand, West Bengal, Odisha\",1,2026-09-12T17:53:10.921588+00:00\nEMP05,emp05@ndli.iitkgp.ac.in,Seed#Scrubbed-2026,dcf2273dceb3fe217f5f49f8dac2dbc4,Mayanglambam Singh (North East Zone),EMPLOYEE,North East,\"Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram\",1,2026-09-12T17:53:11.045245+00:00\nEMP06,emp06@ndli.iitkgp.ac.in,Seed#EMP06-Rotated2026,fd98579de06e57a54f8c00785f13df09,K. Venkatesh (South Zone 1),EMPLOYEE,South,\"Andhra Pradesh, Telangana, Karnataka\",1,2026-09-12T17:53:11.181086+00:00\nEMP07,emp07@ndli.iitkgp.ac.in,Seed#EMP07-Rotated2026,1b447220ee8beae6b4a405c8095d446f,Ananya Nair (South Zone 2),EMPLOYEE,South,\"Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar Island, Lakshadweep\",1,2026-09-12T17:53:11.310936+00:00\n",
+  master_quotas: "emp_id,employee_name,zone,clubs_approved_count,support_logs_count,last_activity_timestamp\nEMP01,Rohan Sharma (North Zone),North,2,10,2026-09-12T17:53:12.291937+00:00\nEMP02,Pooja Verma (Central Zone),Central,2,3,2026-09-12T17:53:12.267272+00:00\nEMP03,Amit Patel (West Zone),West,1,5,2026-09-12T18:11:35.896723+00:00\nEMP04,Debabrata Ghosh (East Zone),East,1,2,2026-09-12T17:53:11.716271+00:00\nEMP05,Mayanglambam Singh (North East Zone),North East,2,2,2026-09-12T17:53:12.121991+00:00\nEMP06,K. Venkatesh (South Zone 1),South,1,2,2026-09-12T17:53:11.731945+00:00\nEMP07,Ananya Nair (South Zone 2),South,1,1,2026-09-12T17:53:11.487063+00:00\n",
+  master_reminders: "issue_id,club_id,emp_id,institution_name,state,zone,issue_note,status,created_at,reminder_due_at,admin_reminder_due_at,last_reminded_at,resolved_at,resolved_by,resolution_notes,updated_at\nREM-0001,NDLI-EMP01-002,EMP01,Delhi Advanced Technical Institute,Delhi,North,Pending renewal documentation verification,Unresolved,2026-08-10T10:00:00Z,2026-08-13T10:00:00Z,2026-09-09T10:00:00Z,,,,,2026-08-10T10:00:00Z\n"
+};
+
+// (Round-3 audit fix: the KNOWN_PASSWORDS "guaranteed login" backdoor was
+// REMOVED. It kept accepting the public seed passwords for every account
+// forever, which silently defeated password rotation — the GAS twin of the
+// critical bug. Logins now check only the stored credentials.)
+
+var DEFAULT_EMPLOYEES_CONFIG = [
+  { id: "EMP01", name: "Rohan Sharma (North Zone)", zone: "North", state: "Delhi", email: "emp01@ndli.iitkgp.ac.in", legacy_email: "emp.north@ndli.edu.in", pass: "Seed#EMP01-Rotated2026" },
+  { id: "EMP02", name: "Pooja Verma (Central Zone)", zone: "Central", state: "Madhya Pradesh", email: "emp02@ndli.iitkgp.ac.in", legacy_email: "emp.central@ndli.edu.in", pass: "Seed#EMP02-Rotated2026" },
+  { id: "EMP03", name: "Amit Patel (West Zone)", zone: "West", state: "Maharashtra", email: "emp03@ndli.iitkgp.ac.in", legacy_email: "emp.west@ndli.edu.in", pass: "Seed#EMP03-Rotated2026" },
+  { id: "EMP04", name: "Debabrata Ghosh (East Zone)", zone: "East", state: "West Bengal", email: "emp04@ndli.iitkgp.ac.in", legacy_email: "emp.east@ndli.edu.in", pass: "Seed#EMP04-Rotated2026" },
+  { id: "EMP05", name: "Mayanglambam Singh (North East Zone)", zone: "North East", state: "Assam", email: "emp05@ndli.iitkgp.ac.in", legacy_email: "emp.northeast@ndli.edu.in", pass: "Seed#Scrubbed-2026" },
+  { id: "EMP06", name: "K. Venkatesh (South Zone 1)", zone: "South", state: "Karnataka", email: "emp06@ndli.iitkgp.ac.in", legacy_email: "emp.south1@ndli.edu.in", pass: "Seed#EMP06-Rotated2026" },
+  { id: "EMP07", name: "Ananya Nair (South Zone 2)", zone: "South", state: "Kerala", email: "emp07@ndli.iitkgp.ac.in", legacy_email: "emp.south2@ndli.edu.in", pass: "Seed#EMP07-Rotated2026" }
+];
+
+/**
+ * One-Click System Initialization:
+ * Run this function from the Apps Script editor (or it runs automatically on first load).
+ * Sets up all folders, databases, and rolling backup trigger.
+ * Safely preserves existing club records while updating user credentials.
+ */
+function initSystem() {
+  // Clear any stale cached folder ID to force fresh auto-discovery
+  try {
+    PropertiesService.getScriptProperties().deleteProperty("SYSTEM_ROOT_FOLDER_ID");
+  } catch (e) {}
+  clearGasCsvCache();
+
+  var root = getSystemFolder();
+  Logger.log("[NDLI Init] System Root Folder locked to: " + root.getName() + " (ID: " + root.getId() + ")");
+  try {
+    PropertiesService.getScriptProperties().setProperty("SYSTEM_ROOT_FOLDER_ID", root.getId());
+  } catch (e) {}
+
+  // 1. Folders
+  var dbFolder = getOrCreateSubfolder(root, "databases");
+  var masterFolder = getOrCreateSubfolder(dbFolder, "master");
+  var employeesFolder = getOrCreateSubfolder(dbFolder, "employees");
+  var backupFolder = getOrCreateSubfolder(root, "backups");
+  var sigFolder = getOrCreateSubfolder(root, "signatures");
+
+  // 2. Master DB CSVs (Non-destructive: getOrCreateFile preserves user data if file exists)
+  getOrCreateFile(masterFolder, "master_clubs.csv", SEED_DATA.master_clubs, MimeType.CSV);
+  getOrCreateFile(masterFolder, "master_activities.csv", SEED_DATA.master_activities, MimeType.CSV);
+  getOrCreateFile(masterFolder, "master_quotas.csv", SEED_DATA.master_quotas, MimeType.CSV);
+  getOrCreateFile(masterFolder, "master_reminders.csv", SEED_DATA.master_reminders, MimeType.CSV);
+
+  // For master_users.csv: create ONLY if missing. (Round-3 audit fix:
+  // this block used to re-hash the SEED passwords over the live accounts on
+  // every initSystem run — the exact twin of the Python critical bug fixed in
+  // commit 09cb404 — silently undoing password rotation. Rotated credentials
+  // are now NEVER overwritten.)
+  var userFiles = masterFolder.getFilesByName("master_users.csv");
+  if (!userFiles.hasNext()) {
+    masterFolder.createFile("master_users.csv", SEED_DATA.master_users, MimeType.CSV);
+  }
+
+  // 3. Employee Node CSVs (EMP01 - EMP07)
+  DEFAULT_EMPLOYEES_CONFIG.forEach(function(emp) {
+    var empSub = getOrCreateSubfolder(employeesFolder, emp.id.toLowerCase());
+    var clubsHeader = "club_id,reg_no,institution_name,state,zone,patron_email,president_email,secretary_email,submission_timestamp,status,approval_date,renewal_date,renewal_count,last_renewal_date\n";
+    var actHeader = "activity_id,employee_id,activity_type,timestamp,details,club_id\n";
+    var credHeader = "employee_id,name,email,zone,state,status,password_hash\n" + emp.id + "," + emp.name + "," + emp.email + "," + emp.zone + "," + emp.state + ",ACTIVE," + emp.pass + "\n";
+
+    getOrCreateFile(empSub, "clubs.csv", clubsHeader, MimeType.CSV);
+    getOrCreateFile(empSub, "activity_log.csv", actHeader, MimeType.CSV);
+    getOrCreateFile(empSub, "credentials.csv", credHeader, MimeType.CSV);
+  });
+
+  // 4. Default Signature Settings
+  var defaultSigSettings = {
+    pi_name: "Prof. Partha Pratim Chakrabarti",
+    pi_affiliation: "Principal Investigator\nNational Digital Library of India Project\nCentral Library, IIT Kharagpur",
+    has_signature: false,
+    signature_data: ""
+  };
+  getOrCreateFile(sigFolder, "settings.json", JSON.stringify(defaultSigSettings, null, 2), MimeType.PLAIN_TEXT);
+
+  // 5. Setup automated 7-day rolling backup trigger
+  setupWeeklyBackupTrigger();
+
+  Logger.log("[NDLI Init] System successfully initialized in Google Drive!");
+  return { success: true, message: "NDLI Club Management System initialized successfully in Google Drive." };
+}
+
+// ====================================================================
+// 4. AUTOMATED 7-DAY ROLLING BACKUP ENGINE (2-BACKUP RETENTION)
+// ====================================================================
+
+function setupWeeklyBackupTrigger() {
+  try {
+    var triggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < triggers.length; i++) {
+      if (triggers[i].getHandlerFunction() === "runWeeklyBackup") {
+        Logger.log("[NDLI Backup] 7-Day rolling backup trigger is already active.");
+        return;
+      }
+    }
+    ScriptApp.newTrigger("runWeeklyBackup")
+      .timeBased()
+      .everyDays(7)
+      .atHour(2)
+      .create();
+    Logger.log("[NDLI Backup] Scheduled new 7-Day recurring backup trigger.");
+  } catch (e) {
+    Logger.log("[NDLI Backup] Trigger creation note: " + e.message);
+  }
+}
+
+function runWeeklyBackup(customId) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var root = getSystemFolder();
+    var dbFolder = getOrCreateSubfolder(root, "databases");
+    var backupFolder = getOrCreateSubfolder(root, "backups");
+
+    var dateStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd_HHmmss");
+    var filename = customId ? (customId + ".zip") : ("ndli_backup_" + dateStr + ".zip");
+    var blobs = [];
+
+    // Gather Master CSVs
+    var masterFolder = getOrCreateSubfolder(dbFolder, "master");
+    var mFiles = masterFolder.getFiles();
+    while (mFiles.hasNext()) {
+      var f = mFiles.next();
+      var b = f.getBlob().setName("master/" + f.getName());
+      blobs.push(b);
+    }
+
+    // Gather Employee CSVs
+    var empFolder = getOrCreateSubfolder(dbFolder, "employees");
+    var eSubs = empFolder.getFolders();
+    while (eSubs.hasNext()) {
+      var sub = eSubs.next();
+      var eFiles = sub.getFiles();
+      while (eFiles.hasNext()) {
+        var ef = eFiles.next();
+        var eb = ef.getBlob().setName("employees/" + sub.getName() + "/" + ef.getName());
+        blobs.push(eb);
+      }
+    }
+
+    // Gather Digital Signature Assets (pi_signature.png, settings.json)
+    try {
+      var sigFolder = getOrCreateSubfolder(root, "signatures");
+      var sFiles = sigFolder.getFiles();
+      while (sFiles.hasNext()) {
+        var sf = sFiles.next();
+        var sb = sf.getBlob().setName("signatures/" + sf.getName());
+        blobs.push(sb);
+      }
+    } catch (sigErr) {
+      Logger.log("[NDLI Backup] Warning: Could not archive signatures folder: " + sigErr);
+    }
+
+    // Create Zip Archive
+    var zipBlob = Utilities.zip(blobs, filename);
+    backupFolder.createFile(zipBlob);
+    Logger.log("[NDLI Backup] Created new backup: " + filename);
+
+    // Enforce 6-backup rolling retention
+    enforceBackupRetention(backupFolder, 6);
+
+    return { success: true, timestamp: dateStr, filename: filename, backup_id: customId || ("ndli_backup_" + dateStr) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function enforceBackupRetention(backupFolder, maxBackups) {
+  maxBackups = maxBackups || 6;
+  var files = [];
+  var fIter = backupFolder.getFiles();
+  while (fIter.hasNext()) {
+    var file = fIter.next();
+    var fName = String(file.getName ? file.getName() : file.name || "");
+    if (fName.indexOf("ndli_backup_") === 0 || fName.indexOf("backup_") === 0) {
+      files.push({ file: file, date: file.getDateCreated ? file.getDateCreated().getTime() : Date.now() });
+    }
+  }
+
+  files.sort(function(a, b) { return b.date - a.date; });
+
+  for (var i = maxBackups; i < files.length; i++) {
+    Logger.log("[NDLI Backup] Pruning old backup archive: " + files[i].file.getName());
+    files[i].file.setTrashed(true);
+  }
+}
+
+function restoreBackup(backupFileName) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var root = getSystemFolder();
+    var dbFolder = getOrCreateSubfolder(root, "databases");
+    var backupFolder = getOrCreateSubfolder(root, "backups");
+    
+    var targetFile = null;
+    if (backupFileName) {
+      var fIter = backupFolder.getFilesByName(backupFileName);
+      if (fIter.hasNext()) targetFile = fIter.next();
+    }
+    if (!targetFile) {
+      var files = [];
+      var fIter = backupFolder.getFiles();
+      while (fIter.hasNext()) {
+        var f = fIter.next();
+        var fName = String(f.getName ? f.getName() : f.name || "");
+        if (fName.indexOf(".zip") !== -1) {
+          files.push({ file: f, date: f.getDateCreated ? f.getDateCreated().getTime() : Date.now() });
+        }
+      }
+      files.sort(function(a, b) { return b.date - a.date; });
+      if (files.length > 0) targetFile = files[0].file;
+    }
+    
+    if (!targetFile) {
+      throw new Error("No backup archive (.zip) found in Google Drive backups folder.");
+    }
+    
+    Logger.log("[NDLI Restore] Restoring from archive: " + targetFile.getName());
+    var zipBlob = targetFile.getBlob();
+    var unzippedBlobs = Utilities.unzip(zipBlob);
+    
+    var restoredFilesCount = 0;
+    for (var i = 0; i < unzippedBlobs.length; i++) {
+      var b = unzippedBlobs[i];
+      var entryPath = b.getName();
+      
+      if (entryPath.indexOf("master/") === 0) {
+        var csvName = entryPath.replace("master/", "");
+        var mFolder = getOrCreateSubfolder(dbFolder, "master");
+        var existing = mFolder.getFilesByName(csvName);
+        if (existing.hasNext()) {
+          existing.next().setContent(b.getDataAsString("UTF-8"));
+        } else {
+          mFolder.createFile(csvName, b.getDataAsString("UTF-8"), MimeType.CSV);
+        }
+        restoredFilesCount++;
+      } else if (entryPath.indexOf("employees/") === 0) {
+        var parts = entryPath.split("/");
+        if (parts.length >= 3) {
+          var empId = parts[1].toLowerCase();
+          var csvName = parts[2];
+          var empParent = getOrCreateSubfolder(dbFolder, "employees");
+          var subFolder = getOrCreateSubfolder(empParent, empId);
+          var existing = subFolder.getFilesByName(csvName);
+          if (existing.hasNext()) {
+            existing.next().setContent(b.getDataAsString("UTF-8"));
+          } else {
+            subFolder.createFile(csvName, b.getDataAsString("UTF-8"), MimeType.CSV);
+          }
+          restoredFilesCount++;
+        }
+      } else if (entryPath.indexOf("signatures/") === 0) {
+        try {
+          var sigName = entryPath.replace("signatures/", "");
+          if (sigName) {
+            var sFolder = getOrCreateSubfolder(root, "signatures");
+            // BUG-FIX (2026-10-04, found by Claude): signature assets are BINARY
+            // images (PNG/JPEG). The old code round-tripped them through
+            // getDataAsString("UTF-8") + createFile(..., PLAIN_TEXT) -- lossy for
+            // any non-text bytes, so a restored pi_signature.png came back
+            // corrupted. Restore the RAW BLOB instead (same as the backup side
+            // archives it), and fix the Drive mime type explicitly.
+            var sigBlob = b.setName(sigName);
+            if (/\.png$/i.test(sigName)) {
+              sigBlob.setContentType(MimeType.PNG);
+            } else if (/\.jpe?g$/i.test(sigName)) {
+              sigBlob.setContentType(MimeType.JPEG);
+            } else if (/\.json$/i.test(sigName)) {
+              sigBlob.setContentType(MimeType.JSON);
+            }
+            var existingSig = sFolder.getFilesByName(sigName);
+            if (existingSig.hasNext()) {
+              existingSig.next().setBlob(sigBlob);
+            } else {
+              sFolder.createFile(sigBlob);
+            }
+            restoredFilesCount++;
+          }
+        } catch (sigRestErr) {
+          Logger.log("[NDLI Restore] Warning: Could not restore signature asset " + entryPath + ": " + sigRestErr);
+        }
+      }
+    }
+    
+    var recRes = apiDispatcher("sync/reconcile", "POST", {}, "");
+    Logger.log("[NDLI Restore] Successfully restored " + restoredFilesCount + " files and reconciled Master DB.");
+    return {
+      success: true,
+      restored_from: targetFile.getName(),
+      restored_files_count: restoredFilesCount,
+      reconciliation: recRes.data
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ====================================================================
+// 5. THREAD-SAFE CSV PARSER & SERIALIZER
+// ====================================================================
+
+function parseCsv(text) {
+  if (!text) return { headers: [], rows: [] };
+  var parsed = null;
+  try {
+    parsed = Utilities.parseCsv(text);
+  } catch (e) {
+    parsed = robustCsvSplit(text);
+  }
+  if (!parsed || parsed.length === 0) return { headers: [], rows: [] };
+  // Strip UTF-8 BOM, carriage returns, and whitespace from headers
+  var headers = parsed[0].map(function(h) {
+    return String(h || "").replace(/^[\uFEFF\s]+/, "").replace(/[\r\n\t]+/g, "").trim();
+  });
+  var rows = [];
+  for (var i = 1; i < parsed.length; i++) {
+    var line = parsed[i];
+    if (!line || (line.length === 1 && String(line[0] || "").trim() === "")) continue;
+    var rowObj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = line[j] !== undefined ? String(line[j]).replace(/^[\uFEFF]+/, "").trim() : "";
+      rowObj[headers[j]] = val;
+    }
+    if (headers.indexOf("club_id") !== -1 && headers.indexOf("state") !== -1) {
+      if (!rowObj.zone || rowObj.zone === "Unknown") {
+        rowObj.zone = getZoneForState(rowObj.state || "") || rowObj.zone || "Unknown";
+      }
+    }
+    rows.push(rowObj);
+  }
+  return { headers: headers, rows: rows };
+}
+
+function robustCsvSplit(text) {
+  var lines = text.split(/\r?\n/);
+  var result = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var row = [];
+    var inQuotes = false;
+    var cur = "";
+    for (var c = 0; c < line.length; c++) {
+      var ch = line[c];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        row.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    row.push(cur);
+    result.push(row);
+  }
+  return result;
+}
+
+function toCsvString(headers, rows) {
+  var isClubCsv = headers.indexOf("club_id") !== -1 && headers.indexOf("state") !== -1;
+  var lines = [];
+  lines.push(headers.join(","));
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (isClubCsv && (!r.zone || r.zone === "Unknown")) {
+      r.zone = getZoneForState(r.state || "") || r.zone || "Unknown";
+    }
+    var line = headers.map(function(h) {
+      var val = r[h] !== undefined ? String(r[h]) : "";
+      if (val.indexOf(",") !== -1 || val.indexOf('"') !== -1 || val.indexOf("\n") !== -1) {
+        return '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    });
+    lines.push(line.join(","));
+  }
+  return lines.join("\n") + "\n";
+}
+
+var _GAS_CSV_CACHE = {};
+
+function clearGasCsvCache() {
+  _GAS_CSV_CACHE = {};
+}
+
+function getCsvData(subPath, fileName) {
+  var cacheKey = subPath + "/" + fileName;
+  if (_GAS_CSV_CACHE[cacheKey]) {
+    return _GAS_CSV_CACHE[cacheKey];
+  }
+  try {
+    var root = getSystemFolder();
+    var dbFolder = getOrCreateSubfolder(root, "databases");
+    var targetFolder = dbFolder;
+    var parts = subPath.split("/").filter(Boolean);
+    for (var i = 0; i < parts.length; i++) {
+      targetFolder = getOrCreateSubfolder(targetFolder, parts[i]);
+    }
+    var files = targetFolder.getFilesByName(fileName);
+    if (!files.hasNext()) {
+      // If not in targetFolder, check globally across Drive for existing master file
+      try {
+        var globalFiles = DriveApp.getFilesByName(fileName);
+        while (globalFiles.hasNext()) {
+          var gf = globalFiles.next();
+          if (!gf.isTrashed()) {
+            var parsedGlobal = parseCsv(gf.getBlob().getDataAsString("UTF-8"));
+            _GAS_CSV_CACHE[cacheKey] = parsedGlobal;
+            return parsedGlobal;
+          }
+        }
+      } catch (ge) {}
+
+      if (subPath === "master" && SEED_DATA[fileName.replace(".csv", "")]) {
+        var seedText = SEED_DATA[fileName.replace(".csv", "")];
+        targetFolder.createFile(fileName, seedText, MimeType.CSV);
+        var parsedSeed = parseCsv(seedText);
+        _GAS_CSV_CACHE[cacheKey] = parsedSeed;
+        return parsedSeed;
+      }
+      return { headers: [], rows: [] };
+    }
+    var parsedFile = parseCsv(files.next().getBlob().getDataAsString("UTF-8"));
+    _GAS_CSV_CACHE[cacheKey] = parsedFile;
+    return parsedFile;
+  } catch (err) {
+    Logger.log("[getCsvData Error] " + subPath + "/" + fileName + ": " + err);
+    if (subPath === "master" && SEED_DATA[fileName.replace(".csv", "")]) {
+      return parseCsv(SEED_DATA[fileName.replace(".csv", "")]);
+    }
+    return { headers: [], rows: [] };
+  }
+}
+
+function saveCsvData(subPath, fileName, headers, rows) {
+  var cacheKey = subPath + "/" + fileName;
+  _GAS_CSV_CACHE[cacheKey] = { headers: headers, rows: rows };
+  try {
+    var root = getSystemFolder();
+    var dbFolder = getOrCreateSubfolder(root, "databases");
+    var targetFolder = dbFolder;
+    var parts = subPath.split("/").filter(Boolean);
+    for (var i = 0; i < parts.length; i++) {
+      targetFolder = getOrCreateSubfolder(targetFolder, parts[i]);
+    }
+    var files = targetFolder.getFilesByName(fileName);
+    var csvStr = toCsvString(headers, rows);
+    if (files.hasNext()) {
+      files.next().setContent(csvStr);
+    } else {
+      targetFolder.createFile(fileName, csvStr, MimeType.CSV);
+    }
+  } catch (err) {
+    Logger.log("[saveCsvData Error] " + subPath + "/" + fileName + ": " + err);
+  }
+}
+
+// ====================================================================
+// 6. WEB APP ROUTER: doGet(e) & doPost(e)
+// ====================================================================
+
+function doGet(e) {
+  e = e || { parameter: {} };
+  var page = (e.parameter.page || "").toLowerCase();
+  var download = e.parameter.download || "";
+
+  // 1. DIRECT CSV FILE DOWNLOADS
+  if (download === "master_clubs.csv") {
+    var mData = getCsvData("master", "master_clubs.csv");
+    return ContentService.createTextOutput(toCsvString(mData.headers, mData.rows))
+      .setMimeType(ContentService.MimeType.CSV)
+      .downloadAsFile("master_clubs.csv");
+  }
+  if (download === "activity_log.csv") {
+    var empId = (e.parameter.id || "emp01").toLowerCase();
+    var aData = getCsvData("employees/" + empId, "activity_log.csv");
+    return ContentService.createTextOutput(toCsvString(aData.headers, aData.rows))
+      .setMimeType(ContentService.MimeType.CSV)
+      .downloadAsFile("activity_log_" + empId + ".csv");
+  }
+  if (download === "clubs.csv") {
+    var empId = (e.parameter.id || "emp01").toLowerCase();
+    var cData = getCsvData("employees/" + empId, "clubs.csv");
+    return ContentService.createTextOutput(toCsvString(cData.headers, cData.rows))
+      .setMimeType(ContentService.MimeType.CSV)
+      .downloadAsFile("clubs_" + empId + ".csv");
+  }
+
+  // 1.1 USER MANUAL DIRECT DOWNLOAD & WEB VIEWER ROUTING
+  if (download === "user-manual" || download === "manual" || download === "user_manual.pdf" || page === "manual" || page === "user-manual" || page === "documentation") {
+    var driveUrl = "https://ndli-club-management.onrender.com/api/download/user-manual";
+    try {
+      var manualFiles = DriveApp.getFilesByName("NDLI_Club_Management_User_Manual.pdf");
+      if (manualFiles.hasNext()) {
+        var mPdf = manualFiles.next();
+        if (!mPdf.isTrashed()) {
+          driveUrl = mPdf.getUrl();
+        }
+      }
+    } catch (e) {}
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<meta http-equiv="refresh" content="1;url=' + driveUrl + '">' +
+      '<title>NDLI Club Management System - User Manual</title>' +
+      '<style>body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;text-align:center;padding:50px 20px;background:#f8fafc;color:#103125;} ' +
+      '.card{max-width:550px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.1);padding:30px;border-top:5px solid #0D7751;} ' +
+      '.btn{display:inline-block;margin:10px 8px;padding:12px 24px;background:#1A503E;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;} ' +
+      '.btn-outline{background:#fff;color:#0D7751;border:1px solid #0D7751;}</style>' +
+      '</head><body><div class="card">' +
+      '<div style="font-size:2.5rem;margin-bottom:10px;">📖</div>' +
+      '<h2 style="margin:0 0 10px 0;color:#103125;">NDLI Club Management System</h2>' +
+      '<h4 style="margin:0 0 15px 0;color:#0D7751;">Official User Manual &amp; Operational Handbook</h4>' +
+      '<p style="color:#64748b;font-size:0.95rem;">IIT Kharagpur Central Master Administration Office &amp; 7 Regional Operational Zones</p>' +
+      '<p>Opening the official handbook...</p>' +
+      '<div style="margin-top:20px;">' +
+      '<a href=\"' + driveUrl + '\" class=\"btn\" target=\"_blank\">📥 Download PDF</a>' +
+      '</div></div></body></html>';
+    return HtmlService.createHtmlOutput(html).setTitle("NDLI User Manual - IIT Kharagpur");
+  }
+
+  // 2. REST API DIRECT GET CALLS (e.g. ?api=1&path=/api/admin/metrics)
+  if (e.parameter.api === "1" || e.parameter.api === "true" || e.parameter.rest === "1" || (e.parameter.path && !page)) {
+    var restPath = e.parameter.path || "";
+    var token = e.parameter.token || "";
+    var res;
+    try {
+      res = apiDispatcher(restPath, "GET", e.parameter, token);
+    } catch (err) {
+      res = { ok: false, status: 500, data: { error: true, message: err.message || "Internal server error." } };
+    }
+    return ContentService.createTextOutput(JSON.stringify(res))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 3. HTML PAGE ROUTING
+  var templateName = "Landing";
+  if (page === "admin") {
+    templateName = "Admin";
+  } else if (page === "employee" || page === "login") {
+    templateName = "Employee";
+  }
+
+  var tmpl = HtmlService.createTemplateFromFile(templateName);
+  tmpl.requestedEmpId = (e.parameter.id || "EMP01").toUpperCase();
+  try {
+    tmpl.scriptUrl = ScriptApp.getService().getUrl();
+  } catch (err) {
+    tmpl.scriptUrl = "";
+  }
+
+  return tmpl.evaluate()
+    .setTitle("NDLI Club Management System • IIT Kharagpur")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1.0")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function doPost(e) {
+  var result;
+  try {
+    var raw = e && e.postData ? e.postData.contents : "";
+    var body = raw ? JSON.parse(raw) : {};
+    var path = body.path || (e && e.parameter ? e.parameter.path : "") || "";
+    var method = body.method || "POST";
+    var token = body.token || (e && e.parameter && e.parameter.token ? e.parameter.token : "");
+    result = apiDispatcher(path, method, body.data || body, token);
+  } catch (err) {
+    result = { ok: false, status: 500, data: { error: true, message: err.message } };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ====================================================================
+// 7. UNIFIED API DISPATCHER (google.script.run & REST compatible)
+// ====================================================================
+
+// ====================================================================
+// ROUND 4 (2026-09-26): SESSION TOKENS + ROUTE AUTHORIZATION
+// The dispatcher used to accept ANY request without verifying a token —
+// effectively an open API. Every non-public route now requires a valid
+// session token, admin routes require the ADMIN role, and the Drive-sync
+// transport routes accept the relay secret once one is configured.
+// ====================================================================
+var GAS_SESSION_TTL_SEC = 21600; // 6h sliding window
+
+function gasProps_() {
+  try { return (typeof PropertiesService !== "undefined") ? PropertiesService.getScriptProperties() : null; } catch (e) { return null; }
+}
+function gasCache_() {
+  try { return (typeof CacheService !== "undefined") ? CacheService.getScriptCache() : null; } catch (e) { return null; }
+}
+
+function createGasSession(user) {
+  var token = "ndli_tok_" + Utilities.getUuid();
+  var sess = {
+    user_id: String(user.user_id || user.id || "").toUpperCase(),
+    id: String(user.id || user.user_id || "").toUpperCase(),
+    email: user.email || "",
+    full_name: user.full_name || user.name || "",
+    role: String(user.role || "EMPLOYEE").toUpperCase(),
+    zone: user.zone || "",
+    assigned_states: user.assigned_states || "",
+    created: Date.now(),
+    exp: Date.now() + (7 * 86400000)
+  };
+  var raw = JSON.stringify(sess);
+  var c = gasCache_();
+  if (c) { try { c.put("ndli_sess_" + token, raw, GAS_SESSION_TTL_SEC); } catch (e) {} }
+  var p = gasProps_();
+  if (p) { try { p.setProperty("ndli_sess_" + token, raw); } catch (e) {} }
+  return token;
+}
+
+function verifyGasSession(token) {
+  if (!token) return null;
+  var key = "ndli_sess_" + String(token).trim();
+  var raw = null;
+  var c = gasCache_();
+  if (c) { try { raw = c.get(key); } catch (e) {} }
+  var p = gasProps_();
+  if (!raw && p) { try { raw = p.getProperty(key); } catch (e) {} }
+  if (!raw) return null;
+  var sess = null;
+  try { sess = JSON.parse(raw); } catch (e) { return null; }
+  if (!sess || (sess.exp && sess.exp < Date.now())) {
+    invalidateGasSession(token);
+    return null;
+  }
+  if (c) { try { c.put(key, raw, GAS_SESSION_TTL_SEC); } catch (e) {} } // sliding window
+  return sess;
+}
+
+function invalidateGasSession(token) {
+  if (!token) return;
+  var key = "ndli_sess_" + String(token).trim();
+  var c = gasCache_();
+  if (c) { try { c.remove(key); } catch (e) {} }
+  var p = gasProps_();
+  if (p) { try { p.deleteProperty(key); } catch (e) {} }
+}
+
+function verifyRelayKey_(key) {
+  if (!key) return false;
+  var p = gasProps_();
+  var expected = p ? String(p.getProperty("RELAY_SECRET") || "") : "";
+  return !!expected && expected === String(key);
+}
+
+function isRelayConfigured_() {
+  var p = gasProps_();
+  return !!(p && String(p.getProperty("RELAY_SECRET") || ""));
+}
+
+function isPublicGasRoute_(path) {
+  return path === "" || path === "health" || path === "auth/login" ||
+         path === "state-zone/map" || path === "state-zone/lookup" ||
+         path === "states-zones" || path === "states";
+}
+
+function isRelayGasRoute_(path) {
+  // Drive-sync transport routes used by the Python AppsScriptRelaySyncAdapter.
+  // BUG-FIX (2026-09-30): admin/backup/trigger is also a server-to-server call
+  // from backup_engine.py's weekly-backup relay, carrying no session token --
+  // only a relay_key. A prior commit added relay_key to its payload believing
+  // that alone would satisfy the round-5 gate, but the gate only consults
+  // relay_key for routes listed HERE (isRelayGasRoute_); admin/backup/trigger
+  // was never added, so every automated backup relay still got 401
+  // "Authentication required" (verified live via doPost(), not just
+  // apiDispatcher()). admin/backup/trigger is added below so the relay key
+  // that already rides in its payload is actually honored. It stays inside
+  // isAdminGasRoute_() too (path starts with "admin/"), which is fine: the
+  // gate accepts EITHER a valid relay key OR an ADMIN session for any route
+  // that satisfies isRelayGasRoute_().
+  return path === "sync/mirror-file" || path === "sync/pull-all" || path === "sync/fetch-all" ||
+         path === "sync/pull-file" || path === "sync/fetch-file" || path === "sync/upload-backup" ||
+         path === "admin/backup/trigger";
+}
+
+function isAdminGasRoute_(path) {
+  // Round 4 (parity with Python app.py _check_admin_access call sites):
+  // issues/admin-reminders is admin-only. Certificate PI settings/signature
+  // were admin-only for one round — CLIENT REQUIREMENT (2026-09-26) reopened
+  // them to every authenticated session (employees generate certificates and
+  // manage the PI signature), matching the Python twin.
+  return path.indexOf("admin/") === 0 || path === "auth/block-toggle" ||
+         path === "backup/restore" || path === "backup/upload" || path === "backup/run-manual" ||
+         path === "sync/reconcile" ||
+         path === "issues/admin-reminders";
+}
+
+function requireSelfOrAdminGas_(authSession, empId) {
+  // Round 4: identity gate for employee-scoped operations (parity with Python
+  // app.py _require_self_or_admin): an Admin may operate for anyone; any other
+  // role only for the identity carried by their VERIFIED session. Never trust
+  // a bare body claim about who the caller is.
+  if (!authSession) return false;
+  if (String(authSession.role || "").toUpperCase() === "ADMIN") return true;
+  return String(authSession.user_id || "").trim().toUpperCase() === String(empId || "").trim().toUpperCase();
+}
+
+// ===== ROUND 4.1: PBKDF2-HMAC-SHA256 CREDENTIAL VERIFICATION ==============
+// The Python twin stores PBKDF2-HMAC-SHA256 hashes (auth.py hash_password:
+// password + salt as UTF-8, 100,000 iterations, hex digest) and its values
+// reach the Drive CSVs through the sync. Apps Script has no built-in PBKDF2,
+// so this is a compact SHA-256 / HMAC / PBKDF2 stack — verified bit-for-bit
+// against Python's output by test_code_gs.js (Test 30).
+function gasUtf8Bytes_(str) {
+  var out = [];
+  str = String(str || "");
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    if (c < 0x80) {
+      out.push(c);
+    } else if (c < 0x800) {
+      out.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    } else if (c >= 0xd800 && c <= 0xdbff && i + 1 < str.length) {
+      var c2 = str.charCodeAt(i + 1);
+      var cp = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00);
+      i++;
+      out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    } else {
+      out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+    }
+  }
+  return out;
+}
+
+function gasSha256_(msg) {
+  var K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  var l = msg.length;
+  var padded = msg.slice();
+  padded.push(0x80);
+  while (padded.length % 64 !== 56) padded.push(0);
+  var bitHi = Math.floor(l / 536870912); // floor(l*8 / 2^32)
+  var bitLo = (l * 8) % 4294967296;
+  padded.push((bitHi >>> 24) & 0xff, (bitHi >>> 16) & 0xff, (bitHi >>> 8) & 0xff, bitHi & 0xff);
+  padded.push((bitLo >>> 24) & 0xff, (bitLo >>> 16) & 0xff, (bitLo >>> 8) & 0xff, bitLo & 0xff);
+  function rotr(x, n) { return ((x >>> n) | (x << (32 - n))) >>> 0; }
+  for (var b = 0; b < padded.length; b += 64) {
+    var w = new Array(64);
+    for (var i = 0; i < 16; i++) {
+      var o = b + i * 4;
+      w[i] = ((padded[o] << 24) | (padded[o + 1] << 16) | (padded[o + 2] << 8) | padded[o + 3]) >>> 0;
+    }
+    for (i = 16; i < 64; i++) {
+      var s0 = (rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3)) >>> 0;
+      var s1 = (rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10)) >>> 0;
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+    }
+    var a = H[0], bb = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (i = 0; i < 64; i++) {
+      var S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
+      var ch = ((e & f) ^ ((~e) & g)) >>> 0;
+      var t1 = (h + S1 + ch + K[i] + w[i]) >>> 0;
+      var S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
+      var maj = ((a & bb) ^ (a & c) ^ (bb & c)) >>> 0;
+      var t2 = (S0 + maj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = bb; bb = a; a = (t1 + t2) >>> 0;
+    }
+    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + bb) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+  }
+  var out = [];
+  for (var k = 0; k < 8; k++) {
+    out.push((H[k] >>> 24) & 0xff, (H[k] >>> 16) & 0xff, (H[k] >>> 8) & 0xff, H[k] & 0xff);
+  }
+  return out;
+}
+
+function gasHmacSha256_(key, msg) {
+  if (key.length > 64) key = gasSha256_(key);
+  var ipad = [], opad = [];
+  for (var i = 0; i < 64; i++) {
+    var kb = i < key.length ? key[i] : 0;
+    ipad.push(kb ^ 0x36);
+    opad.push(kb ^ 0x5c);
+  }
+  return gasSha256_(opad.concat(gasSha256_(ipad.concat(msg))));
+}
+
+function gasPbkdf2Hex_(password, salt, iterations) {
+  // Parity with Python auth.py: pbkdf2_hmac('sha256', pw.encode('utf-8'),
+  // salt.encode('utf-8'), 100000).hex() — 32-byte derived key.
+  var pw = gasUtf8Bytes_(password);
+  var sl = gasUtf8Bytes_(salt);
+  var u = gasHmacSha256_(pw, sl.concat([0, 0, 0, 1]));
+  var t = u.slice();
+  for (var i = 1; i < iterations; i++) {
+    u = gasHmacSha256_(pw, u);
+    for (var j = 0; j < 32; j++) t[j] = (t[j] ^ u[j]) & 0xff;
+  }
+  var hex = "";
+  for (var k = 0; k < 32; k++) hex += ("0" + t[k].toString(16)).slice(-2);
+  return hex;
+}
+
+function verifyStoredGasCredential_(stored, salt, pass) {
+  // Round 4.1: a 64-hex stored value (Python sync format) is verified as a
+  // PBKDF2-HMAC-SHA256 hash; legacy plaintext rows (pre-sync data, test
+  // fixtures) compare directly — their stored secret IS the credential.
+  stored = String(stored || "").trim();
+  pass = String(pass || "");
+  if (!stored || !pass) return false;
+  if (/^[0-9a-fA-F]{64}$/.test(stored) && String(salt || "")) {
+    try {
+      return gasPbkdf2Hex_(pass, String(salt), 100000) === stored.toLowerCase();
+    } catch (e) {
+      return false;
+    }
+  }
+  return stored === pass;
+}
+
+function apiDispatcher(path, method, body, token) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.tryLock(15000);
+  } catch (le) {}
+  try {
+    if (typeof body === "string") {
+      try { body = JSON.parse(body); } catch(pe) { body = {}; }
+    }
+    path = String(path || "").trim();
+    method = String(method || "GET").toUpperCase();
+    body = body || {};
+
+    // 1. EXTRACT QUERY STRING & UNIFY PARAMETERS
+    var queryObj = {};
+    var qIdx = path.indexOf("?");
+    if (qIdx !== -1) {
+      var qs = path.substring(qIdx + 1);
+      path = path.substring(0, qIdx);
+      var pairs = qs.split("&");
+      for (var p = 0; p < pairs.length; p++) {
+        if (!pairs[p]) continue;
+        var parts = pairs[p].split("=");
+        var k = decodeURIComponent(parts[0].trim());
+        var v = decodeURIComponent((parts[1] || "").trim());
+        queryObj[k] = v;
+      }
+    }
+
+    // Clean and normalize route path
+    path = path.replace(/^\/+/, "").replace(/^api\//i, "").replace(/\/+$/, "").toLowerCase();
+
+    // Merge query params into body
+    for (var qk in queryObj) {
+      if (body[qk] === undefined) {
+        body[qk] = queryObj[qk];
+      }
+    }
+
+    // Unify common aliases
+    if (body.q && !body.query) body.query = body.q;
+    if (body.query && !body.q) body.q = body.query;
+    if (body.emp_id && !body.employee_id) body.employee_id = body.emp_id;
+    if (body.employee_id && !body.emp_id) body.emp_id = body.employee_id;
+    if (body.id && !body.emp_id) body.emp_id = body.id;
+    if (body.id && !body.employee_id) body.employee_id = body.id;
+    if (body.club_id && !body.id) body.id = body.club_id;
+    if (body.issue_id && !body.reminder_id) body.reminder_id = body.issue_id;
+    if (body.reminder_id && !body.issue_id) body.issue_id = body.reminder_id;
+
+    // ===== ROUND 4: SESSION AUTHORIZATION ==================================
+    // Tokens travel in body.token / ?token= (Apps Script web apps cannot read
+    // Authorization headers — the HTML clients therefore embed body.token).
+    var authSession = verifyGasSession(String(token || body.token || queryObj.token || "").trim());
+    if (!isPublicGasRoute_(path)) {
+      var relayAllowed = false;
+      // BUG-FIX (bughunt round 5): the Drive-sync transport routes used to be
+      // (a) fully open to the internet while RELAY_SECRET was unset and
+      // (b) reachable by ANY logged-in employee session even when it was set,
+      // so an employee could pull every CSV (incl. credential hashes) or
+      // overwrite master_users.csv to mint themselves an ADMIN. They now
+      // require the relay key; without one only an ADMIN session may use them.
+      if (isRelayGasRoute_(path) && isRelayConfigured_()) {
+        relayAllowed = verifyRelayKey_(String(body.relay_key || queryObj.relay_key || "").trim());
+      }
+      if (!relayAllowed) {
+        if (!authSession) {
+          return { ok: false, status: 401, data: { error: true, message: "Authentication required. Please log in." } };
+        }
+        if ((isAdminGasRoute_(path) || isRelayGasRoute_(path)) && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+          return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot access this operation." } };
+        }
+      }
+    }
+
+    // --- HEALTH ---
+    if (path === "health" || path === "") {
+      return { ok: true, status: 200, data: { status: "ok", architect: "Dr. Anirban Mukherjee", uptime: "24x7 Cloud Active" } };
+    }
+
+    // --- AUTH: LOGIN ---
+    if (path === "auth/login") {
+      var identifier = String(body.email || body.id || body.user_id || body.username || "").trim();
+      var pass = String(body.password || "").trim();
+
+      if (!identifier || !pass) {
+        return { ok: false, status: 400, data: { error: true, message: "User ID / Email and password are required." } };
+      }
+
+      // Brute-force guard (parity with Python auth.py): 8 failed attempts per
+      // identifier inside 10 minutes lock that identifier for 5 minutes.
+      // CacheService holds the counters across Apps Script invocations.
+      var gasCache = CacheService.getScriptCache();
+      var throttleKey = "ndli_login_fails_" + identifier.toLowerCase();
+      if (gasCache.get(throttleKey + "_lock")) {
+        return { ok: false, status: 429, data: { error: true, message: "Too many failed sign-in attempts. Please wait about 5 minutes and try again." } };
+      }
+
+      var mUsers = getCsvData("master", "master_users.csv");
+      var user = null;
+      var cleanLower = identifier.toLowerCase();
+      var cleanUpper = identifier.toUpperCase();
+
+      for (var i = 0; i < mUsers.rows.length; i++) {
+        var u = mUsers.rows[i];
+        var uId = (u.id || u.user_id || "").toUpperCase();
+        var uEmail = (u.email || "").toLowerCase();
+        var altEmail = uId.toLowerCase() + "@ndli.iitkgp.ac.in";
+        var legacyEmail = (uId.startsWith("EMP") ? "emp." + (u.zone || "").toLowerCase().replace(/\s+/g, "") + "@ndli.edu.in" : "");
+
+        if (uId === cleanUpper || uEmail === cleanLower || altEmail === cleanLower || (legacyEmail && legacyEmail === cleanLower)) {
+          user = u;
+          break;
+        }
+      }
+
+      if (!user) {
+        // (Round-3 audit fix: the fallback that constructed ADMIN01/employee
+        // accounts with public seed passwords when the lookup failed was
+        // REMOVED — it let anyone in with the README seeds.)
+        return { ok: false, status: 401, data: { error: true, message: "Invalid email, User ID, or password." } };
+      }
+
+      // Check active status
+      if (String(user.is_active) === "0" || user.status === "BLOCKED") {
+        return { ok: false, status: 403, data: { error: true, message: "This account has been disabled or blocked by the Administrator." } };
+      }
+
+      // Password Validation (stored credentials only — master_users.csv and the
+      // employee node credentials.csv. The KNOWN_PASSWORDS and
+      // DEFAULT_EMPLOYEES_CONFIG seed backdoors were removed in round 3: they
+      // kept accepting public seed passwords after rotation.)
+      var targetUid = (user.id || user.user_id || "").toUpperCase();
+      var isValid = false;
+
+      // 1. Direct match against the stored credential (round 4.1: PBKDF2
+      // hashes synced from the Python twin now VERIFY as hashes — the old
+      // plaintext compare could never match them and locked everyone out).
+      if (!isValid && verifyStoredGasCredential_(user.password_hash || user.password, user.salt, pass)) {
+        isValid = true;
+      }
+      // 2. Check node credentials.csv
+      if (!isValid && targetUid.indexOf("EMP") === 0) {
+        var empCred = getCsvData("employees/" + targetUid.toLowerCase(), "credentials.csv");
+        if (empCred.rows.length > 0 && verifyStoredGasCredential_(empCred.rows[0].password_hash || empCred.rows[0].password, empCred.rows[0].salt, pass)) {
+          isValid = true;
+        }
+      }
+
+      if (!isValid) {
+        // Throttle bookkeeping: count the failure, lock after 8 in the window.
+        var failCount = parseInt(gasCache.get(throttleKey) || "0", 10) + 1;
+        if (failCount >= 8) {
+          gasCache.put(throttleKey + "_lock", "1", 300);
+          gasCache.remove(throttleKey);
+        } else {
+          gasCache.put(throttleKey, String(failCount), 600);
+        }
+        return { ok: false, status: 401, data: { error: true, message: "Invalid credentials. Please verify your password." } };
+      }
+      gasCache.remove(throttleKey);
+
+      var sessionObj = {
+        user_id: targetUid,
+        id: targetUid,
+        email: user.email || (targetUid.toLowerCase() + "@ndli.iitkgp.ac.in"),
+        full_name: user.full_name || user.name || targetUid,
+        name: user.full_name || user.name || targetUid,
+        role: user.role || (targetUid === "ADMIN01" ? "ADMIN" : "EMPLOYEE"),
+        zone: user.zone || (targetUid === "ADMIN01" ? "Central Coordination (IIT KGP)" : "North"),
+        assigned_states: user.assigned_states || user.state || "All India",
+        is_active: "1",
+        status: "ACTIVE"
+      };
+      // Round 4: real verified session token (stored server-side)
+      var issuedToken = createGasSession(sessionObj);
+      sessionObj.token = issuedToken;
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          token: issuedToken,
+          session: sessionObj,
+          user: sessionObj
+        }
+      };
+    }
+
+    // --- AUTH: ME (ACTIVE SESSION CHECK) ---
+    if (path === "auth/me") {
+      // Round 4: identity comes from the VERIFIED server-side session only.
+      var authTok = String(token || body.token || queryObj.token || "").trim();
+      var meSession = verifyGasSession(authTok);
+      if (!meSession) {
+        return { ok: false, status: 401, data: { error: true, message: "No active session. Please log in." } };
+      }
+      meSession.token = authTok;
+      meSession.is_active = "1";
+      meSession.status = "ACTIVE";
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          authenticated: true,
+          success: true,
+          session: meSession,
+          user: meSession
+        }
+      };
+    }
+
+    // --- AUTH: LOGOUT ---
+    if (path === "auth/logout") {
+      // Round 4: destroy the server-side session.
+      invalidateGasSession(String(token || body.token || queryObj.token || "").trim());
+      return { ok: true, status: 200, data: { success: true, message: "Logged out successfully." } };
+    }
+
+    // --- AUTH: VERIFY PASSWORD (SECOND-LAYER CONFIRMATION) ---
+    if (path === "auth/verify-password") {
+      var uid = String(body.user_id || body.id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      var p = String(body.password || "").trim();
+      if (!uid || !p) {
+        return { ok: false, status: 400, data: { error: true, message: "User ID and password required." } };
+      }
+
+      // Round-3: stored credentials only (the KNOWN_PASSWORDS seed backdoor
+      // here would have kept accepting public seed passwords after rotation).
+      var isMatched = false;
+      if (!isMatched) {
+        var mUsers = getCsvData("master", "master_users.csv");
+        for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
+          var uRow = mUsers.rows[i2];
+          if ((uRow.id || uRow.user_id || "").toUpperCase() === uid) {
+            if (verifyStoredGasCredential_(uRow.password_hash || uRow.password, uRow.salt, p)) {
+              isMatched = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!isMatched && uid.indexOf("EMP") === 0) {
+        var empCred = getCsvData("employees/" + uid.toLowerCase(), "credentials.csv");
+        if (empCred.rows.length > 0 && verifyStoredGasCredential_(empCred.rows[0].password_hash || empCred.rows[0].password, empCred.rows[0].salt, p)) {
+          isMatched = true;
+        }
+      }
+
+      if (isMatched) {
+        return { ok: true, status: 200, data: { success: true, valid: true, user_id: uid } };
+      }
+      return { ok: false, status: 401, data: { error: true, valid: false, message: "Invalid password." } };
+    }
+
+    // --- EMPLOYEES: ROSTER (REGIONAL DIRECTORY CHIPS) ---
+    if (path === "employees/roster" || path === "employees") {
+      var rosterMap = {};
+      // 1. Pre-seed with all 7 official regional officers from DEFAULT_EMPLOYEES_CONFIG
+      DEFAULT_EMPLOYEES_CONFIG.forEach(function(d) {
+        rosterMap[d.id] = {
+          id: d.id,
+          full_name: d.name,
+          name: d.name,
+          email: d.email,
+          zone: d.zone,
+          assigned_states: d.state,
+          is_active: "1",
+          status: "ACTIVE"
+        };
+      });
+
+      // 2. Overlay live data from master_users.csv if present
+      var mUsers = getCsvData("master", "master_users.csv");
+      for (var r = 0; r < mUsers.rows.length; r++) {
+        var ur = mUsers.rows[r];
+        var role = (ur.role || "").toUpperCase();
+        var uid = (ur.id || ur.user_id || "").toUpperCase();
+        if (role === "EMPLOYEE" || uid.indexOf("EMP") === 0) {
+          var isAct = String(ur.is_active !== undefined && ur.is_active !== null ? ur.is_active : "1");
+          var existing = rosterMap[uid] || {};
+          rosterMap[uid] = {
+            id: uid,
+            full_name: ur.full_name || ur.name || existing.full_name || uid,
+            name: ur.full_name || ur.name || existing.name || uid,
+            email: ur.email || existing.email || (uid.toLowerCase() + "@ndli.iitkgp.ac.in"),
+            zone: ur.zone || existing.zone || "North",
+            assigned_states: ur.assigned_states || ur.state || existing.assigned_states || "",
+            is_active: isAct,
+            status: isAct === "0" || ur.status === "BLOCKED" ? "BLOCKED" : "ACTIVE"
+          };
+        }
+      }
+
+      var roster = [];
+      // Guarantee order EMP01 - EMP07 first
+      DEFAULT_EMPLOYEES_CONFIG.forEach(function(d) {
+        if (rosterMap[d.id]) {
+          roster.push(rosterMap[d.id]);
+          delete rosterMap[d.id];
+        }
+      });
+      // Add any additional custom employees
+      for (var k in rosterMap) {
+        roster.push(rosterMap[k]);
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          count: roster.length,
+          employees: roster,
+          roster: roster
+        }
+      };
+    }
+
+    // --- EMPLOYEES: LIVE PROFILE ---
+    if (path === "employees/profile") {
+      // Round 4: identity comes from the verified session — never a hard-coded
+      // default employee (was EMP01) and never a bare body claim.
+      var targetId = String(body.id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!targetId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee id is required." } };
+      }
+      var mUsers = getCsvData("master", "master_users.csv");
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+
+      var targetUser = null;
+      for (var tu = 0; tu < mUsers.rows.length; tu++) {
+        if ((mUsers.rows[tu].id || "").toUpperCase() === targetId) {
+          targetUser = mUsers.rows[tu];
+          break;
+        }
+      }
+
+      var quota = null;
+      for (var q1 = 0; q1 < mQuotas.rows.length; q1++) {
+        if ((mQuotas.rows[q1].emp_id || "").toUpperCase() === targetId) {
+          quota = mQuotas.rows[q1];
+          break;
+        }
+      }
+
+      if (!targetUser) {
+        for (var de = 0; de < DEFAULT_EMPLOYEES_CONFIG.length; de++) {
+          if (DEFAULT_EMPLOYEES_CONFIG[de].id === targetId) {
+            targetUser = {
+              id: DEFAULT_EMPLOYEES_CONFIG[de].id,
+              full_name: DEFAULT_EMPLOYEES_CONFIG[de].name,
+              email: DEFAULT_EMPLOYEES_CONFIG[de].email,
+              zone: DEFAULT_EMPLOYEES_CONFIG[de].zone,
+              assigned_states: DEFAULT_EMPLOYEES_CONFIG[de].state,
+              is_active: "1"
+            };
+            break;
+          }
+        }
+      }
+
+      // Dynamic Node & Master Quota Verification & Healing
+      var approvedClubMap = {};
+      var nodeClubs = getCsvData("employees/" + targetId.toLowerCase(), "clubs.csv");
+      if (nodeClubs && nodeClubs.rows) {
+        nodeClubs.rows.forEach(function(c) {
+          var cid = String(c.club_id || "").trim().toUpperCase();
+          if (cid && (!c.approved_by_emp_id || String(c.approved_by_emp_id).toUpperCase() === targetId)) {
+            approvedClubMap[cid] = true;
+          }
+        });
+      }
+
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      if (mClubs && mClubs.rows) {
+        mClubs.rows.forEach(function(c) {
+          var cid = String(c.club_id || "").trim().toUpperCase();
+          if (cid && String(c.approved_by_emp_id || "").toUpperCase() === targetId) {
+            approvedClubMap[cid] = true;
+          }
+        });
+      }
+
+      var clubApprovalsCount = 0;
+      var standaloneApprovalsCount = 0;
+      var supportLogsCount = 0;
+      var latestTs = quota ? (quota.last_activity_timestamp || "") : "";
+
+      var nodeActs = getCsvData("employees/" + targetId.toLowerCase(), "activity_log.csv");
+      var mActs = getCsvData("master", "master_activities.csv");
+      var combinedActsMap = {};
+
+      if (nodeActs && nodeActs.rows) {
+        nodeActs.rows.forEach(function(a) { if (a.activity_id) combinedActsMap[a.activity_id] = a; });
+      }
+      if (mActs && mActs.rows) {
+        mActs.rows.forEach(function(a) {
+          if (a.activity_id && String(a.emp_id || "").toUpperCase() === targetId) {
+            combinedActsMap[a.activity_id] = a;
+          }
+        });
+      }
+
+      for (var aid in combinedActsMap) {
+        var a = combinedActsMap[aid];
+        var ts = a.timestamp || a.submission_timestamp || "";
+        if (ts && ts > latestTs) latestTs = ts;
+        var stype = String(a.support_type || "").trim();
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || String(a.activity_id || "").indexOf("ACT-PRIORITY-" + targetId) !== -1);
+        if (isApproval) {
+          clubApprovalsCount++;
+          if (a.club_id) {
+            approvedClubMap[String(a.club_id).trim().toUpperCase()] = true;
+          } else {
+            standaloneApprovalsCount++;
+          }
+        } else {
+          supportLogsCount++;
+        }
+      }
+
+      var totalUniqueClubs = Object.keys(approvedClubMap).length;
+      var computedClubs = Math.max(totalUniqueClubs + standaloneApprovalsCount, clubApprovalsCount);
+      var storedClubs = quota ? parseInt(quota.clubs_approved_count || "0", 10) : 0;
+      var finalClubs = Math.max(storedClubs, computedClubs);
+
+      var storedSupport = quota ? parseInt(quota.support_logs_count || "0", 10) : 0;
+      var finalSupport = Math.max(storedSupport, supportLogsCount);
+
+      if (!quota) {
+        quota = {
+          emp_id: targetId,
+          employee_name: targetUser ? (targetUser.full_name || targetUser.name) : targetId,
+          zone: targetUser ? targetUser.zone : "North",
+          clubs_approved_count: String(finalClubs),
+          support_logs_count: String(finalSupport),
+          last_activity_timestamp: latestTs
+        };
+        mQuotas.rows.push(quota);
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      } else if (finalClubs !== storedClubs || finalSupport !== storedSupport) {
+        quota.clubs_approved_count = String(finalClubs);
+        quota.support_logs_count = String(finalSupport);
+        if (latestTs) quota.last_activity_timestamp = latestTs;
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      }
+
+      var prof = {
+        id: targetId,
+        full_name: targetUser ? (targetUser.full_name || targetUser.name) : targetId,
+        email: targetUser ? targetUser.email : "",
+        zone: targetUser ? targetUser.zone : "North",
+        assigned_states: targetUser ? (targetUser.assigned_states || targetUser.state) : "",
+        is_active: targetUser ? String(targetUser.is_active || "1") : "1",
+        clubs_approved_count: finalClubs,
+        support_logs_count: finalSupport,
+        last_activity_timestamp: quota ? quota.last_activity_timestamp : ""
+      };
+
+      return { ok: true, status: 200, data: { found: true, employee: prof } };
+    }
+
+    // --- ADMIN: EMPLOYEES ROSTER WITH QUOTAS ---
+    if (path === "admin/employees") {
+      var mUsers = getCsvData("master", "master_users.csv");
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+      var qMap = {};
+      for (var qm = 0; qm < mQuotas.rows.length; qm++) {
+        qMap[(mQuotas.rows[qm].emp_id || "").toUpperCase()] = mQuotas.rows[qm];
+      }
+
+      var empList = [];
+      for (var ae = 0; ae < mUsers.rows.length; ae++) {
+        var usr = mUsers.rows[ae];
+        if (usr.role === "EMPLOYEE") {
+          var uUid = (usr.id || "").toUpperCase();
+          var qData = qMap[uUid] || {};
+          empList.push({
+            id: uUid,
+            full_name: usr.full_name || usr.name || uUid,
+            email: usr.email,
+            zone: usr.zone,
+            assigned_states: usr.assigned_states || usr.state || "",
+            is_active: String(usr.is_active || "1"),
+            created_at: usr.created_at || "",
+            clubs_approved_count: parseInt(qData.clubs_approved_count || "0", 10),
+            support_logs_count: parseInt(qData.support_logs_count || "0", 10),
+            last_activity_timestamp: qData.last_activity_timestamp || ""
+          });
+        }
+      }
+
+      return { ok: true, status: 200, data: { count: empList.length, employees: empList } };
+    }
+
+    // --- AUTH / ADMIN: BLOCK & STATUS TOGGLE ---
+    if (path === "auth/block-toggle" || path === "admin/employees/status") {
+      var targetId = String(body.user_id || body.id || "").trim().toUpperCase();
+      var newIsActive = (body.is_active !== undefined) ? String(body.is_active) : (body.status === "ACTIVE" ? "1" : "0");
+      var newStatus = (newIsActive === "1") ? "ACTIVE" : "BLOCKED";
+
+      var mUsers = getCsvData("master", "master_users.csv");
+      var updated = false;
+
+      for (var bi = 0; bi < mUsers.rows.length; bi++) {
+        if ((mUsers.rows[bi].id || mUsers.rows[bi].user_id || "").toUpperCase() === targetId) {
+          mUsers.rows[bi].is_active = newIsActive;
+          if (mUsers.rows[bi].status !== undefined) mUsers.rows[bi].status = newStatus;
+          updated = true;
+          break;
+        }
+      }
+
+      if (updated) {
+        saveCsvData("master", "master_users.csv", mUsers.headers, mUsers.rows);
+
+        // Also sync node credentials
+        var empCred = getCsvData("employees/" + targetId.toLowerCase(), "credentials.csv");
+        if (empCred.rows.length > 0) {
+          empCred.rows[0].status = newStatus;
+          saveCsvData("employees/" + targetId.toLowerCase(), "credentials.csv", empCred.headers, empCred.rows);
+        }
+
+        return { ok: true, status: 200, data: { success: true, user_id: targetId, is_active: newIsActive, status: newStatus } };
+      }
+      return { ok: false, status: 404, data: { error: true, message: "Officer not found." } };
+    }
+
+    // --- ADMIN: METRICS (MASTER CSV TO ADMIN DASHBOARD SYNC) ---
+    if (path === "admin/metrics") {
+      var allClubs = getCsvData("master", "master_clubs.csv").rows;
+      var allActivities = getCsvData("master", "master_activities.csv").rows;
+      var allQuotas = getCsvData("master", "master_quotas.csv").rows;
+      var allUsers = getCsvData("master", "master_users.csv").rows;
+
+      var filterZone = String(body.zone || "ALL").trim();
+      if (filterZone.toUpperCase() === "ALL" || !filterZone) filterZone = "ALL";
+      var filterYear = String(body.year || "ALL").trim();
+      if (filterYear.toUpperCase() === "ALL" || !filterYear) filterYear = "ALL";
+
+      // Discover available years
+      var availableYearsSet = { "2026": true, "2025": true, "2024": true };
+      for (var cy = 0; cy < allClubs.length; cy++) {
+        var cTs = allClubs[cy].date_of_approval || allClubs[cy].submission_timestamp || allClubs[cy].updated_at || "";
+        if (cTs && cTs.length >= 4) {
+          var yPart = cTs.substring(0, 4);
+          if (/^\d{4}$/.test(yPart)) availableYearsSet[yPart] = true;
+        }
+      }
+      for (var ay = 0; ay < allActivities.length; ay++) {
+        var aTs = allActivities[ay].timestamp || allActivities[ay].submission_timestamp || allActivities[ay].created_at || "";
+        if (aTs && aTs.length >= 4) {
+          var ayPart = aTs.substring(0, 4);
+          if (/^\d{4}$/.test(ayPart)) availableYearsSet[ayPart] = true;
+        }
+      }
+      var availableYears = Object.keys(availableYearsSet).sort().reverse();
+
+      // Employee to zone map
+      var empToZone = {};
+      for (var ui = 0; ui < allUsers.length; ui++) {
+        if (allUsers[ui].role === "EMPLOYEE") {
+          empToZone[allUsers[ui].id] = allUsers[ui].zone || "Other";
+        }
+      }
+
+      // Filter clubs
+      var clubs = [];
+      for (var fc = 0; fc < allClubs.length; fc++) {
+        var cl = allClubs[fc];
+        var cZone = cl.zone || getZoneForState(cl.state || "");
+        var cTs = cl.date_of_approval || cl.submission_timestamp || cl.updated_at || "";
+        var cYear = (cTs && cTs.length >= 4) ? cTs.substring(0, 4) : "";
+
+        if (filterZone !== "ALL" && cZone !== filterZone) continue;
+        if (filterYear !== "ALL" && cYear !== filterYear) continue;
+        clubs.push(cl);
+      }
+
+      // Filter activities
+      var activities = [];
+      for (var fa = 0; fa < allActivities.length; fa++) {
+        var ac = allActivities[fa];
+        var aZone = empToZone[ac.emp_id] || "Other";
+        var aTs = ac.timestamp || ac.submission_timestamp || ac.created_at || "";
+        var aYear = (aTs && aTs.length >= 4) ? aTs.substring(0, 4) : "";
+
+        if (filterZone !== "ALL" && aZone !== filterZone) continue;
+        if (filterYear !== "ALL" && aYear !== filterYear) continue;
+        activities.push(ac);
+      }
+
+      // Filter quotas
+      var quotas = allQuotas;
+      var filteredEmpUsers = allUsers.filter(function(u) { return u.role === "EMPLOYEE"; });
+      if (filterZone !== "ALL") {
+        var zoneEmpIds = {};
+        for (var ze = 0; ze < allUsers.length; ze++) {
+          if (allUsers[ze].zone === filterZone) zoneEmpIds[allUsers[ze].id] = true;
+        }
+        quotas = allQuotas.filter(function(q) { return !!zoneEmpIds[q.emp_id]; });
+        filteredEmpUsers = allUsers.filter(function(u) { return u.role === "EMPLOYEE" && u.zone === filterZone; });
+      }
+
+      var stateCounts = {};
+      var zoneCounts = { "North": 0, "Central": 0, "West": 0, "East": 0, "North East": 0, "South": 0 };
+      var monthCounts = {};
+      var yearCounts = {};
+      var statusCounts = {};
+
+      var today = new Date();
+      var todayIso = today.toISOString().split("T")[0];
+      var overdueClubs = [];
+      var expiringSoonClubs = [];
+
+      for (var c = 0; c < clubs.length; c++) {
+        var club = clubs[c];
+        var st = club.state || "Unknown";
+        var zn = club.zone || getZoneForState(st);
+        var stat = club.status || "Approved";
+
+        stateCounts[st] = (stateCounts[st] || 0) + 1;
+        zoneCounts[zn] = (zoneCounts[zn] || 0) + 1;
+        statusCounts[stat] = (statusCounts[stat] || 0) + 1;
+
+        var ts = club.date_of_approval || club.submission_timestamp || club.updated_at || "";
+        if (ts) {
+          var y = ts.substring(0, 4);
+          var ym = ts.substring(0, 7);
+          if (y.length === 4) yearCounts[y] = (yearCounts[y] || 0) + 1;
+          if (ym.length === 7) monthCounts[ym] = (monthCounts[ym] || 0) + 1;
+        }
+
+        // Renewal calculations
+        var rDate = club.renewal_date || club.next_renewal_date || "";
+        if (rDate) {
+          var cleanR = rDate.split("T")[0];
+          var diffDays = Math.round((new Date(cleanR).getTime() - today.getTime()) / 86400000);
+          if (cleanR < todayIso || diffDays < 0) {
+            overdueClubs.push(club);
+          } else if (diffDays <= 90) {
+            expiringSoonClubs.push(club);
+          }
+        }
+      }
+
+      // Support Breakdown
+      var supportTypes = {
+        "Phone call and remote assistance": 0,
+        "Closing of OS Ticket": 0,
+        "Online training": 0,
+        "Offline training": 0,
+        "Club Approval": 0,
+        "Registration Renewal": 0
+      };
+      for (var a = 0; a < activities.length; a++) {
+        var stype = activities[a].support_type || "Phone call and remote assistance";
+        supportTypes[stype] = (supportTypes[stype] || 0) + 1;
+      }
+
+      // Coverage Index
+      var targetStateList = ALL_INDIAN_STATES;
+      if (filterZone !== "ALL" && ZONE_STATE_MAP[filterZone]) {
+        targetStateList = ZONE_STATE_MAP[filterZone];
+      }
+      var repStates = [];
+      var defStates = [];
+      for (var sIdx = 0; sIdx < targetStateList.length; sIdx++) {
+        var sName = targetStateList[sIdx];
+        if (stateCounts[sName] && stateCounts[sName] > 0) repStates.push(sName);
+        else defStates.push(sName);
+      }
+      var covPct = targetStateList.length > 0 ? Math.round((repStates.length / targetStateList.length) * 100) : 0;
+
+      // Renewal Health
+      var totalClubs = clubs.length;
+      var activeCount = Math.max(0, totalClubs - overdueClubs.length);
+      var retRate = totalClubs > 0 ? Math.round((activeCount / totalClubs) * 100) : 100;
+
+      // Zone Efficiency
+      var zoneEff = {};
+      var activeZoneList = (filterZone === "ALL") ? ALL_ZONES : [filterZone];
+      activeZoneList.forEach(function(z) {
+        var cCount = zoneCounts[z] || 0;
+        zoneEff[z] = {
+          clubs: cCount,
+          support_logs: 0,
+          ratio: 0
+        };
+      });
+
+      var metricsData = {
+        summary: {
+          total_clubs: totalClubs,
+          total_activities: activities.length,
+          total_employees: filteredEmpUsers.length,
+          quotas: quotas,
+          renewal_attention_count: overdueClubs.length + expiringSoonClubs.length
+        },
+        filters: {
+          zone: filterZone,
+          year: filterYear
+        },
+        available_years: availableYears,
+        state_wise_clubs: stateCounts,
+        zone_wise_clubs: zoneCounts,
+        year_wise_clubs: yearCounts,
+        month_wise_clubs: monthCounts,
+        status_wise_clubs: statusCounts,
+        support_type_breakdown: supportTypes,
+        renewal_health: {
+          total_clubs: totalClubs,
+          active_validity_count: activeCount,
+          expiring_soon_count: expiringSoonClubs.length,
+          overdue_count: overdueClubs.length,
+          retention_rate_pct: retRate
+        },
+        coverage_index: {
+          total_states: targetStateList.length,
+          represented_count: repStates.length,
+          deficit_count: defStates.length,
+          coverage_percentage: covPct,
+          deficit_states: defStates,
+          represented_states: repStates,
+          zone_scope: filterZone
+        },
+        zone_efficiency: zoneEff,
+        users: allUsers.map(function(u) {
+          return {
+            id: u.id,
+            full_name: u.full_name || u.name,
+            email: u.email,
+            role: u.role,
+            zone: u.zone,
+            assigned_states: u.assigned_states,
+            is_active: u.is_active
+          };
+        })
+      };
+
+      return { ok: true, status: 200, data: metricsData };
+    }
+
+    // --- ADMIN: EMPLOYEE PERFORMANCE EVALUATION & STAR RATING MATRIX ---
+    if (path === "admin/employee-performance") {
+      var rawYear = String(body.year || "ALL").trim();
+      var rawMonth = String(body.month || "ALL").trim();
+      var rawState = String(body.state || body.states || "ALL").trim();
+
+      var filterYear = (rawYear.toUpperCase() !== "ALL" && rawYear) ? rawYear : "ALL";
+      var filterMonth = (rawMonth.toUpperCase() !== "ALL" && rawMonth) ? rawMonth : "ALL";
+      var filterState = (rawState.toUpperCase() !== "ALL" && rawState) ? rawState : "ALL";
+
+      var monthMap = {
+        "january": 1, "jan": 1, "01": 1, "1": 1,
+        "february": 2, "feb": 2, "02": 2, "2": 2,
+        "march": 3, "mar": 3, "03": 3, "3": 3,
+        "april": 4, "apr": 4, "04": 4, "4": 4,
+        "may": 5, "05": 5, "5": 5,
+        "june": 6, "jun": 6, "06": 6, "6": 6,
+        "july": 7, "jul": 7, "07": 7, "7": 7,
+        "august": 8, "aug": 8, "08": 8, "8": 8,
+        "september": 9, "sep": 9, "sept": 9, "09": 9, "9": 9,
+        "october": 10, "oct": 10, "10": 10,
+        "november": 11, "nov": 11, "11": 11,
+        "december": 12, "dec": 12, "12": 12
+      };
+      var targetMonthNum = (filterMonth !== "ALL") ? (monthMap[filterMonth.toLowerCase()] || null) : null;
+
+      var allUsers = getCsvData("master", "master_users.csv").rows;
+      var allClubs = getCsvData("master", "master_clubs.csv").rows;
+      var allActivities = getCsvData("master", "master_activities.csv").rows;
+
+      // Build club lookup for activity state resolution
+      var clubLookup = {};
+      for (var ci = 0; ci < allClubs.length; ci++) {
+        var clb = allClubs[ci];
+        if (clb.club_id) clubLookup[String(clb.club_id).trim().toUpperCase()] = clb;
+      }
+
+      // Discover available years
+      var availableYearsSet = { "2026": true, "2025": true, "2024": true };
+      function parseDateObj(ts) {
+        if (!ts) return null;
+        var cleanTs = String(ts).trim();
+        var d = new Date(cleanTs);
+        if (!isNaN(d.getTime())) return d;
+        var parts = cleanTs.split("T")[0].split(" ")[0].split("-");
+        if (parts.length === 3) {
+          var year = parseInt(parts[0], 10);
+          var month = parseInt(parts[1], 10) - 1;
+          var day = parseInt(parts[2], 10);
+          var d2 = new Date(year, month, day);
+          if (!isNaN(d2.getTime())) return d2;
+        }
+        return null;
+      }
+
+      for (var cy = 0; cy < allClubs.length; cy++) {
+        var cTs = allClubs[cy].date_of_approval || allClubs[cy].submission_timestamp || allClubs[cy].updated_at || "";
+        var d = parseDateObj(cTs);
+        if (d) availableYearsSet[String(d.getFullYear())] = true;
+      }
+      for (var ay = 0; ay < allActivities.length; ay++) {
+        var aTs = allActivities[ay].timestamp || allActivities[ay].submission_timestamp || allActivities[ay].created_at || "";
+        var d = parseDateObj(aTs);
+        if (d) availableYearsSet[String(d.getFullYear())] = true;
+      }
+      var availableYears = Object.keys(availableYearsSet).sort().reverse();
+
+      var officers = [];
+      for (var ui = 0; ui < allUsers.length; ui++) {
+        if (allUsers[ui].role === "EMPLOYEE") officers.push(allUsers[ui]);
+      }
+
+      var evaluations = [];
+      var coversStateByEmp = {};
+      var zoneToDefaultEmp = {};
+      for (var uzi = 0; uzi < officers.length; uzi++) {
+        var off = officers[uzi];
+        var offId = String(off.id || "").trim().toUpperCase();
+        var offZn = String(off.zone || "").trim();
+        if (offZn && !zoneToDefaultEmp[offZn]) zoneToDefaultEmp[offZn] = offId;
+        var stList = (off.assigned_states || "").split(",").map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean);
+        coversStateByEmp[offId] = (filterState === "ALL") || (stList.indexOf(filterState.toLowerCase()) !== -1);
+      }
+
+      // Clubs approval aggregation across master clubs and priority club approval activities
+      var clubsApprovedByEmpMap = {};
+      var clubApprovalsStandalone = {};
+      for (var ci0 = 0; ci0 < officers.length; ci0++) {
+        var offEId = String(officers[ci0].id || "").trim().toUpperCase();
+        clubsApprovedByEmpMap[offEId] = {};
+        clubApprovalsStandalone[offEId] = 0;
+      }
+
+      for (var cj = 0; cj < allClubs.length; cj++) {
+        var c = allClubs[cj];
+        var cState = String(c.state || "").trim();
+        if (filterState !== "ALL" && cState.toLowerCase() !== filterState.toLowerCase()) continue;
+
+        var ts = c.date_of_approval || c.submission_timestamp || c.updated_at || "";
+        var dp = parseDateObj(ts);
+        if (filterYear !== "ALL") {
+          if (!dp || String(dp.getFullYear()) !== filterYear) continue;
+        }
+        if (targetMonthNum !== null) {
+          if (!dp || (dp.getMonth() + 1) !== targetMonthNum) continue;
+        }
+
+        var cEmp = String(c.approved_by_emp_id || "").trim().toUpperCase();
+        if (!cEmp) {
+          var cZn = String(c.zone || "").trim() || getZoneForState(cState);
+          cEmp = zoneToDefaultEmp[cZn] || "";
+        }
+        var cid = String(c.club_id || "").trim().toUpperCase();
+        if (clubsApprovedByEmpMap[cEmp]) {
+          if (cid) {
+            clubsApprovedByEmpMap[cEmp][cid] = true;
+          } else {
+            clubApprovalsStandalone[cEmp]++;
+          }
+        }
+      }
+
+      // Single-pass O(N) activities aggregation
+      var actStatsByEmp = {};
+      for (var ai0 = 0; ai0 < officers.length; ai0++) {
+        actStatsByEmp[String(officers[ai0].id || "").trim().toUpperCase()] = { online: 0, offline: 0, other: 0 };
+      }
+      for (var aj = 0; aj < allActivities.length; aj++) {
+        var a = allActivities[aj];
+        var aEmp = String(a.emp_id || "").trim().toUpperCase();
+        if (!actStatsByEmp[aEmp]) continue;
+
+        var cid = String(a.club_id || "").trim().toUpperCase();
+        var refClub = clubLookup[cid];
+        var actState = refClub ? String(refClub.state || "").trim() : "";
+
+        if (filterState !== "ALL") {
+          if (actState) {
+            if (actState.toLowerCase() !== filterState.toLowerCase()) continue;
+          } else {
+            if (!coversStateByEmp[aEmp]) continue;
+          }
+        }
+
+        var ts = a.timestamp || a.submission_timestamp || a.created_at || "";
+        var dp = parseDateObj(ts);
+        var tsClub = refClub ? (refClub.date_of_approval || "") : "";
+        var dpClub = parseDateObj(tsClub);
+
+        var dateMatch = true;
+        if (filterYear !== "ALL") {
+          var actYr = dp ? String(dp.getFullYear()) : "";
+          var clubYr = dpClub ? String(dpClub.getFullYear()) : "";
+          if (actYr !== filterYear && clubYr !== filterYear) dateMatch = false;
+        }
+        if (dateMatch && targetMonthNum !== null) {
+          var actM = dp ? (dp.getMonth() + 1) : 0;
+          var clubM = dpClub ? (dpClub.getMonth() + 1) : 0;
+          if (actM !== targetMonthNum && clubM !== targetMonthNum) dateMatch = false;
+        }
+
+        if (!dateMatch) continue;
+
+        var stype = String(a.support_type || "").trim();
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || String(a.activity_id || "").indexOf("ACT-PRIORITY-" + aEmp) !== -1);
+
+        if (isApproval) {
+          if (clubsApprovedByEmpMap[aEmp]) {
+            if (cid) {
+              clubsApprovedByEmpMap[aEmp][cid] = true;
+            } else {
+              clubApprovalsStandalone[aEmp]++;
+            }
+          }
+        } else if (stype === "Online training") {
+          actStatsByEmp[aEmp].online++;
+        } else if (stype === "Offline training") {
+          actStatsByEmp[aEmp].offline++;
+        } else if (stype === "Phone call and remote assistance" || stype === "Closing of OS Ticket") {
+          actStatsByEmp[aEmp].other++;
+        }
+      }
+
+      var evaluations = [];
+      for (var oi = 0; oi < officers.length; oi++) {
+        var u = officers[oi];
+        var empId = String(u.id || "").trim().toUpperCase();
+        var empName = u.full_name || u.name || empId;
+        var empZone = u.zone || "Other";
+        var assignedStatesStr = u.assigned_states || "";
+        var coversState = coversStateByEmp[empId] !== undefined ? coversStateByEmp[empId] : true;
+
+        var clubsApproved = Object.keys(clubsApprovedByEmpMap[empId] || {}).length + (clubApprovalsStandalone[empId] || 0);
+        var aStats = actStatsByEmp[empId] || { online: 0, offline: 0, other: 0 };
+        var onlineTraining = aStats.online;
+        var offlineTraining = aStats.offline;
+        var otherSupports = aStats.other;
+
+        // 3. Weighted score: 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
+        var weightedScore = Math.round(((0.50 * clubsApproved) + (0.30 * otherSupports) + (0.20 * offlineTraining) + (0.10 * onlineTraining)) * 100) / 100;
+
+        evaluations.push({
+          emp_id: empId,
+          full_name: empName,
+          zone: empZone,
+          assigned_states: assignedStatesStr,
+          clubs_approved: clubsApproved,
+          online_training: onlineTraining,
+          offline_training: offlineTraining,
+          other_supports: otherSupports,
+          total_activities: onlineTraining + offlineTraining + otherSupports,
+          weighted_score: weightedScore,
+          covers_selected_state: coversState
+        });
+      }
+
+      // Sort descending by weighted_score, then clubs_approved, then total_activities
+      evaluations.sort(function(a, b) {
+        if (b.weighted_score !== a.weighted_score) return b.weighted_score - a.weighted_score;
+        if (b.clubs_approved !== a.clubs_approved) return b.clubs_approved - a.clubs_approved;
+        return b.total_activities - a.total_activities;
+      });
+
+      // Max score & Star Rating calculation
+      var maxScore = 0;
+      for (var mi = 0; mi < evaluations.length; mi++) {
+        if (evaluations[mi].weighted_score > maxScore) maxScore = evaluations[mi].weighted_score;
+      }
+
+      for (var ri = 0; ri < evaluations.length; ri++) {
+        var ev = evaluations[ri];
+        ev.rank = ri + 1;
+        var stars = 1;
+        if (maxScore > 0 && ev.weighted_score > 0) {
+          var ratio = ev.weighted_score / maxScore;
+          if (ratio >= 0.80) stars = 5;
+          else if (ratio >= 0.60) stars = 4;
+          else if (ratio >= 0.40) stars = 3;
+          else if (ratio >= 0.20) stars = 2;
+          else stars = 1;
+        }
+        ev.stars = stars;
+        var sStr = "";
+        for (var s1 = 0; s1 < stars; s1++) sStr += "★";
+        for (var s2 = 0; s2 < (5 - stars); s2++) sStr += "☆";
+        ev.stars_display = sStr;
+        ev.rating_label = stars + ".0 / 5.0";
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          filters: {
+            year: filterYear,
+            month: filterMonth,
+            state: filterState
+          },
+          available_years: availableYears,
+          available_states: ALL_INDIAN_STATES,
+          weightage: {
+            club_approval_pct: 50,
+            other_supports_pct: 30,
+            offline_training_pct: 20,
+            online_training_pct: 10
+          },
+          summary: {
+            total_officers: evaluations.length,
+            max_score: maxScore,
+            top_officer: evaluations.length > 0 ? evaluations[0] : null
+          },
+          officers: evaluations
+        }
+      };
+    }
+
+    // --- ADMIN: RENEWAL ATTENTION CLUBS ---
+    if (path === "admin/renewal-attention") {
+      var clubs = getCsvData("master", "master_clubs.csv").rows;
+      var today = new Date();
+      var todayIso = today.toISOString().split("T")[0];
+      var overdue = [];
+      var expiring = [];
+
+      for (var ci = 0; ci < clubs.length; ci++) {
+        var cl = clubs[ci];
+        var rDate = cl.renewal_date || cl.next_renewal_date || "";
+        if (!rDate && cl.date_of_approval) {
+          var dt = new Date(cl.date_of_approval);
+          if (!isNaN(dt.getTime())) {
+            dt.setFullYear(dt.getFullYear() + 1);
+            rDate = Utilities.formatDate(dt, "Asia/Kolkata", "yyyy-MM-dd");
+          }
+        }
+        if (rDate) {
+          var cleanR = rDate.split("T")[0];
+          var days = Math.round((new Date(cleanR).getTime() - today.getTime()) / 86400000);
+          var item = {
+            club_id: cl.club_id,
+            institution_name: cl.institution_name,
+            state: cl.state,
+            zone: cl.zone || getZoneForState(cl.state),
+            reg_no: cl.reg_no,
+            date_of_approval: cl.date_of_approval,
+            renewal_date: cleanR,
+            last_renewal_date: cl.last_renewal_date || "",
+            status: cl.status || "Approved",
+            days_diff: days,
+            days_overdue: days < 0 ? Math.abs(days) : 0,
+            days_left: days >= 0 ? days : 0
+          };
+          if (cleanR < todayIso || days < 0) overdue.push(item);
+          else if (days <= 90) expiring.push(item);
+        }
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          overdue_clubs: overdue,
+          expiring_soon_clubs: expiring,
+          total_attention_count: overdue.length + expiring.length,
+          overdue_count: overdue.length,
+          expiring_soon_count: expiring.length
+        }
+      };
+    }
+
+    // --- ADMIN: AI INSIGHTS ---
+    if (path === "admin/ai-insights") {
+      var clubs = getCsvData("master", "master_clubs.csv").rows;
+      var acts = getCsvData("master", "master_activities.csv").rows;
+      var recs = [
+        {
+          category: "Regional Outreach",
+          priority: "High",
+          title: "Establish Foothold in Unrepresented States",
+          insight: "Multiple States/UTs currently have zero registered NDLI clubs.",
+          action: "Task corresponding regional officers to initiate outreach to Higher Education Directorates."
+        },
+        {
+          category: "Retention & Renewal",
+          priority: "High",
+          title: "Prevent Registration Churn",
+          insight: "Several clubs require timely annual renewal action.",
+          action: "Trigger renewal notifications to Patron, President, and Secretary email addresses."
+        }
+      ];
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          timestamp: Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+          strategic_recommendations: recs,
+          metrics: {
+            total_clubs: clubs.length,
+            total_activities: acts.length
+          }
+        }
+      };
+    }
+
+    // --- SYNC: STATUS ---
+    if (path === "sync/status") {
+      var clubs = getCsvData("master", "master_clubs.csv").rows;
+      var acts = getCsvData("master", "master_activities.csv").rows;
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          storage_mode: "Google Drive Cloud Engine",
+          master_clubs_count: clubs.length,
+          master_activities_count: acts.length,
+          cloud_active: true
+        }
+      };
+    }
+
+    // --- SYNC: RECONCILE (CROSS-NODE TO MASTER DATABASE) ---
+    if (path === "sync/reconcile") {
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var empFolder = getOrCreateSubfolder(dbFolder, "employees");
+
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var mActs = getCsvData("master", "master_activities.csv");
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+
+      var allClubsMap = {};
+      var addedClubs = 0;
+      var addedActs = 0;
+
+      // 1. Read & heal master clubs
+      mClubs.rows.forEach(function(c) {
+        var cid = String(c.club_id || "").trim().toUpperCase();
+        if (cid) {
+          if (!c.zone || c.zone === "Unknown") {
+            c.zone = getZoneForState(c.state || "");
+          }
+          allClubsMap[cid] = c;
+        }
+      });
+
+      // 2. Read master activities
+      var allActsMap = {};
+      mActs.rows.forEach(function(a) {
+        var aid = String(a.activity_id || "").trim();
+        if (aid) allActsMap[aid] = a;
+      });
+
+      // 3. Scan node folders
+      var syncedEmpIds = [];
+      var eSubs = empFolder.getFolders();
+      while (eSubs.hasNext()) {
+        var sub = eSubs.next();
+        var nodeEmpId = sub.getName().toUpperCase();
+        syncedEmpIds.push(nodeEmpId);
+
+        var nodeClubs = getCsvData("employees/" + sub.getName(), "clubs.csv");
+        if (nodeClubs && nodeClubs.rows) {
+          nodeClubs.rows.forEach(function(nc) {
+            var cid = String(nc.club_id || "").trim().toUpperCase();
+            if (cid) {
+              if (!nc.zone || nc.zone === "Unknown") {
+                nc.zone = getZoneForState(nc.state || "");
+              }
+              if (!nc.approved_by_emp_id) {
+                nc.approved_by_emp_id = nodeEmpId;
+              }
+              if (!allClubsMap[cid]) {
+                allClubsMap[cid] = nc;
+                addedClubs++;
+              } else if ((nc.updated_at || "") >= (allClubsMap[cid].updated_at || "")) {
+                allClubsMap[cid] = nc;
+              }
+            }
+          });
+        }
+
+        var nodeActs = getCsvData("employees/" + sub.getName(), "activity_log.csv");
+        if (nodeActs && nodeActs.rows) {
+          nodeActs.rows.forEach(function(na) {
+            var aid = String(na.activity_id || "").trim();
+            if (aid) {
+              if (!allActsMap[aid]) {
+                allActsMap[aid] = na;
+                addedActs++;
+              }
+            }
+          });
+        }
+      }
+
+      // Ensure all 7 default employees are synced
+      var seenSynced = {};
+      syncedEmpIds.forEach(function(eid) { seenSynced[eid] = true; });
+      for (var de = 0; de < DEFAULT_EMPLOYEES_CONFIG.length; de++) {
+        var defId = DEFAULT_EMPLOYEES_CONFIG[de].id;
+        if (!seenSynced[defId]) {
+          syncedEmpIds.push(defId);
+          seenSynced[defId] = true;
+        }
+      }
+
+      // 4. Infer club approvals and link clubs from activities
+      for (var aid in allActsMap) {
+        var a = allActsMap[aid];
+        var stype = String(a.support_type || "").trim();
+        var aEmp = String(a.emp_id || "").trim().toUpperCase();
+        var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || aid.indexOf("ACT-PRIORITY-" + aEmp) !== -1);
+        if (isApproval && a.club_id) {
+          var cid = String(a.club_id).trim().toUpperCase();
+          if (allClubsMap[cid] && !allClubsMap[cid].approved_by_emp_id) {
+            allClubsMap[cid].approved_by_emp_id = aEmp;
+          }
+        }
+      }
+
+      var mergedClubs = Object.keys(allClubsMap).map(function(k) { return allClubsMap[k]; });
+      var mergedActs = Object.keys(allActsMap).map(function(k) { return allActsMap[k]; });
+
+      // Save master files
+      saveCsvData("master", "master_clubs.csv", mClubs.headers, mergedClubs);
+      saveCsvData("master", "master_activities.csv", mActs.headers, mergedActs);
+
+      // 5. Bi-directional sync back to each employee node
+      syncedEmpIds.forEach(function(empId) {
+        var empClubs = mergedClubs.filter(function(c) {
+          return String(c.approved_by_emp_id || "").toUpperCase() === empId;
+        });
+        saveCsvData("employees/" + empId.toLowerCase(), "clubs.csv", mClubs.headers, empClubs);
+
+        var empActs = mergedActs.filter(function(a) {
+          return String(a.emp_id || "").toUpperCase() === empId;
+        });
+        saveCsvData("employees/" + empId.toLowerCase(), "activity_log.csv", mActs.headers, empActs);
+      });
+
+      // 6. Recompute and save quotas
+      var qMap = {};
+      mQuotas.rows.forEach(function(q) {
+        var eid = String(q.emp_id || "").toUpperCase();
+        if (eid) qMap[eid] = q;
+      });
+
+      // Ensure all 7 officers are in qMap
+      DEFAULT_EMPLOYEES_CONFIG.forEach(function(d) {
+        if (!qMap[d.id]) {
+          var newQ = {
+            emp_id: d.id,
+            employee_name: d.name,
+            zone: d.zone,
+            clubs_approved_count: "0",
+            support_logs_count: "0",
+            last_activity_timestamp: ""
+          };
+          qMap[d.id] = newQ;
+          mQuotas.rows.push(newQ);
+        }
+      });
+
+      for (var qEid in qMap) {
+        var qRec = qMap[qEid];
+        var approvedClubIds = {};
+        mergedClubs.forEach(function(c) {
+          if (String(c.approved_by_emp_id || "").toUpperCase() === qEid) {
+            approvedClubIds[String(c.club_id).toUpperCase()] = true;
+          }
+        });
+
+        var clubApprovalActCount = 0;
+        var standaloneApprovals = 0;
+        var supportCount = 0;
+        var latestTs = qRec.last_activity_timestamp || "";
+
+        mergedActs.forEach(function(a) {
+          if (String(a.emp_id || "").toUpperCase() === qEid) {
+            var ts = a.timestamp || a.submission_timestamp || "";
+            if (ts && ts > latestTs) latestTs = ts;
+            var stype = String(a.support_type || "").trim();
+            var aid = String(a.activity_id || "").trim();
+            var isApproval = (stype === "Club Approval" || a.priority_flag === "1" || aid.indexOf("ACT-PRIORITY-" + qEid) !== -1);
+            if (isApproval) {
+              clubApprovalActCount++;
+              if (a.club_id) {
+                approvedClubIds[String(a.club_id).toUpperCase()] = true;
+              } else {
+                standaloneApprovals++;
+              }
+            } else {
+              supportCount++;
+            }
+          }
+        });
+
+        var totalApprovedClubs = Math.max(Object.keys(approvedClubIds).length + standaloneApprovals, clubApprovalActCount);
+        qRec.clubs_approved_count = String(totalApprovedClubs);
+        qRec.support_logs_count = String(supportCount);
+        if (latestTs) qRec.last_activity_timestamp = latestTs;
+      }
+
+      saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+
+      var summary = {
+        employees_synced: syncedEmpIds.length,
+        total_master_clubs: mergedClubs.length,
+        total_master_activities: mergedActs.length,
+        added_clubs: addedClubs,
+        added_activities: addedActs,
+        reconciled_clubs: addedClubs,
+        reconciled_activities: addedActs
+      };
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          summary: summary,
+          employees_synced: syncedEmpIds.length,
+          total_master_clubs: mergedClubs.length,
+          total_master_activities: mergedActs.length,
+          reconciled_clubs: addedClubs,
+          reconciled_activities: addedActs
+        }
+      };
+    }
+
+    // --- 24x7 CLOUD-TO-DRIVE REALTIME FILE MIRRORING ---
+    if (path === "sync/mirror-file") {
+      var d = body.data || body;
+      var subPath = d.subPath || "master";
+      var fileName = d.fileName || "";
+      var content = d.content || "";
+      if (!fileName) {
+        return { ok: false, status: 400, data: { error: true, message: "Missing fileName in payload" } };
+      }
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var targetFolder = dbFolder;
+      var parts = subPath.split("/").filter(Boolean);
+      for (var i = 0; i < parts.length; i++) {
+        targetFolder = getOrCreateSubfolder(targetFolder, parts[i]);
+      }
+      var existing = targetFolder.getFilesByName(fileName);
+      if (existing.hasNext()) {
+        existing.next().setContent(content);
+      } else {
+        targetFolder.createFile(fileName, content, MimeType.PLAIN_TEXT);
+      }
+      return {
+        ok: true,
+        status: 200,
+        data: { success: true, message: "File mirrored to Drive", file: subPath + "/" + fileName }
+      };
+    }
+
+    // --- 24x7 CLOUD-TO-DRIVE REALTIME FILE RESTORE & PULL ---
+    if (path === "sync/pull-all" || path === "sync/fetch-all") {
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var filesMap = {};
+
+      function scanFolderForFiles(folder, prefix) {
+        var fIter = folder.getFiles();
+        while (fIter.hasNext()) {
+          var f = fIter.next();
+          var fn = f.getName();
+          if (fn.indexOf(".csv") !== -1 || fn.indexOf(".json") !== -1) {
+            filesMap[(prefix ? prefix + "/" : "") + fn] = f.getBlob().getDataAsString("UTF-8");
+          }
+        }
+        var subIter = folder.getFolders();
+        while (subIter.hasNext()) {
+          var sf = subIter.next();
+          scanFolderForFiles(sf, (prefix ? prefix + "/" : "") + sf.getName());
+        }
+      }
+
+      scanFolderForFiles(dbFolder, "");
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          files: filesMap,
+          total_files: Object.keys(filesMap).length
+        }
+      };
+    }
+
+    if (path === "sync/pull-file" || path === "sync/fetch-file") {
+      var d = body.data || body;
+      var subPath = d.subPath || "master";
+      var fileName = d.fileName || "";
+      var root = getSystemFolder();
+      var dbFolder = getOrCreateSubfolder(root, "databases");
+      var targetFolder = dbFolder;
+      var parts = subPath.split("/").filter(Boolean);
+      for (var i = 0; i < parts.length; i++) {
+        targetFolder = getOrCreateSubfolder(targetFolder, parts[i]);
+      }
+      var existing = targetFolder.getFilesByName(fileName);
+      if (existing.hasNext()) {
+        var content = existing.next().getBlob().getDataAsString("UTF-8");
+        return {
+          ok: true,
+          status: 200,
+          data: { success: true, content: content, file: subPath + "/" + fileName }
+        };
+      }
+      return {
+        ok: false,
+        status: 404,
+        data: { error: true, message: "File not found: " + subPath + "/" + fileName }
+      };
+    }
+
+    // --- ADMIN: BACKUP STATUS & TRIGGER ---
+    if (path === "admin/backup/status") {
+      var root = getSystemFolder();
+      var backupFolder = getOrCreateSubfolder(root, "backups");
+      var files = [];
+      var fIter = backupFolder.getFiles();
+      while (fIter.hasNext()) {
+        var f = fIter.next();
+        var fn = String(f.getName ? f.getName() : f.name || "");
+        if (fn.indexOf("ndli_backup_") === 0 || fn.indexOf("backup_") === 0) {
+          var dtCreated = f.getDateCreated ? f.getDateCreated() : new Date();
+          files.push({
+            backup_id: fn,
+            filename: fn,
+            created_at: Utilities.formatDate(dtCreated, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            size_kb: Math.round((f.getSize ? f.getSize() : 1024) / 1024)
+          });
+        }
+      }
+      files.sort(function(a, b) { return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); });
+
+      var lastTime = files.length > 0 ? files[0].created_at : "";
+      var nextDue = new Date(Date.now() + (7 * 86400000)).toISOString().split("T")[0];
+
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          total_stored_backups: files.length,
+          max_retained_backups: 2,
+          last_backup_time: lastTime,
+          next_backup_due: nextDue,
+          backups: files
+        }
+      };
+    }
+
+    if (path === "admin/backup/trigger" || path === "backup/run-manual") {
+      var d = body.data || body;
+      var customId = d.backup_id || "";
+      var bRes = runWeeklyBackup(customId);
+      return { ok: true, status: 200, data: bRes };
+    }
+
+    if (path === "admin/backup/restore" || path === "backup/restore") {
+      var d = body.data || body;
+      var pass = String(d.password || "").trim();
+      var uid = String(d.user_id || d.id || "ADMIN01").trim().toUpperCase();
+
+      if (!pass) {
+        return { ok: false, status: 401, data: { error: true, message: "Master Admin password is required to authorize emergency database restoration." } };
+      }
+
+      // BUG-FIX (bughunt round 5): this block still referenced the deleted
+      // KNOWN_PASSWORDS table (ReferenceError -> HTTP 500 on EVERY call, so
+      // Emergency Restore was unusable), still carried a literal seed-password
+      // bypass, and compared the hash column to plaintext (never matching a
+      // PBKDF2 row). It now verifies the stored credential of an ACTIVE ADMIN
+      // account with the same PBKDF2-aware helper auth/login uses.
+      var isMatched = false;
+      var mUsers = getCsvData("master", "master_users.csv");
+      for (var i2 = 0; i2 < mUsers.rows.length; i2++) {
+        var uRow = mUsers.rows[i2];
+        var uId = (uRow.id || uRow.user_id || "").toUpperCase();
+        var uEmail = (uRow.email || "").toLowerCase();
+        if ((uId === uid || uEmail === uid.toLowerCase()) && String(uRow.role).toUpperCase() === "ADMIN") {
+          if (String(uRow.is_active) !== "0" &&
+              (verifyStoredGasCredential_(uRow.password_hash, uRow.salt, pass) || (uRow.password && uRow.password === pass))) {
+            isMatched = true;
+          }
+          break;
+        }
+      }
+      if (!isMatched) {
+        return { ok: false, status: 403, data: { error: true, message: "Authentication failed: Invalid Master Admin password. Restoration aborted." } };
+      }
+
+      var fName = d.filename || d.backup_id || "";
+      var rRes = restoreBackup(fName);
+      return { ok: true, status: 200, data: rRes };
+    }
+
+    if (path === "admin/backup/upload" || path === "sync/upload-backup") {
+      var root = getSystemFolder();
+      var backupFolder = getOrCreateSubfolder(root, "backups");
+      var d = body.data || body;
+      var fileName = d.fileName || (d.backup_id ? d.backup_id + ".zip" : "backup.zip");
+      var base64Data = d.base64Content || "";
+      if (!base64Data) {
+        return { ok: false, status: 400, data: { error: true, message: "Missing base64Content" } };
+      }
+      var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), "application/zip", fileName);
+      var f = backupFolder.createFile(blob);
+      enforceBackupRetention(backupFolder, 6);
+      return {
+        ok: true,
+        status: 200,
+        data: { success: true, message: "Backup uploaded to Google Drive", filename: fileName, fileId: f.getId() }
+      };
+    }
+
+
+
+    // --- STATE ZONE MAP & ALL STATES LIST (Dual support for state-zone/map, states-zones, states) ---
+    if (path === "state-zone/map" || path === "states-zones" || path === "states") {
+      return {
+        ok: true,
+        status: 200,
+        data: {
+          success: true,
+          map: ZONE_STATE_MAP,
+          zone_to_states: ZONE_STATE_MAP,
+          states: ALL_INDIAN_STATES,
+          all_states: ALL_INDIAN_STATES,
+          zones: ALL_ZONES,
+          total: ALL_INDIAN_STATES.length
+        }
+      };
+    }
+
+    if (path === "state-zone/lookup") {
+      var st = body.state || "";
+      return { ok: true, status: 200, data: { state: st, zone: getZoneForState(st) } };
+    }
+
+    // --- CLUBS: LIST & SEARCH ---
+    if (path === "clubs/search" || path === "clubs") {
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var q = String(body.query || body.q || "").trim().toLowerCase();
+      var results = mClubs.rows;
+      if (q) {
+        results = results.filter(function(c) {
+          for (var prop in c) {
+            if (String(c[prop]).toLowerCase().indexOf(q) !== -1) return true;
+          }
+          return false;
+        });
+      }
+      results.forEach(function(c) {
+        if (!c.zone || c.zone === "Unknown") {
+          c.zone = getZoneForState(c.state || "");
+        }
+      });
+      return { ok: true, status: 200, data: { success: true, total: results.length, clubs: results, results: results } };
+    }
+
+    // --- CLUBS: DETAILS ---
+    if (path === "clubs/details") {
+      var cid = String(body.club_id || body.id || "").trim().toUpperCase();
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var target = null;
+      for (var k1 = 0; k1 < mClubs.rows.length; k1++) {
+        if ((mClubs.rows[k1].club_id || "").toUpperCase() === cid) {
+          target = mClubs.rows[k1];
+          break;
+        }
+      }
+      if (target) {
+        if (!target.zone || target.zone === "Unknown") {
+          target.zone = getZoneForState(target.state || "");
+        }
+        return { ok: true, status: 200, data: { found: true, club: target } };
+      }
+      return { ok: false, status: 404, data: { error: true, message: "Club not found." } };
+    }
+
+    // --- CLUBS: CREATE ---
+    if (path === "clubs/create") {
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      // Round-3/4: never default an identity (was EMP01). The caller must state
+      // which employee approves; fall back to the VERIFIED session identity.
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Approving Employee ID (emp_id) is required." } };
+      }
+      // Round 4 (parity with Python app.py): employees create clubs only under
+      // their own identity; admins may approve for anyone.
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+
+      // Client requisition (2026-09-26): Club ID is a WHOLE NUMBER (digits only).
+      var rawClubId = String(body.club_id || body.id || "").trim();
+      var clubId;
+      if (rawClubId) {
+        if (!/^[0-9]{1,15}$/.test(rawClubId)) {
+          return { ok: false, status: 422, data: { error: true, validation_errors: ["Club ID must be a whole number (digits only, e.g. 2051) as per client requisition. No letters, spaces or symbols."], message: "Form validation failed." } };
+        }
+        clubId = rawClubId;
+      } else {
+        // Auto-generate the next numeric club ID
+        var maxNum = 0;
+        for (var gi = 0; gi < mClubs.rows.length; gi++) {
+          var numPart = parseInt(String(mClubs.rows[gi].club_id || "").trim(), 10);
+          if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart;
+        }
+        clubId = String(maxNum + 1);
+      }
+
+      var regNo = String(body.reg_no || ("NDLI/REG/" + new Date().getFullYear() + "/" + clubId)).trim();
+
+      // Duplicate-entry checkpoints (client requirement + round-1 parity):
+      // block club-ID takeover and duplicate Registration Numbers with a
+      // warning naming the existing club. Same-owner resubmission is allowed.
+      for (var di = 0; di < mClubs.rows.length; di++) {
+        var existingRow = mClubs.rows[di];
+        var exCid = String(existingRow.club_id || "").trim().toUpperCase();
+        var exReg = String(existingRow.reg_no || "").trim().toUpperCase();
+        if (exCid === clubId) {
+          var exOwner = String(existingRow.approved_by_emp_id || "").trim().toUpperCase();
+          if (exOwner && exOwner !== empId) {
+            return { ok: false, status: 409, data: { error: true, message: "Club ID '" + clubId + "' already exists and belongs to " + exOwner + ". Use Universal Club Search to edit it." } };
+          }
+        } else if (regNo && exReg === regNo.toUpperCase()) {
+          return { ok: false, status: 409, data: { error: true, message: "⚠ DUPLICATE ENTRY BLOCKED: Registration Number '" + regNo + "' is already approved for club " + (existingRow.club_id || "") + " — " + (existingRow.institution_name || "") + " (approved by " + (existingRow.approved_by_emp_id || "") + "). Please verify the details before submitting." } };
+        }
+      }
+
+      var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      var renDate = Utilities.formatDate(new Date(Date.now() + (365 * 86400000)), "Asia/Kolkata", "yyyy-MM-dd");
+
+      var newClub = {
+        club_id: clubId,
+        reg_no: regNo,
+        institution_name: body.institution_name || "",
+        state: body.state || "",
+        zone: (body.zone && body.zone !== "Unknown") ? body.zone : (getZoneForState(body.state || "") || "Unknown"),
+        patron_email: body.patron_email || "",
+        president_email: body.president_email || "",
+        secretary_email: body.secretary_email || "",
+        date_of_approval: nowIso,
+        last_renewal_date: "",
+        renewal_date: renDate,
+        status: "Approved",
+        approved_by_emp_id: empId,
+        updated_at: nowIso,
+        submission_timestamp: nowIso,
+        next_renewal_date: renDate
+      };
+
+      // Upsert (same-owner resubmission replaces the row instead of duplicating it)
+      var replaced = false;
+      for (var ui = 0; ui < mClubs.rows.length; ui++) {
+        if (String(mClubs.rows[ui].club_id || "").trim().toUpperCase() === clubId) {
+          var priorDoa = mClubs.rows[ui].date_of_approval || mClubs.rows[ui].submission_timestamp || newClub.date_of_approval;
+          newClub.date_of_approval = priorDoa;
+          newClub.submission_timestamp = priorDoa;
+          newClub.last_renewal_date = mClubs.rows[ui].last_renewal_date || "";
+          mClubs.rows[ui] = newClub;
+          replaced = true;
+          break;
+        }
+      }
+      if (!replaced) mClubs.rows.push(newClub);
+      saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
+
+      // Node DB (upsert as well)
+      var nodeClubs = getCsvData("employees/" + empId.toLowerCase(), "clubs.csv");
+      var nodeReplaced = false;
+      for (var ni = 0; ni < nodeClubs.rows.length; ni++) {
+        if (String(nodeClubs.rows[ni].club_id || "").trim().toUpperCase() === clubId) {
+          nodeClubs.rows[ni] = newClub;
+          nodeReplaced = true;
+          break;
+        }
+      }
+      if (!nodeReplaced) nodeClubs.rows.push(newClub);
+      saveCsvData("employees/" + empId.toLowerCase(), "clubs.csv", nodeClubs.headers, nodeClubs.rows);
+
+      // Log Priority Activity (only for a genuinely new approval — a
+      // resubmission must not mint a second approval activity)
+      if (!replaced) {
+        var mActs = getCsvData("master", "master_activities.csv");
+        var actId = "ACT-PRIORITY-" + empId + "-" + Date.now();
+        var actItem = {
+          activity_id: actId,
+          emp_id: empId,
+          employee_id: empId,
+          timestamp: nowIso,
+          support_type: "Club Approval",
+          priority_flag: "1",
+          club_id: clubId,
+          notes: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")",
+          details: "Approved new NDLI Club: " + newClub.institution_name + " (" + clubId + ")"
+        };
+        mActs.rows.push(actItem);
+        saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+
+        // Update Quotas
+        var mQuotas = getCsvData("master", "master_quotas.csv");
+        for (var qi = 0; qi < mQuotas.rows.length; qi++) {
+          if ((mQuotas.rows[qi].emp_id || "").toUpperCase() === empId) {
+            mQuotas.rows[qi].clubs_approved_count = String(parseInt(mQuotas.rows[qi].clubs_approved_count || "0", 10) + 1);
+            mQuotas.rows[qi].last_activity_timestamp = nowIso;
+            break;
+          }
+        }
+        saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+      }
+
+      return { ok: true, status: 201, data: { success: true, club: newClub } };
+    }
+
+    // --- CLUBS: UPDATE ---
+    if (path === "clubs/update") {
+      var cid = String(body.club_id || "").trim().toUpperCase();
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var found = false;
+
+      // Round-4 mass-assignment guard: the AUTHORITATIVE session role decides —
+      // non-admin callers may only edit descriptive fields. Ownership, status
+      // and renewal dates change only through their dedicated, logged workflows
+      // (or an Admin).
+      var isGasAdmin = !!authSession && String(authSession.role || "").toUpperCase() === "ADMIN";
+      // Round 4 (parity with Python app.py): a caller who names an employee
+      // must be that employee (or an Admin); a caller who names nobody must be
+      // an Admin. The spoofable body cannot mint identity.
+      var updEmpId = String(body.emp_id || body.employee_id || "").trim().toUpperCase();
+      if (updEmpId) {
+        if (!requireSelfOrAdminGas_(authSession, updEmpId)) {
+          return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+        }
+      } else if (!isGasAdmin) {
+        return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot update clubs without their own employee identity." } };
+      }
+
+      // Duplicate Registration Number checkpoint (client requirement)
+      var newReg = String(body.reg_no || "").trim();
+      if (newReg) {
+        for (var dri = 0; dri < mClubs.rows.length; dri++) {
+          var dRow = mClubs.rows[dri];
+          if (String(dRow.club_id || "").trim().toUpperCase() !== cid &&
+              String(dRow.reg_no || "").trim().toUpperCase() === newReg.toUpperCase()) {
+            return { ok: false, status: 409, data: { error: true, message: "⚠ DUPLICATE ENTRY BLOCKED: Registration Number '" + newReg + "' is already approved for club " + (dRow.club_id || "") + " — " + (dRow.institution_name || "") + " (approved by " + (dRow.approved_by_emp_id || "") + ")." } };
+          }
+        }
+      }
+
+      for (var uci = 0; uci < mClubs.rows.length; uci++) {
+        if ((mClubs.rows[uci].club_id || "").toUpperCase() === cid) {
+          if (body.institution_name) mClubs.rows[uci].institution_name = body.institution_name;
+          if (body.state) {
+            mClubs.rows[uci].state = body.state;
+            mClubs.rows[uci].zone = (body.zone && body.zone !== "Unknown") ? body.zone : getZoneForState(body.state);
+          } else if (body.zone) {
+            mClubs.rows[uci].zone = body.zone;
+          }
+          if (!mClubs.rows[uci].zone || mClubs.rows[uci].zone === "Unknown") {
+            mClubs.rows[uci].zone = getZoneForState(mClubs.rows[uci].state || "") || mClubs.rows[uci].zone;
+          }
+          if (body.patron_email) mClubs.rows[uci].patron_email = body.patron_email;
+          if (body.president_email) mClubs.rows[uci].president_email = body.president_email;
+          if (body.secretary_email) mClubs.rows[uci].secretary_email = body.secretary_email;
+          if (body.reg_no) mClubs.rows[uci].reg_no = body.reg_no;
+          if (isGasAdmin) {
+            if (body.status) mClubs.rows[uci].status = body.status;
+            if (body.renewal_date) mClubs.rows[uci].renewal_date = body.renewal_date;
+            if (body.next_renewal_date) mClubs.rows[uci].next_renewal_date = body.next_renewal_date;
+            if (body.last_renewal_date) mClubs.rows[uci].last_renewal_date = body.last_renewal_date;
+            if (body.date_of_approval) mClubs.rows[uci].date_of_approval = body.date_of_approval;
+            if (body.approved_by_emp_id) mClubs.rows[uci].approved_by_emp_id = String(body.approved_by_emp_id).trim().toUpperCase();
+          }
+          mClubs.rows[uci].updated_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
+        saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
+        return { ok: true, status: 200, data: { success: true } };
+      }
+      return { ok: false, status: 404, data: { error: true, message: "Club not found." } };
+    }
+
+    // --- CLUBS: RENEW APPROVAL ---
+    if (path === "clubs/renew") {
+      var clubId = String(body.club_id || "").trim().toUpperCase();
+      var mClubs = getCsvData("master", "master_clubs.csv");
+      var club = null;
+
+      for (var ri = 0; ri < mClubs.rows.length; ri++) {
+        if ((mClubs.rows[ri].club_id || "").toUpperCase() === clubId) {
+          club = mClubs.rows[ri];
+          break;
+        }
+      }
+
+      if (!club) {
+        return { ok: false, status: 404, data: { error: true, message: "Club not found." } };
+      }
+
+      var now = new Date();
+      var nowIso = Utilities.formatDate(now, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+      // Round-3 duplicate-renewal guard (parity with Python): a second renewal
+      // within 60 seconds is the same click — no second activity, no double credit.
+      var prevLrd = String(club.last_renewal_date || "").trim();
+      if (prevLrd) {
+        var prevTs = new Date(prevLrd.replace(" ", "T"));
+        if (!isNaN(prevTs.getTime())) {
+          var deltaSec = (now.getTime() - prevTs.getTime()) / 1000;
+          if (deltaSec >= 0 && deltaSec < 60) {
+            return { ok: true, status: 200, data: { success: true, renewal_duplicate_skipped: true, club: club, message: "Renewal for club " + clubId + " was already recorded moments ago — duplicate click ignored, no extra renewal activity logged." } };
+          }
+        }
+      }
+
+      // Round-3 renewal policy (parity with Python): +1 year from the PREVIOUS
+      // DUE date (early renewal keeps the club's anniversary); overdue renewals
+      // roll forward in 1-year steps until the due date is in the future.
+      var nextRenStr = String(body.renewal_date || "").trim();
+      if (!nextRenStr) {
+        var prevDue = String(club.renewal_date || "").trim();
+        var baseDue = prevDue ? new Date(prevDue.replace(" ", "T")) : (club.date_of_approval ? new Date(String(club.date_of_approval).replace(" ", "T")) : now);
+        if (isNaN(baseDue.getTime())) baseDue = now;
+        var cand = new Date(baseDue.getTime());
+        cand.setFullYear(cand.getFullYear() + 1);
+        while (cand.getTime() <= now.getTime()) {
+          cand.setFullYear(cand.getFullYear() + 1);
+        }
+        nextRenStr = Utilities.formatDate(cand, "Asia/Kolkata", "yyyy-MM-dd");
+      }
+
+      club.last_renewal_date = nowIso;
+      club.renewal_date = nextRenStr;
+      club.next_renewal_date = nextRenStr;
+      club.status = "Active (Renewed)";
+      club.updated_at = nowIso;
+      if (!club.zone || club.zone === "Unknown") {
+        club.zone = getZoneForState(club.state || "") || club.zone;
+      }
+
+      saveCsvData("master", "master_clubs.csv", mClubs.headers, mClubs.rows);
+
+      // Log Priority Activity
+      var empId = String(body.employee_id || body.emp_id || club.approved_by_emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "emp_id is required." } };
+      }
+      // Round 4 (parity with Python app.py): renewals run only under the
+      // caller's own identity (or by an Admin acting for anyone).
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+      var mActs = getCsvData("master", "master_activities.csv");
+      var actId = "ACT-RENEW-" + empId + "-" + Date.now();
+      var renAct = {
+        activity_id: actId,
+        emp_id: empId,
+        employee_id: empId,
+        timestamp: nowIso,
+        support_type: "Registration Renewal",
+        priority_flag: "1",
+        club_id: clubId,
+        notes: "Renewal Approved for Club " + clubId + ". Upcoming Renewal Due Date: " + nextRenStr,
+        details: "Renewal Approved for Club " + clubId + ". Upcoming Renewal Due Date: " + nextRenStr
+      };
+      mActs.rows.push(renAct);
+      saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+
+      return { ok: true, status: 200, data: { success: true, club: club } };
+    }
+
+    // --- ACTIVITIES: LOG & LIST ---
+    if (path === "activity/log" || path === "activities/log") {
+      // Round 4: identity comes from the verified session — never a hard-coded
+      // default employee (was EMP01) and never a bare body claim.
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee ID (emp_id) is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+      var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+      var mActs = getCsvData("master", "master_activities.csv");
+      var actId = "ACT-" + empId + "-" + Date.now();
+
+      var newAct = {
+        activity_id: actId,
+        emp_id: empId,
+        employee_id: empId,
+        timestamp: nowIso,
+        support_type: body.support_type || body.activity_type || "Phone call and remote assistance",
+        priority_flag: "0",
+        club_id: body.club_id || "",
+        notes: body.notes || body.details || "Support session",
+        details: body.notes || body.details || "Support session"
+      };
+
+      mActs.rows.push(newAct);
+      saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+
+      // Employee node log
+      var nodeActs = getCsvData("employees/" + empId.toLowerCase(), "activity_log.csv");
+      nodeActs.rows.push(newAct);
+      saveCsvData("employees/" + empId.toLowerCase(), "activity_log.csv", nodeActs.headers, nodeActs.rows);
+
+      // Increment Quota
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+      for (var aq = 0; aq < mQuotas.rows.length; aq++) {
+        if ((mQuotas.rows[aq].emp_id || "").toUpperCase() === empId) {
+          mQuotas.rows[aq].support_logs_count = String(parseInt(mQuotas.rows[aq].support_logs_count || "0", 10) + 1);
+          mQuotas.rows[aq].last_activity_timestamp = nowIso;
+          break;
+        }
+      }
+      saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+
+      return { ok: true, status: 201, data: { success: true, activity: newAct } };
+    }
+
+    if (path === "activities/bulk-log") {
+      // Round 4: verified-session identity + self-or-admin gate (was EMP01 default).
+      var empId = String(body.employee_id || body.emp_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!empId) {
+        return { ok: false, status: 400, data: { error: true, message: "Employee ID (emp_id) is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+      var count = parseInt(body.count || "1", 10);
+      var supportType = body.support_type || body.activity_type || "Phone call and remote assistance";
+      var notes = body.notes || body.details || "Bulk support session";
+      var nowIso = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+      var mActs = getCsvData("master", "master_activities.csv");
+      var nodeActs = getCsvData("employees/" + empId.toLowerCase(), "activity_log.csv");
+      var logged = [];
+
+      for (var bIdx = 0; bIdx < count; bIdx++) {
+        var actId = "ACT-" + empId + "-" + Date.now() + "-" + (bIdx + 1);
+        var item = {
+          activity_id: actId,
+          emp_id: empId,
+          employee_id: empId,
+          timestamp: nowIso,
+          support_type: supportType,
+          priority_flag: "0",
+          club_id: body.club_id || "",
+          notes: notes + " [Call " + (bIdx + 1) + "/" + count + "]",
+          details: notes + " [Call " + (bIdx + 1) + "/" + count + "]"
+        };
+        mActs.rows.push(item);
+        nodeActs.rows.push(item);
+        logged.push(item);
+      }
+
+      saveCsvData("master", "master_activities.csv", mActs.headers, mActs.rows);
+      saveCsvData("employees/" + empId.toLowerCase(), "activity_log.csv", nodeActs.headers, nodeActs.rows);
+
+      // Increment Quota
+      var mQuotas = getCsvData("master", "master_quotas.csv");
+      for (var bq = 0; bq < mQuotas.rows.length; bq++) {
+        if ((mQuotas.rows[bq].emp_id || "").toUpperCase() === empId) {
+          mQuotas.rows[bq].support_logs_count = String(parseInt(mQuotas.rows[bq].support_logs_count || "0", 10) + count);
+          mQuotas.rows[bq].last_activity_timestamp = nowIso;
+          break;
+        }
+      }
+      saveCsvData("master", "master_quotas.csv", mQuotas.headers, mQuotas.rows);
+
+      return { ok: true, status: 201, data: { success: true, count: logged.length, activities: logged } };
+    }
+
+    if (path === "activity/list" || path === "activities/list") {
+      var empId = String(body.emp_id || body.employee_id || "").trim().toUpperCase();
+      var mActs = getCsvData("master", "master_activities.csv");
+      var filtered = mActs.rows;
+      if (empId) {
+        filtered = filtered.filter(function(a) { return (a.emp_id || a.employee_id || "").toUpperCase() === empId; });
+      }
+      return { ok: true, status: 200, data: { count: filtered.length, activities: filtered.slice().reverse() } };
+    }
+
+    // --- ISSUES & REMINDERS (72H EMPLOYEE / 30D ADMIN RED KPI STACK) ---
+    if (path === "issues/employee-reminders" || path === "reminders/list" || path === "reminders") {
+      var empId = String(body.emp_id || body.employee_id || "").trim().toUpperCase();
+      // Round 4 (parity with Python app.py): employees see only their own
+      // reminders; an unfiltered listing is admin-only; an explicit emp_id
+      // must be the caller's own identity unless the caller is an Admin.
+      if (!empId && authSession && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+        empId = String(authSession.user_id || "").trim().toUpperCase();
+      }
+      if (!empId && (!authSession || String(authSession.role || "").toUpperCase() !== "ADMIN")) {
+        return { ok: false, status: 403, data: { error: true, message: "Administrator privileges required. Employees cannot list reminders across all employees." } };
+      }
+      if (empId && !requireSelfOrAdminGas_(authSession, empId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only view your own reminders." } };
+      }
+      var mRem = getCsvData("master", "master_reminders.csv");
+      var results = mRem.rows.filter(function(r) {
+        var matchEmp = !empId || (r.emp_id || r.employee_id || "").toUpperCase() === empId;
+        var isUnres = (r.status || "").toLowerCase() !== "resolved";
+        return matchEmp && isUnres;
+      });
+
+      return { ok: true, status: 200, data: { count: results.length, reminders: results } };
+    }
+
+    if (path === "issues/admin-reminders") {
+      var mRem = getCsvData("master", "master_reminders.csv");
+      var today = new Date();
+      var escalated = [];
+
+      for (var rei = 0; rei < mRem.rows.length; rei++) {
+        var rem = mRem.rows[rei];
+        if ((rem.status || "").toLowerCase() === "resolved") continue;
+
+        var cTime = new Date(rem.created_at || rem.created_timestamp || Date.now()).getTime();
+        var daysUnresolved = Math.max(1, Math.round((today.getTime() - cTime) / 86400000));
+
+        // Unresolved issues pending for 30+ days (or flagged escalated)
+        if (daysUnresolved >= 30 || rem.escalated === "TRUE" || rem.escalated === "1") {
+          var escItem = {
+            issue_id: rem.issue_id || rem.reminder_id,
+            club_id: rem.club_id || "",
+            institution_name: rem.institution_name || "",
+            state: rem.state || "",
+            zone: rem.zone || "North",
+            emp_id: rem.emp_id || rem.employee_id || "EMP01",
+            issue_note: rem.issue_note || rem.issue_summary || "Unresolved regional issue",
+            status: rem.status || "Unresolved",
+            created_at: rem.created_at || rem.created_timestamp || "",
+            days_unresolved: daysUnresolved
+          };
+          escalated.push(escItem);
+        }
+      }
+
+      return { ok: true, status: 200, data: { count: escalated.length, reminders: escalated } };
+    }
+
+    if (path === "issues/details") {
+      var iid = String(body.issue_id || body.reminder_id || "").trim().toUpperCase();
+      var mRem = getCsvData("master", "master_reminders.csv");
+      var foundIssue = null;
+
+      for (var idx = 0; idx < mRem.rows.length; idx++) {
+        if ((mRem.rows[idx].issue_id || mRem.rows[idx].reminder_id || "").toUpperCase() === iid) {
+          foundIssue = mRem.rows[idx];
+          break;
+        }
+      }
+
+      if (foundIssue) {
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            found: true,
+            issue: {
+              issue_id: foundIssue.issue_id || foundIssue.reminder_id,
+              club_id: foundIssue.club_id,
+              institution_name: foundIssue.institution_name,
+              state: foundIssue.state,
+              zone: foundIssue.zone,
+              emp_id: foundIssue.emp_id || foundIssue.employee_id,
+              issue_note: foundIssue.issue_note || foundIssue.issue_summary,
+              status: foundIssue.status,
+              created_at: foundIssue.created_at || foundIssue.created_timestamp,
+              reminder_due_at: foundIssue.reminder_due_at || foundIssue.due_timestamp
+            }
+          }
+        };
+      }
+      return { ok: false, status: 404, data: { error: true, message: "Issue not found." } };
+    }
+
+    if (path === "issues/create" || path === "reminders/create") {
+      var mRem = getCsvData("master", "master_reminders.csv");
+      var now = new Date();
+      var due72h = new Date(now.getTime() + (72 * 3600 * 1000));
+      var due30d = new Date(now.getTime() + (30 * 86400000));
+      var newId = "REM-" + Utilities.formatString("%04d", mRem.rows.length + 1);
+
+      // Round 4 (parity with Python app.py /api/issues/create): identity comes
+      // from the verified session — no hard-coded default employee (was EMP01).
+      var issueEmpId = String(body.emp_id || body.employee_id || (authSession ? authSession.user_id : "")).trim().toUpperCase();
+      if (!issueEmpId) {
+        return { ok: false, status: 400, data: { error: true, message: "emp_id is required." } };
+      }
+      if (!requireSelfOrAdminGas_(authSession, issueEmpId)) {
+        return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only operate on your own employee records." } };
+      }
+
+      var newIssue = {
+        issue_id: newId,
+        club_id: body.club_id || "",
+        emp_id: issueEmpId,
+        institution_name: body.institution_name || "",
+        state: body.state || "",
+        zone: body.zone || getZoneForState(body.state),
+        issue_note: body.issue_note || body.issue_summary || "Regional Officer Attention Required",
+        status: "Unresolved",
+        created_at: Utilities.formatDate(now, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        reminder_due_at: Utilities.formatDate(due72h, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        admin_reminder_due_at: Utilities.formatDate(due30d, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        last_reminded_at: "",
+        resolved_at: "",
+        resolved_by: "",
+        resolution_notes: "",
+        updated_at: Utilities.formatDate(now, "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'")
+      };
+
+      mRem.rows.push(newIssue);
+      saveCsvData("master", "master_reminders.csv", mRem.headers, mRem.rows);
+
+      return { ok: true, status: 201, data: { success: true, issue: newIssue, reminder: newIssue } };
+    }
+
+    if (path === "issues/resolve" || path === "reminders/resolve") {
+      var iid = String(body.issue_id || body.reminder_id || "").trim().toUpperCase();
+      var resolutionNotes = body.resolution_notes || body.resolution_note || "Resolved by officer";
+      // Round 4 (parity with Python app.py): the resolver identity falls back
+      // to the VERIFIED session, not a hard-coded officer label.
+      var resolvedBy = body.resolved_by || (authSession ? (authSession.email || authSession.user_id) : "") || "Admin/Officer";
+
+      var mRem = getCsvData("master", "master_reminders.csv");
+      var updated = false;
+
+      for (var rIdx = 0; rIdx < mRem.rows.length; rIdx++) {
+        if ((mRem.rows[rIdx].issue_id || mRem.rows[rIdx].reminder_id || "").toUpperCase() === iid) {
+          // Round 4 (parity with Python app.py): non-admins may only resolve
+          // the issues raised under their own identity.
+          if (authSession && String(authSession.role || "").toUpperCase() !== "ADMIN") {
+            var ownerEmp = String(mRem.rows[rIdx].emp_id || mRem.rows[rIdx].employee_id || "").trim().toUpperCase();
+            if (ownerEmp !== String(authSession.user_id || "").trim().toUpperCase()) {
+              return { ok: false, status: 403, data: { error: true, message: "Access denied: you may only resolve your own issues." } };
+            }
+          }
+          mRem.rows[rIdx].status = "Resolved";
+          mRem.rows[rIdx].resolved_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          mRem.rows[rIdx].resolved_by = resolvedBy;
+          mRem.rows[rIdx].resolution_notes = resolutionNotes;
+          mRem.rows[rIdx].updated_at = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          updated = true;
+          break;
+        }
+      }
+
+      if (updated) {
+        saveCsvData("master", "master_reminders.csv", mRem.headers, mRem.rows);
+        return { ok: true, status: 200, data: { success: true, message: "Issue resolved successfully." } };
+      }
+      return { ok: false, status: 404, data: { error: true, message: "Issue not found." } };
+    }
+
+    // --- CERTIFICATE SETTINGS & SIGNATURE ---
+    if (path === "certificate/settings") {
+      var root = getSystemFolder();
+      var sigFolder = getOrCreateSubfolder(root, "signatures");
+      var sFile = getOrCreateFile(sigFolder, "settings.json", "{}", MimeType.PLAIN_TEXT);
+      var current = {};
+      try {
+        current = JSON.parse(sFile.getBlob().getDataAsString() || "{}");
+      } catch (e) {
+        current = {
+          pi_name: "Prof. Partha Pratim Chakrabarti",
+          pi_affiliation: "Principal Investigator\nNational Digital Library of India Project\nCentral Library, IIT Kharagpur",
+          has_signature: false,
+          signature_data: ""
+        };
+      }
+
+      if (method === "POST") {
+        if (body.pi_name) current.pi_name = body.pi_name;
+        if (body.pi_affiliation) current.pi_affiliation = body.pi_affiliation;
+        sFile.setContent(JSON.stringify(current, null, 2));
+      }
+      return { ok: true, status: 200, data: { success: true, settings: current } };
+    }
+
+    if (path === "certificate/signature") {
+      var root = getSystemFolder();
+      var sigFolder = getOrCreateSubfolder(root, "signatures");
+      var sFile = getOrCreateFile(sigFolder, "settings.json", "{}", MimeType.PLAIN_TEXT);
+      var current = {};
+      try {
+        current = JSON.parse(sFile.getBlob().getDataAsString() || "{}");
+      } catch (e) {
+        current = {
+          pi_name: "Prof. Partha Pratim Chakrabarti",
+          pi_affiliation: "Principal Investigator\nNational Digital Library of India Project\nCentral Library, IIT Kharagpur",
+          has_signature: false,
+          signature_data: ""
+        };
+      }
+
+      if (method === "POST") {
+        var imgData = String(body.image_data || "");
+        if (!imgData) return { ok: false, status: 400, data: { error: true, message: "image_data required" } };
+        // BUG-FIX (bughunt round 5 addendum): every employee may replace the PI
+        // signature printed on official certificates, so the upload must be a
+        // real PNG or JPEG of at most 2 MB — parity with the app.py fix — and
+        // the change is attributed to the verified session.
+        var sigBytes;
+        try {
+          var comma = imgData.indexOf(",");
+          sigBytes = Utilities.base64Decode(comma >= 0 ? imgData.substring(comma + 1) : imgData);
+        } catch (e) {
+          return { ok: false, status: 422, data: { error: true, message: "Signature must be a valid base64 PNG or JPEG image." } };
+        }
+        if (sigBytes.length > 2 * 1024 * 1024) {
+          return { ok: false, status: 413, data: { error: true, message: "Signature image is too large (max 2 MB)." } };
+        }
+        var isPng = sigBytes.length >= 8 && sigBytes[0] === 0x89 && sigBytes[1] === 0x50 && sigBytes[2] === 0x4e && sigBytes[3] === 0x47;
+        var isJpg = sigBytes.length >= 3 && sigBytes[0] === 0xff && sigBytes[1] === 0xd8 && sigBytes[2] === 0xff;
+        if (!isPng && !isJpg) {
+          return { ok: false, status: 422, data: { error: true, message: "Signature must be a PNG or JPEG image." } };
+        }
+        current.signature_data = imgData;
+        current.has_signature = true;
+        current.signature_updated_by = authSession ? String(authSession.user_id || "") : "";
+        current.signature_updated_at = new Date().toISOString();
+        sFile.setContent(JSON.stringify(current, null, 2));
+        return { ok: true, status: 200, data: { success: true, signature_url: imgData } };
+      } else {
+        return { ok: true, status: 200, data: { success: true, signature_data: current.signature_data || "" } };
+      }
+    }
+
+    return { ok: false, status: 404, data: { error: true, message: "Unknown endpoint: " + path } };
+  } catch (err) {
+    Logger.log("[apiDispatcher Error] " + path + ": " + err.message + "\n" + (err.stack || ""));
+    return { ok: false, status: 500, data: { error: true, message: err.message || "Internal server error." } };
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (e) {}
+  }
+}
