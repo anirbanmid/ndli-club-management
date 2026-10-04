@@ -714,6 +714,7 @@
             <thead>
               <tr>
                 <th>Club ID</th>
+                <th>Registration No</th>
                 <th>Institution Name</th>
                 <th>State</th>
                 <th>Zone</th>
@@ -726,7 +727,7 @@
             </thead>
             <tbody id="search-results-tbody">
               <tr>
-                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                   <span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading clubs database...
                 </td>
               </tr>
@@ -1147,6 +1148,12 @@
         <div class="form-group">
           <label for="edit-inst-name" class="label-required">Institution Name</label>
           <input type="text" id="edit-inst-name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-reg-no">Registration No</label>
+          <input type="text" id="edit-reg-no" maxlength="64" placeholder="e.g. NDLI/REG/2026/001" style="font-family: monospace;">
+          <small style="color: var(--text-muted); font-size: 0.78rem;">Letters, digits, spaces, dots, underscores, hyphens and slashes (max 64). Must stay unique across approved clubs.</small>
         </div>
 
         <div class="grid-2">
@@ -3100,7 +3107,7 @@
       const pBar = document.getElementById("clubs-pagination-bar");
       if (!tbody) return;
       if (!results || results.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No clubs found matching your search.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">No clubs found matching your search.</td></tr>';
         if (pBar) pBar.style.display = "none";
         return;
       }
@@ -3142,6 +3149,7 @@
         return `
           <tr>
             <td><code>${escapeHtml(c.club_id)}</code></td>
+            <td><code>${escapeHtml(c.reg_no || 'Pending')}</code></td>
             <td><a href="https://admin.club.ndl.iitkgp.ac.in/club-details/${encodeURIComponent(c.club_id || '')}" target="_blank" rel="noopener noreferrer" class="club-name-link" onclick="event.stopPropagation();" title="View details for ${escapeHtml(c.institution_name || c.club_id || 'club')} on NDLI Admin Portal"><strong>${escapeHtml(c.institution_name || c.club_id || '-')}</strong></a></td>
             <td>${escapeHtml(c.state)}</td>
             <td><span class="pill pill-primary">${escapeHtml(c.zone)}</span></td>
@@ -3254,7 +3262,7 @@
 
       // Show animated spinner only if table currently has no cached rows displayed
       if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading clubs database...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--primary); padding: 2rem;"><span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 0.5rem;">⏳</span> Loading clubs database...</td></tr>';
       }
 
       IS_CLUBS_FETCHING = true;
@@ -3290,12 +3298,12 @@
           }
         } else {
           if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load clubs database.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Unable to load clubs database.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
           }
         }
       } catch (err) {
         if (tbody && (!ALL_CLUBS_CACHE || ALL_CLUBS_CACHE.length === 0)) {
-          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading clubs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #dc2626; padding: 1.5rem;"><span>⚠️ Connection error while loading clubs.</span> <button class="btn btn-outline btn-sm" style="margin-left: 0.75rem;" onclick="performUniversalSearch(\'\', true)">↻ Retry</button></td></tr>';
         }
       } finally {
         IS_CLUBS_FETCHING = false;
@@ -3329,6 +3337,8 @@
       document.getElementById("modal-status").innerText = club.status || "Approved";
       document.getElementById("edit-club-id").value = club.club_id;
       document.getElementById("edit-inst-name").value = club.institution_name;
+      const regNoEl = document.getElementById("edit-reg-no");
+      if (regNoEl) regNoEl.value = club.reg_no || "";
       const editStateEl = document.getElementById("edit-state");
       if (editStateEl && editStateEl.options.length <= 1) {
         populateStateSelect("edit-state");
@@ -3408,7 +3418,8 @@
         zone: document.getElementById("edit-zone").value,
         patron_email: document.getElementById("edit-patron").value.trim(),
         president_email: document.getElementById("edit-president").value.trim(),
-        secretary_email: document.getElementById("edit-secretary").value.trim()
+        secretary_email: document.getElementById("edit-secretary").value.trim(),
+        reg_no: document.getElementById("edit-reg-no").value.trim()
       };
 
       const res = await apiRequest("/api/clubs/update", "POST", payload);
