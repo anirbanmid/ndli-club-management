@@ -94,6 +94,14 @@
   --text-light:   #647B70;  /* Round 7: was #7C9388 (3.3:1 on white — failed AA at micro sizes); now 4.6:1 */
   --text-inverse: #FFFFFF;
 
+  /* --- Type ramp (polish P6) — shared micro/mid steps so label families
+     stop living on one-off sizes (0.66 / 0.67 / 0.68 / 0.70 / 0.73 …). --- */
+  --text-xs:      0.70rem;
+  --text-sm:      0.75rem;
+  --text-md:      0.82rem;
+  --text-lg:      1.00rem;
+  --text-xl:      1.55rem;
+
   /* --- Borders --- */
   --border:        #DBE7E1;
   --border-subtle: #EBF1ED;
@@ -129,6 +137,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 15px;
+}
+
+/* Polish round: smooth scrolling is motion too — honour the motion contract. */
+@media (prefers-reduced-motion: reduce) {
+  html, body { scroll-behavior: auto; }
+}
+
+/* Polish round: brand-tinted text selection */
+::selection {
+  background: rgba(13, 119, 81, 0.18);
+  color: var(--text-main);
 }
 
 /* ==========================================================================
@@ -351,7 +370,7 @@ body {
 .badge-tag {
   background: var(--primary-light);
   color: #ffffff;
-  font-size: 0.68rem;
+  font-size: var(--text-xs); /* P6: was 0.68rem */
   padding: 0.18rem 0.55rem;
   border-radius: var(--radius-pill);
   font-weight: 700;
@@ -512,7 +531,7 @@ body {
 }
 
 .card-subtitle {
-  font-size: 0.77rem;
+  font-size: var(--text-sm); /* P6: was 0.77rem */
   color: var(--text-muted);
   margin-top: 0.15rem;
   font-weight: 500;
@@ -562,7 +581,8 @@ body {
 
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* 190px matches the live admin override (admin.html) — harmonised, not restyled */
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.85rem;
 }
@@ -607,7 +627,7 @@ body {
 .stat-card.danger:hover  { border-color: var(--danger); background: #fffafa; }
 
 .stat-label {
-  font-size: 0.67rem;
+  font-size: var(--text-xs); /* P6: was 0.67rem */
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-muted);
@@ -615,15 +635,16 @@ body {
 }
 
 .stat-value {
-  font-size: 1.55rem;
+  font-size: var(--text-xl); /* P6: same 1.55rem, now on the ramp */
   font-weight: 900;
   color: var(--primary-dark);
   line-height: 1.1;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; /* count-up digits stay column-still */
 }
 
 .stat-desc {
-  font-size: 0.70rem;
+  font-size: var(--text-sm); /* P6: was 0.70rem */
   color: var(--text-light);
   font-weight: 500;
 }
@@ -739,6 +760,29 @@ textarea::placeholder {
   opacity: 1;
 }
 
+/* Polish round: hover affordance on editable fields (border only — no layout) */
+input:hover:not(:focus):not([readonly]):not(:disabled),
+select:hover:not(:focus),
+textarea:hover:not(:focus) {
+  border-color: #B7CCC1;
+}
+
+/* Polish round: disabled fields must read as disabled (was: looked enabled) */
+input:disabled, select:disabled, textarea:disabled {
+  background-color: var(--bg-muted);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-color: var(--border-subtle);
+}
+
+/* Polish round: browser autofill must not paint over the brand surface */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-main);
+  box-shadow: 0 0 0 1000px var(--bg-input) inset;
+}
+
 input[readonly] {
   background-color: #f3f7f5;
   cursor: not-allowed;
@@ -787,15 +831,18 @@ input[readonly] {
   overflow: hidden;
 }
 
+/* Polish round P1: two names, one look → two tiers. btn-primary is the deep
+   commit/submit tier (dark-green gradient); btn-accent keeps the brighter
+   --gradient-accent highlight tier; btn-amber stays the hero CTA. */
 .btn-primary {
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   color: #ffffff;
   box-shadow: 0 3px 10px rgba(26, 80, 62, 0.28);
   border-color: transparent;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.12);
   transform: translateY(-2px);
   box-shadow: 0 8px 22px rgba(16, 49, 37, 0.32);
 }
@@ -886,6 +933,20 @@ input[readonly] {
   transform: translateY(0) scale(0.98);
 }
 
+/* Polish round: disabled buttons must read as inert (was: looked enabled) */
+.btn:disabled,
+.btn[disabled],
+.btn:disabled:hover,
+.btn[disabled]:hover,
+.btn:disabled:active,
+.btn[disabled]:active {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ==========================================================================
    TABLES — Clean, Sticky Headers
    ========================================================================== */
@@ -919,11 +980,41 @@ input[readonly] {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
+/* Polish round: slim tinted scrollbars on scrollable table boxes — matches the
+   Robu log precedent in assistant.css instead of the UA's dark default. */
+.table-responsive,
+.table-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.table-responsive::-webkit-scrollbar,
+.table-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.table-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-light);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.82rem;
+  font-size: var(--text-md); /* P6: same 0.82rem, now on the ramp */
   font-variant-numeric: tabular-nums; /* Round 7: aligned digits in metric tables */
 }
 
@@ -934,7 +1025,7 @@ thead th {
   padding: 0.55rem 0.80rem;
   border-bottom: 1.5px solid var(--border);
   white-space: nowrap;
-  font-size: 0.70rem;
+  font-size: var(--text-xs); /* P6: same 0.70rem, now on the ramp */
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -979,7 +1070,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   align-items: center;
   padding: 0.20rem 0.60rem;
   border-radius: var(--radius-pill);
-  font-size: 0.70rem;
+  font-size: var(--text-xs); /* P6: same 0.70rem, now on the ramp */
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -1033,6 +1124,24 @@ tbody tr:hover { background-color: #f0f7f3; }
 }
 
 .tabs::-webkit-scrollbar { display: none; }
+
+/* Polish P5: scroll affordance. The hidden scrollbar left no cue that the
+   strip scrolls on narrow screens. ui.js toggles these classes from the
+   scroll position; the mask fades the clipped edge instead of hiding it. */
+.tabs.ui-scroll-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent 100%);
+}
+
+.tabs.ui-scroll-left {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent 100%);
+}
+
+.tabs.ui-scroll-left.ui-scroll-right {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+}
 
 .tab-btn {
   background: transparent;
@@ -1154,7 +1263,9 @@ tbody tr:hover { background-color: #f0f7f3; }
   background: #ffffff;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 24px 60px -8px rgba(7, 25, 18, 0.45), 0 0 0 1px rgba(255,255,255,0.5);
+  /* Polish P2: elevation from the token scale (was an ad-hoc 0.45-alpha
+     shadow); the white halo ring is separation, not elevation, and stays. */
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.5);
   max-width: 680px;
   width: 96%;
   max-height: 92vh;
@@ -1332,7 +1443,10 @@ tbody tr:hover { background-color: #f0f7f3; }
   border-radius: var(--radius-sm);
   padding: 0.80rem 1.0rem;
   border-left: 4px solid var(--primary);
-  transition: all var(--transition-fast);
+  /* Polish P2: motion contract — explicit properties, no `transition: all` */
+  transition: background-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
 }
 
 .support-type-tile:hover {
@@ -1355,8 +1469,8 @@ tbody tr:hover { background-color: #f0f7f3; }
   margin: 0.38rem 0 0.28rem 0;
 }
 
-.tile-count { font-size: 1.40rem; font-weight: 900; color: var(--primary-dark); letter-spacing: -0.02em; }
-.tile-pct   { font-size: 0.73rem; font-weight: 700; color: var(--text-muted); }
+.tile-count { font-size: 1.40rem; font-weight: 900; color: var(--primary-dark); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tile-pct   { font-size: var(--text-sm); font-weight: 700; color: var(--text-muted); } /* P6: was 0.73rem */
 
 /* Retention & Renewal Gauge */
 .retention-gauge-wrapper  { margin-top: 0.80rem; }
@@ -1395,7 +1509,9 @@ tbody tr:hover { background-color: #f0f7f3; }
   color: #92400E;
   border: 1px solid var(--warning-border);
   font-weight: 700;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast); /* Polish P2: no `transition: all` */
 }
 
 .pill-highlight-amber:hover {
@@ -1447,10 +1563,11 @@ tbody tr:hover { background-color: #f0f7f3; }
   color: var(--primary-dark);
   line-height: 1;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .donut-center-label {
-  font-size: 0.66rem;
+  font-size: var(--text-xs); /* P6: was 0.66rem */
   text-transform: uppercase;
   font-weight: 800;
   color: var(--text-muted);
@@ -1533,7 +1650,14 @@ tbody tr:hover { background-color: #f0f7f3; }
   .nav-links       { width: 100%; justify-content: flex-start; }
   .footer-container { flex-direction: column; align-items: flex-start; }
   .footer-credit-box { text-align: left; width: 100%; }
-  .grid-2, .grid-3, .grid-4, .kpi-row { grid-template-columns: 1fr; }
+  /* Polish P4: tablet intermediate step (was: forced 1 column for everything
+     below 840px). auto-fit keeps 1 column whenever the container is genuinely
+     narrow, while modal-sized containers keep their desktop column count at
+     tablet widths (the old viewport-based rule collapsed them). .grid-3/.grid-4
+     are mostly form grids + dense matrices — they still collapse to 1. */
+  .grid-2  { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .kpi-row { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .tabs            { width: 100%; }
   .modal-content   { padding: 1.15rem 1.15rem; }
 }

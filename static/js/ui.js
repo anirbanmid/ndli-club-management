@@ -524,6 +524,46 @@
     });
   }
 
+  /* --- 10c. Tabs scroll affordance (polish round P5) ---------------------
+     The .tabs strip hides its scrollbar, so overflow had no visual cue on
+     narrow screens. This toggles two edge-fade classes from scroll position —
+     classes only; no app behaviour is touched. */
+  var tabsRaf = 0;
+
+  function updateTabsScroll() {
+    var strips = document.querySelectorAll(".tabs");
+    Array.prototype.forEach.call(strips, function (el) {
+      var max = el.scrollWidth - el.clientWidth;
+      if (max <= 2) {
+        el.classList.remove("ui-scroll-left");
+        el.classList.remove("ui-scroll-right");
+        return;
+      }
+      if (el.scrollLeft > 2) el.classList.add("ui-scroll-left");
+      else el.classList.remove("ui-scroll-left");
+      if (el.scrollLeft < max - 2) el.classList.add("ui-scroll-right");
+      else el.classList.remove("ui-scroll-right");
+    });
+  }
+
+  function scheduleTabsScroll() {
+    if (tabsRaf) return;
+    tabsRaf = requestAnimationFrame(function () {
+      tabsRaf = 0;
+      updateTabsScroll();
+    });
+  }
+
+  function watchTabsScroll() {
+    updateTabsScroll();
+    window.addEventListener("resize", scheduleTabsScroll);
+    document.addEventListener("scroll", scheduleTabsScroll, true);
+    window.addEventListener("load", scheduleTabsScroll);
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(scheduleTabsScroll)["catch"](function () {});
+    }
+  }
+
   /* --- 11. Auto-init ------------------------------------------------------ */
   function autoInit() {
     /* count-up elements: <span data-countup="42"></span> */
@@ -547,6 +587,7 @@
   watchNumbers();
   watchRows();
   watchAlerts();
+  watchTabsScroll();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", autoInit);

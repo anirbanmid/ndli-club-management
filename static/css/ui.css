@@ -376,6 +376,16 @@
   .ui-skeleton::after { animation: none !important; display: none; }
   .ui-progress::before { animation: none !important; width: 100%; opacity: 0.5; }
   .ui-lift:hover, .ui-press:active { transform: none !important; }
+  /* Polish round: the blanket 150ms rule turned AMBIENT INFINITE loops into
+     150ms loops — a strobe, the opposite of the contract. Decorative loops
+     stop entirely; real content motion still collapses to the fade above. */
+  .pulse-dot,
+  .ndli-asst-fab-ring,
+  .ndli-asst-dot,
+  .spinner,
+  [style*="animation: spin"] {
+    animation: none !important;
+  }
 }
 
 @keyframes uiFadeOnly {
