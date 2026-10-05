@@ -18,12 +18,14 @@
   /* tokens fall back to the ui.css palette values if ui.css is missing */
   --asst-green-50:  var(--ui-green-50,  #EDF6F2);
   --asst-green-100: var(--ui-green-100, #D6ECE2);
+  --asst-green-200: var(--ui-green-200, #AAD8C5); /* Round 2 F26: token map was incomplete — this step fell back to a literal */
   --asst-green-300: var(--ui-green-300, #71BCA0);
   --asst-green-400: var(--ui-green-400, #2F9A70);
   --asst-green-500: var(--ui-green-500, #0D7751);
   --asst-green-600: var(--ui-green-600, #156347);
   --asst-green-700: var(--ui-green-700, #1A503E);
   --asst-green-800: var(--ui-green-800, #143D2E);
+  --asst-green-900: var(--ui-green-900, #103125); /* Round 2 F26: see above */
   --asst-amber-100: var(--ui-amber-100, #FDECCC);
   --asst-amber-400: var(--ui-amber-400, #F59E0B);
   --asst-amber-500: var(--ui-amber-500, #D98703);
@@ -175,6 +177,10 @@
   flex-direction: column;
   width: min(400px, calc(100vw - 32px));
   height: min(600px, calc(100vh - 128px));
+  /* Round 2 F15: 100vh is the LARGEST viewport on mobile — with the keyboard
+     open the panel ran under it and hid the composer. dvh tracks the visual
+     viewport; ignored where unsupported (fallback line above). */
+  height: min(600px, calc(100dvh - 128px));
   background: var(--asst-surface);
   border: 1px solid var(--asst-border);
   border-radius: 16px;
@@ -312,6 +318,7 @@
   font-weight: 500;        /* Round 7: explicit weight — never inherit Manrope 400 */
   line-height: 1.6;
   color: var(--asst-ink);
+  overflow-wrap: anywhere; /* Round 2 F25: long URLs/tokens must wrap, not overflow the bubble */
   animation: asstMsgIn var(--asst-t-base) var(--asst-ease-out) both;
 }
 @keyframes asstMsgIn {
@@ -344,6 +351,7 @@
   font-size: 0.78rem;
   line-height: 1.5;
   color: var(--asst-ink-soft);
+  overflow-wrap: anywhere; /* Round 2 F25: source citations are where long URLs land */
 }
 .ndli-asst-sources-title {
   font-weight: 800;
@@ -414,6 +422,7 @@
   font-size: 0.83rem;
   font-weight: 700;
   color: var(--asst-green-800);
+  overflow-wrap: anywhere; /* Round 2 F25 */
 }
 .ndli-asst-card-detail {
   display: block;
@@ -421,6 +430,7 @@
   font-weight: 500;
   color: var(--asst-ink-soft);
   line-height: 1.45;
+  overflow-wrap: anywhere; /* Round 2 F25 */
 }
 .ndli-asst-card-link {
   flex: 0 0 auto;
@@ -503,7 +513,7 @@
   background: var(--asst-surface);
   border-color: var(--asst-green-400);
 }
-.ndli-asst-input::placeholder { color: var(--asst-ink-soft); opacity: 0.9; }
+.ndli-asst-input::placeholder { color: var(--asst-ink-soft); opacity: 1; } /* Round 2 F13: 0.9 → 1 — 3.91:1 → 6.15:1 (placeholder is text; AA 4.5:1) */
 
 .ndli-asst-send {
   flex: 0 0 auto;
@@ -532,6 +542,9 @@
   .ndli-asst-panel {
     width: calc(100vw - 32px);
     height: min(600px, calc(100vh - 112px));
+    /* Round 2 F15: dvh — composer must stay above the on-screen keyboard */
+    height: min(600px, calc(100dvh - 112px));
+    max-height: calc(100dvh - 112px);
     bottom: 70px;
   }
 }

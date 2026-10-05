@@ -215,15 +215,19 @@
 }
 .ui-toast-close {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  /* Round 2 F17: was top:8/right:10 + padding 2x4 = a 16×19px hit box — below
+     the WCAG 2.2 AA 24×24 minimum and the only touch-dismiss path for a
+     routed alert() toast. Padding grows the hit area; top/right shrink by the
+     same amount so the × glyph lands exactly where it was. */
+  top: 4px;
+  right: 6px;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.95rem;
   cursor: pointer;
   line-height: 1;
-  padding: 2px 4px;
+  padding: 6px 8px;
 }
 .ui-toast-close:hover { color: #FFFFFF; }
 
@@ -343,9 +347,14 @@
    compositor-friendly properties at 150ms (busy pages felt sluggish/jerky
    when hovering because `transition: all` animated layout-affecting props)
    ========================================================================== */
-.btn, .nav-link, .nav-link-admin, .nav-link-employee, .nav-link-login,
+.btn, .nav-link, .nav-link-admin, .nav-link-employee, .nav-link-login, .nav-link-portal,
 .tab-btn, .officer-chip, .pill, .badge-tag, .club-name-link {
-  transition-property: transform, opacity, box-shadow, background-color, border-color, color !important;
+  /* Round 2 F20: `filter` added — every btn-*:hover brightness() was snapping
+     instantly because this override dropped it from the transition; and
+     .nav-link-portal added — its amber/sky siblings were in the list, it
+     wasn't (identical controls, different treatment). filter is
+     compositor-friendly, timing unchanged. */
+  transition-property: transform, opacity, box-shadow, background-color, border-color, color, filter !important;
   transition-duration: var(--t-fast) !important;
   transition-timing-function: var(--ease-out) !important;
 }
@@ -375,6 +384,10 @@
   .ui-stagger.ui-in > * { transition-property: opacity !important; }
   .ui-skeleton::after { animation: none !important; display: none; }
   .ui-progress::before { animation: none !important; width: 100%; opacity: 0.5; }
+  /* Round 2 F6: the blanket 150ms !important above beat the inline 4000ms
+     drain — the timer bar "finished" instantly while the toast lived 5s, a
+     false time-remaining signal. No lie: a subdued static bar instead. */
+  .ui-toast-timer { animation: none !important; opacity: 0.35; }
   .ui-lift:hover, .ui-press:active { transform: none !important; }
   /* Polish round: the blanket 150ms rule turned AMBIENT INFINITE loops into
      150ms loops — a strobe, the opposite of the contract. Decorative loops

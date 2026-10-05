@@ -246,11 +246,6 @@
     .password-toggle-btn:hover {
       color: var(--primary);
     }
-    /* Tool card hover enhancement */
-    .tool-card-item:hover {
-      transform: translateY(-4px) !important;
-      box-shadow: var(--shadow) !important;
-    }
     /* Login submit button amber */
     #btn-login-submit { background: var(--gradient-accent) !important; }
 
@@ -326,7 +321,7 @@
           <!-- Dynamically populated by updateNavAuth() -->
         </div>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
-        <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
+        <a href="/api/download/user-manual" class="nav-link" target="_blank" rel="noopener noreferrer" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
         <a href="/admin" class="nav-link nav-link-admin" title="Open Admin Office Dashboard"><span>⚙️</span> Admin Office</a>
         <a href="/" class="nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
       </div>
@@ -437,7 +432,7 @@
             <span class="pill pill-primary" id="current-emp-id">EMP01</span>
             <span class="pill pill-success" id="current-zone">North Zone</span>
             <span class="pill pill-priority" title="Priority Quota Tracked">★ Quota Active</span>
-            <span class="pill" style="background: #e0f2fe; color: #0369a1; font-weight: 600;" id="current-auth-status">● Verified Session</span>
+            <span class="pill" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">● Verified Session</span>
             <span style="font-size: 0.76rem; color: var(--text-muted);">[Node: <strong id="export-emp-id-label" style="color: var(--primary);">EMP01</strong>]</span>
           </div>
           <h2 id="current-name" style="font-size: 1.1rem; margin: 0 0 0.15rem 0; color: var(--primary);">Rohan Sharma</h2>
@@ -455,7 +450,7 @@
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><span>⏰ --:--:--</span></div>
           <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: #103125; color: #ffffff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.78rem;" target="_blank">
+            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: #103125; color: #ffffff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.78rem;" target="_blank" rel="noopener noreferrer">
               <span>📖</span> Manual
             </a>
             <button class="btn btn-outline btn-sm" id="btn-download-activity-log" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.78rem;">
@@ -531,7 +526,7 @@
 
             <div class="form-group">
               <label for="support-club-id">Related Club ID (Optional)</label>
-              <input type="text" id="support-club-id" placeholder="e.g., NDLI-DL-102">
+              <input type="text" id="support-club-id" placeholder="e.g., 2051" inputmode="numeric">
             </div>
 
             <div class="form-group">
@@ -705,7 +700,7 @@
         </div>
 
         <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
-          <input type="text" id="search-input" placeholder="Search by institution name, club ID, state, zone, or email..." oninput="performUniversalSearch(this.value)">
+          <input type="text" id="search-input" aria-label="Search clubs" placeholder="Search by institution name, club ID, state, zone, or email..." oninput="performUniversalSearch(this.value)">
           <button class="btn btn-primary" onclick="performUniversalSearch(document.getElementById('search-input').value)">Search</button>
         </div>
 
@@ -734,7 +729,7 @@
             </tbody>
           </table>
         </div>
-        <div id="clubs-pagination-bar" style="display: none; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
+        <div id="clubs-pagination-bar" style="display: none; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
       </div>
     </div>
 
@@ -1131,7 +1126,7 @@
   <!-- EDIT & RENEWAL MODAL -->
   <div class="modal-overlay" id="edit-modal">
     <div class="modal-content">
-      <button class="modal-close" onclick="closeEditModal()">×</button>
+      <button class="modal-close" onclick="closeEditModal()" title="Close club editor" aria-label="Close club editor">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
           <h3 class="card-title" id="modal-club-id">Club Details & Edit</h3>
@@ -1295,7 +1290,7 @@
         </div>
 
         <div style="display: flex; justify-content: flex-end;">
-          <button type="button" class="btn btn-warning btn-md" id="btn-set-issue-reminder" onclick="handleSetClubIssueReminder()" style="font-weight: 700; background: #ca8a04; color: #ffffff;">
+          <button type="button" class="btn btn-warning btn-md" id="btn-set-issue-reminder" onclick="handleSetClubIssueReminder()" style="font-weight: 700; background: var(--warning, #B45309); color: #ffffff;">
             <span>⏰</span> SET A REMINDER
           </button>
         </div>
@@ -1334,7 +1329,7 @@
           <span>🔍</span> Filter Reminders Queue:
         </div>
         <div style="flex: 1; min-width: 260px; max-width: 400px;">
-          <input type="text" id="employee-reminders-search-input" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: 4px;">
+          <input type="text" id="employee-reminders-search-input" aria-label="Search reminders" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: 4px;">
         </div>
       </div>
 
@@ -1366,7 +1361,7 @@
   <!-- FEATURE 4: EMPLOYEE ISSUE RESOLUTION MODAL -->
   <div class="modal-overlay" id="employee-issue-modal" style="z-index: 1200; display: none;">
     <div class="modal-content" style="max-width: 580px; width: 95%;">
-      <button class="modal-close" onclick="closeEmployeeIssueModal()">×</button>
+      <button class="modal-close" onclick="closeEmployeeIssueModal()" title="Close reminder action" aria-label="Close reminder action">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
           <h3 class="card-title" style="color: #92400e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
@@ -1476,7 +1471,7 @@
           </small>
         </div>
 
-        <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; margin: 0.5rem 0; font-weight: 600;">
+        <div style="text-align: center; font-size: 0.75rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
           — OR —
         </div>
 
@@ -1569,7 +1564,7 @@
           </small>
         </div>
 
-        <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; margin: 0.5rem 0; font-weight: 600;">
+        <div style="text-align: center; font-size: 0.75rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
           — OR —
         </div>
 
@@ -1737,17 +1732,6 @@
       </div>
     </div>
   </div>
-
-  <footer class="system-footer">
-    <div class="footer-container">
-      <div class="footer-brand">
-        <div class="footer-meta">
-          <div class="footer-title">National Digital Library of India (NDLI) Club Project</div>
-          <div class="footer-sub">Central Office: Indian Institute of Technology Kharagpur</div>
-        </div>
-      </div>
-    </div>
-  </footer>
 
   <!-- Certificate Engine: src="/static/js/certificate_engine.js" -->
   <script src="/static/js/qrcode.min.js?v=20261002"></script>
@@ -2300,20 +2284,6 @@
     // =============================================================
     // 3. PORTAL CORE CONTROLLER (Profile, Quota, SEC A/B/C, Search)
     // =============================================================
-    async function switchEmployee(empId) {
-      CURRENT_EMP_ID = empId;
-      sessionStorage.setItem("ndli_current_emp_id", empId);
-      sessionStorage.setItem("ndli_employee_id", empId);
-      window.history.pushState({}, "", `/employee/${empId}`);
-      await fetchLiveProfile(empId);
-      await renderEmployeeProfile();
-      loadEmployeeQuota();
-      loadEmployeeActivities(true);
-      performUniversalSearch(document.getElementById("search-input").value, true);
-      loadEmployeeReminders();
-      updateNavAuth(true, CURRENT_USER_SESSION || { full_name: EMP_PROFILES[empId]?.name, zone: EMP_PROFILES[empId]?.zone });
-    }
-
     async function renderEmployeeProfile() {
       const liveProf = (EMP_PROFILES && EMP_PROFILES[CURRENT_EMP_ID]) || await fetchLiveProfile(CURRENT_EMP_ID);
       const prof = liveProf || EMP_PROFILES[CURRENT_EMP_ID] || (CURRENT_USER_SESSION ? {
@@ -2399,7 +2369,7 @@
 
           if (count > 0) {
             container.innerHTML = `
-              <div class="employee-reminders-kpi-stack" id="employee-reminders-kpi-card" onclick="openEmployeeRemindersListModal()" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border: 2px solid #ef4444; border-left: 6px solid #dc2626; border-radius: var(--radius); padding: 0.9rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08); margin-bottom: 1.25rem;" title="Click to open the unresolved issue reminders list">
+              <div class="employee-reminders-kpi-stack" id="employee-reminders-kpi-card" role="button" tabindex="0" onclick="openEmployeeRemindersListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openEmployeeRemindersListModal();}" aria-label="Open due issue reminders list" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border: 2px solid #ef4444; border-left: 6px solid #dc2626; border-radius: var(--radius); padding: 0.9rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08); margin-bottom: 1.25rem;" title="Click to open the unresolved issue reminders list">
                 <div style="display: flex; align-items: center; gap: 0.85rem;">
                   <div style="background: #dc2626; color: #ffffff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);">
                     ⏰
@@ -2421,7 +2391,7 @@
                     <div style="font-size: 1.45rem; font-weight: 800; color: #dc2626; line-height: 1;">${count}</div>
                     <div style="font-size: 0.7rem; color: #991b1b; font-weight: 700; text-transform: uppercase;">Due Reminders</div>
                   </div>
-                  <button type="button" class="btn btn-sm btn-danger" style="font-weight: 700; padding: 0.45rem 0.95rem; pointer-events: none; background: #dc2626; border-color: #dc2626; color: #ffffff;">
+                  <button type="button" class="btn btn-sm btn-danger" tabindex="-1" aria-hidden="true" style="font-weight: 700; padding: 0.45rem 0.95rem; pointer-events: none; background: #dc2626; border-color: #dc2626; color: #ffffff;">
                     Open Issue List ↗
                   </button>
                 </div>
@@ -2592,6 +2562,7 @@
 
     async function submitEmployeeIssueResolution(statusChoice) {
       if (!SELECTED_EMPLOYEE_ISSUE_ID) return;
+      const issueId = SELECTED_EMPLOYEE_ISSUE_ID;
       const notesEl = document.getElementById("employee-issue-notes-input");
       const resolutionNotes = notesEl ? notesEl.value.trim() : "";
 
@@ -2607,7 +2578,7 @@
         if (res.ok && res.data && res.data.success) {
           closeEmployeeIssueModal();
           if (statusChoice === "Resolved") {
-            alert(`✓ Success: Issue ${SELECTED_EMPLOYEE_ISSUE_ID} has been marked as Resolved.`);
+            alert(`✓ Success: Issue ${issueId} has been marked as Resolved.`);
           } else {
             alert(`⚠ Issue marked as Not Resolved: System has automatically scheduled the next reminder in 7 days.`);
           }
@@ -2773,8 +2744,8 @@
           container.scrollIntoView({ behavior: 'smooth' });
           const cidInput = document.getElementById("c-club-id");
           if (!cidInput.value) {
-            const rand = Math.floor(100 + Math.random() * 900);
-            cidInput.value = `NDLI-${CURRENT_EMP_ID}-${rand}`;
+            // Club ID is a whole number per client requisition (digits only)
+            cidInput.value = String(Math.floor(1000 + Math.random() * 9000));
           }
           const renInput = document.getElementById("c-renewal-display") || document.getElementById("c-renewal");
           if (renInput && typeof calculateNextRenewalDate === "function") {
@@ -3127,11 +3098,11 @@
               Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${results.length.toLocaleString()}</strong> clubs
             </div>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(1)">« First</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE - 1})">‹ Prev</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled' : ''} onclick="changeClubsPage(1)">« First</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === 1 ? 'disabled' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE - 1})">‹ Prev</button>
               <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${CURRENT_CLUBS_PAGE} of ${totalPages}</span>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE + 1})">Next ›</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeClubsPage(${totalPages})">Last »</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled' : ''} onclick="changeClubsPage(${CURRENT_CLUBS_PAGE + 1})">Next ›</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_CLUBS_PAGE === totalPages ? 'disabled' : ''} onclick="changeClubsPage(${totalPages})">Last »</button>
             </div>
           `;
         }
@@ -3459,7 +3430,7 @@
           institution_name: document.getElementById("edit-inst-name").value || clubId,
           state: document.getElementById("edit-state").value || "",
           zone: document.getElementById("edit-zone").value || "",
-          reg_no: document.getElementById("modal-club-id") ? document.getElementById("modal-club-id").innerText : clubId,
+          reg_no: (document.getElementById("edit-reg-no") ? document.getElementById("edit-reg-no").value.trim() : "") || "",
           date_of_approval: document.getElementById("modal-date-of-approval-full") ? document.getElementById("modal-date-of-approval-full").innerText : "",
           renewal_date: document.getElementById("modal-upcoming-renewal") ? document.getElementById("modal-upcoming-renewal").innerText : ""
         };
@@ -3975,7 +3946,7 @@
         club = {
           club_id: clubId,
           institution_name: document.getElementById("edit-inst-name").value || clubId,
-          reg_no: document.getElementById("modal-club-id") ? document.getElementById("modal-club-id").innerText : clubId,
+          reg_no: (document.getElementById("edit-reg-no") ? document.getElementById("edit-reg-no").value.trim() : "") || "",
           date_of_approval: document.getElementById("modal-date-of-approval-full") ? document.getElementById("modal-date-of-approval-full").innerText : "",
           renewal_date: document.getElementById("modal-upcoming-renewal") ? document.getElementById("modal-upcoming-renewal").innerText : ""
         };
@@ -4006,7 +3977,7 @@
         if (instEl) instEl.innerText = (club && club.institution_name) || "-";
 
         const regEl = document.getElementById("cert-display-reg-no");
-        if (regEl) regEl.innerText = (club && club.reg_no) || "NDLI/REG/2024/001";
+        if (regEl) regEl.innerText = (club && club.reg_no) || "Pending";
 
         const rawDoa = (club && (club.date_of_approval || club.submission_timestamp)) || "";
         const doaEl = document.getElementById("cert-display-doa");
@@ -4267,6 +4238,39 @@
       updateClock();
       setInterval(updateClock, 1000);
 
+      // Modal dismissal (Esc key + backdrop click) — registered up front so it
+      // stays wired on the login-first path where this init returns early.
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          const editModal = document.getElementById("edit-modal");
+          const issueModal = document.getElementById("employee-issue-modal");
+          const remindersModal = document.getElementById("employee-reminders-list-modal");
+
+          if (issueModal && (issueModal.classList.contains("active") || issueModal.style.display === "flex")) {
+            closeEmployeeIssueModal();
+          } else if (remindersModal && (remindersModal.classList.contains("active") || remindersModal.style.display === "flex")) {
+            closeEmployeeRemindersListModal();
+          } else if (editModal && (editModal.classList.contains("active") || editModal.style.display === "flex")) {
+            closeEditModal();
+          }
+        }
+      });
+
+      // Click outside modal content to close
+      document.querySelectorAll(".modal-overlay").forEach(overlay => {
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) {
+            if (overlay.id === "employee-issue-modal") {
+              closeEmployeeIssueModal();
+            } else if (overlay.id === "employee-reminders-list-modal") {
+              closeEmployeeRemindersListModal();
+            } else if (overlay.id === "edit-modal") {
+              closeEditModal();
+            }
+          }
+        });
+      });
+
       // Continuous synchronization with Admin Master Control (every 30 seconds)
       setInterval(syncEmployeeWithAdmin, 30000);
       document.addEventListener("visibilitychange", () => {
@@ -4380,52 +4384,6 @@
       } catch (e) {
         showLoginView();
       }
-
-      // Escape key listener for closing employee modals
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          const editModal = document.getElementById("edit-modal");
-          const issueModal = document.getElementById("employee-issue-modal");
-          const remindersModal = document.getElementById("employee-reminders-list-modal");
-
-          if (issueModal && (issueModal.classList.contains("active") || issueModal.style.display === "flex")) {
-            closeEmployeeIssueModal();
-          } else if (remindersModal && (remindersModal.classList.contains("active") || remindersModal.style.display === "flex")) {
-            closeEmployeeRemindersListModal();
-          } else if (editModal && (editModal.classList.contains("active") || editModal.style.display === "flex")) {
-            closeEditModal();
-          }
-        }
-      });
-
-      // Click outside modal content to close
-      document.querySelectorAll(".modal-overlay").forEach(overlay => {
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) {
-            if (overlay.id === "employee-issue-modal") {
-              closeEmployeeIssueModal();
-            } else if (overlay.id === "employee-reminders-list-modal") {
-              closeEmployeeRemindersListModal();
-            } else if (overlay.id === "edit-modal") {
-              closeEditModal();
-            }
-          }
-        });
-      });
-
-      // Tab activation listener for Universal Club Search & Edit
-      document.querySelectorAll('.tab-btn[data-target="tab-search"]').forEach(btn => {
-        btn.addEventListener("click", () => {
-          onSearchTabActivated();
-        });
-      });
-
-      // Tab activation listener for My Node Activity History
-      document.querySelectorAll('.tab-btn[data-target="tab-history"]').forEach(btn => {
-        btn.addEventListener("click", () => {
-          onHistoryTabActivated();
-        });
-      });
     }
 
     if (typeof window !== "undefined") {

@@ -24,6 +24,11 @@
   --amber-bright:   #F59E0B;
   --amber-glow:     rgba(217, 119, 6, 0.22);
 
+  /* Round 2: portal inline styles reference var(--accent); the design
+     language treats the complement (amber) as the accent colour.
+     (Was undefined — 6 declarations silently fell back to nothing.) */
+  --accent:         #D97706;
+
   /* --- Sky Info Accent --- */
   --sky:            #38BDF8;
   --sky-dark:       #0284C7;
@@ -120,7 +125,13 @@
 html, body {
   width: 100%;
   max-width: 100%;
+  /* Round 2 F1: `overflow-x: hidden` turned body into a scroll container and
+     silently killed `position: sticky` on the navbar (all 4 portals). `clip`
+     keeps the horizontal clipping intent WITHOUT creating a scroll container,
+     so the sticky header sticks again. First line = fallback for browsers
+     without `clip` (Safari <16) — they keep the old behaviour. */
   overflow-x: hidden;
+  overflow-x: clip;
   margin: 0;
   padding: 0;
   scroll-behavior: smooth;
@@ -139,9 +150,19 @@ body {
   font-size: 15px;
 }
 
-/* Polish round: smooth scrolling is motion too — honour the motion contract. */
+/* Polish round: smooth scrolling is motion too — honour the motion contract.
+   Round 2 F7/F8: style.css's own entrance animations (viewSlideUp / tabReveal /
+   modalSpring / rippleAnim) were outside the ui.css §10 swap list — transform
+   and spring motion leaked through the fade-only contract. Swap them to the
+   shared fade (keyframes ship in ui.css), clamp .reveal-card to opacity, and
+   stop the width-animated fills under reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   html, body { scroll-behavior: auto; }
+  .view-fade-in, .tab-panel.active, .modal-content, .btn .ripple {
+    animation-name: uiFadeOnly !important;
+  }
+  .reveal-card { transition-property: opacity !important; transform: none !important; }
+  .bar-fill, .gauge-segment { transition: none !important; }
 }
 
 /* Polish round: brand-tinted text selection */
@@ -544,7 +565,9 @@ body {
   border-radius: var(--radius-lg);
   padding: 1.2rem 1.4rem;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-spring), box-shadow var(--transition);
+  /* Round 2 F9: was --transition-spring (overshoot easing) — springs are
+     contractually reserved for modals/FABs, and hover-lift is a plain ease. */
+  transition: transform var(--transition), box-shadow var(--transition);
   position: relative;
   overflow: hidden;
 }
@@ -597,7 +620,8 @@ body {
   gap: 0.2rem;
   box-shadow: var(--shadow-xs);
   border-left: 4px solid var(--primary);
-  transition: transform var(--transition-spring), box-shadow var(--transition);
+  /* Round 2 F9: was --transition-spring (overshoot easing) — see .portal-card */
+  transition: transform var(--transition), box-shadow var(--transition);
   position: relative;
   overflow: hidden;
 }
@@ -741,7 +765,9 @@ textarea {
   outline: none;
 }
 
-input:focus, select:focus, textarea:focus {
+/* Round 2 F14: scoped OUT .ndli-asst-input — the Robu composer keeps its own
+   documented border/glow language (assistant.css), not the global form rules. */
+input:focus, select:focus, textarea:focus:not(.ndli-asst-input) {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3.5px rgba(13, 119, 81, 0.14);
 }
@@ -763,7 +789,7 @@ textarea::placeholder {
 /* Polish round: hover affordance on editable fields (border only — no layout) */
 input:hover:not(:focus):not([readonly]):not(:disabled),
 select:hover:not(:focus),
-textarea:hover:not(:focus) {
+textarea:hover:not(:focus):not(.ndli-asst-input) { /* Round 2 F14: widget keeps --asst-border */
   border-color: #B7CCC1;
 }
 
@@ -894,6 +920,23 @@ input[readonly] {
   transform: translateY(-2px);
 }
 
+/* Round 2: semantic warning tier (referenced by live markup — employee.html
+   issue-resolution / report-issue CTAs — but never defined, so those buttons
+   painted as transparent ghost labels). Solid --warning rather than the amber
+   gradient: white label stays AA (5.02:1) at every pixel; shape/hover follow
+   the .btn-success / .btn-danger precedent. */
+.btn-warning {
+  background-color: var(--warning);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.22);
+}
+
+.btn-warning:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
 .btn-outline {
   background-color: transparent;
   border-color: var(--border);
@@ -920,6 +963,14 @@ input[readonly] {
 .btn-sm {
   padding: 0.30rem 0.75rem;
   font-size: 0.75rem;
+  border-radius: var(--radius-pill);
+}
+
+/* Round 2: mid size — referenced by live markup (btn-md on 4 CTAs) but never
+   defined; states the default tier explicitly so the ladder sm/md/lg is real. */
+.btn-md {
+  padding: 0.52rem 1.15rem;
+  font-size: 0.84rem;
   border-radius: var(--radius-pill);
 }
 
@@ -1082,6 +1133,11 @@ tbody tr:hover { background-color: #f0f7f3; }
 .pill-danger   { background: var(--danger-light); color: #9F1239; border: 1px solid var(--danger-border); }
 .pill-priority { background: #FEF9C3; color: #854D0E; border: 1px solid #FDE047; }
 .pill-info     { background: var(--sky-light); color: var(--sky-dark); border: 1px solid #BAE6FD; }
+/* Round 2 F10: these two variants are referenced by live markup
+   (admin.html pillClass "pill-accent" / class="pill pill-outline") but were
+   never defined — the badges rendered as un-bound floating text. */
+.pill-accent   { background: var(--primary-subtle); color: var(--primary); border: 1px solid #B8DDC8; }
+.pill-outline  { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
 
 /* ==========================================================================
    ALERTS & NOTIFICATIONS
@@ -1099,7 +1155,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   border-left-style: solid;
 }
 
-.alert-success { background: #E6F7F0; color: #064E3B; border-color: #34D399; border: 1px solid #A7F3D0; border-left: 3px solid #34D399; }
+.alert-success { background: #E6F7F0; color: #064E3B; border: 1px solid #A7F3D0; border-left: 3px solid #34D399; }
 .alert-danger  { background: var(--danger-light); color: #881337; border: 1px solid var(--danger-border); border-left: 3px solid var(--danger); }
 .alert-info    { background: var(--sky-light); color: #0369A1; border: 1px solid #BAE6FD; border-left: 3px solid var(--sky); }
 .alert-warning { background: var(--warning-light); color: #78350F; border: 1px solid var(--warning-border); border-left: 3px solid var(--amber-bright); }
@@ -1269,6 +1325,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   max-width: 680px;
   width: 96%;
   max-height: 92vh;
+  max-height: 92dvh; /* Round 2 F15: dynamic viewport — keeps modals clear of mobile keyboards */
   overflow-y: auto;
   padding: 1.5rem 1.8rem;
   position: relative;

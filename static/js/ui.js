@@ -142,7 +142,8 @@
   function toast(message, opts) {
     opts = opts || {};
     var type = opts.type || "info";
-    var dur = typeof opts.duration === "number" ? opts.duration : 4000;
+    var dur = typeof opts.duration === "number" ? opts.duration
+            : (typeof opts.dur === "number" ? opts.dur : 4000); /* Round 2 F27: accept the `dur` alias callers actually pass */
     var el = document.createElement("div");
     el.className = "ui-toast ui-toast-" + type;
 
@@ -153,7 +154,7 @@
       warning: "Attention",
       danger: "Something went wrong",
       info: "Notice"
-    })[type];
+    })[type] || "Notice"; /* Round 2 F27: unknown type must not render "undefined" */
 
     var body = document.createElement("div");
     body.className = "ui-toast-msg";
@@ -378,7 +379,7 @@
   }
 
   /* --- 9. alert() routing: non-critical -> toast, critical stays native ---- */
-  var CRITICAL = /(error|fail(ed|ure)?|denied|invalid|unable|cannot|unable to|exception|expired|wrong|incorrect|not allowed|forbidden|unauthori[sz]ed|could not|not confirmed|be confirmed|blocked|duplicate|warning|may be lost|notify an administrator|required|too many|\u26a0)/i;
+  var CRITICAL = /(error|fail(ed|ure)?|denied|invalid|unable|cannot|exception|expired|wrong|incorrect|not allowed|forbidden|unauthori[sz]ed|could not|not confirmed|be confirmed|blocked|duplicate|warning|may be lost|notify an administrator|required|too many|\u26a0)/i; /* Round 2 F27: "unable to" deduped — "unable" already matches */
 
   function routeAlerts() {
     var nativeAlert = window.alert ? window.alert.bind(window) : null;
@@ -510,6 +511,10 @@
         while (el && el.nodeType !== 1) el = el.parentNode;
         if (!el || !el.id || !/-alert$/.test(el.id)) return;
         if (!String(el.textContent || "").trim()) return;
+        /* Round 2 F11: success is not an error — showAlert(…, "success") fills
+           the same #*-alert containers and must never shake the form. */
+        if (el.querySelector(".alert-success") ||
+            (el.classList && el.classList.contains("alert-success"))) return;
         var form = el.querySelector("form") ||
                    (el.closest ? el.closest("form") : null) ||
                    (el.parentNode ? el.parentNode.querySelector("form") : null);

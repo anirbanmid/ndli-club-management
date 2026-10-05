@@ -243,6 +243,18 @@
       .header-container { flex-direction: column; text-align: center; }
       .card-top-banner, .result-body { padding: 1.25rem; }
     }
+
+    /* Print affordances: this page is printed alongside the paper certificate. */
+    @media print {
+      body { background: #fff; }
+      .verification-header { background: #fff; color: #000; border-bottom: 2px solid var(--gold-seal); box-shadow: none; }
+      .header-text h1 { color: #000; }
+      .header-text p { color: #333; }
+      .verify-card { box-shadow: none; border: 1px solid #ccc; }
+      .card-top-banner { background: #fff; color: #000; border-bottom: 2px solid var(--ndli-emerald); }
+      .banner-sub { color: #333; }
+      .footer { color: #333; }
+    }
   </style>
 </head>
 <body>
@@ -279,7 +291,7 @@
         <div id="state-prompt" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
           <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔍</div>
           <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.15rem;">Verify an Issued Certificate</h3>
-          <p style="margin: 0; font-size: 0.9rem; max-width: 520px; margin: 0 auto; line-height: 1.5;">
+          <p style="font-size: 0.9rem; max-width: 520px; margin: 0 auto; line-height: 1.5;">
             Scan the QR code printed on the official NDLI Club Renewal Certificate to verify its authenticity. To protect club privacy, this portal verifies only the certificate you have in hand — it does not offer a search facility.
           </p>
         </div>
@@ -351,6 +363,23 @@
             <strong>Need Assistance?</strong> If you believe this is an error, please reach out to your Regional Zonal Officer or the NDLI Central Administration at <a href="mailto:admin@iitkgp.ac.in" style="color: #b91c1c; font-weight: 600;">admin@iitkgp.ac.in</a>.
           </div>
         </div>
+
+        <!-- Service unavailable state (transport/API failure — NOT a verdict on the certificate) -->
+        <div id="state-unavailable" style="display: none;">
+          <div class="status-badge status-expired">
+            <span>⏳</span>
+            <span>SERVICE TEMPORARILY UNAVAILABLE</span>
+          </div>
+
+          <h3 style="color: #92400e; margin: 0 0 0.75rem 0;">Verification Service Temporarily Unavailable</h3>
+          <p style="color: #475569; font-size: 0.92rem; line-height: 1.5; margin: 0 0 1.5rem 0;">
+            We could not reach the central verification service just now, so the certificate <strong id="unavailable-query">-</strong> could not be checked. This is not a verdict on the certificate — please try again in a few minutes.
+          </p>
+
+          <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #78350f;">
+            <strong>Need Assistance?</strong> If this keeps happening, please reach out to your Regional Zonal Officer or the NDLI Central Administration at <a href="mailto:admin@iitkgp.ac.in" style="color: #b45309; font-weight: 600;">admin@iitkgp.ac.in</a>.
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -381,6 +410,7 @@
       document.getElementById("state-prompt").style.display = "none";
       document.getElementById("state-verified").style.display = "none";
       document.getElementById("state-unverified").style.display = "none";
+      document.getElementById("state-unavailable").style.display = "none";
       document.getElementById("state-loading").style.display = "block";
 
       try {
@@ -418,9 +448,11 @@
           document.getElementById("state-unverified").style.display = "block";
         }
       } catch (err) {
+        // Transport/API failure — NOT a verdict on the certificate.
+        // Never show the "RECORD NOT FOUND" state here (see #state-unverified).
         document.getElementById("state-loading").style.display = "none";
-        document.getElementById("unverified-query").innerText = q;
-        document.getElementById("state-unverified").style.display = "block";
+        document.getElementById("unavailable-query").innerText = q;
+        document.getElementById("state-unavailable").style.display = "block";
       }
     }
 

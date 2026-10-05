@@ -114,9 +114,22 @@
       box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
       transform: translateY(-1px);
     }
+
+    /* Attention filter buttons: tinted only in the inactive (outline) state —
+       the active state swaps to btn-primary and must render its standard white text. */
+    .attn-filter-btn.btn-outline[data-filter="Overdue"] {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .attn-filter-btn.btn-outline[data-filter="Expiring Soon"] {
+      color: var(--warning);
+      border-color: var(--warning);
+    }
   </style>
   <script>
     // Immediate global bootstrap for Admin Sign-In modal
+    // NOTE: the full definition in the main script below reassigns
+    // window.openAdminLoginModal later — that later assignment wins at runtime.
     window.openAdminLoginModal = function() {
       const modal = document.getElementById("admin-login-modal");
       if (modal) {
@@ -234,7 +247,7 @@
         <span class="stat-value" id="kpi-nodes">7</span>
         <span class="stat-desc" id="kpi-nodes-desc">Dedicated CSV Node DBs</span>
       </div>
-      <div class="stat-card danger reveal-card" id="card-renewal-attention" onclick="openRenewalAttentionModal()" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention">
+      <div class="stat-card danger reveal-card" id="card-renewal-attention" role="button" tabindex="0" onclick="openRenewalAttentionModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openRenewalAttentionModal();}" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention" aria-label="View clubs requiring renewal attention">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label">Renewal Attention</span>
           <span style="font-size: 0.72rem; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
@@ -242,7 +255,7 @@
         <span class="stat-value" id="kpi-renewals">0</span>
         <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
       </div>
-      <div class="stat-card danger reveal-card" id="card-admin-escalations" onclick="openAdminEscalationsListModal()" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues">
+      <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
           <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: #ffffff; background: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
@@ -271,7 +284,7 @@
           <span>🔍</span> Analytics & Geographic Scope:
         </div>
         <div>
-          <label style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Zone</label>
+          <label for="filter-zone" style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Zone</label>
           <select id="filter-zone" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
             <option value="ALL">All Operational Zones (6)</option>
             <option value="North">North Zone</option>
@@ -283,7 +296,7 @@
           </select>
         </div>
         <div>
-          <label style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Year</label>
+          <label for="filter-year" style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Year</label>
           <select id="filter-year" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
             <option value="ALL">All Inception Years</option>
             <option value="2026">2026 (Current Cycle)</option>
@@ -860,17 +873,6 @@
     </div>
   </main>
 
-  <footer class="system-footer">
-    <div class="footer-container">
-      <div class="footer-brand">
-        <span>NDLI Club IIT Kharagpur — Central Administration Office</span>
-      </div>
-      <div class="footer-credit-box">
-        National Digital Library of India (NDLI) Club Project • Central Office: Indian Institute of Technology Kharagpur
-      </div>
-    </div>
-  </footer>
-
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
   <script>
@@ -983,7 +985,7 @@
           headers: adminToken ? { "Authorization": `Bearer ${adminToken}` } : {}
         });
         if (!res.ok) {
-          showAlert("global-alert", "Master CSV download failed. Please sign in as Administrator and try again.", "danger");
+          showAlert("admin-alert", "Master CSV download failed. Please sign in as Administrator and try again.", "danger");
           return;
         }
         const blob = await res.blob();
@@ -996,7 +998,7 @@
         a.remove();
         URL.revokeObjectURL(objUrl);
       } catch (err) {
-        showAlert("global-alert", "Master CSV download failed: " + err.message, "danger");
+        showAlert("admin-alert", "Master CSV download failed: " + err.message, "danger");
       }
     }
 
@@ -1055,7 +1057,7 @@
                       </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <span class="pill pill-success" style="font-size: 0.7rem;">Backup #${idx + 1} Stored</span>
+                      <span class="pill pill-success" style="font-size: 0.7rem;">Stored ✓</span>
                       <button class="btn btn-outline btn-sm" onclick="openEmergencyRestoreModal('${escapeHtml(b.backup_id)}')" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; border-color: #dc2626; color: #dc2626; font-weight: 600;">↺ Restore</button>
                     </div>
                   </div>
@@ -1374,7 +1376,7 @@
           if (container) {
             if (count > 0) {
               container.innerHTML = `
-                <div class="escalation-kpi-stack" id="admin-escalations-kpi-card" onclick="openAdminEscalationsListModal()" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border: 2px solid #ef4444; border-left: 6px solid #dc2626; border-radius: var(--radius); padding: 0.9rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);" title="Click to open the 30-day escalated issues list">
+                <div class="escalation-kpi-stack" id="admin-escalations-kpi-card" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%); border: 2px solid #ef4444; border-left: 6px solid #dc2626; border-radius: var(--radius); padding: 0.9rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);" title="Click to open the 30-day escalated issues list" aria-label="Open the 30-day escalated issues list">
                   <div style="display: flex; align-items: center; gap: 0.85rem;">
                     <div style="background: #dc2626; color: #ffffff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);">
                       🚨
@@ -1396,7 +1398,7 @@
                       <div style="font-size: 1.45rem; font-weight: 800; color: #dc2626; line-height: 1;">${count}</div>
                       <div style="font-size: 0.7rem; color: #991b1b; font-weight: 700; text-transform: uppercase;">Escalations</div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger" style="font-weight: 700; padding: 0.45rem 0.95rem; pointer-events: none;">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); openAdminEscalationsListModal()" style="font-weight: 700; padding: 0.45rem 0.95rem;">
                       Open Escalations List ↗
                     </button>
                   </div>
@@ -1866,7 +1868,7 @@
       });
 
       container.innerHTML = `
-        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: auto;">
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#0D7751" stop-opacity="0.38"/>
@@ -2158,11 +2160,6 @@
       loadEmployeePerformance();
     }
 
-    function safeEscapePerf(str) {
-      if (str === null || str === undefined) return "";
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
     function renderEmployeePerformanceTable(officers, selectedState) {
       const tbody = document.getElementById("employee-performance-tbody");
       if (!tbody) return;
@@ -2198,15 +2195,15 @@
         tr.innerHTML = `
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">${rankBadge}</td>
           <td style="padding: 0.5rem; vertical-align: middle; text-align: left;">
-            <div style="font-weight: 700; color: var(--text); font-size: 0.84rem; line-height: 1.2;">${safeEscapePerf(off.full_name || off.emp_id)}</div>
+            <div style="font-weight: 700; color: var(--text); font-size: 0.84rem; line-height: 1.2;">${escapeHtml(off.full_name || off.emp_id)}</div>
             <div style="display: flex; gap: 0.3rem; align-items: center; margin-top: 2px;">
-              <span class="badge-tag" style="background: var(--primary); color: #fff; font-size: 0.62rem; padding: 1px 5px;">${safeEscapePerf(off.emp_id)}</span>
-              <span style="font-size: 0.72rem; color: var(--text-muted);">${safeEscapePerf(off.zone || '')}</span>
+              <span class="badge-tag" style="background: var(--primary); color: #fff; font-size: 0.62rem; padding: 1px 5px;">${escapeHtml(off.emp_id)}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(off.zone || '')}</span>
             </div>
           </td>
           <td style="padding: 0.5rem; font-size: 0.75rem; color: #475569; vertical-align: middle; text-align: left; ${stateHighlightStyle}">
-            <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${safeEscapePerf(off.assigned_states || '')}">
-              ${safeEscapePerf(off.assigned_states || 'All India')}
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${escapeHtml(off.assigned_states || '')}">
+              ${escapeHtml(off.assigned_states || 'All India')}
             </div>
             ${(selectedState && selectedState !== "ALL" && coversState) ? '<span style="display: inline-block; font-size: 0.65rem; color: #166534; margin-top: 1px;">✓ Selected State</span>' : ''}
           </td>
@@ -2335,7 +2332,7 @@
           densityMeterHtml = `
             <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%; max-width: 150px;">
               <div style="flex: 1; min-width: 35px; height: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 999px;"></div>
-              <span style="font-size: 0.74rem; color: #94a3b8; white-space: nowrap;">0.0%</span>
+              <span style="font-size: 0.74rem; color: var(--text-light); white-space: nowrap;">0.0%</span>
             </div>
           `;
         }
@@ -2508,6 +2505,7 @@
     async function executeAdminLogin(id, pass, alertElId, unlockBtnId) {
       const alertEl = document.getElementById(alertElId);
       const unlockBtn = document.getElementById(unlockBtnId);
+      const originalLabel = unlockBtn ? unlockBtn.innerHTML : "";
 
       if (!id || !pass) {
         if (alertEl) alertEl.innerHTML = `<div class="alert alert-danger" style="margin-bottom:0.75rem;"><span>⚠️</span><div>Admin User ID and Password are required.</div></div>`;
@@ -2572,7 +2570,7 @@
       } finally {
         if (unlockBtn) {
           unlockBtn.disabled = false;
-          unlockBtn.innerHTML = `<span>🔓</span> Verify Admin & Unlock`;
+          unlockBtn.innerHTML = originalLabel;
         }
       }
     }
@@ -2710,11 +2708,13 @@
         CURRENT_ROSTER = res.data.employees;
         tbody.innerHTML = res.data.employees.map(emp => {
           const isActive = String(emp.is_active) === "1";
+          const idSafe = String(emp.id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+          const nameSafe = String(emp.full_name || emp.id || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
           return `
             <tr>
-              <td><code>${emp.id}</code></td>
-              <td><strong>${emp.full_name}</strong></td>
-              <td>${emp.email}</td>
+              <td><code>${escapeHtml(emp.id)}</code></td>
+              <td><strong>${escapeHtml(emp.full_name)}</strong></td>
+              <td>${escapeHtml(emp.email)}</td>
               <td><span class="pill pill-primary">${emp.zone || '-'}</span></td>
               <td><strong>${emp.clubs_approved_count || 0}</strong></td>
               <td>${emp.support_logs_count || 0}</td>
@@ -2723,13 +2723,13 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-                  <button class="btn btn-outline btn-sm" onclick="openEditEmployeeModalById('${emp.id}')" title="Edit employee credentials & regional zone">
+                  <button class="btn btn-outline btn-sm" onclick="openEditEmployeeModalById('${idSafe}')" title="Edit employee credentials & regional zone">
                     ✏️ Edit
                   </button>
-                  <button class="btn btn-danger btn-sm" onclick="handleBlockEmployee('${emp.id}', '${escapeHtml(emp.full_name || emp.id)}')" ${!isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${isActive ? 'Block employee access' : 'Employee is already blocked'}">
+                  <button class="btn btn-danger btn-sm" onclick="handleBlockEmployee('${idSafe}', '${nameSafe}')" ${!isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${isActive ? 'Block employee access' : 'Employee is already blocked'}">
                     🚫 Block
                   </button>
-                  <button class="btn btn-success btn-sm" onclick="handleUnblockEmployee('${emp.id}', '${escapeHtml(emp.full_name || emp.id)}')" ${isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${!isActive ? 'Unblock employee and restore access' : 'Employee is already active'}">
+                  <button class="btn btn-success btn-sm" onclick="handleUnblockEmployee('${idSafe}', '${nameSafe}')" ${isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${!isActive ? 'Unblock employee and restore access' : 'Employee is already active'}">
                     🔓 Unblock
                   </button>
                 </div>
@@ -3577,6 +3577,7 @@
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
           const resetTestModal = document.getElementById("reset-test-data-modal");
+          const changePasswordModal = document.getElementById("change-password-modal");
           const adminLoginModal = document.getElementById("admin-login-modal");
 
           if (adminLoginModal && (adminLoginModal.style.display === "flex" || adminLoginModal.classList.contains("active"))) {
@@ -3595,6 +3596,8 @@
             closeRenewalAttentionModal();
           } else if (editEmpModal && (editEmpModal.classList.contains("active") || editEmpModal.classList.contains("open"))) {
             closeEditEmployeeModal();
+          } else if (changePasswordModal && (changePasswordModal.classList.contains("active") || changePasswordModal.style.display === "flex")) {
+            closeChangePasswordModal();
           }
         }
       });
@@ -3619,6 +3622,8 @@
               closeEmergencyRestoreModal();
             } else if (overlay.id === "reset-test-data-modal") {
               closeResetTestModal();
+            } else if (overlay.id === "change-password-modal") {
+              closeChangePasswordModal();
             }
           }
         });
@@ -3784,10 +3789,10 @@
           <button type="button" class="btn btn-sm btn-primary attn-filter-btn" data-filter="ALL" onclick="filterAttentionList('ALL')">
             All (<span id="btn-count-all">0</span>)
           </button>
-          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Overdue" onclick="filterAttentionList('Overdue')" style="color: var(--danger); border-color: var(--danger);">
+          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Overdue" onclick="filterAttentionList('Overdue')">
             🔴 Overdue (<span id="btn-count-overdue">0</span>)
           </button>
-          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Expiring Soon" onclick="filterAttentionList('Expiring Soon')" style="color: var(--warning); border-color: var(--warning);">
+          <button type="button" class="btn btn-sm btn-outline attn-filter-btn" data-filter="Expiring Soon" onclick="filterAttentionList('Expiring Soon')">
             🟡 Expiring Soon (<span id="btn-count-expiring">0</span>)
           </button>
         </div>
@@ -3819,7 +3824,7 @@
           </tbody>
         </table>
       </div>
-      <div id="attention-pagination-bar" style="display: none; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
+      <div id="attention-pagination-bar" style="display: none; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
         <button type="button" class="btn btn-outline btn-sm" onclick="closeRenewalAttentionModal()">Close Window</button>
@@ -3932,7 +3937,7 @@
     </div>
   </div>
 
-  <!-- EMERGENCY DATABASE RESTORE SECURITY MODAL -->
+  <!-- DANGER ZONE: RESET TEST DATA SECURITY MODAL -->
   <div class="modal-overlay modal" id="reset-test-data-modal" style="z-index: 1260; display: none;">
     <div class="modal-content" style="max-width: 580px; width: 95%;">
       <button class="modal-close" onclick="closeResetTestModal()" title="Close Window">×</button>
@@ -3989,6 +3994,7 @@
     </div>
   </div>
 
+  <!-- EMERGENCY DATABASE RESTORE SECURITY MODAL -->
   <div class="modal-overlay modal" id="emergency-restore-modal" style="z-index: 1250; display: none;">
     <div class="modal-content" style="max-width: 620px; width: 95%;">
       <button class="modal-close" onclick="closeEmergencyRestoreModal()" title="Close Window">×</button>
@@ -4033,14 +4039,14 @@
               Security Layer 1: Anti-Accidental CAPTCHA Verification
             </label>
             <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.35rem;">
-              <div id="restore-captcha-display" style="background: linear-gradient(135deg, #103125 0%, #1A503E 100%); color: #34d399; font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; letter-spacing: 5px; padding: 0.4rem 1.1rem; border-radius: 4px; user-select: none; border: 1px solid #065f46; text-decoration: line-through;">
+              <div id="restore-captcha-display" style="background: linear-gradient(135deg, #103125 0%, #1A503E 100%); color: #34d399; font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; letter-spacing: 5px; padding: 0.4rem 1.1rem; border-radius: 4px; user-select: none; border: 1px solid #065f46;">
                 CAPTCHA
               </div>
               <button type="button" class="btn btn-outline btn-sm" onclick="generateRestoreCaptcha()" title="Regenerate CAPTCHA Code" style="padding: 0.45rem 0.65rem;">
                 🔄
               </button>
             </div>
-            <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="6" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
+            <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="5" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
             <div id="restore-captcha-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
           </div>
 
