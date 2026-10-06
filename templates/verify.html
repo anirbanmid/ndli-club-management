@@ -26,18 +26,24 @@
       margin: 0;
       padding: 0;
       min-height: 100vh;
-      background: radial-gradient(circle at 50% 0%, #103125 0%, #071912 85%);
+      /* Direction C §3a: light tinted canvas + soft radial glows (was dark green ramp) */
+      background:
+        radial-gradient(900px 520px at 82% -8%, rgba(52, 201, 143, 0.16), transparent 62%),
+        radial-gradient(700px 480px at -6% 108%, rgba(242, 179, 77, 0.14), transparent 60%),
+        var(--bg-main, #F4F8F6);
       font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      color: #0f172a;
+      color: var(--text-main, #17332A);
       display: flex;
       flex-direction: column;
     }
 
     .verification-header {
-      background: rgba(7, 25, 18, 0.95);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border-bottom: 2px solid var(--gold-seal);
       padding: 1.25rem 1.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow);
     }
 
     .header-container {
@@ -54,7 +60,7 @@
       align-items: center;
       gap: 1rem;
       text-decoration: none;
-      color: #ffffff;
+      color: var(--c-ink, #17332A);
     }
 
     /* Linked NDLI logo / header text inherit the logo-group look (Round-3 #6). */
@@ -76,13 +82,13 @@
       font-size: 1.15rem;
       font-weight: 700;
       letter-spacing: 0.5px;
-      color: #ffffff;
+      color: var(--c-ink, #17332A);
     }
 
     .header-text p {
       margin: 0.15rem 0 0 0;
       font-size: 0.78rem;
-      color: #94a3b8;
+      color: var(--text-light, #647B70);
     }
 
     .main-wrap {
@@ -94,17 +100,20 @@
 
     .verify-card {
       background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      border-radius: var(--radius-modal, 22px);
+      box-shadow: var(--shadow-lg);
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid var(--border, #E2ECE7);
     }
 
     .card-top-banner {
-      background: linear-gradient(135deg, var(--ndli-green) 0%, var(--ndli-emerald) 100%);
-      color: #ffffff;
+      /* Direction C §3a: LIGHT chrome — dark green gradient reserved for tiny
+         brand accents only (kept on the print rule + gold seal). */
+      background: linear-gradient(135deg, var(--c-tint-2, #F0F8F4) 0%, var(--c-tint, #E9F5EF) 100%);
+      color: var(--c-green-deep, #0A5C3E);
       padding: 1.5rem 2rem;
       position: relative;
+      border-bottom: 1px solid var(--border, #E2ECE7);
     }
 
     .banner-title {
@@ -115,12 +124,24 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      color: var(--c-green-deep, #0A5C3E);
+    }
+
+    /* Gradient-text accent (spec §3a) — AA-darkened stops (spec's #34C98F/#E9A23B
+       stops fail §0.8 contrast on the light band; see changelog). */
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .banner-title span:last-child {
+        background: linear-gradient(92deg, #0D7751, #0A5C3E 55%, #92500B);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
     }
 
     .banner-sub {
       margin: 0;
       font-size: 0.85rem;
-      color: #cbd5e1;
+      color: var(--text-muted, #4E6358);
       line-height: 1.4;
     }
 
@@ -172,7 +193,7 @@
       gap: 1.25rem;
       background: #f8fafc;
       padding: 1.25rem;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       border: 1px solid #e2e8f0;
     }
 
@@ -200,14 +221,14 @@
     .security-seal {
       margin-top: 1.75rem;
       padding-top: 1.5rem;
-      border-top: 1px dashed #cbd5e1;
+      border-top: 1px dashed var(--border, #E2ECE7);
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 1rem;
       font-size: 0.78rem;
-      color: #64748b;
+      color: var(--text-light, #647B70);
     }
 
     .seal-left {
@@ -238,12 +259,12 @@
     .footer {
       text-align: center;
       padding: 1.5rem;
-      color: #94a3b8;
+      color: var(--text-light, #647B70);
       font-size: 0.78rem;
     }
 
     .footer a {
-      color: #cbd5e1;
+      color: var(--c-green, #0D7751);
       text-decoration: underline;
     }
 
@@ -369,7 +390,7 @@
             The certificate's QR code <strong id="unverified-query">-</strong> could not be authenticated as an official NDLI Club institutional registration in the central system. Please double-check that the certificate was issued by NDLI.
           </p>
 
-          <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #7f1d1d;">
+          <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: #7f1d1d;">
             <strong>Need Assistance?</strong> If you believe this is an error, please reach out to your Regional Zonal Officer or the NDLI Central Administration at <a href="mailto:admin@iitkgp.ac.in" style="color: #b91c1c; font-weight: 600;">admin@iitkgp.ac.in</a>.
           </div>
         </div>
@@ -386,7 +407,7 @@
             We could not reach the central verification service just now, so the certificate <strong id="unavailable-query">-</strong> could not be checked. This is not a verdict on the certificate — please try again in a few minutes.
           </p>
 
-          <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #78350f;">
+          <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: #78350f;">
             <strong>Need Assistance?</strong> If this keeps happening, please reach out to your Regional Zonal Officer or the NDLI Central Administration at <a href="mailto:admin@iitkgp.ac.in" style="color: #b45309; font-weight: 600;">admin@iitkgp.ac.in</a>.
           </div>
         </div>

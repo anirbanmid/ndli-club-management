@@ -13,29 +13,15 @@
   <link rel="stylesheet" href="/static/css/ui.css">
   <link rel="stylesheet" href="/static/css/assistant.css">
   <style>
-    .ai-card {
-      background: linear-gradient(135deg, #0c2018 0%, #103125 55%, #1A503E 100%);
-      color: #ffffff;
-      border: 1px solid rgba(13, 119, 81, 0.38);
-      border-radius: var(--radius-xl);
-      padding: 1.40rem 1.60rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 16px 40px rgba(7,25,18,0.35);
-      position: relative;
-      overflow: hidden;
-    }
-    .ai-rec-box {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--radius-sm);
-      padding: 0.85rem 1.0rem;
-      margin-bottom: 0.60rem;
-      transition: background 0.18s ease, transform 0.18s ease;
-    }
-    .ai-rec-box:hover {
-      background: rgba(255, 255, 255, 0.13);
-      transform: translateX(3px);
-    }
+    /* .ai-card / .ai-rec-box: the old dark-glass override block was removed —
+       the class-level Direction C light recipe in style.css now applies.
+       The recommendation cards are JS-rendered with frozen dark-theme inline
+       colors; retone them here for the light surface (script stays untouched). */
+    #ai-recommendations-list > p { color: var(--text-muted) !important; }
+    #ai-recommendations-list .ai-rec-box h4 { color: var(--text-main) !important; }
+    #ai-recommendations-list .ai-rec-box > p { color: var(--text-muted) !important; }
+    #ai-recommendations-list .ai-rec-box > p + p { color: var(--c-amber-ink) !important; }
+    #ai-recommendations-list .ai-rec-box span:not([class]) { color: var(--text-light) !important; }
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -86,17 +72,17 @@
 
     /* Complementary Highlight Buttons: Employee Portal (Warm Amber) & Main Portal (Sky Blue) */
     .nav-link.nav-link-employee {
-      background: linear-gradient(135deg, #b45309 0%, #d97706 55%, #f59e0b 100%) !important;
+      background: var(--gradient-amber) !important;
       color: #ffffff !important;
       font-weight: 700 !important;
-      border: 1px solid rgba(251, 191, 36, 0.75) !important;
-      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35) !important;
+      border: 1px solid rgba(245, 158, 11, 0.55) !important;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28) !important;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
     .nav-link.nav-link-employee:hover {
-      background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%) !important;
-      border-color: #fde68a !important;
-      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.5) !important;
+      background: linear-gradient(135deg, #7A3806 0%, #8F4208 55%, #A85A0B 100%) !important;
+      border-color: rgba(245, 158, 11, 0.75) !important;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.38) !important;
       transform: translateY(-1px);
     }
 
@@ -180,7 +166,7 @@
       </a>
       <div class="nav-links">
         <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem; min-width: 132px; text-align: center; display: inline-block;">ADMIN LOCKED 🔒</span>
-        <span id="nav-admin-user" style="font-size: 0.78rem; color: #cbd5e1;">Access Restricted</span>
+        <span id="nav-admin-user" style="font-size: 0.78rem; color: var(--text-muted);">Access Restricted</span>
         <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem; white-space: nowrap;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
         <a href="#" class="nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
@@ -206,15 +192,15 @@
       </div>
       <div id="admin-modal-alert"></div>
       <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
-        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
           <div style="margin-bottom: 0.85rem;">
             <label for="admin-modal-id" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
-            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
           </div>
           <div>
             <label for="admin-modal-pass" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
             <div style="position: relative; display: flex; align-items: center;">
-              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem;">
+              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
               <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
             </div>
           </div>
@@ -233,34 +219,39 @@
     <!-- Top KPIs -->
     <div class="kpi-row">
       <div class="stat-card reveal-card">
+        <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h2m2 0h2M9 13h2m2 0h2M9 17h6"/></svg></div>
         <span class="stat-label">Total NDLI Clubs</span>
         <span class="stat-value" id="kpi-clubs">--</span>
         <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States &amp; UTs</span>
       </div>
       <div class="stat-card accent reveal-card">
+        <div class="stat-icon ic-lav" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #EDE9FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#5B45A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.6 2.4 3.9 5.3 3.9 8.5S14.6 18.1 12 20.5"/></svg></div>
         <span class="stat-label">Total Daily Support Logs</span>
         <span class="stat-value" id="kpi-activities">--</span>
         <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 6 zones</span>
       </div>
       <div class="stat-card success reveal-card">
+        <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M16 11a2.6 2.6 0 1 0 0-5.2M17 15c2 .6 3.3 2.3 3.7 5"/></svg></div>
         <span class="stat-label">Active Nodal Officers</span>
         <span class="stat-value" id="kpi-nodes">--</span>
         <span class="stat-desc" id="kpi-nodes-desc">Dedicated CSV Node DBs</span>
       </div>
       <div class="stat-card danger reveal-card" id="card-renewal-attention" role="button" tabindex="0" onclick="openRenewalAttentionModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openRenewalAttentionModal();}" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention" aria-label="View clubs requiring renewal attention">
+        <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg></div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label">Renewal Attention</span>
-          <span style="font-size: 0.72rem; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
+          <span style="font-size: 0.72rem; color: var(--danger); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
         </div>
         <span class="stat-value" id="kpi-renewals">--</span>
         <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
       </div>
-      <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
+      <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid var(--danger); transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
+        <div class="stat-icon ic-red" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDE7EA; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#9F1239" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19h18.4L12 3zM12 9.5v4.2M12 16.6v.2"/></svg></div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
-          <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: #ffffff; background: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
+          <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: var(--c-red-ink); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
         </div>
-        <span class="stat-value" id="kpi-admin-escalations" style="color: #dc2626;">--</span>
+        <span class="stat-value" id="kpi-admin-escalations" style="color: var(--danger);">--</span>
         <span class="stat-desc" id="kpi-admin-escalations-desc">Unresolved 30+ days (Click to inspect)</span>
       </div>
     </div>
@@ -318,6 +309,7 @@
       <div class="kpi-row" style="margin-bottom: 0.75rem;">
         <!-- Coverage Ratio Card -->
         <div class="stat-card" id="card-coverage-index">
+          <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="11" r="2.4"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">National State Coverage</span>
             <span class="pill pill-primary" id="badge-coverage-ratio" style="font-size: 0.72rem;">0 / 36</span>
@@ -328,6 +320,7 @@
 
         <!-- Renewal Retention Card -->
         <div class="stat-card accent" id="card-retention-rate">
+          <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.6-7 9.5-4.1-1.9-7-5.1-7-9.5V6l7-3z"/><path d="M9 11.8l2.2 2.2 4.3-4.4"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">Club Retention Rate</span>
             <span class="pill pill-success" style="font-size: 0.72rem;">Active Cycle</span>
@@ -338,6 +331,7 @@
 
         <!-- Activity Support Density Card -->
         <div class="stat-card success" id="card-support-density">
+          <div class="stat-icon ic-lav" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #EDE9FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#5B45A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">Support Density Ratio</span>
             <span class="pill pill-primary" style="font-size: 0.72rem;">Logs / Club</span>
@@ -348,6 +342,7 @@
 
         <!-- Zone Efficiency Leader Card -->
         <div class="stat-card warning" id="card-zone-leader">
+          <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4h9v3.5a4.5 4.5 0 0 1-9 0V4z"/><path d="M7.5 5.2h-2a2.3 2.3 0 0 0 2.4 2.6M16.5 5.2h2a2.3 2.3 0 0 1-2.4 2.6"/><path d="M12 12.2v3.3"/><path d="M8.8 20h6.4l-.7-4.5H9.5L8.8 20z"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">Leading Regional Zone</span>
             <span class="badge-tag" style="background: var(--primary);">Top Volume</span>
@@ -509,22 +504,22 @@
           </div>
 
           <!-- Scoring Rubric Summary Chips -->
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.6rem 0.85rem; background: #f8fafc; border-radius: 6px; border: 1px solid var(--border); font-size: 0.75rem;">
-            <span style="display: inline-flex; align-items: center; gap: 4px; color: #166534; font-weight: 600;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.6rem 0.85rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.75rem;">
+              <span style="display: inline-flex; align-items: center; gap: 4px; color: #166534; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span>
               Clubs Approved: <strong>50 points</strong>
             </span>
-            <span style="color: #cbd5e1;">|</span>
+            <span style="color: var(--border);">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #0369a1; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0284c7;"></span>
               Other Supports (Call / Remote / OS Ticket): <strong>30 points</strong>
             </span>
-            <span style="color: #cbd5e1;">|</span>
+            <span style="color: var(--border);">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #7c2d12; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span>
               Offline Training: <strong>20 points</strong>
             </span>
-            <span style="color: #cbd5e1;">|</span>
+            <span style="color: var(--border);">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #6b21a8; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></span>
               Online Training: <strong>10 points</strong>
@@ -578,9 +573,9 @@
       <div class="ai-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
           <div>
-            <span class="badge-tag" style="background: #6366f1;">AI Decision Engine</span>
+            <span class="badge-tag" style="background: #5B45A8;">AI Decision Engine</span>
             <h3 style="font-size: 1.35rem; font-weight: 700; margin-top: 0.35rem;">Strategic Roadmap & Policy Insights</h3>
-            <p style="color: #c7d2fe; font-size: 0.85rem;">
+            <p style="color: var(--text-muted); font-size: 0.85rem;">
               Automated analytical pipelines processing master records to formulate data-backed recommendations for IIT Kharagpur administration.
             </p>
           </div>
@@ -588,7 +583,7 @@
         </div>
 
         <div id="ai-recommendations-list">
-          <p style="text-align: center; color: #c7d2fe; padding: 1.5rem;">Running neural decision heuristics across master CSV records...</p>
+          <p style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Running neural decision heuristics across master CSV records...</p>
         </div>
       </div>
 
@@ -822,17 +817,17 @@
           </div>
 
           <div class="grid-3" style="margin-bottom: 1.25rem;">
-            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
               <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Backup Cycle</span>
               <strong style="display: block; font-size: 1.1rem; color: var(--primary); margin-top: 0.2rem;">Every 7 Days</strong>
               <small style="color: var(--text-muted); font-size: 0.75rem;">Next: <span id="backup-next-due">Checking...</span></small>
             </div>
-            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
               <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Retention Policy</span>
               <strong style="display: block; font-size: 1.1rem; color: #0D7751; margin-top: 0.2rem;">Last 6 Backups Stored</strong>
               <small style="color: var(--text-muted); font-size: 0.75rem;">Previous backups pruned automatically</small>
             </div>
-            <div style="background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
               <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Stored Backups</span>
               <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.2rem;" id="backup-count-display">0 / 6 Backups</strong>
               <small style="color: var(--text-muted); font-size: 0.75rem;">Last: <span id="backup-last-time">Never</span></small>
@@ -844,16 +839,16 @@
             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
               <a href="/api/download/user-manual" class="btn btn-outline btn-sm" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600;" title="Download Official User Manual (PDF)"><span>📖</span> Manual (PDF)</a>
               <button class="btn btn-outline btn-sm" onclick="triggerManualBackup()">Trigger Backup Now ⚡</button>
-              <button class="btn btn-danger btn-sm" onclick="openEmergencyRestoreModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;"><span>↺</span> One-Click Restore Database</button>
+              <button class="btn btn-danger btn-sm" onclick="openEmergencyRestoreModal()" style="font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;"><span>↺</span> One-Click Restore Database</button>
             </div>
           </div>
 
-          <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem;">
+          <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; font-size: 0.85rem;">
             <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading backup archives...</div>
           </div>
 
           <!-- DANGER ZONE: Test Data Reset (dual-layer security) -->
-          <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 6px; padding: 0.85rem 1rem;">
+          <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: var(--radius-sm); padding: 0.85rem 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 260px;">
                 <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Reset Test Data</strong>
@@ -863,7 +858,7 @@
                   Protected by dual-layer security: typed confirmation phrase + Master Admin password.
                 </small>
               </div>
-              <button class="btn btn-danger btn-sm" onclick="openResetTestModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem;">
+              <button class="btn btn-danger btn-sm" onclick="openResetTestModal()" style="font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem;">
                 <span>🧹</span> Reset Test Data…
               </button>
             </div>
@@ -3908,7 +3903,7 @@
           <span>🔍</span> Filter Escalated Queue:
         </div>
         <div style="flex: 1; min-width: 260px; max-width: 420px;">
-          <input type="text" id="admin-escalations-search-input" placeholder="Search by Club ID, Institution, State, Zone, Officer..." oninput="handleAdminEscalationsSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: 4px;">
+          <input type="text" id="admin-escalations-search-input" placeholder="Search by Club ID, Institution, State, Zone, Officer..." oninput="handleAdminEscalationsSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: var(--radius);">
         </div>
       </div>
 
@@ -3952,13 +3947,13 @@
         <span class="pill pill-danger" id="admin-issue-badge">30+ Days Unresolved</span>
       </div>
 
-      <div id="admin-issue-details-content" style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1.25rem;">
+      <div id="admin-issue-details-content" style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 1.25rem;">
         <!-- Rendered dynamically -->
       </div>
 
       <div style="margin-bottom: 1rem;">
         <label for="admin-issue-resolution-notes" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Admin Remarks / Action Notes (Optional):</label>
-        <textarea id="admin-issue-resolution-notes" rows="2" placeholder="Enter notes or instructions for the regional employee..." style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem;"></textarea>
+        <textarea id="admin-issue-resolution-notes" rows="2" placeholder="Enter notes or instructions for the regional employee..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
@@ -3986,7 +3981,7 @@
         <span class="pill pill-danger" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Critical Action</span>
       </div>
 
-      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE WIPE WARNING
         </strong>
@@ -3995,26 +3990,26 @@
         <strong>Safety net:</strong> an automatic checkpoint (<em>Auto Checkpoint before Test Data Reset</em>) is taken first — if it cannot be written, the reset is aborted and nothing changes. The checkpoint appears in the archives list above and can be restored at any time.
       </div>
 
-      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
         <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
           <span>🛡️</span> Dual-Layer Security Verification
         </h4>
 
         <div style="margin-bottom: 0.85rem;">
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>RESET-ALL-TEST-DATA</code> to confirm:</label>
-          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; font-family: monospace;">
+          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; font-family: monospace;">
           <small style="color: var(--text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">Prevents accidental activation — the phrase must match exactly.</small>
         </div>
 
         <div style="margin-bottom: 0.85rem;">
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 2 — Master Admin Password:</label>
-          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem;">
           <div id="reset-password-error" style="display: none; color: #b91c1c; font-size: 0.75rem; margin-top: 0.3rem;"></div>
         </div>
 
         <div>
           <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Test clubs per employee (reseed count):</label>
-          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem;">
         </div>
       </div>
 
@@ -4022,7 +4017,7 @@
 
       <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
         <button class="btn btn-outline btn-sm" onclick="closeResetTestModal()" style="padding: 0.5rem 1rem;">Cancel</button>
-        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; padding: 0.5rem 1rem; opacity: 0.45; cursor: not-allowed;">
+        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="font-weight: 700; padding: 0.5rem 1rem; opacity: 0.45; cursor: not-allowed;">
           <span>⚠️</span> Wipe &amp; Reseed Test Data
         </button>
       </div>
@@ -4044,7 +4039,7 @@
       </div>
 
       <!-- Warning Banner -->
-      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE ROLLBACK WARNING
         </strong>
@@ -4052,11 +4047,11 @@
       </div>
 
       <!-- Backup Selection Form -->
-      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
         <div style="margin-bottom: 0.85rem;">
           <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 0.35rem;">Target Backup Archive to Restore:</label>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <select id="restore-target-select" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: #fff;">
+            <select id="restore-target-select" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; background: #fff;">
               <option value="">Latest Available Backup Snapshot (Default)</option>
             </select>
           </div>
@@ -4074,14 +4069,14 @@
               Security Layer 1: Anti-Accidental CAPTCHA Verification
             </label>
             <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.35rem;">
-              <div id="restore-captcha-display" style="background: linear-gradient(135deg, #103125 0%, #1A503E 100%); color: #34d399; font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; letter-spacing: 5px; padding: 0.4rem 1.1rem; border-radius: 4px; user-select: none; border: 1px solid #065f46;">
+              <div id="restore-captcha-display" style="background: linear-gradient(135deg, #103125 0%, #1A503E 100%); color: #34d399; font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 800; letter-spacing: 5px; padding: 0.4rem 1.1rem; border-radius: var(--radius); user-select: none; border: 1px solid #065f46;">
                 CAPTCHA
               </div>
               <button type="button" class="btn btn-outline btn-sm" onclick="generateRestoreCaptcha()" title="Regenerate CAPTCHA Code" style="padding: 0.45rem 0.65rem;">
                 🔄
               </button>
             </div>
-            <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="5" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
+            <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="5" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
             <div id="restore-captcha-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
           </div>
 
@@ -4090,7 +4085,7 @@
             <label for="restore-admin-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
               Security Layer 2: Master Administrator Password
             </label>
-            <input type="password" id="restore-admin-password" placeholder="Enter Master Administrator Password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+            <input type="password" id="restore-admin-password" placeholder="Enter Master Administrator Password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
             <div id="restore-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
           </div>
         </div>
@@ -4101,7 +4096,7 @@
         <button type="button" class="btn btn-outline" onclick="closeEmergencyRestoreModal()" id="btn-cancel-restore">
           Cancel
         </button>
-        <button type="button" class="btn btn-danger" id="btn-execute-restore" onclick="executeEmergencyRestore()" style="background: #dc2626; border-color: #b91c1c; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+        <button type="button" class="btn btn-danger" id="btn-execute-restore" onclick="executeEmergencyRestore()" style="font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
           <span>⚠️</span> Confirm &amp; Execute Restore
         </button>
       </div>
@@ -4120,18 +4115,18 @@
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Rotate this account's password (minimum 8 characters)</p>
         </div>
       </div>
-      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.1rem;">
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
         <div style="margin-bottom: 0.8rem;">
           <label for="chg-current-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Current Password</label>
-          <input type="password" id="chg-current-password" placeholder="Enter current password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+          <input type="password" id="chg-current-password" placeholder="Enter current password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
         <div style="margin-bottom: 0.8rem;">
           <label for="chg-new-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">New Password</label>
-          <input type="password" id="chg-new-password" placeholder="Enter new password (min 8 characters)" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+          <input type="password" id="chg-new-password" placeholder="Enter new password (min 8 characters)" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
         <div>
           <label for="chg-confirm-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Confirm New Password</label>
-          <input type="password" id="chg-confirm-password" placeholder="Re-enter new password" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.88rem;">
+          <input type="password" id="chg-confirm-password" placeholder="Re-enter new password" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
         <div id="chg-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
         <div id="chg-password-success" style="color: #047857; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
@@ -4235,7 +4230,7 @@
       </div>
     </div>
   </footer>
-  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow: 0 10px 30px rgba(16,49,37,0.22); font-size:0.875rem; align-items:center; gap:10px;"></div>
   <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
   <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
     <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"

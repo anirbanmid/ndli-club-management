@@ -1,8 +1,10 @@
 /* ==========================================================================
    NDLI CLUB MANAGEMENT AND EMPLOYEE ACTIVITY TRACKING SYSTEM
-   Modern Minimalist Design Language — v3.0
-   Brand Palette: #103125 | #1A503E | #0D7751
+   "Direction C — Soft Modern SaaS" design language — v3.1
+   Brand Palette: #103125 | #1A503E | #0D7751 (identity kept)
    Complement: Amber #D97706 | Sky #38BDF8 | Cream #FAFAF8
+   Soft surfaces: tinted canvas #F4F8F6, white cards, hairline #E2ECE7,
+   wide green-tinted diffusion, pills everywhere, generous radii.
    Developer & Architect: Dr. Anirban Mukherjee
    ========================================================================== */
 
@@ -12,11 +14,39 @@
    DESIGN TOKENS
    ========================================================================== */
 :root {
+  /* --- Direction C canonical pastel set (spec §1) --- */
+  --c-bg:       #F4F8F6;
+  --c-card:     #FFFFFF;
+  --c-tint:     #E9F5EF;
+  --c-tint-2:   #F0F8F4;
+  --c-ink:      #17332A;
+  --c-ink-2:    #2E4A3E;
+  --c-muted:    #5F7B6E;
+  --c-faint:    #8AA598;
+  --c-line:     #E2ECE7;
+  --c-green:      #0D7751;
+  --c-green-soft: #D9EFE4;
+  --c-green-deep: #0A5C3E;
+  --c-amber:      #D97706;
+  --c-amber-soft: #FDEFD9;
+  --c-amber-ink:  #92500B;
+  --c-red:        #BE123C;
+  --c-red-soft:   #FDE7EA;
+  --c-red-ink:    #9F1239;
+  --c-sky-soft:   #E2F0FB;
+  --c-sky-ink:    #1E5F8C;
+  --c-lav-soft:   #EDE9FB;
+  --c-lav-ink:    #5B45A8;
+  /* NOTE (theme_css): --c-faint #8AA598 is the canonical §1 value but is only
+     2.65:1 on white — HARD RULE §0.8 (AA) wins for TEXT, so faint-styled
+     labels use --text-light / --text-muted instead. --c-faint stays declared
+     verbatim for decorative, non-text uses. */
+
   /* --- Brand Green Palette --- */
   --primary-dark:   #103125;
   --primary:        #1A503E;
   --primary-light:  #0D7751;
-  --primary-subtle: #edf7f2;
+  --primary-subtle: #E9F5EF; /* Direction C: c-tint */
 
   /* --- Amber Accent (CTA & Highlights) --- */
   --amber:          #D97706;
@@ -32,62 +62,72 @@
   /* --- Sky Info Accent --- */
   --sky:            #38BDF8;
   --sky-dark:       #0369A1; /* Round 3 (item 3): was #0284C7 (3.57:1 behind .pill-info labels — AA fail); only consumer is .pill-info */
-  --sky-light:      #E0F2FE;
+  --sky-light:      #E2F0FB; /* Direction C: c-sky-soft */
 
   /* --- Emerald Accent --- */
   --emerald:        #10B981;
-  --emerald-light:  #D1FAE5;
+  --emerald-light:  #D9EFE4; /* Direction C: c-green-soft */
 
   /* --- Status Colors --- */
   --success:        #0D7751;
-  --success-light:  #E6F7F0;
+  --success-light:  #D9EFE4; /* Direction C: c-green-soft */
   --success-border: #A4DDC7;
   --warning:        #B45309;
-  --warning-light:  #FEF3C7;
-  --warning-border: #FDE68A;
+  --warning-light:  #FDEFD9; /* Direction C: c-amber-soft */
+  --warning-border: #F3D9B2;
   --danger:         #BE123C;
-  --danger-light:   #FFE4E6;
-  --danger-border:  #FECDD3;
+  --danger-light:   #FDE7EA; /* Direction C: c-red-soft */
+  --danger-border:  #F6C9D2;
 
-  /* --- Surfaces & Canvas --- */
-  --bg-main:        #F5F8F6;
+  /* --- Surfaces & Canvas (tinted canvas + light glass) --- */
+  --bg-main:        #F4F8F6;
   --bg-card:        #FFFFFF;
-  --bg-muted:       #EAF1ED;
+  --bg-muted:       #E9F5EF;
   --bg-input:       #FFFFFF;
-  --surface-glass:  rgba(255, 255, 255, 0.72);
-  --surface-dark-glass: rgba(16, 49, 37, 0.82);
+  --surface-glass:  rgba(255, 255, 255, 0.88);
+  /* Direction C: name kept (templates may reference it); value re-based to the
+     c-ink glass tone — dark glass is reserved for tiny accents only (brand
+     tiles / gradient badges), never full-bleed chrome. */
+  --surface-dark-glass: rgba(23, 51, 42, 0.82);
 
   /* --- Gradients --- */
-  --gradient-nav:     linear-gradient(135deg, #0c2419 0%, #103125 45%, #1A503E 80%, #0D7751 100%);
-  --gradient-accent:  linear-gradient(135deg, #1A503E 0%, #0D7751 100%);
+  /* Direction C LIGHT CHROME: the nav/section gradient is now a light tinted
+     ramp (white → canvas → tint). Every consumer (.navbar, .hero-banner and
+     the index.html inline hero) turns light with this one re-tune. */
+  --gradient-nav:     linear-gradient(135deg, #ffffff 0%, #f4f8f6 55%, #eaf6ef 100%);
+  --gradient-accent:  linear-gradient(135deg, #159B6B 0%, #0D7751 100%);
   /* Round 3 (F4 decision — darken the LIGHT stops, keep the amber identity):
      the old stops (#B45309/#D97706/#F59E0B) gave white labels 5.02/3.19/2.15:1.
      New stops are all white-AA at every point: 7.12 / 5.08 / 5.02:1,
-     hues 25.8 / 30.2 / 26.0 deg (target 25-40deg — recognisably amber). */
+     hues 25.8 / 30.2 / 26.0 deg (target 25-40deg — recognisably amber).
+     FROZEN: do not brighten back. */
   --gradient-amber:   linear-gradient(135deg, #8F4208 0%, #A85A0B 55%, #B45309 100%);
+  /* Direction C: dark ramp reserved for TINY accents (brand mark tiles, small
+     gradient badges) — never page/section chrome. */
   --gradient-dark:    linear-gradient(145deg, #071912 0%, #103125 50%, #1A503E 100%);
-  --gradient-card:    linear-gradient(180deg, #ffffff 0%, #fafcfb 100%);
+  --gradient-card:    linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
   --gradient-badge:   linear-gradient(135deg, #0D7751 0%, #1A503E 100%);
 
   /* --- Typography --- */
   --font:         'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
-  /* --- Geometry --- */
-  --radius-xs:    4px;
-  --radius-sm:    8px;
-  --radius:       12px;
-  --radius-lg:    16px;
+  /* --- Geometry (Direction C: radii scaled up) --- */
+  --radius-xs:    6px;
+  --radius-sm:    11px;
+  --radius:       14px;
+  --radius-lg:    18px;
   --radius-xl:    20px;
   --radius-2xl:   28px;
   --radius-pill:  9999px;
+  --radius-modal: 22px;
 
-  /* --- Shadows (green-tinted diffusion) --- */
-  --shadow-xs:    0 1px 3px rgba(16, 49, 37, 0.04);
-  --shadow-sm:    0 2px 8px rgba(16, 49, 37, 0.07);
-  --shadow:       0 6px 20px -2px rgba(16, 49, 37, 0.10), 0 2px 6px -1px rgba(16, 49, 37, 0.05);
-  --shadow-lg:    0 16px 40px -6px rgba(16, 49, 37, 0.14), 0 6px 16px -3px rgba(16, 49, 37, 0.07);
-  --shadow-xl:    0 28px 60px -10px rgba(16, 49, 37, 0.20);
+  /* --- Shadows (soft, wide, green-tinted diffusion — never harsh) --- */
+  --shadow-xs:    0 2px 8px rgba(16, 49, 37, 0.04);
+  --shadow-sm:    0 4px 14px rgba(16, 49, 37, 0.06);
+  --shadow:       0 12px 32px rgba(16, 49, 37, 0.08);
+  --shadow-lg:    0 22px 48px rgba(16, 49, 37, 0.12);
+  --shadow-xl:    0 30px 64px -12px rgba(16, 49, 37, 0.18);
   --shadow-glow:  0 0 0 3px rgba(13, 119, 81, 0.20);
   --shadow-amber: 0 6px 20px rgba(217, 119, 6, 0.30);
 
@@ -126,7 +166,7 @@
   --transition-slow:   0.55s cubic-bezier(0.16, 1, 0.3, 1);
 
   /* --- Text --- */
-  --text-main:    #0C2018;
+  --text-main:    #17332A; /* Direction C: c-ink */
   --text-muted:   #4E6358;
   --text-light:   #647B70;  /* Round 7: was #7C9388 (3.3:1 on white — failed AA at micro sizes); now 4.6:1 */
   --text-inverse: #FFFFFF;
@@ -137,11 +177,11 @@
   --text-sm:      0.75rem;
   --text-md:      0.82rem;
   --text-lg:      1.00rem;
-  --text-xl:      1.55rem;
+  --text-xl:      1.70rem; /* Direction C: KPI values 26–30px (spec §3c) */
 
-  /* --- Borders --- */
-  --border:        #DBE7E1;
-  --border-subtle: #EBF1ED;
+  /* --- Borders (hairline) --- */
+  --border:        #E2ECE7;
+  --border-subtle: #EDF4F0;
   --border-focus:  #0D7751;
 }
 
@@ -171,7 +211,13 @@ html, body {
 
 body {
   font-family: var(--font);
+  /* Direction C tinted canvas with the two soft radial glows (green top-right,
+     amber bottom-left — screens-c-landing recipe). */
   background-color: var(--bg-main);
+  background-image:
+    radial-gradient(900px 520px at 82% -8%, rgba(52, 201, 143, 0.16), transparent 62%),
+    radial-gradient(700px 480px at -6% 108%, rgba(242, 179, 77, 0.14), transparent 60%);
+  background-attachment: fixed;
   color: var(--text-main);
   line-height: 1.5;
   min-height: 100vh;
@@ -244,10 +290,18 @@ body {
 .btn .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(16, 49, 37, 0.10);
   transform: scale(0);
   animation: rippleAnim 0.55s linear;
   pointer-events: none;
+}
+
+/* Ripple on the gradient tiers reads white (they are dark-filled) */
+.btn-primary .ripple,
+.btn-accent .ripple,
+.btn-amber .ripple,
+.btn-success .ripple {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 @keyframes rippleAnim {
@@ -255,17 +309,17 @@ body {
 }
 
 /* ==========================================================================
-   NAVBAR — Glass Morphism Sticky Header
+   NAVBAR — Direction C LIGHT CHROME: glassy white sticky header, pill links
    ========================================================================== */
 .navbar {
-  background: var(--gradient-nav);
-  color: #ffffff;
+  background: var(--surface-glass);
+  color: var(--text-main);
   padding: 0.55rem 1.5rem;
-  box-shadow: 0 2px 20px rgba(16, 49, 37, 0.22);
+  box-shadow: 0 8px 24px rgba(16, 49, 37, 0.06);
   position: sticky;
   top: 0;
   z-index: var(--z-navbar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -287,7 +341,7 @@ body {
   align-items: center;
   gap: 0.7rem;
   text-decoration: none;
-  color: #ffffff;
+  color: var(--text-main);
   flex-shrink: 0;
 }
 
@@ -298,13 +352,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255,255,255,0.2);
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--border);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .brand:hover .brand-logo-card {
   transform: scale(1.04);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
 }
 
 .brand-logo-img {
@@ -320,18 +374,18 @@ body {
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.15;
-  color: #ffffff;
+  color: var(--c-ink);
 }
 
 .brand-text p {
   font-size: 0.67rem;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--text-light);
   letter-spacing: 0.01em;
   font-weight: 500;
   margin: 0;
 }
 
-/* Nav Links */
+/* Nav Links — pill shaped */
 .nav-links {
   display: flex;
   align-items: center;
@@ -344,14 +398,14 @@ body {
 }
 
 .nav-link {
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-muted);
   text-decoration: none;
-  padding: 0.3rem 0.65rem;
+  padding: 0.32rem 0.72rem;
   border-radius: var(--radius-pill);
   font-size: 0.77rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: transparent;
+  border: 1px solid var(--border);
   transition: background var(--transition-fast),
               border-color var(--transition-fast),
               color var(--transition-fast),
@@ -365,17 +419,23 @@ body {
   letter-spacing: 0.01em;
 }
 
-.nav-link:hover,
-.nav-link.active {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.28);
-  color: #ffffff;
+.nav-link:hover {
+  background: var(--c-tint-2);
+  border-color: var(--c-line);
+  color: var(--text-main);
   transform: translateY(-1px);
+}
+
+.nav-link.active {
+  background: var(--c-green-soft);
+  border-color: transparent;
+  color: var(--c-green-deep);
 }
 
 /* Complementary Highlight Buttons: Admin Office / Employee Login (Warm Amber) & Main Portal (Sky Blue) */
 /* Round 3 (F4): amber chip gradients darkened to the passing ramp
-   (white labels: 7.12/5.08/5.02:1 at every stop; was 5.02/3.19/2.15:1). */
+   (white labels: 7.12/5.08/5.02:1 at every stop; was 5.02/3.19/2.15:1).
+   Direction C: these stay DARK — they are small gradient accent chips. */
 .nav-link.nav-link-admin,
 .nav-link.nav-link-employee,
 .nav-link.nav-link-login {
@@ -423,7 +483,7 @@ body {
   border-radius: var(--radius-pill) !important;
 }
 
-/* Badges in nav */
+/* Badges in nav — small solid brand accent (allowed dark accent) */
 .badge-tag {
   background: var(--primary-light);
   color: #ffffff;
@@ -442,9 +502,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  color: rgba(255, 255, 255, 0.88);
+  background: var(--c-tint-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   font-size: 0.73rem;
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-pill);
@@ -452,7 +512,7 @@ body {
 }
 
 .developer-badge strong {
-  color: #ffffff;
+  color: var(--text-main);
   font-weight: 800;
 }
 
@@ -468,16 +528,17 @@ body {
 }
 
 /* ==========================================================================
-   HERO BANNER — Elevated & Animated
+   HERO BANNER — Direction C LIGHT: tinted surface, soft glows,
+   gradient-text headline accent
    ========================================================================== */
 .hero-banner {
   background: var(--gradient-nav);
-  color: #ffffff;
+  color: var(--text-main);
   border-radius: var(--radius-xl);
   padding: 1.25rem 1.6rem;
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
 }
@@ -489,7 +550,7 @@ body {
   right: -8%;
   width: 380px;
   height: 380px;
-  background: radial-gradient(circle, rgba(13, 119, 81, 0.30) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(52, 201, 143, 0.16) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -500,7 +561,7 @@ body {
   left: 20%;
   width: 280px;
   height: 280px;
-  background: radial-gradient(circle, rgba(217, 119, 6, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(242, 179, 77, 0.14) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -510,29 +571,38 @@ body {
   letter-spacing: -0.025em;
   margin-bottom: 0.3rem;
   line-height: 1.15;
+  /* Direction C gradient-text accent (screens-c-landing recipe). Solid deep
+     green first — transparent only where background-clip:text works. */
+  color: var(--c-green-deep);
+  background-image: linear-gradient(92deg, #34C98F, #0D7751 55%, #E9A23B);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero-banner h2 { color: transparent; }
 }
 
 .hero-banner p {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text-muted);
   max-width: 850px;
   line-height: 1.5;
 }
 
-/* Drive Status Badge */
+/* Drive Status Badge — soft green pill */
 .drive-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(16, 49, 37, 0.50);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--c-green-soft);
+  border: 1px solid var(--c-line);
   padding: 0.28rem 0.75rem;
   border-radius: var(--radius-pill);
   font-size: 0.73rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--c-green-deep);
   margin-top: 0.65rem;
-  backdrop-filter: blur(6px);
 }
 
 .pulse-dot {
@@ -552,12 +622,12 @@ body {
 }
 
 /* ==========================================================================
-   CARDS — Multi-Level Elevation System
+   CARDS — Multi-Level Elevation System (Direction C: floaty white cards)
    ========================================================================== */
 .card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   padding: 1.15rem 1.35rem;
   margin-bottom: 0.85rem;
@@ -597,8 +667,8 @@ body {
 /* Portal Cards (on main index page) */
 .portal-card {
   background: #ffffff;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   padding: 1.2rem 1.4rem;
   box-shadow: var(--shadow-sm);
   /* Round 2 F9: was --transition-spring (overshoot easing) — springs are
@@ -617,7 +687,7 @@ body {
 }
 
 .portal-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
   border-color: rgba(13, 119, 81, 0.25);
 }
@@ -632,7 +702,7 @@ body {
 }
 
 /* ==========================================================================
-   KPI STAT CARDS — Modern with Icon & Gradient Accent
+   KPI STAT CARDS — Direction C: white, radius 20, soft shadow + hover-lift
    ========================================================================== */
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1rem; }
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
@@ -648,13 +718,13 @@ body {
 
 .stat-card {
   background: #ffffff;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.05rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow);
   border-left: 4px solid var(--primary);
   /* Round 2 F9: was --transition-spring (overshoot easing) — see .portal-card */
   transition: transform var(--transition), box-shadow var(--transition);
@@ -673,33 +743,33 @@ body {
 
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-card.accent  { border-left-color: var(--primary-light); }
 .stat-card.accent::after { background: radial-gradient(circle at top right, rgba(13, 119, 81, 0.08) 0%, transparent 70%); }
-.stat-card.success { border-left-color: #059669; }
-.stat-card.success::after { background: radial-gradient(circle at top right, rgba(5, 150, 105, 0.08) 0%, transparent 70%); }
+.stat-card.success { border-left-color: #17A273; }
+.stat-card.success::after { background: radial-gradient(circle at top right, rgba(23, 162, 115, 0.08) 0%, transparent 70%); }
 .stat-card.warning { border-left-color: var(--amber); }
 .stat-card.warning::after { background: radial-gradient(circle at top right, rgba(217, 119, 6, 0.08) 0%, transparent 70%); }
 .stat-card.danger  { border-left-color: var(--danger); cursor: pointer; }
 .stat-card.danger::after { background: radial-gradient(circle at top right, rgba(190, 18, 60, 0.07) 0%, transparent 70%); }
-.stat-card.danger:hover  { border-color: var(--danger); background: #fffafa; }
+.stat-card.danger:hover  { border-color: var(--danger); background: #FFF4F6; }
 
 .stat-label {
-  font-size: var(--text-xs); /* P6: was 0.67rem */
+  font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted);
-  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--text-light);
+  font-weight: 800;
 }
 
 .stat-value {
-  font-size: var(--text-xl); /* P6: same 1.55rem, now on the ramp */
+  font-size: var(--text-xl); /* Direction C: 26–30px KPI values */
   font-weight: 900;
   color: var(--primary-dark);
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.028em;
   font-variant-numeric: tabular-nums; /* count-up digits stay column-still */
 }
 
@@ -710,13 +780,49 @@ body {
 }
 
 /* ==========================================================================
-   AI CARD — Dark Glass Surface
+   KPI SOFT ICON TILES (Direction C spec §3c) — .stat-icon + tone recipes.
+   Template markup carries identical inline values (self-sufficient rendering);
+   these class recipes are the canonical source and cover future tiles.
+   ========================================================================== */
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-bottom: 4px;
+}
+
+.stat-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ic-green     { background: var(--c-green-soft); }
+.ic-green svg { stroke: var(--c-green-deep); }
+.ic-sky       { background: var(--c-sky-soft); }
+.ic-sky svg   { stroke: var(--c-sky-ink); }
+.ic-amber     { background: var(--c-amber-soft); }
+.ic-amber svg { stroke: var(--c-amber-ink); }
+.ic-red       { background: var(--c-red-soft); }
+.ic-red svg   { stroke: var(--c-red-ink); }
+.ic-lav       { background: var(--c-lav-soft); }
+.ic-lav svg   { stroke: var(--c-lav-ink); }
+
+/* ==========================================================================
+   AI CARD — Direction C LIGHT GLASS surface (small gradient badge accent)
    ========================================================================== */
 .ai-card {
-  background: linear-gradient(135deg, #0c2018 0%, #103125 55%, #1A503E 100%);
-  color: #ffffff;
-  border: 1px solid rgba(13, 119, 81, 0.35);
-  border-radius: var(--radius-xl);
+  background: linear-gradient(160deg, #ffffff 0%, #f4faf7 100%);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-modal);
   padding: 1.4rem 1.6rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow-lg);
@@ -729,7 +835,7 @@ body {
   position: absolute;
   top: -30%; right: -10%;
   width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(52, 201, 143, 0.14) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -741,16 +847,17 @@ body {
   font-size: 0.62rem;
   letter-spacing: 0.10em;
   font-weight: 800;
-  color: rgba(52, 211, 153, 0.90);
-  background: rgba(13, 119, 81, 0.35);
+  color: #ffffff;
+  background: var(--gradient-badge);
   padding: 0.20rem 0.60rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(52, 211, 153, 0.40);
+  border: 1px solid rgba(13, 119, 81, 0.30);
+  box-shadow: 0 4px 12px rgba(13, 119, 81, 0.22);
 }
 
 .ai-rec-box {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--c-tint-2);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.90rem 1.05rem;
   margin-bottom: 0.65rem;
@@ -758,12 +865,12 @@ body {
 }
 
 .ai-rec-box:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: var(--c-green-soft);
   transform: translateX(3px);
 }
 
 /* ==========================================================================
-   FORMS — Clean Focus States & Elevated Labels
+   FORMS — Clean Focus States & Elevated Labels (Direction C: soft inputs)
    ========================================================================== */
 .form-group {
   margin-bottom: 0.65rem;
@@ -773,7 +880,7 @@ label {
   display: block;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #253d30;
+  color: var(--c-ink-2);
   margin-bottom: 0.25rem;
   letter-spacing: 0.01em;
 }
@@ -793,9 +900,9 @@ textarea {
   padding: 0.50rem 0.80rem;
   font-size: 0.85rem;
   font-family: var(--font);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background-color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--bg-input);
   color: var(--text-main);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   outline: none;
@@ -805,7 +912,7 @@ textarea {
    documented border/glow language (assistant.css), not the global form rules. */
 input:focus, select:focus, textarea:focus:not(.ndli-asst-input) {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3.5px rgba(13, 119, 81, 0.14);
+  box-shadow: 0 0 0 3px rgba(13, 119, 81, 0.18);
 }
 
 /* Round 7: keyboard-focus safety net. Elements styled with .ui-focusable
@@ -826,7 +933,7 @@ textarea::placeholder {
 input:hover:not(:focus):not([readonly]):not(:disabled),
 select:hover:not(:focus),
 textarea:hover:not(:focus):not(.ndli-asst-input) { /* Round 2 F14: widget keeps --asst-border */
-  border-color: #B7CCC1;
+  border-color: #C6D9CF;
 }
 
 /* Polish round: disabled fields must read as disabled (was: looked enabled) */
@@ -846,14 +953,14 @@ input:-webkit-autofill:focus {
 }
 
 input[readonly] {
-  background-color: #f3f7f5;
+  background-color: var(--c-tint-2);
   cursor: not-allowed;
   color: var(--text-muted);
 }
 
 .field-error {
   border-color: var(--danger) !important;
-  background-color: #fff5f7 !important;
+  background-color: var(--danger-light) !important;
   box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.10) !important;
 }
 
@@ -868,7 +975,7 @@ input[readonly] {
 }
 
 /* ==========================================================================
-   BUTTONS — Pill-Shape with Gradient Fills & Ripple
+   BUTTONS — Direction C: white default + hover-lift, gradient primaries
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -880,7 +987,7 @@ input[readonly] {
   font-weight: 700;
   font-family: var(--font);
   border-radius: var(--radius-pill);
-  border: 1.5px solid transparent;
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: transform var(--transition-fast),
               box-shadow var(--transition-fast),
@@ -891,34 +998,47 @@ input[readonly] {
   letter-spacing: 0.01em;
   position: relative;
   overflow: hidden;
+  background: var(--bg-card);
+  color: var(--c-ink-2);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Direction C default hover-lift */
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: #C9DED4;
 }
 
 /* Polish round P1: two names, one look → two tiers. btn-primary is the deep
-   commit/submit tier (dark-green gradient); btn-accent keeps the brighter
+   commit/submit tier (green gradient + glow); btn-accent keeps the brighter
    --gradient-accent highlight tier; btn-amber stays the hero CTA. */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: linear-gradient(135deg, #159B6B 0%, #0D7751 100%);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(26, 80, 62, 0.28);
+  box-shadow: 0 12px 26px rgba(13, 119, 81, 0.26);
   border-color: transparent;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.12);
+  filter: brightness(1.06);
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(16, 49, 37, 0.32);
+  box-shadow: 0 16px 32px rgba(13, 119, 81, 0.32);
+  border-color: transparent;
 }
 
 .btn-accent {
   background: var(--gradient-accent);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(13, 119, 81, 0.25);
+  box-shadow: 0 12px 26px rgba(13, 119, 81, 0.26);
+  border-color: transparent;
 }
 
 .btn-accent:hover {
-  filter: brightness(1.10);
+  filter: brightness(1.08);
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(13, 119, 81, 0.30);
+  box-shadow: 0 16px 32px rgba(13, 119, 81, 0.32);
+  border-color: transparent;
 }
 
 .btn-amber {
@@ -934,28 +1054,34 @@ input[readonly] {
   filter: brightness(1.05);
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(217, 119, 6, 0.40);
+  border-color: transparent;
 }
 
 .btn-success {
-  background-color: #0D7751;
+  background: var(--gradient-accent);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(13, 119, 81, 0.22);
+  box-shadow: 0 10px 24px rgba(13, 119, 81, 0.24);
+  border-color: transparent;
 }
 
 .btn-success:hover {
-  filter: brightness(1.10);
+  filter: brightness(1.08);
   transform: translateY(-2px);
+  border-color: transparent;
 }
 
+/* Direction C §3e: danger is SOFT — pastel red slab, red ink label */
 .btn-danger {
-  background-color: var(--danger);
-  color: #ffffff;
-  box-shadow: 0 3px 10px rgba(190, 18, 60, 0.22);
+  background-color: var(--danger-light);
+  color: var(--c-red-ink);
+  border: 1px solid var(--danger-border);
+  box-shadow: var(--shadow-xs);
 }
 
 .btn-danger:hover {
-  filter: brightness(1.08);
+  background-color: #FBDCE2;
   transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Round 2: semantic warning tier (referenced by live markup — employee.html
@@ -973,6 +1099,7 @@ input[readonly] {
 .btn-warning:hover {
   filter: brightness(1.08);
   transform: translateY(-2px);
+  border-color: transparent;
 }
 
 .btn-outline {
@@ -988,14 +1115,14 @@ input[readonly] {
 }
 
 .btn-ghost {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.88);
+  background: var(--c-tint-2);
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: var(--c-green-soft);
+  color: var(--c-green-deep);
 }
 
 .btn-sm {
@@ -1037,14 +1164,14 @@ input[readonly] {
 }
 
 /* ==========================================================================
-   TABLES — Clean, Sticky Headers
+   TABLES — Direction C: hairline rows, tiny uppercase headers, hover tint
    ========================================================================== */
 .table-responsive {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   background: #ffffff;
   box-shadow: var(--shadow-xs);
   box-sizing: border-box;
@@ -1055,8 +1182,8 @@ input[readonly] {
   max-height: 290px;
   overflow-y: auto;
   position: relative;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   background: #ffffff;
   box-shadow: var(--shadow-xs);
   margin-bottom: 0.75rem;
@@ -1066,7 +1193,7 @@ input[readonly] {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky-head);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 /* Polish round: slim tinted scrollbars on scrollable table boxes — matches the
@@ -1101,36 +1228,43 @@ input[readonly] {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  /* separate + spacing 0 keeps hairline rows AND lets hover rows round off */
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
   font-size: var(--text-md); /* P6: same 0.82rem, now on the ramp */
   font-variant-numeric: tabular-nums; /* Round 7: aligned digits in metric tables */
 }
 
 thead th {
-  background: linear-gradient(180deg, #eef4f0 0%, #e8f1ec 100%);
-  color: #1a3327;
+  background: #ffffff;
+  color: var(--text-light);
   font-weight: 800;
   padding: 0.55rem 0.80rem;
-  border-bottom: 1.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
-  font-size: var(--text-xs); /* P6: same 0.70rem, now on the ramp */
+  font-size: 0.62rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
 }
 
 tbody td {
-  padding: 0.50rem 0.80rem;
+  padding: 0.55rem 0.80rem;
   border-bottom: 1px solid var(--border-subtle);
-  color: #283f33;
+  color: var(--text-muted);
   vertical-align: middle;
+  transition: background var(--transition-fast);
 }
 
 tbody tr:last-child td { border-bottom: none; }
 
-tbody tr:nth-child(even) { background-color: #fafcfb; }
+/* Direction C §3f: no zebra grid — hairline separators only */
+tbody tr:nth-child(even) { background-color: transparent; }
 
-tbody tr:hover { background-color: #f0f7f3; }
+tbody tr:hover { background-color: var(--c-tint-2); }
+tbody tr:hover td { background-color: var(--c-tint-2); }
+tbody tr:hover td:first-child { border-radius: 12px 0 0 12px; }
+tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
 
 .club-name-link {
   color: var(--primary, #1A503E);
@@ -1152,7 +1286,7 @@ tbody tr:hover { background-color: #f0f7f3; }
 }
 
 /* ==========================================================================
-   PILLS & BADGES
+   PILLS & BADGES — Direction C: soft pastel chips (status pills get a dot)
    ========================================================================== */
 .pill {
   display: inline-flex;
@@ -1165,24 +1299,39 @@ tbody tr:hover { background-color: #f0f7f3; }
   letter-spacing: 0.02em;
 }
 
-.pill-primary  { background: #dff0e8; color: #103125; border: 1px solid #b8ddc8; }
-.pill-success  { background: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
-.pill-warning  { background: var(--warning-light); color: #92400E; border: 1px solid var(--warning-border); }
-.pill-danger   { background: var(--danger-light); color: #9F1239; border: 1px solid var(--danger-border); }
-.pill-priority { background: #FEF9C3; color: #854D0E; border: 1px solid #FDE047; }
-.pill-info     { background: var(--sky-light); color: var(--sky-dark); border: 1px solid #BAE6FD; }
+.pill-primary  { background: var(--c-green-soft); color: var(--c-green-deep); border: 1px solid transparent; }
+.pill-success  { background: var(--c-green-soft); color: var(--c-green-deep); border: 1px solid transparent; }
+.pill-warning  { background: var(--c-amber-soft); color: var(--c-amber-ink); border: 1px solid transparent; }
+.pill-danger   { background: var(--c-red-soft); color: var(--c-red-ink); border: 1px solid transparent; }
+.pill-priority { background: var(--c-amber-soft); color: var(--c-amber-ink); border: 1px solid transparent; }
+.pill-info     { background: var(--c-sky-soft); color: var(--c-sky-ink); border: 1px solid transparent; }
 /* Round 2 F10: these two variants are referenced by live markup
    (admin.html pillClass "pill-accent" / class="pill pill-outline") but were
    never defined — the badges rendered as un-bound floating text. */
-.pill-accent   { background: var(--primary-subtle); color: var(--primary); border: 1px solid #B8DDC8; }
+.pill-accent   { background: var(--primary-subtle); color: var(--primary); border: 1px solid transparent; }
 .pill-outline  { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
 
+/* Direction C §3g: semantic status pills carry a small status dot */
+.pill-success::before,
+.pill-warning::before,
+.pill-danger::before {
+  content: "";
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  flex: 0 0 auto;
+}
+.pill-success::before { background: #17A273; }
+.pill-warning::before { background: var(--amber); }
+.pill-danger::before  { background: var(--danger); }
+
 /* ==========================================================================
-   ALERTS & NOTIFICATIONS
+   ALERTS & NOTIFICATIONS — soft pastel slabs
    ========================================================================== */
 .alert {
   padding: 0.70rem 1.05rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   margin-bottom: 0.85rem;
   font-size: 0.84rem;
   font-weight: 500;
@@ -1193,13 +1342,13 @@ tbody tr:hover { background-color: #f0f7f3; }
   border-left-style: solid;
 }
 
-.alert-success { background: #E6F7F0; color: #064E3B; border: 1px solid #A7F3D0; border-left: 3px solid #34D399; }
-.alert-danger  { background: var(--danger-light); color: #881337; border: 1px solid var(--danger-border); border-left: 3px solid var(--danger); }
-.alert-info    { background: var(--sky-light); color: #0369A1; border: 1px solid #BAE6FD; border-left: 3px solid var(--sky); }
-.alert-warning { background: var(--warning-light); color: #78350F; border: 1px solid var(--warning-border); border-left: 3px solid var(--amber-bright); }
+.alert-success { background: var(--success-light); color: var(--c-green-deep); border: 1px solid var(--success-border); border-left: 3px solid #17A273; }
+.alert-danger  { background: var(--danger-light); color: var(--c-red-ink); border: 1px solid var(--danger-border); border-left: 3px solid var(--danger); }
+.alert-info    { background: var(--sky-light); color: var(--sky-dark); border: 1px solid #BAE6FD; border-left: 3px solid var(--sky); }
+.alert-warning { background: var(--warning-light); color: var(--c-amber-ink); border: 1px solid var(--warning-border); border-left: 3px solid var(--amber-bright); }
 
 /* ==========================================================================
-   TABS — Sliding Pill Indicator
+   TABS — Pill tab strip (filled deep-green active tab, page-wide)
    ========================================================================== */
 .tabs {
   display: flex;
@@ -1208,9 +1357,9 @@ tbody tr:hover { background-color: #f0f7f3; }
   margin-bottom: 0.85rem;
   overflow-x: auto;
   padding: 0.25rem;
-  background: rgba(16, 49, 37, 0.05);
+  background: var(--c-tint-2);
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   width: fit-content;
   max-width: 100%;
   /* hide scrollbar but keep scroll */
@@ -1256,13 +1405,13 @@ tbody tr:hover { background-color: #f0f7f3; }
 
 .tab-btn:hover {
   color: var(--primary);
-  background: rgba(16, 49, 37, 0.07);
+  background: rgba(255, 255, 255, 0.80);
 }
 
 .tab-btn.active {
-  background: #ffffff;
-  color: var(--primary);
-  box-shadow: 0 2px 8px rgba(16, 49, 37, 0.12);
+  background: var(--c-green-deep);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(10, 92, 62, 0.25);
 }
 
 .tab-panel {
@@ -1295,13 +1444,13 @@ tbody tr:hover { background-color: #f0f7f3; }
   font-size: 0.78rem;
   font-weight: 700;
   margin-bottom: 0.30rem;
-  color: #1e382c;
+  color: var(--c-ink-2);
 }
 
 .bar-track {
   width: 100%;
   height: 8px;
-  background: #e3ede7;
+  background: var(--c-tint);
   border-radius: var(--radius-pill);
   overflow: hidden;
 }
@@ -1313,11 +1462,11 @@ tbody tr:hover { background-color: #f0f7f3; }
   transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.bar-fill.accent  { background: linear-gradient(90deg, #0D7751, #34D399); }
-.bar-fill.success { background: linear-gradient(90deg, #103125, #1A503E); }
+.bar-fill.accent  { background: linear-gradient(90deg, #159B6B, #34C98F); }
+.bar-fill.success { background: linear-gradient(90deg, #0D7751, #1A503E); }
 
 /* ==========================================================================
-   MODALS — Spring Pop Animation & Blurred Overlay
+   MODALS — Spring Pop Animation & SOFT blurred overlay
    ========================================================================== */
 .modal-overlay {
   position: fixed;
@@ -1325,7 +1474,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   width: 100%;
   height: 100%;
   height: 100dvh;
-  background: rgba(7, 25, 18, 0.72);
+  background: rgba(16, 49, 37, 0.28);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: none;
@@ -1360,8 +1509,8 @@ tbody tr:hover { background-color: #f0f7f3; }
 
 .modal-content {
   background: #ffffff;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-modal);
+  border: 1px solid var(--border);
   /* Polish P2: elevation from the token scale (was an ad-hoc 0.45-alpha
      shadow); the white halo ring is separation, not elevation, and stays. */
   box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -1386,8 +1535,8 @@ tbody tr:hover { background-color: #f0f7f3; }
   position: absolute;
   top: 1.1rem;
   right: 1.1rem;
-  background: var(--bg-muted);
-  border: 1px solid var(--border-subtle);
+  background: var(--c-tint-2);
+  border: 1px solid var(--border);
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -1404,40 +1553,42 @@ tbody tr:hover { background-color: #f0f7f3; }
 }
 
 .modal-close:hover {
-  background: var(--danger);
-  color: #ffffff;
-  border-color: var(--danger);
+  background: var(--danger-light);
+  color: var(--c-red-ink);
+  border-color: var(--danger-border);
   transform: rotate(90deg) scale(1.1);
 }
 
 /* ==========================================================================
-   LIVE CLOCK BADGE
+   LIVE CLOCK BADGE — soft sky pill
    ========================================================================== */
 .live-clock-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  background: #0F172A;
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: var(--c-sky-soft);
+  border: 1px solid var(--border);
   padding: 0.30rem 0.70rem;
   border-radius: var(--radius-pill);
   font-size: 0.74rem;
   font-weight: 700;
-  color: #38BDF8;
+  color: var(--c-sky-ink);
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
-   FOOTER — Refined Attribution
+   FOOTER — Direction C whisper: quiet light strip, faint small text
    ========================================================================== */
 .system-footer {
-  background: var(--primary-dark);
-  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
   padding: 1.35rem 1.5rem;
-  border-top: 2px solid rgba(13, 119, 81, 0.50);
+  border-top: 1px solid var(--border);
   margin-top: auto;
-  box-shadow: 0 -4px 20px rgba(16, 49, 37, 0.14);
+  box-shadow: 0 -4px 20px rgba(16, 49, 37, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .footer-container {
@@ -1463,7 +1614,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--border);
 }
 
 .footer-logo-img { height: 28px; width: auto; object-fit: contain; }
@@ -1471,33 +1622,33 @@ tbody tr:hover { background-color: #f0f7f3; }
 .footer-meta .footer-title {
   font-size: 0.86rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-muted);
   letter-spacing: -0.01em;
 }
 
 .footer-meta .footer-sub {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.62); /* Round 7: was 0.52 alpha (~4.7:1) — now ~5.8:1 on the dark footer */
+  color: var(--text-light); /* Round 7: was 0.52 alpha (~4.7:1) — now ~5.8:1 on the dark footer */
   margin-top: 0.12rem;
 }
 
 .footer-credit-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--border);
   padding: 0.22rem 0.65rem;
   border-radius: var(--radius-sm);
   text-align: right;
-  opacity: 0.65;
+  opacity: 0.85;
   transition: opacity var(--transition-fast);
 }
 
-.footer-credit-box:hover { opacity: 0.92; }
+.footer-credit-box:hover { opacity: 1; }
 
 .footer-credit-box .dev-role {
   font-size: 0.57rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--text-light);
   display: block;
   font-weight: 600;
   line-height: 1.3;
@@ -1506,7 +1657,7 @@ tbody tr:hover { background-color: #f0f7f3; }
 .footer-credit-box .dev-name {
   font-size: 0.72rem;
   font-weight: 600;
-  color: rgba(156, 189, 174, 0.80);
+  color: var(--text-muted);
   letter-spacing: 0.01em;
   line-height: 1.3;
 }
@@ -1516,7 +1667,7 @@ tbody tr:hover { background-color: #f0f7f3; }
    ========================================================================== */
 .infographic-card {
   background: #ffffff;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.45rem;
   box-shadow: var(--shadow-sm);
@@ -1538,9 +1689,9 @@ tbody tr:hover { background-color: #f0f7f3; }
 }
 
 .support-type-tile {
-  background: #f8faf8;
+  background: var(--c-tint-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 0.80rem 1.0rem;
   border-left: 4px solid var(--primary);
   /* Polish P2: motion contract — explicit properties, no `transition: all` */
@@ -1585,9 +1736,9 @@ tbody tr:hover { background-color: #f0f7f3; }
 }
 
 .gauge-segment { height: 100%; transition: width 0.7s ease; position: relative; }
-.gauge-segment.active   { background: linear-gradient(90deg, #0D7751, #10B981); }
-.gauge-segment.expiring { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-.gauge-segment.overdue  { background: linear-gradient(90deg, #DC2626, #EF4444); }
+.gauge-segment.active   { background: linear-gradient(90deg, #159B6B, #34C98F); }
+.gauge-segment.expiring { background: linear-gradient(90deg, #E9A23B, #F2B34D); }
+.gauge-segment.overdue  { background: linear-gradient(90deg, #BE123C, #E4566F); }
 
 .retention-legend-row {
   display: flex;
@@ -1609,7 +1760,7 @@ tbody tr:hover { background-color: #f0f7f3; }
 
 .pill-highlight-amber {
   background: var(--warning-light);
-  color: #92400E;
+  color: var(--c-amber-ink);
   border: 1px solid var(--warning-border);
   font-weight: 700;
   transition: background-color var(--transition-fast),
@@ -1619,7 +1770,7 @@ tbody tr:hover { background-color: #f0f7f3; }
 
 .pill-highlight-amber:hover {
   background: var(--warning-border);
-  color: #78350F;
+  color: var(--c-amber-ink);
   transform: translateY(-1px);
 }
 
@@ -1697,7 +1848,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   cursor: default; /* Round 3: legend rows are not links — hover tint is highlight, not a click cue */
 }
 
-.donut-legend-item:hover { background: #f0f7f3; }
+.donut-legend-item:hover { background: var(--c-tint-2); }
 
 .donut-legend-dot {
   width: 8px;
@@ -1725,7 +1876,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   background: #ffffff;
   padding: 0.70rem 1.0rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   margin-bottom: 0.90rem;
   box-shadow: var(--shadow-xs);
 }
@@ -1735,7 +1886,7 @@ tbody tr:hover { background-color: #f0f7f3; }
    ========================================================================== */
 .chart-container {
   background: #ffffff;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.15rem 1.35rem;
   box-shadow: var(--shadow-xs);

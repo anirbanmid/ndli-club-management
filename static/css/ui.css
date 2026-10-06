@@ -2,6 +2,8 @@
    NDLI CLUB MANAGEMENT — UI MOTION & POLISH LAYER (Round 5)
    PLAN_UI_OVERHAUL.md slices A + B · design tokens only, additive layer
    Brand: #103125 / #1A503E / #0D7751 · accent #F59E0B
+   Direction C (soft modern SaaS) retheme: surface/colour tokens re-tuned to
+   the pastel set; MOTION VOCABULARY AND TIMINGS UNCHANGED.
    Rules honoured here:
      - motion ONLY on transform/opacity (no layout thrash)
      - prefers-reduced-motion: reduce -> <=150ms opacity fades
@@ -34,16 +36,16 @@
   --ui-amber-500: #D98703;
   --ui-amber-600: #B46D02;
 
-  --ui-ink:       #0C2018;
+  --ui-ink:       #17332A; /* Direction C: c-ink */
   --ui-ink-soft:  #4E6358;
   --ui-surface:   #FFFFFF;
-  --ui-bg:        #F7FAF9;
-  --ui-border:    #E4EBE8;
+  --ui-bg:        #F4F8F6; /* Direction C: c-bg (tinted canvas) */
+  --ui-border:    #E2ECE7; /* Direction C: c-line (hairline) */
 
-  --ui-success:   #2E9E56;
+  --ui-success:   #17A273;
   --ui-warning:   #D97706;
-  --ui-danger:    #DC2626;
-  --ui-info:      #2563EB;
+  --ui-danger:    #BE123C;
+  --ui-info:      #1E5F8C;
 
   /* --- Focus ring: primary @ 40% alpha, 2px offset feel --- */
   --ui-focus: 0 0 0 3px rgba(13, 119, 81, 0.40);
@@ -186,11 +188,12 @@
   pointer-events: auto;
   min-width: 260px;
   max-width: 380px;
-  background: var(--ui-green-800);
-  color: #FFFFFF;
-  border-radius: 12px;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
   padding: 12px 16px 14px 18px;
-  box-shadow: 0 16px 40px -6px rgba(16, 49, 37, 0.28);
+  box-shadow: 0 22px 48px rgba(16, 49, 37, 0.12);
   position: relative;
   overflow: hidden;
   animation: uiToastIn var(--t-base) var(--ease-out) both;
@@ -207,12 +210,13 @@
 
 .ui-toast-title {
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.01em;
+  color: var(--ui-ink);
 }
 .ui-toast-msg {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--ui-ink-soft);
   margin-top: 2px;
   line-height: 1.4;
 }
@@ -226,13 +230,13 @@
   right: 6px;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ui-ink-soft);
   font-size: 0.95rem;
   cursor: pointer;
   line-height: 1;
   padding: 6px 8px;
 }
-.ui-toast-close:hover { color: #FFFFFF; }
+.ui-toast-close:hover { color: var(--ui-ink); }
 
 .ui-toast-timer {
   position: absolute;
@@ -240,7 +244,7 @@
   bottom: 0;
   height: 3px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(16, 49, 37, 0.14);
   transform-origin: left center;
   animation: uiToastDrain linear both;
 }
@@ -321,7 +325,7 @@
 }
 .ui-lift:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px -6px rgba(16, 49, 37, 0.16);
+  box-shadow: 0 22px 48px rgba(16, 49, 37, 0.12);
 }
 
 /* ==========================================================================
@@ -331,8 +335,8 @@
   animation: uiFlashSuccess 600ms var(--ease-out) both;
 }
 @keyframes uiFlashSuccess {
-  0%   { box-shadow: 0 0 0 0 rgba(46, 158, 86, 0.55); }
-  100% { box-shadow: 0 0 0 14px rgba(46, 158, 86, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(23, 162, 115, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(23, 162, 115, 0); }
 }
 
 /* Error shake — 2px, 200ms (plan §4 login) */

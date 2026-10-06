@@ -257,7 +257,9 @@
 
     /* Complementary Highlight Buttons: Admin Office (Warm Amber) & Main Portal (Sky Blue) */
     .nav-link.nav-link-admin {
-      background: linear-gradient(135deg, #b45309 0%, #d97706 55%, #f59e0b 100%) !important;
+      /* Theme C: R15 darkened amber stops (same as style.css) — white-on-gradient
+         contrast fix; the old bright stops (#b45309→#d97706→#f59e0b) failed AA. */
+      background: linear-gradient(135deg, #8f4208 0%, #a85a0b 55%, #b45309 100%) !important;
       color: #ffffff !important;
       font-weight: 700 !important;
       border: 1px solid rgba(251, 191, 36, 0.75) !important;
@@ -265,14 +267,15 @@
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
     .nav-link.nav-link-admin:hover {
-      background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%) !important;
+      background: linear-gradient(135deg, #7c3a0a 0%, #8f4208 55%, #a85a0b 100%) !important;
       border-color: #fde68a !important;
       box-shadow: 0 4px 14px rgba(217, 119, 6, 0.5) !important;
       transform: translateY(-1px);
     }
 
     .nav-link.nav-link-portal {
-      background: linear-gradient(135deg, #0369a1 0%, #0284c7 55%, #38bdf8 100%) !important;
+      /* Theme C: darkened sky stops (match style.css) — white text needs ≥4.5:1. */
+      background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0b6e9f 100%) !important;
       color: #ffffff !important;
       font-weight: 700 !important;
       border: 1px solid rgba(56, 189, 248, 0.75) !important;
@@ -280,7 +283,7 @@
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
     .nav-link.nav-link-portal:hover {
-      background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0284c7 100%) !important;
+      background: linear-gradient(135deg, #084c74 0%, #075985 55%, #0369a1 100%) !important;
       border-color: #bae6fd !important;
       box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
       transform: translateY(-1px);
@@ -304,6 +307,121 @@
       outline: 2px solid var(--primary-light, #0D7751);
       outline-offset: 2px;
       border-radius: 2px;
+    }
+
+    /* =====================================================================
+       THEME C "Soft Modern SaaS" — theme_emp pass (THEME_C_SPEC §1–§4)
+       The two inline script blocks below are FROZEN (byte-identical), so every
+       JS-injected chip/slab is retone'd via attribute-match rules with
+       !important — the technique index.html uses for its #lock-alert chips.
+       ===================================================================== */
+
+    /* --- Zone pastel chips (spec §1 / changelog §6.6) ------------------- */
+    /* Officer-chip zone labels are JS-injected but carry data-emp hooks
+       (EMP01→North … EMP07→South 2). Pastel map: North=sky, Central=lav,
+       West=amber, East=green, North East=rose, South 1/2=teal. */
+    .officer-chip .chip-zone {
+      border-radius: 999px;
+      padding: 1px 8px;
+      margin-top: 2px;
+      align-self: flex-start;
+    }
+    .officer-chip[data-emp="EMP01"] .chip-zone { background: #E2F0FB; color: #1E5F8C; }
+    .officer-chip[data-emp="EMP02"] .chip-zone { background: #EDE9FB; color: #5B45A8; }
+    .officer-chip[data-emp="EMP03"] .chip-zone { background: #FDEFD9; color: #92500B; }
+    .officer-chip[data-emp="EMP04"] .chip-zone { background: #D9EFE4; color: #0A5C3E; }
+    .officer-chip[data-emp="EMP05"] .chip-zone { background: #FBE9EC; color: #9F1239; }
+    .officer-chip[data-emp="EMP06"] .chip-zone,
+    .officer-chip[data-emp="EMP07"] .chip-zone { background: #E4F3F7; color: #17637A; }
+
+    /* JS-injected session badge (nav) — zone is encoded in its title attr */
+    .badge-tag[title*="(North Zone)"]      { background: #E2F0FB !important; color: #1E5F8C !important; }
+    .badge-tag[title*="(Central Zone)"]    { background: #EDE9FB !important; color: #5B45A8 !important; }
+    .badge-tag[title*="(West Zone)"]       { background: #FDEFD9 !important; color: #92500B !important; }
+    .badge-tag[title*="(East Zone)"]       { background: #D9EFE4 !important; color: #0A5C3E !important; }
+    .badge-tag[title*="(North East Zone)"] { background: #FBE9EC !important; color: #9F1239 !important; }
+    .badge-tag[title*="(South"]            { background: #E4F3F7 !important; color: #17637A !important; }
+
+    /* --- JS-injected dark-theme leftovers → light C palette ------------- */
+    /* Live clocks rendered slate/sky text for the old dark glass chrome */
+    .live-clock-badge span[style*="color: #94a3b8"] { color: var(--text-muted) !important; }
+    .live-clock-badge span[style*="color: #38bdf8"] { color: #1E5F8C !important; }
+    .live-clock-badge span[style*="color: #cbd5e1"] { color: var(--text-light, #647B70) !important; }
+    .live-clock-badge span[style*="background: rgba(56, 189, 248, 0.18)"] {
+      background: #E2F0FB !important;
+      color: #1E5F8C !important;
+      border-radius: 999px !important;
+    }
+    /* Nav auth buttons carry inline white-on-dark overrides (invisible on the
+       light chrome) — restore the soft outline recipe */
+    #nav-auth-section .btn-outline[style*="rgba(255,255,255,0.4)"] {
+      color: var(--c-ink-2, #2E4A3E) !important;
+      border-color: var(--border) !important;
+      background: var(--c-card, #ffffff) !important;
+    }
+    #nav-auth-section .btn-outline[style*="rgba(255,255,255,0.4)"]:hover {
+      background: var(--c-tint-2, #F0F8F4) !important;
+    }
+    /* Slate neutral text injected by table renderers */
+    [style*="color: #334155"] { color: var(--c-ink-2, #2E4A3E) !important; }
+
+    /* --- .btn-danger call sites in frozen script templates (§6.4) ------- */
+    /* inline red slabs neutralised so the class-level soft recipe applies */
+    .btn-danger[style*="background: #dc2626"] {
+      background: var(--c-red-soft, #FDE7EA) !important;
+      border-color: #F6C9D2 !important;
+      color: var(--c-red-ink, #9F1239) !important;
+    }
+
+    /* --- Reminders KPI stack (JS-injected): soft red + §3c type --------- */
+    #employee-reminders-container [style*="linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)"] {
+      background: var(--c-red-soft, #FDE7EA) !important;
+      border: 1px solid #F6C9D2 !important;
+      border-left: 6px solid var(--c-red, #BE123C) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: var(--shadow) !important;
+    }
+    /* soft icon tile — the frozen markup's 44px saturated red circle */
+    #employee-reminders-container [style*="background: #dc2626; color: #ffffff; width: 44px"] {
+      width: 36px !important;
+      height: 36px !important;
+      background: var(--c-red-soft, #FDE7EA) !important;
+      border-radius: 12px !important;
+      box-shadow: none !important;
+      font-size: 17px !important;
+    }
+    /* "ACTION REQUIRED" delta pill → tiny 999px pastel chip (spec §3c) */
+    #employee-reminders-container [style*="background: #dc2626; color: #ffffff; font-size: 0.72rem"] {
+      background: var(--c-red-soft, #FDE7EA) !important;
+      color: var(--c-red-ink, #9F1239) !important;
+      border-radius: 999px !important;
+    }
+    /* KPI value / label / meta typography (spec §3c) */
+    #employee-reminders-container [style*="font-size: 1.45rem"] {
+      font-size: 28px !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.028em !important;
+      color: var(--c-red, #BE123C) !important;
+    }
+    #employee-reminders-container [style*="font-size: 0.7rem; color: #991b1b"] {
+      font-size: 10.5px !important;
+      letter-spacing: 0.10em !important;
+      color: var(--c-red-ink, #9F1239) !important;
+    }
+    #employee-reminders-container p[style*="color: #b91c1c"] {
+      color: var(--c-red-ink, #9F1239) !important;
+      font-size: 11px !important;
+    }
+    #employee-reminders-container [style*="color: #991b1b; font-size: 1.05rem"] {
+      color: var(--c-red-ink, #9F1239) !important;
+    }
+    /* red-family text harmonisation (JS rows / empty states / id chips) */
+    [style*="color: #dc2626"] { color: var(--c-red, #BE123C) !important; }
+    code[style*="color: #b91c1c"] { color: var(--c-red-ink, #9F1239) !important; }
+    /* JS amber notice slab → C amber-soft surface */
+    [style*="background: #fef9c3"] {
+      background: var(--c-amber-soft, #FDEFD9) !important;
+      border-left-color: var(--c-amber-ink, #92500B) !important;
     }
   </style>
 </head>
@@ -342,7 +460,7 @@
       <div class="login-card">
         <div class="login-header">
           <div style="margin: 0 auto 0.35rem auto; display: flex; justify-content: center;">
-            <div style="background: #ffffff; padding: 4px 14px; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: inline-flex; align-items: center;">
+            <div style="background: #ffffff; padding: 4px 14px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: inline-flex; align-items: center;">
               <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 32px; width: auto; object-fit: contain;">
             </div>
           </div>
@@ -438,7 +556,7 @@
             <span class="pill pill-primary" id="current-emp-id">EMP01</span>
             <span class="pill pill-success" id="current-zone">North Zone</span>
             <span class="pill pill-priority" title="Priority Quota Tracked">★ Quota Active</span>
-            <span class="pill" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">● Verified Session</span>
+            <span class="pill" style="background: #E2F0FB; color: #1E5F8C; font-weight: 600;">● Verified Session</span>
             <span style="font-size: 0.76rem; color: var(--text-muted);">[Node: <strong id="export-emp-id-label" style="color: var(--primary);">EMP01</strong>]</span>
           </div>
           <h2 id="current-name" style="font-size: 1.1rem; margin: 0 0 0.15rem 0; color: var(--primary);">Rohan Sharma</h2>
@@ -447,16 +565,17 @@
 
         <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
           <div style="text-align: right; border-right: 1px solid var(--border); padding-right: 0.75rem;">
-            <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Performance Quota</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary); line-height: 1.1;">
-              <span id="quota-clubs-count" style="color: var(--success);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: var(--text-muted);">Clubs</span>
-              <span style="margin: 0 0.2rem; color: #cbd5e1;">|</span>
-              <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: var(--text-muted);">Support</span>
+            <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg></div>
+            <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700;">Performance Quota</div>
+            <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.028em; color: var(--primary); line-height: 1.1;">
+              <span id="quota-clubs-count" style="color: var(--success);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Clubs</span>
+              <span style="margin: 0 0.2rem; color: var(--border);">|</span>
+              <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Support</span>
             </div>
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><span>⏰ --:--:--</span></div>
           <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: #103125; color: #ffffff; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.78rem;" target="_blank" rel="noopener noreferrer">
+            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: var(--c-green-soft, #D9EFE4); color: var(--c-green-deep, #0A5C3E); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.78rem;" target="_blank" rel="noopener noreferrer">
               <span>📖</span> Manual
             </a>
             <button class="btn btn-outline btn-sm" id="btn-download-activity-log" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.78rem;">
@@ -509,23 +628,23 @@
             </div>
 
             <!-- Bulk Entry Provision for Phone Call & Remote Assistance ONLY -->
-            <div class="form-group" id="bulk-calls-group" style="display: none; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius); padding: 0.85rem 1rem; margin-bottom: 1.15rem;">
+            <div class="form-group" id="bulk-calls-group" style="display: none; background: var(--c-tint-2, #F0F8F4); border: 1px solid var(--c-green-soft, #D9EFE4); border-radius: var(--radius); padding: 0.85rem 1rem; margin-bottom: 1.15rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <label for="support-count" style="font-weight: 700; color: #166534; margin: 0; font-size: 0.88rem;">
+                <label for="support-count" style="font-weight: 700; color: var(--c-green-deep, #0A5C3E); margin: 0; font-size: 0.88rem;">
                   📞 Bulk Entry: Total Number of Calls / Remote Assistance
                 </label>
-                <span class="pill pill-success" style="font-size: 0.72rem; padding: 2px 7px; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">
+                <span class="pill pill-success" style="font-size: 0.72rem; padding: 2px 7px; background: #D9EFE4; color: #0A5C3E; border: 1px solid var(--c-green-soft, #D9EFE4);">
                   Bulk Entry Facility
                 </span>
               </div>
-              <p style="color: #15803d; font-size: 0.78rem; margin: 0 0 0.5rem 0; line-height: 1.35;">
+              <p style="color: var(--c-green-deep, #0A5C3E); font-size: 0.78rem; margin: 0 0 0.5rem 0; line-height: 1.35;">
                 Attended multiple calls or remote sessions one after another? Enter the total number below to log them in bulk at once into your activity history and quota.
               </p>
               <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <input type="number" id="support-count" min="1" max="100" value="1" oninput="updateSecASubmitButtonLabel()" style="width: 110px; border: 1.5px solid #22c55e; border-radius: 4px; padding: 0.45rem 0.65rem; font-weight: 700; font-size: 1rem; background: #ffffff; color: #14532d;" placeholder="1">
-                <span style="font-size: 0.82rem; color: #166534; font-weight: 600;">Total calls attended in batch</span>
+                <input type="number" id="support-count" min="1" max="100" value="1" oninput="updateSecASubmitButtonLabel()" style="width: 110px; border: 1px solid var(--c-green-soft, #D9EFE4); border-radius: var(--radius); padding: 0.45rem 0.65rem; font-weight: 700; font-size: 1rem; background: #ffffff; color: var(--c-ink-2, #2E4A3E);" placeholder="1">
+                <span style="font-size: 0.82rem; color: var(--c-green-deep, #0A5C3E); font-weight: 600;">Total calls attended in batch</span>
               </div>
-              <small style="display: block; color: #166534; font-size: 0.72rem; margin-top: 0.35rem;">
+              <small style="display: block; color: var(--c-green-deep, #0A5C3E); font-size: 0.72rem; margin-top: 0.35rem;">
                 * Note: This bulk entry facility is available exclusively for Phone Call and Remote Assistance.
               </small>
             </div>
@@ -807,7 +926,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fff7ed; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fff7ed; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#fff7ed"/>
                   <svg x="5" y="8" width="38" height="32" viewBox="0 11.82 90 66.37">
@@ -833,7 +952,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fef2f2; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#4285f4" d="M13 17.5v15a1.5 1.5 0 001.5 1.5H19V22z"/>
@@ -861,7 +980,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #e6f4ea; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#00832d" d="M12 28l5.5-5.5L12 17v11z"/>
@@ -889,7 +1008,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fef7e0; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fef7e0; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#ffba00" d="M19.5 11l-9 15.5 5.5 9.5 9-15.5H19.5z"/>
@@ -915,7 +1034,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #e8f0fe; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #e8f0fe; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#4285f4" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
@@ -943,7 +1062,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #e6f4ea; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#0f9d58" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
@@ -970,7 +1089,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fffbeb; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fffbeb; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#f59e0b" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
@@ -997,7 +1116,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fefce8; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fefce8; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#eab308" d="M29 10H15a2 2 0 00-2 2v24a2 2 0 002 2h18a2 2 0 002-2V18l-6-8z"/>
@@ -1023,7 +1142,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #fef2f2; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#f8fafc"/>
                   <path fill="#ff0000" d="M37.8 17.2c-.4-1.5-1.6-2.7-3.1-3.1C32 13.5 24 13.5 24 13.5s-8 0-10.7.6c-1.5.4-2.7 1.6-3.1 3.1-.6 2.7-.6 5.8-.6 5.8s0 3.1.6 5.8c.4 1.5 1.6 2.7 3.1 3.1 2.7.6 10.7.6 10.7.6s8 0 10.7-.6c1.5-.4 2.7-1.6 3.1-3.1.6-2.7.6-5.8.6-5.8s0-3.1-.6-5.8z"/>
@@ -1048,7 +1167,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #eff6ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #eff6ff; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#2d8cff"/>
                   <path fill="#ffffff" d="M12 18a4 4 0 014-4h11a4 4 0 014 4v12a4 4 0 01-4 4H16a4 4 0 01-4-4V18zm20 3.5l5.5-4a1 1 0 011.5.8v11.4a1 1 0 01-1.5.8l-5.5-4v-5z"/>
@@ -1072,7 +1191,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #f5f3ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: #f5f3ff; padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#464eb8"/>
                   <circle cx="31" cy="17" r="3.5" fill="#c3c7fc"/>
@@ -1100,7 +1219,7 @@
         <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: var(--bg-muted); padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: var(--bg-muted); padding: 6px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-xs);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#1e293b"/>
                   <circle cx="24" cy="24" r="13" fill="#2563eb"/>
@@ -1242,22 +1361,25 @@
 
         <!-- 3 Renewal Properties Cards -->
         <div class="grid-3" style="gap: 0.75rem; margin-bottom: 1rem;">
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: 6px; border: 1px solid #fef3c7;">
-            <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Date of Approval</span>
+          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
+            <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M8 3v4.5M16 3v4.5M3.5 10.5h17"/></svg></div>
+            <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Date of Approval</span>
             <strong style="font-size: 0.9rem; color: var(--primary); margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-date-of-approval">-</strong>
-            <small style="font-size: 0.7rem; color: var(--text-muted);" id="modal-date-of-approval-full">Inception timestamp</small>
+            <small style="font-size: 11px; color: var(--text-muted);" id="modal-date-of-approval-full">Inception timestamp</small>
           </div>
 
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: 6px; border: 1px solid #fef3c7;">
-            <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Last Renewal Date</span>
+          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
+            <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.6-7 9.5-4.1-1.9-7-5.1-7-9.5V6l7-3z"/><path d="M9 11.8l2.2 2.2 4.3-4.4"/></svg></div>
+            <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Last Renewal Date</span>
             <strong style="font-size: 0.9rem; color: #b45309; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-last-renewal-date">None (Initial)</strong>
-            <small style="font-size: 0.7rem; color: var(--text-muted);" id="modal-last-renewal-date-full">Logged upon Renewal Approved</small>
+            <small style="font-size: 11px; color: var(--text-muted);" id="modal-last-renewal-date-full">Logged upon Renewal Approved</small>
           </div>
 
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: 6px; border: 1px solid #bbf7d0;">
-            <span style="font-size: 0.72rem; text-transform: uppercase; color: #166534; font-weight: 700; display: block;">Upcoming Renewal Due Date</span>
+          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #bbf7d0;">
+            <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg></div>
+            <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Upcoming Renewal Due Date</span>
             <strong style="font-size: 0.95rem; color: #15803d; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-upcoming-renewal">-</strong>
-            <small style="font-size: 0.7rem; color: #166534;">+1 Year from Last Renewal / Approval</small>
+            <small style="font-size: 11px; color: var(--text-muted);">+1 Year from Last Renewal / Approval</small>
           </div>
         </div>
 
@@ -1292,7 +1414,7 @@
 
         <div class="form-group" style="margin-bottom: 0.75rem;">
           <label for="issue-note-input" style="font-weight: 600; font-size: 0.85rem; color: #713f12;">Brief Note of Reported Issue:</label>
-          <textarea id="issue-note-input" rows="2" placeholder="Take a brief note of the unresolved issue reported by this club..." style="width: 100%; border: 1px solid #fde047; border-radius: 4px; padding: 0.5rem;"></textarea>
+          <textarea id="issue-note-input" rows="2" placeholder="Take a brief note of the unresolved issue reported by this club..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
         </div>
 
         <div style="display: flex; justify-content: flex-end;">
@@ -1312,7 +1434,7 @@
       <!-- Modal Header -->
       <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid #fee2e2; padding-bottom: 0.85rem;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="background: #dc2626; color: #ffffff; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);">
+          <div style="background: var(--c-red-soft, #FDE7EA); color: var(--c-red-ink, #9F1239); width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px;">
             ⏰
           </div>
           <div>
@@ -1335,7 +1457,7 @@
           <span>🔍</span> Filter Reminders Queue:
         </div>
         <div style="flex: 1; min-width: 260px; max-width: 400px;">
-          <input type="text" id="employee-reminders-search-input" aria-label="Search reminders" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: 4px;">
+          <input type="text" id="employee-reminders-search-input" aria-label="Search reminders" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius);">
         </div>
       </div>
 
@@ -1378,13 +1500,13 @@
         <span class="pill pill-warning" id="emp-issue-token-badge">Reminder Due</span>
       </div>
 
-      <div id="employee-issue-details-content" style="background: #fffbeb; padding: 1rem; border-radius: 6px; border: 1px solid #fde68a; margin-bottom: 1.25rem;">
+      <div id="employee-issue-details-content" style="background: #fffbeb; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid #fde68a; margin-bottom: 1.25rem;">
         <!-- Rendered dynamically -->
       </div>
 
       <div style="margin-bottom: 1rem;">
         <label for="employee-issue-notes-input" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Resolution Remarks (Optional):</label>
-        <textarea id="employee-issue-notes-input" rows="2" placeholder="Add any notes on resolution or reasons why still unresolved..." style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem;"></textarea>
+        <textarea id="employee-issue-notes-input" rows="2" placeholder="Add any notes on resolution or reasons why still unresolved..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
@@ -1431,7 +1553,7 @@
         </p>
 
         <!-- Summary of Target Club -->
-        <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.82rem;">
+        <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; font-size: 0.82rem;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
             <span style="color: var(--text-muted);">Institution:</span>
             <strong id="sec-confirm-inst-name" style="color: var(--primary); text-align: right;">-</strong>
@@ -1466,8 +1588,8 @@
             Option 1: Visual Alphanumeric CAPTCHA Code
           </label>
           <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <div style="position: relative; background: #0f172a; border-radius: 6px; padding: 4px; display: inline-flex; align-items: center;">
-              <canvas id="captcha-canvas" width="150" height="42" style="border-radius: 4px; cursor: pointer;" title="Click to refresh CAPTCHA" onclick="generateCaptchaCode()"></canvas>
+            <div style="position: relative; background: #0f172a; border-radius: var(--radius-sm); padding: 4px; display: inline-flex; align-items: center;">
+              <canvas id="captcha-canvas" width="150" height="42" style="border-radius: var(--radius-sm); cursor: pointer;" title="Click to refresh CAPTCHA" onclick="generateCaptchaCode()"></canvas>
               <button type="button" onclick="generateCaptchaCode()" title="Reload CAPTCHA" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0 6px;">↻</button>
             </div>
             <input type="text" id="captcha-input" placeholder="Type 5 chars" maxlength="6" style="flex: 1; padding: 0.5rem 0.75rem; font-size: 1rem; font-family: monospace; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;" autocomplete="off">
@@ -1539,7 +1661,7 @@
         </p>
 
         <!-- Summary of Target Entries -->
-        <div style="background: #ffffff; border: 1px solid #fca5a5; border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.78rem; max-height: 140px; overflow-y: auto;">
+        <div style="background: #ffffff; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; font-size: 0.78rem; max-height: 140px; overflow-y: auto;">
           <ul id="activity-delete-target-list" style="margin: 0; padding-left: 1.1rem; font-family: monospace;"></ul>
         </div>
       </div>
@@ -1559,8 +1681,8 @@
             Option 1: Visual Alphanumeric CAPTCHA Code
           </label>
           <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <div style="position: relative; background: #0f172a; border-radius: 6px; padding: 4px; display: inline-flex; align-items: center;">
-              <canvas id="activity-delete-captcha-canvas" width="150" height="42" style="border-radius: 4px; cursor: pointer;" title="Click to refresh CAPTCHA" onclick="generateActivityDeleteCaptchaCode()"></canvas>
+            <div style="position: relative; background: #0f172a; border-radius: var(--radius-sm); padding: 4px; display: inline-flex; align-items: center;">
+              <canvas id="activity-delete-captcha-canvas" width="150" height="42" style="border-radius: var(--radius-sm); cursor: pointer;" title="Click to refresh CAPTCHA" onclick="generateActivityDeleteCaptchaCode()"></canvas>
               <button type="button" onclick="generateActivityDeleteCaptchaCode()" title="Reload CAPTCHA" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0 6px;">↻</button>
             </div>
             <input type="text" id="activity-delete-captcha-input" placeholder="Type 5 chars" maxlength="6" style="flex: 1; padding: 0.5rem 0.75rem; font-size: 1rem; font-family: monospace; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;" autocomplete="off">
@@ -1606,7 +1728,7 @@
       <!-- Terminal Header -->
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.85rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="background: #103125; color: #c29b38; width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1.5px solid #c29b38;">
+          <div style="background: #103125; color: #c29b38; width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1.5px solid #c29b38;">
             📜
           </div>
           <div>
@@ -1665,12 +1787,12 @@
               <label for="cert-pi-signature-file" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
                 Upload New PI Signature (PNG / JPG)
               </label>
-              <input type="file" id="cert-pi-signature-file" accept="image/png, image/jpeg, image/jpg" onchange="handleSignatureUpload(event)" style="font-size: 0.8rem; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.35rem;">
+              <input type="file" id="cert-pi-signature-file" accept="image/png, image/jpeg, image/jpg" onchange="handleSignatureUpload(event)" style="font-size: 0.8rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.35rem;">
               <div id="sig-upload-status" style="margin-top: 0.35rem; font-size: 0.75rem; color: var(--text-muted);">
                 * Supports transparent PNG or high-contrast JPG.
               </div>
               <!-- Mini preview of uploaded signature -->
-              <div id="sig-mini-preview-box" style="margin-top: 0.4rem; padding: 4px 8px; background: var(--bg-muted); border: 1px dashed #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+              <div id="sig-mini-preview-box" style="margin-top: 0.4rem; padding: 4px 8px; background: var(--bg-muted); border: 1px dashed var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 0.72rem; color: var(--text-muted);" id="sig-status-label">Default Script Signature</span>
                 <img id="sig-preview-thumbnail" src="" alt="Signature" style="max-height: 28px; max-width: 90px; display: none; object-fit: contain;">
               </div>
@@ -1728,7 +1850,7 @@
 
           <!-- Canvas Element -->
           <div style="width: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden;">
-            <canvas id="certificate-canvas" width="2480" height="3508" style="width: 100%; max-width: 580px; height: auto; border-radius: 4px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #ffffff;"></canvas>
+            <canvas id="certificate-canvas" width="2480" height="3508" style="width: 100%; max-width: 580px; height: auto; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); background: #ffffff;"></canvas>
           </div>
         </div>
       </div>
@@ -4552,7 +4674,7 @@
       </div>
     </div>
   </footer>
-  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:var(--radius-sm); box-shadow:var(--shadow-lg); font-size:0.875rem; align-items:center; gap:10px;"></div>
   <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
   <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
     <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"
