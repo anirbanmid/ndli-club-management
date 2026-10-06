@@ -222,6 +222,11 @@
       margin-bottom: 0.15rem;
     }
 
+    .lock-org-line a {
+      color: inherit;
+      text-decoration: none;
+    }
+
     .lock-sub {
       font-size: 0.75rem;
       color: #cbd5e1;
@@ -510,10 +515,10 @@
         </div>
       </div>
 
-      <div class="lock-org-line"><img src="/static/img/NDLI_Main_Logo_Small_Green.png" alt="NDLI" style="height: 18px; width: 18px; vertical-align: -4px; margin-right: 6px; object-fit: contain;">National Digital Library of India</div>
+      <div class="lock-org-line"><a href="https://ndl.iitkgp.ac.in" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><img src="/static/img/NDLI_Main_Logo_Small_Green.png" alt="NDLI" style="height: 18px; width: 18px; vertical-align: -4px; margin-right: 6px; object-fit: contain;">National Digital Library of India</a></div>
       <h1 class="lock-title">NDLI Club Management System</h1>
       <p class="lock-sub">
-        IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones
+        IIT Kharagpur Central Master Administration Office • 6 Regional Nodal Zones
       </p>
 
       <div id="lock-alert" style="display: none; margin-bottom: 0.65rem;"></div>
@@ -555,7 +560,7 @@
       </form>
 
       <div class="lock-footer-info">
-        National Digital Library of India Club Management System • Central Administration &amp; 7 Regional Zones
+        National Digital Library of India Club Management System • Central Administration &amp; 6 Regional Zones
       </div>
     </div>
   </div>
@@ -616,13 +621,13 @@
           </div>
           <h2 style="font-size: 1.25rem; margin: 0 0 0.15rem 0; font-weight: 800; letter-spacing: -0.015em;">NDLI Club Management System</h2>
           <p style="font-size: 0.8rem; margin: 0 0 0.35rem 0; color: #d1e4dc; line-height: 1.35; max-width: 700px;">
-            IIT Kharagpur Central Master Administration Office & 7 Regional Operational Zones across India with real-time node synchronization.
+            IIT Kharagpur Central Master Administration Office & 6 Regional Operational Zones across India with real-time node synchronization.
           </p>
           <div class="drive-status-badge" style="margin-top: 0; padding: 0.18rem 0.6rem; font-size: 0.72rem;">
             <span class="pulse-dot" style="width: 7px; height: 7px;"></span>
             <span id="drive-mode-label">Drive Storage: LOCAL_SYNC / Google Drive Mirror</span>
             <span>•</span>
-            <span id="nodes-count-label">7 Regional Nodes Synced</span>
+            <span id="nodes-count-label">Active Nodal Officers</span>
           </div>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
@@ -685,8 +690,8 @@
       <section style="margin-bottom: 0.75rem;">
         <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.35rem;">
           <div>
-            <h3 class="card-title" style="font-size: 1.05rem;">7 Regional Employee Portals</h3>
-            <p class="card-subtitle" style="font-size: 0.76rem; margin-top: 0.1rem;">Dedicated portals for 7 zonal nodal officers with dedicated CSV Node DBs.</p>
+            <h3 class="card-title" style="font-size: 1.05rem;">7 Nodal Officer Employee Portals</h3>
+            <p class="card-subtitle" style="font-size: 0.76rem; margin-top: 0.1rem;">Dedicated portals for the 7 nodal officers across 6 regional zones, each with a dedicated CSV Node DB.</p>
           </div>
           <a href="/login" class="btn btn-primary btn-sm" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;">🔐 Regional Sign-In</a>
         </div>
@@ -697,11 +702,11 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP01</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">North Zone</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">North</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Rohan Sharma</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
-                <strong>States:</strong> Delhi, UP, Punjab, Haryana, J&K, Ladakh, HP, Chandigarh, Uttarakhand
+                <strong>States:</strong> Jammu &amp; Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi, Uttar Pradesh
               </p>
               <p style="font-size: 0.72rem; color: #475569; margin: 0;">
                 Node DB: <code>data/employees/emp01/</code>
@@ -717,7 +722,7 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP02</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Central Zone</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Central</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Pooja Verma</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
@@ -737,11 +742,11 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP03</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">West Zone</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">West</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Amit Patel</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
-                <strong>States:</strong> Rajasthan, Gujarat, Maharashtra, Goa, Daman, Dadar & Nagar Haveli
+                <strong>States:</strong> Rajasthan, Gujarat, Maharashtra, Goa, Daman and Diu, Dadar &amp; Nagar Haveli
               </p>
               <p style="font-size: 0.72rem; color: #475569; margin: 0;">
                 Node DB: <code>data/employees/emp03/</code>
@@ -757,7 +762,7 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP04</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">East Zone</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">East</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Debabrata Ghosh</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
@@ -781,7 +786,7 @@
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Mayanglambam Singh</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
-                <strong>States:</strong> Sikkim, Assam, Arunachal, Meghalaya, Manipur, Tripura, Nagaland, Mizoram
+                <strong>States:</strong> Sikkim, Assam, Arunachal Pradesh, Meghalaya, Manipur, Tripura, Nagaland, Mizoram
               </p>
               <p style="font-size: 0.72rem; color: #475569; margin: 0;">
                 Node DB: <code>data/employees/emp05/</code>
@@ -797,7 +802,7 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP06</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">South Zone 1</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">South</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">K. Venkatesh</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
@@ -817,11 +822,11 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                 <span class="pill pill-primary" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">EMP07</span>
-                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">South Zone 2</span>
+                <span class="pill pill-success" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">South</span>
               </div>
               <h4 style="font-size: 0.98rem; color: var(--primary); font-weight: 700; margin: 0 0 0.15rem 0;">Ananya Nair</h4>
               <p style="font-size: 0.74rem; color: var(--text-muted); margin: 0.2rem 0; line-height: 1.3;">
-                <strong>States:</strong> Tamil Nadu, Puducherry, Kerala, Andaman & Nicobar, Lakshadweep
+                <strong>States:</strong> Tamil Nadu, Puducherry, Kerala, Andaman &amp; Nicobar Island, Lakshadweep
               </p>
               <p style="font-size: 0.72rem; color: #475569; margin: 0;">
                 Node DB: <code>data/employees/emp07/</code>
@@ -843,11 +848,11 @@
             <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
           </div>
           <div class="footer-logo-card">
-            <img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img">
+            <a href="https://ndl.iitkgp.ac.in" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img"></a>
           </div>
           <div class="footer-meta">
             <div class="footer-title">National Digital Library of India Club Management System</div>
-            <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 7 Regional Nodal Zones</div>
+            <div class="footer-sub">IIT Kharagpur Central Master Administration Office • 6 Regional Nodal Zones</div>
           </div>
         </div>
         <div class="footer-credit-box">
@@ -1155,7 +1160,7 @@
       });
     }
   </script>
-  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
   <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
   <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
     <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"

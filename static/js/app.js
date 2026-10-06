@@ -86,25 +86,72 @@ function showAlert(containerId, message, type = "success") {
   }
 }
 
-// Global Tab Switching
+// Global Tab Switching (ARIA tablist protocol)
+// - .tabs containers carry role="tablist", .tab-btn buttons role="tab" with
+//   aria-selected / aria-controls (template-side), .tab-panel panels
+//   role="tabpanel" + aria-labelledby (template-side).
+// - Roving tabindex: only the active tab is tabbable; ArrowLeft/ArrowRight
+//   move focus+selection through the strip (wrapping), Home/End jump to the
+//   first/last tab. The existing onTabActivated(targetId) hook keeps firing on
+//   every activation (click and keyboard alike) — unchanged contract.
 function initTabs() {
   document.querySelectorAll(".tabs").forEach(tabContainer => {
     const btns = tabContainer.querySelectorAll(".tab-btn");
-    btns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const targetId = btn.getAttribute("data-target");
-        btns.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
 
-        const parent = tabContainer.parentElement;
-        parent.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) targetPanel.classList.add("active");
-
-        if (typeof onTabActivated === "function") {
-          try { onTabActivated(targetId); } catch (e) { console.error(e); }
+    const activateTab = (btn) => {
+      const targetId = btn.getAttribute("data-target");
+      btns.forEach(b => {
+        b.classList.remove("active");
+        if (typeof b.setAttribute === "function") {
+          b.setAttribute("aria-selected", "false");
+          b.setAttribute("tabindex", "-1");
         }
       });
+      btn.classList.add("active");
+      if (typeof btn.setAttribute === "function") {
+        btn.setAttribute("aria-selected", "true");
+        btn.setAttribute("tabindex", "0");
+      }
+
+      const parent = tabContainer.parentElement;
+      parent.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) targetPanel.classList.add("active");
+
+      if (typeof onTabActivated === "function") {
+        try { onTabActivated(targetId); } catch (e) { console.error(e); }
+      }
+    };
+
+    btns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        activateTab(btn);
+      });
+
+      // Keyboard: ArrowLeft/ArrowRight/Home/End move focus AND selection.
+      btn.addEventListener("keydown", (e) => {
+        const key = e.key;
+        if (key !== "ArrowLeft" && key !== "ArrowRight" && key !== "Home" && key !== "End") return;
+        if (typeof e.preventDefault === "function") e.preventDefault();
+        const list = Array.prototype.slice.call(btns);
+        const idx = list.indexOf(btn);
+        let next = null;
+        if (key === "ArrowLeft") next = list[(idx - 1 + list.length) % list.length];
+        else if (key === "ArrowRight") next = list[(idx + 1) % list.length];
+        else if (key === "Home") next = list[0];
+        else next = list[list.length - 1];
+        if (!next) return;
+        activateTab(next);
+        if (typeof next.focus === "function") next.focus();
+      });
+    });
+
+    // Sync initial ARIA + roving-tabindex state with the .active tab.
+    btns.forEach(b => {
+      if (typeof b.setAttribute !== "function") return;
+      const isActive = b.classList.contains("active");
+      b.setAttribute("aria-selected", isActive ? "true" : "false");
+      b.setAttribute("tabindex", isActive ? "0" : "-1");
     });
   });
 
@@ -318,5 +365,56 @@ if (typeof document !== "undefined") {
   } else {
     initFluidPageTransitions();
   }
+}
+
+// =============================================================================
+// Modal Dialog Focus Management (a11y)
+// On open: remember which element opened the dialog and move focus into it
+// (first focusable inside the modal, else the dialog element itself — the
+// modal-overlay divs carry tabindex="-1" for that fallback). On close: hand
+// focus back to the opener. Templates call ndliModalOpened(modal) /
+// ndliModalClosed(modal) from their existing open/close functions.
+// Every DOM touch is individually guarded, so these helpers are safe no-ops in
+// stripped-down DOM mocks and can never break a modal flow.
+// =============================================================================
+var ndliModalOpeners = (typeof WeakMap === "function") ? new WeakMap() : null;
+
+function ndliModalFocusables(modal) {
+  if (!modal || typeof modal.querySelectorAll !== "function") return [];
+  const nodes = modal.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+  return Array.prototype.slice.call(nodes);
+}
+
+function ndliModalOpened(modal) {
+  if (!modal) return;
+  try {
+    const opener = (typeof document !== "undefined" && document.activeElement) || null;
+    if (ndliModalOpeners) ndliModalOpeners.set(modal, opener);
+    const focusables = ndliModalFocusables(modal);
+    const target = focusables.length > 0 ? focusables[0] : modal;
+    if (target && typeof target.focus === "function") target.focus();
+  } catch (err) {
+    console.warn("[NDLI a11y] focus-on-open skipped:", err);
+  }
+}
+
+function ndliModalClosed(modal) {
+  if (!modal) return;
+  try {
+    const opener = ndliModalOpeners ? ndliModalOpeners.get(modal) : null;
+    if (ndliModalOpeners) ndliModalOpeners.delete(modal);
+    if (opener && opener.isConnected !== false && typeof opener.focus === "function") {
+      opener.focus();
+    }
+  } catch (err) {
+    console.warn("[NDLI a11y] focus-return skipped:", err);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.ndliModalOpened = ndliModalOpened;
+  window.ndliModalClosed = ndliModalClosed;
 }
 

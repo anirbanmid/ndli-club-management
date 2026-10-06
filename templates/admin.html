@@ -179,7 +179,7 @@
         </div>
       </a>
       <div class="nav-links">
-        <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem;">ADMIN LOCKED 🔒</span>
+        <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem; min-width: 132px; text-align: center; display: inline-block;">ADMIN LOCKED 🔒</span>
         <span id="nav-admin-user" style="font-size: 0.78rem; color: #cbd5e1;">Access Restricted</span>
         <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem; white-space: nowrap;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
         <a href="#" class="nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
@@ -193,12 +193,12 @@
   </header>
 
   <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
-  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: 2500; display: none;">
+  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: var(--z-modal-top); display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-login-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 480px; width: 95%;">
       <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 1.25rem;">
         <div>
-          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <h3 class="card-title" id="admin-login-modal-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <span>🏛️</span> Central Admin Sign-In
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
@@ -240,11 +240,11 @@
       <div class="stat-card accent reveal-card">
         <span class="stat-label">Total Daily Support Logs</span>
         <span class="stat-value" id="kpi-activities">--</span>
-        <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 7 zones</span>
+        <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 6 zones</span>
       </div>
       <div class="stat-card success reveal-card">
-        <span class="stat-label">Active Regional Nodes</span>
-        <span class="stat-value" id="kpi-nodes">7</span>
+        <span class="stat-label">Active Nodal Officers</span>
+        <span class="stat-value" id="kpi-nodes">--</span>
         <span class="stat-desc" id="kpi-nodes-desc">Dedicated CSV Node DBs</span>
       </div>
       <div class="stat-card danger reveal-card" id="card-renewal-attention" role="button" tabindex="0" onclick="openRenewalAttentionModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openRenewalAttentionModal();}" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view clubs requiring renewal attention" aria-label="View clubs requiring renewal attention">
@@ -252,7 +252,7 @@
           <span class="stat-label">Renewal Attention</span>
           <span style="font-size: 0.72rem; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
         </div>
-        <span class="stat-value" id="kpi-renewals">0</span>
+        <span class="stat-value" id="kpi-renewals">--</span>
         <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
       </div>
       <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid #ef4444; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
@@ -260,7 +260,7 @@
           <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
           <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: #ffffff; background: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 700;">View List ↗</span>
         </div>
-        <span class="stat-value" id="kpi-admin-escalations" style="color: #dc2626;">0</span>
+        <span class="stat-value" id="kpi-admin-escalations" style="color: #dc2626;">--</span>
         <span class="stat-desc" id="kpi-admin-escalations-desc">Unresolved 30+ days (Click to inspect)</span>
       </div>
     </div>
@@ -269,15 +269,15 @@
     <div id="admin-alert"></div>
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab-btn active" data-target="tab-dashboard">Performance Dashboard & Infographics</button>
-      <button class="tab-btn" data-target="tab-ai">AI Decision & Strategic Roadmap</button>
-      <button class="tab-btn" data-target="tab-employees" id="tab-btn-employees">Employee Management (Add / Edit / Block)</button>
-      <button class="tab-btn" data-target="tab-sync">Google Drive & Node Sync Health</button>
+    <div class="tabs" role="tablist" aria-label="Admin portal sections">
+      <button class="tab-btn active" id="tab-btn-dashboard" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-target="tab-dashboard">Performance Dashboard & Infographics</button>
+      <button class="tab-btn" id="tab-btn-ai" role="tab" aria-selected="false" aria-controls="tab-ai" data-target="tab-ai">AI Decision & Strategic Roadmap</button>
+      <button class="tab-btn" id="tab-btn-employees" role="tab" aria-selected="false" aria-controls="tab-employees" data-target="tab-employees">Employee Management (Add / Edit / Block)</button>
+      <button class="tab-btn" id="tab-btn-sync" role="tab" aria-selected="false" aria-controls="tab-sync" data-target="tab-sync">Google Drive & Node Sync Health</button>
     </div>
 
     <!-- TAB 1: PERFORMANCE DASHBOARD & INFOGRAPHICS -->
-    <div class="tab-panel active" id="tab-dashboard">
+    <div class="tab-panel active" id="tab-dashboard" role="tabpanel" aria-labelledby="tab-btn-dashboard">
       <!-- Filter Bar -->
       <div class="filter-bar">
         <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -322,7 +322,7 @@
             <span class="stat-label">National State Coverage</span>
             <span class="pill pill-primary" id="badge-coverage-ratio" style="font-size: 0.72rem;">0 / 36</span>
           </div>
-          <span class="stat-value" id="stat-coverage-pct">0%</span>
+          <span class="stat-value" id="stat-coverage-pct">--</span>
           <span class="stat-desc" id="stat-coverage-desc">States with active club presence</span>
         </div>
 
@@ -332,7 +332,7 @@
             <span class="stat-label">Club Retention Rate</span>
             <span class="pill pill-success" style="font-size: 0.72rem;">Active Cycle</span>
           </div>
-          <span class="stat-value" id="stat-retention-rate">100%</span>
+          <span class="stat-value" id="stat-retention-rate">--</span>
           <span class="stat-desc" id="stat-retention-desc">Clubs with active valid registration</span>
         </div>
 
@@ -342,7 +342,7 @@
             <span class="stat-label">Support Density Ratio</span>
             <span class="pill pill-primary" style="font-size: 0.72rem;">Logs / Club</span>
           </div>
-          <span class="stat-value" id="stat-support-ratio">0.0</span>
+          <span class="stat-value" id="stat-support-ratio">--</span>
           <span class="stat-desc">Average support logs per approved club</span>
         </div>
 
@@ -352,7 +352,7 @@
             <span class="stat-label">Leading Regional Zone</span>
             <span class="badge-tag" style="background: var(--primary);">Top Volume</span>
           </div>
-          <span class="stat-value" id="stat-zone-leader" style="font-size: 1.55rem; margin-top: 0.5rem; margin-bottom: 0.2rem;">-</span>
+          <span class="stat-value" id="stat-zone-leader" style="font-size: 1.55rem; margin-top: 0.5rem; margin-bottom: 0.2rem;">--</span>
           <span class="stat-desc" id="stat-zone-leader-desc">Highest regional club density</span>
         </div>
       </div>
@@ -436,7 +436,7 @@
           <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table id="state-breakdown-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; z-index: 5;">
+                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; z-index: var(--z-sticky-head);">
                   <th style="padding: 0.55rem 0.75rem; width: 28%; white-space: normal;">State / Union Territory</th>
                   <th style="padding: 0.55rem 0.5rem; width: 16%; text-align: center; white-space: normal;">Zone</th>
                   <th style="padding: 0.55rem 0.5rem; width: 12%; text-align: center; white-space: normal;">Clubs</th>
@@ -460,7 +460,7 @@
                 <span class="pill pill-primary" style="font-weight: 700;">Ranked 1 to 5 Stars ★</span>
               </div>
               <p class="card-subtitle" style="margin: 0; font-size: 0.825rem; color: var(--text-muted);">
-                Official Evaluation Formula: <strong>50%</strong> Club Approval + <strong>30%</strong> Phone Call/Remote &amp; OS Ticket Closing + <strong>20%</strong> Offline Training + <strong>10%</strong> Online Training
+                Scoring Rubric (50/30/20/10 points): <strong>50</strong> Club Approval + <strong>30</strong> Phone Call/Remote &amp; OS Ticket Closing + <strong>20</strong> Offline Training + <strong>10</strong> Online Training
               </p>
             </div>
             
@@ -508,26 +508,26 @@
             </div>
           </div>
 
-          <!-- Formula & Weightage Summary Chips -->
+          <!-- Scoring Rubric Summary Chips -->
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.6rem 0.85rem; background: #f8fafc; border-radius: 6px; border: 1px solid var(--border); font-size: 0.75rem;">
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #166534; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span>
-              Clubs Approved: <strong>50% Weightage</strong>
+              Clubs Approved: <strong>50 points</strong>
             </span>
             <span style="color: #cbd5e1;">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #0369a1; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0284c7;"></span>
-              Other Supports (Call / Remote / OS Ticket): <strong>30% Weightage</strong>
+              Other Supports (Call / Remote / OS Ticket): <strong>30 points</strong>
             </span>
             <span style="color: #cbd5e1;">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #7c2d12; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span>
-              Offline Training: <strong>20% Weightage</strong>
+              Offline Training: <strong>20 points</strong>
             </span>
             <span style="color: #cbd5e1;">|</span>
             <span style="display: inline-flex; align-items: center; gap: 4px; color: #6b21a8; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></span>
-              Online Training: <strong>10% Weightage</strong>
+              Online Training: <strong>10 points</strong>
             </span>
           </div>
 
@@ -535,7 +535,7 @@
           <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 5;">
+                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: var(--z-sticky-head);">
                   <th style="padding: 0.5rem 0.35rem; width: 5%; text-align: center; white-space: normal;">Rank</th>
                   <th style="padding: 0.5rem 0.5rem; width: 17%; text-align: left; white-space: normal;">Officer &amp; Zone</th>
                   <th style="padding: 0.5rem 0.5rem; width: 16%; text-align: left; white-space: normal;">Assigned Jurisdiction</th>
@@ -574,7 +574,7 @@
     </div>
 
     <!-- TAB 2: AI DECISION & STRATEGIC ROADMAP -->
-    <div class="tab-panel" id="tab-ai">
+    <div class="tab-panel" id="tab-ai" role="tabpanel" aria-labelledby="tab-btn-ai">
       <div class="ai-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
           <div>
@@ -619,7 +619,7 @@
     </div>
 
     <!-- TAB 3: EMPLOYEE MANAGEMENT (ADD / EDIT / BLOCK) -->
-    <div class="tab-panel" id="tab-employees">
+    <div class="tab-panel" id="tab-employees" role="tabpanel" aria-labelledby="tab-btn-employees">
       <!-- SECURITY GATE: ADMIN ID AND PASSWORD PROTECTION -->
       <div id="admin-auth-gate" style="display: none; max-width: 560px; margin: 2rem auto;">
         <div class="card" style="border-top: 5px solid var(--danger); box-shadow: var(--shadow-lg); padding: 2rem;">
@@ -766,7 +766,7 @@
     </div>
 
     <!-- TAB 4: GOOGLE DRIVE & NODE SYNC HEALTH -->
-    <div class="tab-panel" id="tab-sync">
+    <div class="tab-panel" id="tab-sync" role="tabpanel" aria-labelledby="tab-btn-sync">
       <div class="grid-2">
         <div class="card">
           <div class="card-header">
@@ -816,7 +816,7 @@
           <div class="card-header">
             <div>
               <h3 class="card-title">Automated Database Backup Engine (7-Day Schedule)</h3>
-              <p class="card-subtitle">Auto-backups both Admin end (Master DB) and Employee end (7 Regional Nodes) every 7 days. Strictly retains the last 6 backups and auto-prunes older archives. Takes automatic safety checkpoints before destructive admin operations (data reset, club delete) and aborts them if a checkpoint cannot be written.</p>
+              <p class="card-subtitle">Auto-backups both Admin end (Master DB) and Employee end (7 Nodal Officer Node DBs) every 7 days. Strictly retains the last 6 backups and auto-prunes older archives. Takes automatic safety checkpoints before destructive admin operations (data reset, club delete) and aborts them if a checkpoint cannot be written.</p>
             </div>
             <span class="pill pill-success" id="backup-status-pill">Active (7-Day Cycle)</span>
           </div>
@@ -858,7 +858,7 @@
               <div style="flex: 1; min-width: 260px;">
                 <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Reset Test Data</strong>
                 <small style="color: #7f1d1d; font-size: 0.78rem; line-height: 1.45; display: block;">
-                  Wipes ALL club &amp; activity data (Master DB + 7 Regional Nodes) and reseeds clean test clubs. Employee accounts, credentials &amp; issues are preserved.
+                  Wipes ALL club &amp; activity data (Master DB + 7 Nodal Officer Node DBs) and reseeds clean test clubs. Employee accounts, credentials &amp; issues are preserved.
                   An automatic safety checkpoint is taken first (and the reset aborts if it cannot be written) — you can restore it from the archives list above.
                   Protected by dual-layer security: typed confirmation phrase + Master Admin password.
                 </small>
@@ -1083,10 +1083,10 @@
           alert(`Backup completed successfully!\n📦 Local Backup ID: ${res.data.backup_id}${driveMsg}\n🔄 Retained Backups: ${res.data.retained_backups.join(', ')}`);
           loadAdminBackupStatus();
         } else {
-          alert("Backup failed: " + (res.data?.message || "Unknown error"));
+          showAlert("admin-alert", "Backup failed: " + (res.data?.message || "Unknown error"), "danger");
         }
       } catch (e) {
-        alert("Error triggering backup: " + e.message);
+        showAlert("admin-alert", "Error triggering backup: " + e.message, "danger");
       }
     }
 
@@ -1110,6 +1110,7 @@
       modal.classList.add("active");
       modal.classList.add("open");
       modal.style.display = "flex";
+      ndliModalOpened(modal);
       setTimeout(() => { if (cInp) cInp.focus(); }, 100);
     }
 
@@ -1119,6 +1120,7 @@
       modal.classList.remove("active");
       modal.classList.remove("open");
       modal.style.display = "none";
+      ndliModalClosed(modal);
     }
 
     function validateResetTestForm() {
@@ -1129,7 +1131,7 @@
       const phraseOk = !!(cInp && cInp.value.trim() === "RESET-ALL-TEST-DATA");
       const passOk = !!(pInp && pInp.value.trim());
       btn.disabled = !(phraseOk && passOk);
-      btn.style.opacity = btn.disabled ? "0.5" : "1";
+      btn.style.opacity = btn.disabled ? "0.45" : "1";
     }
 
     async function executeResetTest() {
@@ -1237,6 +1239,7 @@
       modal.classList.add("active");
       modal.classList.add("open");
       modal.style.display = "flex";
+      ndliModalOpened(modal);
 
       setTimeout(() => {
         const cInp = document.getElementById("restore-captcha-input");
@@ -1250,6 +1253,7 @@
         modal.classList.remove("active");
         modal.classList.remove("open");
         modal.style.display = "none";
+        ndliModalClosed(modal);
       }
     }
 
@@ -1322,15 +1326,15 @@
               passErr.innerText = errMsg;
               passErr.style.display = "block";
             } else {
-              alert("Restoration Failed: " + errMsg);
+              showAlert("admin-alert", "Restoration Failed: " + errMsg, "danger");
             }
           } else {
-            alert("Restoration Failed: " + errMsg);
+            showAlert("admin-alert", "Restoration Failed: " + errMsg, "danger");
           }
           generateRestoreCaptcha();
         }
       } catch (err) {
-        alert("Error during restoration: " + err.message);
+        showAlert("admin-alert", "Error during restoration: " + err.message, "danger");
         generateRestoreCaptcha();
       } finally {
         if (confirmBtn) {
@@ -1426,6 +1430,7 @@
         modal.style.display = "flex";
         modal.classList.add("active");
         modal.classList.add("open");
+        ndliModalOpened(modal);
       }
       const searchInput = document.getElementById("admin-escalations-search-input");
       if (searchInput) searchInput.value = "";
@@ -1439,6 +1444,7 @@
         modal.style.display = "none";
         modal.classList.remove("active");
         modal.classList.remove("open");
+        ndliModalClosed(modal);
       }
     }
 
@@ -1557,6 +1563,7 @@
       if (modal) {
         modal.style.display = "flex";
         modal.classList.add("active");
+        ndliModalOpened(modal);
       }
     }
 
@@ -1566,6 +1573,7 @@
       if (modal) {
         modal.style.display = "none";
         modal.classList.remove("active");
+        ndliModalClosed(modal);
       }
     }
 
@@ -1587,17 +1595,17 @@
         if (res.ok && res.data && res.data.success) {
           closeAdminIssueModal();
           if (statusChoice === "Resolved") {
-            alert(`✓ Success: Issue ${SELECTED_ADMIN_ISSUE_ID} has been marked as Resolved.`);
+            showAlert("admin-alert", `✓ Success: Issue ${SELECTED_ADMIN_ISSUE_ID} has been marked as Resolved.`, "success");
           } else {
-            alert(`⚠ Issue kept as Not Resolved: Next reminder automatically scheduled in 7 days.`);
+            showAlert("admin-alert", `⚠ Issue kept as Not Resolved: Next reminder automatically scheduled in 7 days.`, "warning");
           }
           loadAdminEscalationReminders();
           loadDashboardData();
         } else {
-          alert("Error: " + (res.data?.message || "Failed to update issue status."));
+          showAlert("admin-alert", "Error: " + (res.data?.message || "Failed to update issue status."), "danger");
         }
       } catch (e) {
-        alert("Network error updating issue status: " + e.message);
+        showAlert("admin-alert", "Network error updating issue status: " + e.message, "danger");
       }
     }
 
@@ -1614,7 +1622,7 @@
       const filterY = document.getElementById("filter-year") ? document.getElementById("filter-year").value : "ALL";
 
       let scopeDesc = "Across all 36 States & UTs";
-      let actsDesc = "Real-time sync from 7 zones";
+      let actsDesc = "Real-time sync from 6 zones";
       let nodesDesc = "Dedicated CSV Node DBs";
 
       if (filterZ !== "ALL" || filterY !== "ALL") {
@@ -1781,7 +1789,7 @@
             stroke-width="26"
             stroke-dasharray="${strokeDash} ${circumference - strokeDash}"
             stroke-dashoffset="${offset}"
-            style="transition: all 0.5s ease; cursor: pointer;"
+            style="transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease; cursor: default;"
             title="${name}: ${val} clubs (${Math.round(pct * 100)}%)"
           />
         `;
@@ -1856,12 +1864,12 @@
       let labelsHtml = "";
       pts.forEach(p => {
         dotsHtml += `
-          <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: pointer;">
+          <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: default;">
             <title>${p.label}: ${p.val} clubs approved</title>
           </circle>
           <text x="${p.x}" y="${p.y - 10}" font-size="11" font-weight="700" fill="#103125" text-anchor="middle">${p.val}</text>
         `;
-        const shortLabel = p.label.length > 7 ? p.label.substring(2) : p.label;
+        const shortLabel = p.label;
         labelsHtml += `
           <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">${shortLabel}</text>
         `;
@@ -2603,6 +2611,7 @@
       modal.style.display = "flex";
       modal.style.opacity = "1";
       modal.style.visibility = "visible";
+      ndliModalOpened(modal);
 
       setTimeout(() => { if (passInp) passInp.focus(); }, 100);
     }
@@ -2615,6 +2624,7 @@
         modal.style.display = "none";
         modal.style.opacity = "0";
         modal.style.visibility = "hidden";
+        ndliModalClosed(modal);
       }
     }
 
@@ -2735,7 +2745,7 @@
                 </div>
               </td>
               <td>
-                <a href="/employee/${emp.id}" target="_blank" class="btn btn-outline btn-sm">Open UI ↗</a>
+                <a href="/employee/${emp.id}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">Open UI ↗</a>
               </td>
             </tr>
           `;
@@ -2778,11 +2788,15 @@
       document.getElementById("edit-emp-states").value = emp.assigned_states || "";
       document.getElementById("edit-emp-active").value = String(emp.is_active) === "0" ? "0" : "1";
       document.getElementById("modal-edit-alert").innerHTML = "";
-      document.getElementById("edit-employee-modal").classList.add("active");
+      const editModalEl = document.getElementById("edit-employee-modal");
+      editModalEl.classList.add("active");
+      ndliModalOpened(editModalEl);
     }
 
     function closeEditEmployeeModal() {
-      document.getElementById("edit-employee-modal").classList.remove("active");
+      const editModalEl = document.getElementById("edit-employee-modal");
+      editModalEl.classList.remove("active");
+      ndliModalClosed(editModalEl);
     }
 
     async function handleUpdateEmployee(e) {
@@ -2932,6 +2946,7 @@
         modal.classList.add("active");
         modal.classList.add("open");
         modal.style.display = "flex";
+        ndliModalOpened(modal);
       }
 
       const tbody = document.getElementById("renewal-attention-tbody");
@@ -2963,6 +2978,7 @@
         modal.classList.remove("active");
         modal.classList.remove("open");
         modal.style.display = "none";
+        ndliModalClosed(modal);
       }
     }
 
@@ -3084,11 +3100,11 @@
               Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${list.length.toLocaleString()}</strong> clubs
             </div>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(1)">« First</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE - 1})">‹ Prev</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(1)">« First</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE - 1})">‹ Prev</button>
               <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${CURRENT_ATTENTION_PAGE} of ${totalPages}</span>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE + 1})">Next ›</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="changeAttentionPage(${totalPages})">Last »</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE + 1})">Next ›</button>
+              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${totalPages})">Last »</button>
             </div>
           `;
         }
@@ -3244,6 +3260,7 @@
         modal.classList.add("active");
         modal.classList.add("open");
         modal.style.display = "flex";
+        ndliModalOpened(modal);
       }
 
       // Temporarily hide attention list to prevent modal overlap
@@ -3332,10 +3349,24 @@
           attnModal.style.display = "flex";
         }
       }
+      // Focus return runs after the attention list is visible again so the
+      // opener (a row inside that list) is focusable when we hand focus back.
+      ndliModalClosed(modal);
     }
 
     function backToAttentionList() {
       closeClubDetailsModal(true);
+    }
+
+    // Status-pill semantic map (Round-3 #8): positive/approved → pill-success,
+    // danger (blocked/suspended) → pill-danger, inactive → pill-outline,
+    // pending/unknown → pill-warning. Keeps pill classes untouched.
+    function clubStatusPillClass(status) {
+      const s = String(status || "Approved").toLowerCase();
+      if (s === "approved" || s.indexOf("renewed") !== -1) return "pill-success";
+      if (s === "blocked" || s === "suspended") return "pill-danger";
+      if (s === "inactive") return "pill-outline";
+      return "pill-warning";
     }
 
     function renderClubDetailsView(club) {
@@ -3400,7 +3431,7 @@
               </div>
               <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
                 ${urgencyBadge}
-                <span class="pill pill-primary">${escapeHtml(club.status || 'Approved')}</span>
+                <span class="pill ${clubStatusPillClass(club.status)}">${escapeHtml(club.status || 'Approved')}</span>
               </div>
             </div>
           </div>
@@ -3435,7 +3466,7 @@
                 </tr>
                 <tr>
                   <td style="color: var(--text-muted); padding: 0.35rem 0;">Account Status:</td>
-                  <td><span class="pill pill-success" style="font-size: 0.75rem;">${escapeHtml(club.status || 'Approved')}</span></td>
+                  <td><span class="pill ${clubStatusPillClass(club.status)}" style="font-size: 0.75rem;">${escapeHtml(club.status || 'Approved')}</span></td>
                 </tr>
               </table>
             </div>
@@ -3580,12 +3611,18 @@
           const changePasswordModal = document.getElementById("change-password-modal");
           const adminLoginModal = document.getElementById("admin-login-modal");
 
+          // Esc closes the topmost open modal first — checked in z-index-ladder
+          // order: admin-login (2500) → reset-test / change-password (1260) →
+          // emergency-restore (1250) → issue (1200) → escalations (1150) →
+          // club-details (1100) → renewal-attention (1000) → edit-employee (base).
           if (adminLoginModal && (adminLoginModal.style.display === "flex" || adminLoginModal.classList.contains("active"))) {
             closeAdminLoginModal();
-          } else if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
-            closeEmergencyRestoreModal();
           } else if (resetTestModal && (resetTestModal.classList.contains("active") || resetTestModal.style.display === "flex")) {
             closeResetTestModal();
+          } else if (changePasswordModal && (changePasswordModal.classList.contains("active") || changePasswordModal.style.display === "flex")) {
+            closeChangePasswordModal();
+          } else if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
+            closeEmergencyRestoreModal();
           } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
           } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
@@ -3596,8 +3633,6 @@
             closeRenewalAttentionModal();
           } else if (editEmpModal && (editEmpModal.classList.contains("active") || editEmpModal.classList.contains("open"))) {
             closeEditEmployeeModal();
-          } else if (changePasswordModal && (changePasswordModal.classList.contains("active") || changePasswordModal.style.display === "flex")) {
-            closeChangePasswordModal();
           }
         }
       });
@@ -3681,12 +3716,12 @@
   </script>
 
   <!-- EDIT EMPLOYEE MODAL -->
-  <div class="modal-overlay" id="edit-employee-modal">
+  <div class="modal-overlay" id="edit-employee-modal" role="dialog" aria-modal="true" aria-labelledby="edit-employee-modal-title" tabindex="-1">
     <div class="modal-content">
       <button class="modal-close" onclick="closeEditEmployeeModal()">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title">✏️ Edit Employee Details</h3>
+          <h3 class="card-title" id="edit-employee-modal-title">✏️ Edit Employee Details</h3>
           <p class="card-subtitle">Changes sync dynamically with that individual's backend node database and credentials.</p>
         </div>
         <span class="pill pill-primary" id="modal-edit-emp-badge">EMPLOYEE</span>
@@ -3762,7 +3797,7 @@
   </div>
 
   <!-- RENEWAL ATTENTION LIST MODAL -->
-  <div class="modal-overlay modal" id="renewal-attention-modal" style="z-index: 1000;">
+  <div class="modal-overlay modal" id="renewal-attention-modal" style="z-index: 1000;" role="dialog" aria-modal="true" aria-labelledby="renewal-attention-modal-title" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 1040px; width: 95%;">
       <button class="modal-close" onclick="closeRenewalAttentionModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 0.75rem;">
@@ -3773,7 +3808,7 @@
             <span class="pill pill-warning" id="attn-expiring-count">0 Expiring Soon</span>
             <span class="pill pill-primary" id="attn-total-count">0 Total Attention</span>
           </div>
-          <h3 class="card-title" style="color: var(--danger); font-size: 1.25rem;">
+          <h3 class="card-title" id="renewal-attention-modal-title" style="color: var(--danger); font-size: 1.25rem;">
             ⚠️ NDLI Clubs Requiring Renewal Attention
           </h3>
           <p class="card-subtitle">
@@ -3833,7 +3868,7 @@
   </div>
 
   <!-- CLUB DETAILS MODAL -->
-  <div class="modal-overlay modal" id="club-details-modal" style="z-index: 1100;">
+  <div class="modal-overlay modal" id="club-details-modal" style="z-index: 1100;" role="dialog" aria-modal="true" aria-label="Club Details" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 840px; width: 95%;">
       <button class="modal-close" onclick="backToAttentionList()" title="Back to Renewal Attention List">×</button>
       <div id="club-details-body">
@@ -3843,7 +3878,7 @@
   </div>
 
   <!-- FEATURE 5: ADMIN ESCALATED ISSUES LIST MODAL (STACK POPUP) -->
-  <div class="modal-overlay modal" id="admin-escalations-list-modal" style="z-index: 1150; display: none;">
+  <div class="modal-overlay modal" id="admin-escalations-list-modal" style="z-index: var(--z-modal-list); display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-escalations-list-modal-title" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 980px; width: 95%;">
       <button class="modal-close" onclick="closeAdminEscalationsListModal()" title="Close Escalations List">×</button>
 
@@ -3854,7 +3889,7 @@
             🚨
           </div>
           <div>
-            <h3 class="card-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
+            <h3 class="card-title" id="admin-escalations-list-modal-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
               30-Day Unresolved Issue Escalations Queue
             </h3>
             <p class="card-subtitle" style="margin: 0.2rem 0 0 0; color: #b91c1c;">
@@ -3904,12 +3939,12 @@
   </div>
 
   <!-- FEATURE 5: ADMIN UNRESOLVED ISSUE RESOLUTION MODAL -->
-  <div class="modal-overlay modal" id="admin-issue-resolution-modal" style="z-index: 1200; display: none;">
+  <div class="modal-overlay modal" id="admin-issue-resolution-modal" style="z-index: var(--z-modal-issue); display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-issue-resolution-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 620px; width: 95%;">
       <button class="modal-close" onclick="closeAdminIssueModal()">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <h3 class="card-title" id="admin-issue-resolution-modal-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <span>🚨</span> Admin Escalation: Unresolved Issue
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Review unresolved club issue pending for 30+ days.</p>
@@ -3938,12 +3973,12 @@
   </div>
 
   <!-- DANGER ZONE: RESET TEST DATA SECURITY MODAL -->
-  <div class="modal-overlay modal" id="reset-test-data-modal" style="z-index: 1260; display: none;">
+  <div class="modal-overlay modal" id="reset-test-data-modal" style="z-index: var(--z-modal-confirm); display: none;" role="dialog" aria-modal="true" aria-labelledby="reset-test-data-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 580px; width: 95%;">
       <button class="modal-close" onclick="closeResetTestModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <h3 class="card-title" id="reset-test-data-modal-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <span>🧹</span> Reset All Test Data
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Wipe club &amp; activity data and reseed clean test clubs</p>
@@ -3955,7 +3990,7 @@
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE WIPE WARNING
         </strong>
-        This permanently wipes ALL club and activity records (Master DB + all 7 Regional Node DBs) and reseeds clean test clubs.
+        This permanently wipes ALL club and activity records (Master DB + all 7 Nodal Officer Node DBs) and reseeds clean test clubs.
         <strong>Preserved:</strong> employee accounts, credentials, issues and signatures.
         <strong>Safety net:</strong> an automatic checkpoint (<em>Auto Checkpoint before Test Data Reset</em>) is taken first — if it cannot be written, the reset is aborted and nothing changes. The checkpoint appears in the archives list above and can be restored at any time.
       </div>
@@ -3987,7 +4022,7 @@
 
       <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
         <button class="btn btn-outline btn-sm" onclick="closeResetTestModal()" style="padding: 0.5rem 1rem;">Cancel</button>
-        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; padding: 0.5rem 1rem; opacity: 0.5;">
+        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; font-weight: 700; padding: 0.5rem 1rem; opacity: 0.45; cursor: not-allowed;">
           <span>⚠️</span> Wipe &amp; Reseed Test Data
         </button>
       </div>
@@ -3995,12 +4030,12 @@
   </div>
 
   <!-- EMERGENCY DATABASE RESTORE SECURITY MODAL -->
-  <div class="modal-overlay modal" id="emergency-restore-modal" style="z-index: 1250; display: none;">
+  <div class="modal-overlay modal" id="emergency-restore-modal" style="z-index: var(--z-modal-security); display: none;" role="dialog" aria-modal="true" aria-labelledby="emergency-restore-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 620px; width: 95%;">
       <button class="modal-close" onclick="closeEmergencyRestoreModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <h3 class="card-title" id="emergency-restore-modal-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <span>🚨</span> Emergency Database Restoration
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Roll back Master DB &amp; Regional Node DBs from a validated backup archive</p>
@@ -4013,7 +4048,7 @@
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE ROLLBACK WARNING
         </strong>
-        Executing this restoration will overwrite all current records in the Master Database (<code>master_clubs.csv</code>, <code>master_activities.csv</code>, <code>master_quotas.csv</code>, <code>master_issues.csv</code>) and all 7 Regional Employee Node databases with the selected snapshot. Any unbacked changes made after this backup snapshot was generated will be permanently replaced.
+        Executing this restoration will overwrite all current records in the Master Database (<code>master_clubs.csv</code>, <code>master_activities.csv</code>, <code>master_quotas.csv</code>, <code>master_issues.csv</code>) and all 7 Nodal Officer Node databases with the selected snapshot. Any unbacked changes made after this backup snapshot was generated will be permanently replaced.
       </div>
 
       <!-- Backup Selection Form -->
@@ -4074,12 +4109,12 @@
   </div>
 
   <!-- CHANGE PASSWORD MODAL (self-service credential rotation, used at client handover) -->
-  <div class="modal-overlay modal" id="change-password-modal" style="z-index: 1260; display: none;">
+  <div class="modal-overlay modal" id="change-password-modal" style="z-index: var(--z-modal-confirm); display: none;" role="dialog" aria-modal="true" aria-labelledby="change-password-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 480px; width: 95%;">
       <button class="modal-close" onclick="closeChangePasswordModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <h3 class="card-title" id="change-password-modal-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <span>🔑</span> Change My Password
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Rotate this account's password (minimum 8 characters)</p>
@@ -4118,6 +4153,7 @@
         modal.style.display = "flex";
         modal.style.opacity = "1";
         modal.style.visibility = "visible";
+        ndliModalOpened(modal);
       }
       document.getElementById("chg-current-password").value = "";
       document.getElementById("chg-new-password").value = "";
@@ -4135,6 +4171,7 @@
         modal.style.display = "none";
         modal.style.opacity = "0";
         modal.style.visibility = "hidden";
+        ndliModalClosed(modal);
       }
     }
 
@@ -4185,11 +4222,11 @@
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="footer-logo-img">
         </div>
         <div class="footer-logo-card">
-          <img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img">
+          <a href="https://ndl.iitkgp.ac.in" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><img src="/static/img/NDLI_Main_Logo_Large_green.png" alt="National Digital Library of India" class="footer-logo-img"></a>
         </div>
         <div class="footer-meta">
           <div class="footer-title">National Digital Library of India Club Management System</div>
-          <div class="footer-sub">IIT Kharagpur — Central Administration Office • 7 Regional Nodal Zones</div>
+          <div class="footer-sub">IIT Kharagpur — Central Administration Office • 6 Regional Nodal Zones</div>
         </div>
       </div>
       <div class="footer-credit-box">
@@ -4198,7 +4235,7 @@
       </div>
     </div>
   </footer>
-  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
   <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
   <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
     <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"

@@ -682,7 +682,83 @@ const CertificateEngine = (function () {
   }
 
   /**
-   * Triggers clean print view for A4 portrait certificate
+   * R3 #16a: on-page print route — prints ONLY the certificate canvas on A4.
+   * Must be invoked synchronously inside the user's click so window.print()
+   * keeps the gesture's transient activation (the popup route below calls
+   * window.print() from a new window's img onload handler, where activation is
+   * gone and modern browsers silently ignore the call).
+   *
+   * Strategy: inject a @media print stylesheet that hides all body children
+   * except a dedicated print root, temporarily relocate the canvas into that
+   * root (no transformed/overflow ancestors to distort fixed positioning),
+   * print, then restore on afterprint (with a setTimeout fallback).
+   *
+   * Returns true when the on-page route ran, false when it could not run
+   * (caller may fall back to the popup route).
+   */
+  function printCertificateOnPage(canvas) {
+    if (!canvas || typeof document === "undefined" || !document.body) return false;
+    const STYLE_ID = "certificate-print-style";
+    const ROOT_ID = "certificate-print-root";
+
+    if (!document.getElementById(STYLE_ID)) {
+      const styleEl = document.createElement("style");
+      styleEl.id = STYLE_ID;
+      styleEl.textContent =
+        "@media print {" +
+        "  @page { size: A4 portrait; margin: 0; }" +
+        "  html, body { background: #ffffff !important; }" +
+        "  body.printing-certificate > *:not(#" + ROOT_ID + ") { display: none !important; }" +
+        "  #" + ROOT_ID + " { display: block !important; width: 210mm; height: 297mm; background: #ffffff !important; }" +
+        "  #" + ROOT_ID + " canvas {" +
+        "    width: 210mm !important; height: 297mm !important; max-width: none !important;" +
+        "    margin: 0 !important; padding: 0 !important; border: 0 !important;" +
+        "    border-radius: 0 !important; box-shadow: none !important;" +
+        "    background: #ffffff !important; object-fit: contain !important;" +
+        "  }" +
+        "}";
+      (document.head || document.documentElement).appendChild(styleEl);
+    }
+
+    const parent = canvas.parentNode;
+    const next = canvas.nextSibling;
+    const root = document.createElement("div");
+    root.id = ROOT_ID;
+    document.body.appendChild(root);
+    root.appendChild(canvas);
+
+    let done = false;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      document.body.classList.remove("printing-certificate");
+      window.removeEventListener("afterprint", cleanup);
+      if (parent) {
+        if (next) parent.insertBefore(canvas, next);
+        else parent.appendChild(canvas);
+      }
+      if (root.parentNode) root.parentNode.removeChild(root);
+    };
+
+    window.addEventListener("afterprint", cleanup);
+    document.body.classList.add("printing-certificate");
+    let ok = true;
+    try {
+      window.print();
+    } catch (err) {
+      ok = false;
+    }
+    setTimeout(cleanup, 1500); /* fallback if afterprint never fires */
+    return ok;
+  }
+
+  /**
+   * Triggers clean print view for A4 portrait certificate (legacy popup route).
+   * R3 #16a: kept as a SECONDARY FALLBACK only — window.print() is called from
+   * the popup img's onload handler, where the click's user activation is gone
+   * (and not inherited by the new window), so modern browsers may silently
+   * ignore it; popup blockers can also eat window.open. The primary route is
+   * printCertificateOnPage() above.
    */
   async function printCertificate(canvas) {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.98);
@@ -741,6 +817,7 @@ const CertificateEngine = (function () {
     renderCertificate: renderCertificate,
     downloadCertificateJPG: downloadCertificateJPG,
     downloadCertificatePDF: downloadCertificatePDF,
+    printCertificateOnPage: printCertificateOnPage,
     printCertificate: printCertificate,
     getCachedSettings: () => cachedSettings,
     formatFormalDate: formatFormalDate

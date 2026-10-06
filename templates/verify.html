@@ -27,7 +27,7 @@
       padding: 0;
       min-height: 100vh;
       background: radial-gradient(circle at 50% 0%, #103125 0%, #071912 85%);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       color: #0f172a;
       display: flex;
       flex-direction: column;
@@ -55,6 +55,14 @@
       gap: 1rem;
       text-decoration: none;
       color: #ffffff;
+    }
+
+    /* Linked NDLI logo / header text inherit the logo-group look (Round-3 #6). */
+    .logo-group a {
+      color: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
     }
 
     .logo-img {
@@ -262,13 +270,15 @@
   <!-- Official Header -->
   <header class="verification-header">
     <div class="header-container">
-      <a href="/" class="logo-group">
-        <img src="/static/img/NDLI_Main_Logo_Small_Green.png" alt="NDLI Logo" class="logo-img" onerror="this.style.display='none'">
-        <div class="header-text">
-          <h1>National Digital Library of India</h1>
-          <p>Official Institutional Registration Verification Portal | IIT Kharagpur</p>
-        </div>
-      </a>
+      <div class="logo-group">
+        <a href="https://ndl.iitkgp.ac.in" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><img src="/static/img/NDLI_Main_Logo_Small_Green.png" alt="NDLI Logo" class="logo-img" onerror="this.style.display='none'"></a>
+        <a href="/">
+          <div class="header-text">
+            <h1>National Digital Library of India</h1>
+            <p>Official Institutional Registration Verification Portal | IIT Kharagpur</p>
+          </div>
+        </a>
+      </div>
     </div>
   </header>
 
@@ -276,10 +286,10 @@
   <main class="main-wrap">
     <div class="verify-card">
       <div class="card-top-banner">
-        <div class="banner-title">
+        <h2 class="banner-title">
           <span>🛡️</span>
           <span>Official Certificate Verification</span>
-        </div>
+        </h2>
         <p class="banner-sub">
           Instant public verification of NDLI Club Institutional Registration and Renewal Certificates issued by the National Digital Library of India Project, Central Library, IIT Kharagpur.
         </p>
@@ -309,7 +319,7 @@
             <span id="badge-status-text">OFFICIAL NDLI CLUB · ACTIVE &amp; VALID</span>
           </div>
 
-          <h2 class="institution-heading" id="res-institution-name">-</h2>
+          <h3 class="institution-heading" id="res-institution-name">-</h3>
 
           <div class="details-grid">
             <div class="detail-item">

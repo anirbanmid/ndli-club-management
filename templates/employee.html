@@ -75,23 +75,25 @@
       from { opacity: 0; transform: translateY(-10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .live-clock-badge {
-      background: #0f172a;
-      color: #38bdf8;
-      font-family: inherit;
-      font-size: 0.78rem;
-      padding: 0.32rem 0.75rem;
-      border-radius: var(--radius);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      border: 1px solid #1e293b;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
-    }
+    /* R3: .live-clock-badge de-duplicated — the shared definition in
+       static/css/style.css is now the single source for both portals.
+       (.nav-live-clock-compact stays in style.css + the element's inline
+       size tweaks; both portals' clocks render from the shared rule.) */
     .priority-star {
       color: #f59e0b;
       font-size: 1rem;
+    }
+
+    /* R3 F19: reminders table — sticky red urgency header (user decision: the
+       red tint stays as the urgency idiom). The shared `thead th` gradient
+       used to cover the ad-hoc row tint, so the red family paints here.
+       Contrast: #991b1b on #fef2f2 = 7.6:1 (AA ✓). */
+    .reminders-thead th {
+      background: linear-gradient(180deg, #fef2f2, #fee2e2);
+      color: #991b1b;
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky-head);
     }
 
     /* Login Screen Specific Styles - Balanced Comfort & Centered */
@@ -172,14 +174,16 @@
       }
     }
     .officer-chip {
-      background: #f8fafc;
+      background: var(--bg-muted);
       border: 1px solid var(--border-subtle);
       padding: 0.35rem 0.45rem;
       border-radius: var(--radius-sm);
       font-size: 0.72rem;
       text-align: left;
       cursor: pointer;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      /* R3: explicit animated properties only (was `transition: all`) — the
+         hover animates background-color / border-color / transform / shadow. */
+      transition: background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       gap: 0.08rem;
@@ -210,7 +214,7 @@
       text-overflow: ellipsis;
     }
     .chip-name {
-      color: #475569;
+      color: var(--text-muted);
       font-size: 0.66rem;
       white-space: normal;
       overflow: hidden;
@@ -221,7 +225,9 @@
       line-height: 1.2;
     }
     .chip-zone {
-      color: var(--accent);
+      /* R3: --warning (5.05:1 on white) instead of --accent #D97706 (3.19:1 FAIL) —
+         token value itself is test-locked, so the call site switches family member. */
+      color: var(--warning);
       font-size: 0.62rem;
       font-weight: 600;
       white-space: normal;
@@ -406,7 +412,7 @@
         <div style="margin-top: 0.85rem; border-top: 1px dashed var(--border); padding-top: 0.75rem; margin-bottom: 0.65rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
             <span style="font-size: 0.76rem; font-weight: 700; color: var(--primary);">
-              7 Regional Zonal Officers Directory (Click to select):
+              7 Nodal Officers Directory (Click to select):
             </span>
             <span style="font-size: 0.68rem; color: var(--text-muted);">Quick-Select</span>
           </div>
@@ -443,9 +449,9 @@
           <div style="text-align: right; border-right: 1px solid var(--border); padding-right: 0.75rem;">
             <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Performance Quota</div>
             <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary); line-height: 1.1;">
-              <span id="quota-clubs-count" style="color: var(--success);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: #64748b;">Clubs</span>
+              <span id="quota-clubs-count" style="color: var(--success);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: var(--text-muted);">Clubs</span>
               <span style="margin: 0 0.2rem; color: #cbd5e1;">|</span>
-              <span id="quota-support-count" style="color: var(--accent);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: #64748b;">Support</span>
+              <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 0.74rem; font-weight: 500; color: var(--text-muted);">Support</span>
             </div>
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><span>⏰ --:--:--</span></div>
@@ -470,15 +476,15 @@
     <div id="employee-reminders-container"></div>
 
     <!-- Tabs Navigation -->
-    <div class="tabs">
-      <button class="tab-btn active" data-target="tab-activity">Daily Activity Tracker (SEC A, B, C)</button>
-      <button class="tab-btn" data-target="tab-search">Universal Club Search & Edit</button>
-      <button class="tab-btn" data-target="tab-history">My Node Activity History</button>
-      <button class="tab-btn" data-target="tab-toolbox">🧰 Tool Box</button>
+    <div class="tabs" role="tablist" aria-label="Employee portal sections">
+      <button class="tab-btn active" id="tab-btn-activity" role="tab" aria-selected="true" aria-controls="tab-activity" data-target="tab-activity">Daily Activity Tracker (SEC A, B, C)</button>
+      <button class="tab-btn" id="tab-btn-search" role="tab" aria-selected="false" aria-controls="tab-search" data-target="tab-search">Universal Club Search & Edit</button>
+      <button class="tab-btn" id="tab-btn-history" role="tab" aria-selected="false" aria-controls="tab-history" data-target="tab-history">My Node Activity History</button>
+      <button class="tab-btn" id="tab-btn-toolbox" role="tab" aria-selected="false" aria-controls="tab-toolbox" data-target="tab-toolbox">🧰 Tool Box</button>
     </div>
 
     <!-- TAB 1: DAILY ACTIVITY TRACKER -->
-    <div class="tab-panel active" id="tab-activity">
+    <div class="tab-panel active" id="tab-activity" role="tabpanel" aria-labelledby="tab-btn-activity">
       <div class="grid-2">
         <!-- SEC A: Support Log Form -->
         <div class="card">
@@ -550,7 +556,7 @@
               </div>
               <span class="pill pill-warning">SEC B</span>
             </div>
-            <p style="font-size: 0.82rem; color: #475569; margin-bottom: 0.75rem; line-height: 1.4;">
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
               Click the button below to instantly reveal the <strong>SEC C New Club Details Form</strong>. When submitted, the system auto-maps the Zone from the State, captures the timestamp, and performs real-time sync with IIT Kharagpur Master DB.
             </p>
           </div>
@@ -570,7 +576,7 @@
       <div class="card sec-c-container" id="sec-c-card">
         <div class="card-header">
           <div>
-            <h3 class="card-title" style="color: var(--accent);">SEC C: New Club Details Entry</h3>
+            <h3 class="card-title" style="color: var(--warning);">SEC C: New Club Details Entry</h3>
             <p class="card-subtitle">Fill in institution credentials. Zone maps automatically based on state selection.</p>
           </div>
           <button type="button" class="btn btn-outline btn-sm" onclick="toggleSecC()">✕ Hide Form</button>
@@ -641,7 +647,7 @@
 
             <div class="form-group">
               <label for="c-zone">Zone (Auto-Mapped)</label>
-              <input type="text" id="c-zone" data-alias="sec-c-zone" readonly placeholder="Select State to auto-map zone" style="background: #f8fafc; font-weight: 700; color: var(--primary);">
+              <input type="text" id="c-zone" data-alias="sec-c-zone" readonly placeholder="Select State to auto-map zone" style="background: var(--bg-muted); font-weight: 700; color: var(--primary);">
             </div>
           </div>
 
@@ -665,12 +671,12 @@
           <div class="grid-2">
             <div class="form-group">
               <label>Date of Approval (Auto-Captured)</label>
-              <input type="text" id="c-timestamp-display" data-alias="c-doa-display" readonly value="Auto-captured exact date & time on submit" style="background: #f8fafc; font-weight: 600; color: var(--primary);">
+              <input type="text" id="c-timestamp-display" data-alias="c-doa-display" readonly value="Auto-captured exact date & time on submit" style="background: var(--bg-muted); font-weight: 600; color: var(--primary);">
               <small style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Logged in database as the first date & time of entry.</small>
             </div>
             <div class="form-group">
               <label>Initial Registration Validity (Upcoming Renewal)</label>
-              <input type="text" id="c-renewal-display" readonly value="Auto-computed: +1 Year from Date of Approval" style="background: #f8fafc; font-weight: 600; color: #15803d;">
+              <input type="text" id="c-renewal-display" readonly value="Auto-computed: +1 Year from Date of Approval" style="background: var(--bg-main); font-weight: 600; color: #15803d;">
               <small style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Automatically calculated and logged in database.</small>
             </div>
           </div>
@@ -686,7 +692,7 @@
     </div>
 
     <!-- TAB 2: UNIVERSAL SEARCH & EDIT -->
-    <div class="tab-panel" id="tab-search">
+    <div class="tab-panel" id="tab-search" role="tabpanel" aria-labelledby="tab-btn-search">
       <div class="card">
         <div class="card-header">
           <div>
@@ -734,7 +740,7 @@
     </div>
 
     <!-- TAB 3: NODE ACTIVITY HISTORY -->
-    <div class="tab-panel" id="tab-history">
+    <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="tab-btn-history">
       <div class="card">
         <div class="card-header">
           <div>
@@ -777,7 +783,7 @@
     </div>
 
         <!-- TAB 4: OPERATIONAL TOOL BOX -->
-    <div class="tab-panel" id="tab-toolbox">
+    <div class="tab-panel" id="tab-toolbox" role="tabpanel" aria-labelledby="tab-btn-toolbox">
       <div class="card" style="border-top: 4px solid var(--primary); margin-bottom: 1.5rem;">
         <div class="card-header" style="margin-bottom: 0.5rem;">
           <div>
@@ -798,7 +804,7 @@
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem;">
         <!-- 1. osTicket -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fff7ed; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -812,7 +818,7 @@
               <span class="pill" style="background: #ffedd5; color: #c2410c; font-size: 0.7rem; font-weight: 700;">Club Support Helpdesk</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">osTicket</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Official NDLI Club Helpdesk for tracking, resolving, and closing institutional support tickets and technical requests.
             </p>
           </div>
@@ -824,7 +830,7 @@
         </div>
 
         <!-- 2. Gmail -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -840,7 +846,7 @@
               <span class="pill pill-danger" style="font-size: 0.7rem;">Official Communications</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Gmail</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Manage official zonal correspondence, club communications, institutional notifications, and event invitations.
             </p>
           </div>
@@ -852,7 +858,7 @@
         </div>
 
         <!-- 3. Google Meet -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -868,7 +874,7 @@
               <span class="pill pill-success" style="font-size: 0.7rem;">Online Training &amp; Meetings</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Meet</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Conduct 1-on-1 remote assistance, screen sharing, and online club onboarding sessions across regional institutions.
             </p>
           </div>
@@ -880,7 +886,7 @@
         </div>
 
         <!-- 4. Google Drive -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef7e0; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -894,7 +900,7 @@
               <span class="pill pill-warning" style="font-size: 0.7rem;">Database &amp; Storage Mirror</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Drive</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Direct cloud repository access for synchronized CSV databases, institutional MoUs, official club logos, and backup archives.
             </p>
           </div>
@@ -906,7 +912,7 @@
         </div>
 
         <!-- 5. Google Docs -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e8f0fe; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -922,7 +928,7 @@
               <span class="pill pill-primary" style="font-size: 0.7rem;">SOPs &amp; MoUs</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Docs</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Draft and review institutional agreements, standard operating procedures, support memos, and regional event minutes.
             </p>
           </div>
@@ -934,7 +940,7 @@
         </div>
 
         <!-- 6. Google Sheets -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #e6f4ea; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -949,7 +955,7 @@
               <span class="pill pill-success" style="font-size: 0.7rem;">CSV Analytics &amp; Quotas</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Sheets</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Analyze regional club registration datasets, monthly quota logs, and external CSV data extracts with powerful spreadsheets.
             </p>
           </div>
@@ -961,7 +967,7 @@
         </div>
 
         <!-- 7. Google Slides -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fffbeb; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -976,7 +982,7 @@
               <span class="pill pill-warning" style="font-size: 0.7rem;">Presentations &amp; Seminars</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Slides</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Design and present orientation decks, institutional patron pitches, and interactive workshop slides for regional clubs.
             </p>
           </div>
@@ -988,7 +994,7 @@
         </div>
 
         <!-- 8. Google Keep -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fefce8; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -1002,7 +1008,7 @@
               <span class="pill" style="background: #fef3c7; color: #b45309; font-size: 0.7rem; font-weight: 700;">Quick Notes &amp; Checklists</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Keep</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Capture rapid institutional call notes, operational checklists, daily reminders, and field inspection action points.
             </p>
           </div>
@@ -1014,7 +1020,7 @@
         </div>
 
         <!-- 9. YouTube (NDL India) -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #fef2f2; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -1027,7 +1033,7 @@
               <span class="pill pill-danger" style="background: #fee2e2; color: #dc2626; font-size: 0.7rem; font-weight: 700;">Official Video Channel</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">YouTube (NDL India)</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Official YouTube channel of NDL India (@NDLIndia) featuring instructional tutorials, masterclasses, national webinars, and awareness broadcasts.
             </p>
           </div>
@@ -1039,7 +1045,7 @@
         </div>
 
         <!-- 10. Zoom Meeting -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #eff6ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -1051,7 +1057,7 @@
               <span class="pill" style="background: #e0f2fe; color: #0284c7; font-size: 0.7rem; font-weight: 700;">National Webinars</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Zoom Meeting</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Host large-capacity national club orientation workshops, inter-state patron conferences, and online training seminars.
             </p>
           </div>
@@ -1063,7 +1069,7 @@
         </div>
 
         <!-- 11. Microsoft Teams -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
               <div style="background: #f5f3ff; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
@@ -1079,7 +1085,7 @@
               <span class="pill" style="background: #ede9fe; color: #6d28d9; font-size: 0.7rem; font-weight: 700;">Team Chat &amp; Channels</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Microsoft Teams</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Inter-nodal team chat, IIT Kharagpur central office coordination channels, and institutional committee meetings.
             </p>
           </div>
@@ -1091,10 +1097,10 @@
         </div>
 
         <!-- 12. StreamYard -->
-        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="portal-card reveal-card" style="background: #ffffff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.65rem;">
-              <div style="background: #f1f5f9; padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <div style="background: var(--bg-muted); padding: 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
                 <svg width="34" height="34" viewBox="0 0 48 48">
                   <rect width="48" height="48" rx="10" fill="#1e293b"/>
                   <circle cx="24" cy="24" r="13" fill="#2563eb"/>
@@ -1108,7 +1114,7 @@
               <span class="pill pill-danger" style="font-size: 0.7rem;">Live Streaming Studio</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">StreamYard</h4>
-            <p style="font-size: 0.8rem; color: #64748b; line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Produce professional broadcast live streams to YouTube, Facebook, and LinkedIn for national NDLI events and announcements.
             </p>
           </div>
@@ -1124,7 +1130,7 @@
   </main>
 
   <!-- EDIT & RENEWAL MODAL -->
-  <div class="modal-overlay" id="edit-modal">
+  <div class="modal-overlay" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="modal-club-id" tabindex="-1">
     <div class="modal-content">
       <button class="modal-close" onclick="closeEditModal()" title="Close club editor" aria-label="Close club editor">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
@@ -1197,7 +1203,7 @@
           </div>
           <div class="form-group">
             <label for="edit-zone">Zone (Auto-Mapped)</label>
-            <input type="text" id="edit-zone" readonly style="background: #f1f5f9; font-weight: 700;">
+            <input type="text" id="edit-zone" readonly style="background: var(--bg-muted); font-weight: 700;">
           </div>
         </div>
 
@@ -1227,7 +1233,7 @@
           <h4 style="color: #92400e; font-size: 1.05rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
             <span>⚡</span> Registration Renewal Approval
           </h4>
-          <span class="pill pill-warning" id="modal-renewal-validity-status">Validity Active</span>
+          <span class="pill pill-success" id="modal-renewal-validity-status">Validity Active</span>
         </div>
         
         <p style="font-size: 0.82rem; color: #78350f; margin-bottom: 0.85rem; line-height: 1.4;">
@@ -1256,7 +1262,7 @@
         </div>
 
         <div id="renew-action-container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.5rem;">
-          <label style="font-size: 0.8rem; color: #475569; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
             <input type="checkbox" id="renew-check-conditions" checked style="accent-color: var(--primary);">
             <span>Required renewal conditions fulfilled and verified by employee</span>
           </label>
@@ -1299,7 +1305,7 @@
   </div>
 
   <!-- FEATURE 4: EMPLOYEE REMINDERS LIST MODAL (STACK POPUP) -->
-  <div class="modal-overlay" id="employee-reminders-list-modal" style="z-index: 1150; display: none;">
+  <div class="modal-overlay" id="employee-reminders-list-modal" style="z-index: var(--z-modal-list); display: none;" role="dialog" aria-modal="true" aria-labelledby="employee-reminders-list-modal-title" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 960px; width: 95%;">
       <button class="modal-close" onclick="closeEmployeeRemindersListModal()" title="Close Reminders List">×</button>
 
@@ -1310,7 +1316,7 @@
             ⏰
           </div>
           <div>
-            <h3 class="card-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
+            <h3 class="card-title" id="employee-reminders-list-modal-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
               Due Unresolved Issue Reminders Queue
             </h3>
             <p class="card-subtitle" style="margin: 0.2rem 0 0 0; color: #b91c1c;">
@@ -1334,16 +1340,16 @@
       </div>
 
       <!-- Table of Reminders -->
-      <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+      <div class="table-responsive table-scroll-container" style="max-height: 480px;">
         <table>
-          <thead>
-            <tr style="background: #fef2f2;">
-              <th style="color: #991b1b;">Club ID</th>
-              <th style="color: #991b1b;">Institution Name</th>
-              <th style="color: #991b1b;">State & Zone</th>
-              <th style="color: #991b1b;">Reported Date</th>
-              <th style="color: #991b1b;">Reported Issue Note</th>
-              <th style="color: #991b1b;">Action</th>
+          <thead class="reminders-thead">
+            <tr>
+              <th>Club ID</th>
+              <th>Institution Name</th>
+              <th>State & Zone</th>
+              <th>Reported Date</th>
+              <th>Reported Issue Note</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="employee-reminders-tbody">
@@ -1359,12 +1365,12 @@
   </div>
 
   <!-- FEATURE 4: EMPLOYEE ISSUE RESOLUTION MODAL -->
-  <div class="modal-overlay" id="employee-issue-modal" style="z-index: 1200; display: none;">
+  <div class="modal-overlay" id="employee-issue-modal" style="z-index: var(--z-modal-issue); display: none;" role="dialog" aria-modal="true" aria-labelledby="employee-issue-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 580px; width: 95%;">
       <button class="modal-close" onclick="closeEmployeeIssueModal()" title="Close reminder action" aria-label="Close reminder action">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" style="color: #92400e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+          <h3 class="card-title" id="employee-issue-modal-title" style="color: #92400e; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
             <span>⏰</span> Club Issue Reminder Action
           </h3>
           <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Review unresolved club issue and update resolution status.</p>
@@ -1396,7 +1402,7 @@
   <!-- ============================================================= -->
   <!-- 5. SECOND-LAYER SECURITY CONFIRMATION MODAL (RENEWAL APPROVED) -->
   <!-- ============================================================= -->
-  <div class="modal-overlay" id="renewal-security-modal" style="z-index: 1250; display: none;">
+  <div class="modal-overlay" id="renewal-security-modal" style="z-index: var(--z-modal-security); display: none;" role="dialog" aria-modal="true" aria-labelledby="renewal-security-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 620px; width: 95%; border-top: 6px solid #b45309;">
       <button class="modal-close" onclick="closeRenewalSecurityModal()" title="Cancel Renewal">×</button>
 
@@ -1406,7 +1412,7 @@
           ⚠️
         </div>
         <div>
-          <h3 style="color: #92400e; margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800;">
+          <h3 id="renewal-security-modal-title" style="color: #92400e; margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800;">
             Security Confirmation: Authorize Registration Renewal
           </h3>
           <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.4;">
@@ -1438,7 +1444,7 @@
             <span style="color: var(--text-muted);">Inception Approval Date:</span>
             <span style="font-family: monospace;" id="sec-confirm-doa">-</span>
           </div>
-          <div style="display: flex; justify-content: space-between; border-top: 1px dashed #e2e8f0; padding-top: 0.3rem; margin-top: 0.3rem;">
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.3rem; margin-top: 0.3rem;">
             <span style="color: #15803d; font-weight: 700;">New Extended Validity:</span>
             <strong style="color: #15803d; font-family: monospace;" id="sec-confirm-new-renewal">+1 Year Extension</strong>
           </div>
@@ -1446,7 +1452,7 @@
       </div>
 
       <!-- Security Challenge Selection -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
+      <div style="background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
         <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
           <span>🔐 Complete Security Challenge:</span>
           <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
@@ -1503,7 +1509,7 @@
   <!-- ============================================================= -->
   <!-- 5b. ACTIVITY LOG DELETION SECURITY CONFIRMATION MODAL -->
   <!-- ============================================================= -->
-  <div class="modal-overlay" id="activity-delete-security-modal" style="z-index: 1260; display: none;">
+  <div class="modal-overlay" id="activity-delete-security-modal" style="z-index: var(--z-modal-confirm); display: none;" role="dialog" aria-modal="true" aria-labelledby="activity-delete-security-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 620px; width: 95%; border-top: 6px solid #b91c1c;">
       <button class="modal-close" onclick="closeActivityDeleteSecurityModal()" title="Cancel Deletion">×</button>
 
@@ -1513,7 +1519,7 @@
           🗑
         </div>
         <div>
-          <h3 style="color: #991b1b; margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800;">
+          <h3 id="activity-delete-security-modal-title" style="color: #991b1b; margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800;">
             Security Confirmation: Permanently Delete Activity Log
           </h3>
           <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.4;">
@@ -1539,7 +1545,7 @@
       </div>
 
       <!-- Security Challenge Selection -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
+      <div style="background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
         <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
           <span>🔐 Complete Security Challenge:</span>
           <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
@@ -1593,7 +1599,7 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="renewal-certificate-terminal-modal" style="z-index: 1300; display: none;">
+  <div class="modal-overlay" id="renewal-certificate-terminal-modal" style="z-index: var(--z-modal-terminal); display: none;" role="dialog" aria-modal="true" aria-labelledby="renewal-certificate-terminal-modal-title" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 1340px; width: 96%; max-height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1.5rem;">
       <button class="modal-close" onclick="closeCertificateTerminal()" title="Close Terminal">×</button>
 
@@ -1604,10 +1610,10 @@
             📜
           </div>
           <div>
-            <h3 style="color: #103125; margin: 0; font-size: 1.25rem; font-weight: 800;">
+            <h3 id="renewal-certificate-terminal-modal-title" style="color: #103125; margin: 0; font-size: 1.25rem; font-weight: 800;">
               Renewal Certificate Generation & Download Terminal
             </h3>
-            <p style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: #475569;">
+            <p style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
               High-Resolution (300 DPI A4 Portrait) Official NDLI Club IIT Kharagpur Renewal Certificate
             </p>
           </div>
@@ -1664,7 +1670,7 @@
                 * Supports transparent PNG or high-contrast JPG.
               </div>
               <!-- Mini preview of uploaded signature -->
-              <div id="sig-mini-preview-box" style="margin-top: 0.4rem; padding: 4px 8px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+              <div id="sig-mini-preview-box" style="margin-top: 0.4rem; padding: 4px 8px; background: var(--bg-muted); border: 1px dashed #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 0.72rem; color: var(--text-muted);" id="sig-status-label">Default Script Signature</span>
                 <img id="sig-preview-thumbnail" src="" alt="Signature" style="max-height: 28px; max-width: 90px; display: none; object-fit: contain;">
               </div>
@@ -1708,10 +1714,6 @@
 
               <button type="button" class="btn btn-outline btn-sm" onclick="printActiveCertificate()" style="width: 100%; justify-content: center;">
                 <span>🖨️</span> Print Certificate
-              </button>
-
-              <button type="button" class="btn btn-outline btn-sm" onclick="openActiveCertificateVerificationLink()" style="width: 100%; justify-content: center; margin-top: 0.25rem;" title="Open Public Online Verification Link">
-                <span>🛡️</span> Verify Online / Open Public Link
               </button>
             </div>
           </div>
@@ -2268,7 +2270,7 @@
       const zoneStr = prof.zone || session.zone || 'Regional';
       container.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: nowrap; flex-shrink: 0;">
-          <span class="badge-tag" style="background: var(--accent); font-size: 0.7rem; padding: 0.18rem 0.45rem; white-space: nowrap;" title="Authenticated: ${prof.name || session.full_name} (${zoneStr} Zone)">
+          <span class="badge-tag" style="background: var(--warning); font-size: 0.7rem; padding: 0.18rem 0.45rem; white-space: nowrap;" title="Authenticated: ${prof.name || session.full_name} (${zoneStr} Zone)">
             👤 ${CURRENT_EMP_ID} (${firstName})
           </span>
           <button type="button" class="btn btn-outline btn-sm" onclick="promptSwitchOfficer()" style="color: #ffffff; border-color: rgba(255,255,255,0.4); padding: 0.18rem 0.45rem; font-size: 0.72rem; white-space: nowrap;" title="Sign in as another zonal officer">
@@ -2418,6 +2420,7 @@
         modal.style.display = "flex";
         modal.classList.add("active");
         modal.classList.add("open");
+        ndliModalOpened(modal);
       }
       const searchInput = document.getElementById("employee-reminders-search-input");
       if (searchInput) searchInput.value = "";
@@ -2431,6 +2434,7 @@
         modal.style.display = "none";
         modal.classList.remove("active");
         modal.classList.remove("open");
+        ndliModalClosed(modal);
       }
     }
 
@@ -2486,7 +2490,7 @@
             <td><code style="font-weight: 700; color: #b91c1c;">${escapeHtml(issue.club_id)}</code></td>
             <td><strong>${escapeHtml(issue.institution_name)}</strong></td>
             <td>${escapeHtml(issue.state)} <span class="pill pill-primary" style="font-size: 0.72rem;">${escapeHtml(issue.zone || '')}</span></td>
-            <td style="font-size: 0.85rem; color: #475569;">${reportedDate}</td>
+            <td style="font-size: 0.85rem; color: var(--text-muted);">${reportedDate}</td>
             <td style="max-width: 320px; font-size: 0.85rem; color: #334155; line-height: 1.35;">${escapeHtml(issue.issue_note)}</td>
             <td>
               <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); selectEmployeeReminder('${idSafe}')" style="font-weight: 700; padding: 3px 10px; font-size: 0.78rem; background: #dc2626; border-color: #dc2626; color: #ffffff;">
@@ -2548,6 +2552,7 @@
       if (modal) {
         modal.style.display = "flex";
         modal.classList.add("active");
+        ndliModalOpened(modal);
       }
     }
 
@@ -2557,6 +2562,7 @@
       if (modal) {
         modal.style.display = "none";
         modal.classList.remove("active");
+        ndliModalClosed(modal);
       }
     }
 
@@ -2578,16 +2584,16 @@
         if (res.ok && res.data && res.data.success) {
           closeEmployeeIssueModal();
           if (statusChoice === "Resolved") {
-            alert(`✓ Success: Issue ${issueId} has been marked as Resolved.`);
+            showAlert("global-alert", `✓ Success: Issue ${issueId} has been marked as Resolved.`, "success");
           } else {
-            alert(`⚠ Issue marked as Not Resolved: System has automatically scheduled the next reminder in 7 days.`);
+            showAlert("global-alert", `⚠ Issue marked as Not Resolved: System has automatically scheduled the next reminder in 7 days.`, "warning");
           }
           loadEmployeeReminders();
         } else {
-          alert("Error: " + (res.data?.message || "Failed to update issue status."));
+          UI.toast("Error: " + (res.data?.message || "Failed to update issue status."), { type: "danger" });
         }
       } catch (e) {
-        alert("Network error updating issue status: " + e.message);
+        UI.toast("Network error updating issue status: " + e.message, { type: "danger" });
       }
     }
 
@@ -2597,11 +2603,11 @@
       const issueNote = noteEl ? noteEl.value.trim() : "";
 
       if (!clubId) {
-        alert("Please select a valid club first.");
+        showAlert("modal-alert", "Please select a valid club first.", "danger");
         return;
       }
       if (!issueNote) {
-        alert("Please enter a brief note of the reported issue before setting a reminder.");
+        showAlert("modal-alert", "Please enter a brief note of the reported issue before setting a reminder.", "danger");
         if (noteEl) noteEl.focus();
         return;
       }
@@ -2614,15 +2620,15 @@
         };
         const res = await apiRequest("/api/issues/create", "POST", payload);
         if (res.ok && res.data && res.data.success) {
-          alert(`✓ Unresolved issue logged for ${clubId}!\n\nReminder scheduled to appear in your dashboard after 72 hours.`);
+          showAlert("global-alert", `✓ Unresolved issue logged for ${clubId}! Reminder scheduled to appear in your dashboard after 72 hours.`, "success");
           if (noteEl) noteEl.value = "";
           closeEditModal();
           loadEmployeeReminders();
         } else {
-          alert("Failed to set reminder: " + (res.data?.message || "Unknown error"));
+          showAlert("modal-alert", "Failed to set reminder: " + (res.data?.message || "Unknown error"), "danger");
         }
       } catch (e) {
-        alert("Error logging issue: " + e.message);
+        showAlert("modal-alert", "Error logging issue: " + e.message, "danger");
       }
     }
 
@@ -3127,7 +3133,7 @@
             <td style="font-family: monospace; font-size: 0.85rem;">${escapeHtml(doaDisplay)}</td>
             <td style="font-family: monospace; font-size: 0.85rem; color: #b45309;">${escapeHtml(lrdDisplay)}</td>
             <td style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #15803d;">${escapeHtml(renDisplay)}</td>
-            <td><span class="pill pill-success">${escapeHtml(c.status || 'Approved')}</span></td>
+            <td><span class="pill ${((s) => /^(pending|expiring)/i.test(s) ? 'pill-warning' : /^(overdue|expired|unresolved|blocked|suspended|reject)/i.test(s) ? 'pill-danger' : /^(inactive)/i.test(s) ? 'pill-outline' : /^(approved|active)/i.test(s) ? 'pill-success' : 'pill-outline')(c.status || 'Approved')}">${escapeHtml(c.status || 'Approved')}</span></td>
             <td>
               <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
                 <button class="btn btn-outline btn-sm" data-club-id="${escapeHtml(c.club_id)}" onclick="openEditModalById(this.dataset.clubId)">
@@ -3305,7 +3311,19 @@
     function openEditModal(club) {
       CURRENT_ACTIVE_CLUB = club;
       document.getElementById("modal-club-id").innerText = `${club.institution_name} (${club.club_id})`;
-      document.getElementById("modal-status").innerText = club.status || "Approved";
+      // R3: status pill semantic mapping (approved/active → success, pending/expiring
+      // → warning, overdue/expired/unresolved/blocked/suspended → danger,
+      // inactive/unknown → outline). Display-only; default "Approved" path is unchanged.
+      const modalStatusText = club.status || "Approved";
+      const modalStatusEl = document.getElementById("modal-status");
+      if (modalStatusEl) {
+        modalStatusEl.innerText = modalStatusText;
+        modalStatusEl.className = "pill " + (
+          /^(pending|expiring)/i.test(modalStatusText) ? "pill-warning" :
+          /^(overdue|expired|unresolved|blocked|suspended|reject)/i.test(modalStatusText) ? "pill-danger" :
+          /^(inactive)/i.test(modalStatusText) ? "pill-outline" :
+          /^(approved|active)/i.test(modalStatusText) ? "pill-success" : "pill-outline");
+      }
       document.getElementById("edit-club-id").value = club.club_id;
       document.getElementById("edit-inst-name").value = club.institution_name;
       const regNoEl = document.getElementById("edit-reg-no");
@@ -3370,11 +3388,15 @@
       }
 
       document.getElementById("modal-alert").innerHTML = "";
-      document.getElementById("edit-modal").classList.add("active");
+      const editModalEl = document.getElementById("edit-modal");
+      editModalEl.classList.add("active");
+      ndliModalOpened(editModalEl);
     }
 
     function closeEditModal() {
-      document.getElementById("edit-modal").classList.remove("active");
+      const editModalEl = document.getElementById("edit-modal");
+      editModalEl.classList.remove("active");
+      ndliModalClosed(editModalEl);
     }
 
     // Handle Club Update
@@ -3498,7 +3520,8 @@
         modal.classList.add("open");
         modal.style.opacity = "1";
         modal.style.visibility = "visible";
-        modal.style.zIndex = "1250";
+        modal.style.zIndex = "var(--z-modal-security)";
+        ndliModalOpened(modal);
 
         generateCaptchaCode();
 
@@ -3507,7 +3530,7 @@
         }, 150);
       } catch (err) {
         console.error("Error in openRenewalSecurityModal:", err);
-        alert("Security confirmation error: " + err.message);
+        UI.toast("Security confirmation error: " + err.message, { type: "danger" });
       }
     }
 
@@ -3519,6 +3542,7 @@
         modal.classList.remove("open");
         modal.style.opacity = "";
         modal.style.visibility = "";
+        ndliModalClosed(modal);
       }
       RENEWAL_PENDING_CLUB = null;
     }
@@ -3765,7 +3789,8 @@
         modal.classList.add("open");
         modal.style.opacity = "1";
         modal.style.visibility = "visible";
-        modal.style.zIndex = "1260";
+        modal.style.zIndex = "var(--z-modal-confirm)";
+        ndliModalOpened(modal);
 
         generateActivityDeleteCaptchaCode();
 
@@ -3774,7 +3799,7 @@
         }, 150);
       } catch (err) {
         console.error("Error in openActivityDeleteSecurityModal:", err);
-        alert("Security confirmation error: " + err.message);
+        UI.toast("Security confirmation error: " + err.message, { type: "danger" });
       }
     }
 
@@ -3786,6 +3811,7 @@
         modal.classList.remove("open");
         modal.style.opacity = "";
         modal.style.visibility = "";
+        ndliModalClosed(modal);
       }
       ACTIVITY_DELETE_PENDING_IDS = [];
     }
@@ -3954,7 +3980,7 @@
       if (club) {
         openCertificateTerminal(club);
       } else {
-        alert("No club selected to generate certificate.");
+        showAlert("modal-alert", "No club selected to generate certificate.", "danger");
       }
     }
 
@@ -4019,12 +4045,13 @@
         modal.classList.add("open");
         modal.style.opacity = "1";
         modal.style.visibility = "visible";
-        modal.style.zIndex = "1300";
+        modal.style.zIndex = "var(--z-modal-terminal)";
+        ndliModalOpened(modal);
 
         updateCertificateLivePreview();
       } catch (err) {
         console.error("Error in openCertificateTerminal:", err);
-        alert("Certificate terminal error: " + err.message);
+        UI.toast("Certificate terminal error: " + err.message, { type: "danger" });
       }
     }
 
@@ -4036,11 +4063,16 @@
         modal.classList.remove("open");
         modal.style.opacity = "";
         modal.style.visibility = "";
+        ndliModalClosed(modal);
       }
       ACTIVE_CERT_CLUB = null;
     }
 
     let CURRENT_CERT_RENDER_PROMISE = null;
+    // R3 #16a: tracks whether the in-flight render has settled, so the print
+    // click can run synchronously (keeping user activation) when the canvas is
+    // already rendered instead of awaiting a long-resolved promise.
+    let CURRENT_CERT_RENDER_SETTLED = false;
 
     // Live update certificate canvas
     function updateCertificateLivePreview() {
@@ -4051,10 +4083,15 @@
       const piName = document.getElementById("cert-pi-name-input") ? document.getElementById("cert-pi-name-input").value : "";
       const piAffiliation = document.getElementById("cert-pi-affil-input") ? document.getElementById("cert-pi-affil-input").value : "";
 
+      CURRENT_CERT_RENDER_SETTLED = false;
       CURRENT_CERT_RENDER_PROMISE = CertificateEngine.renderCertificate(canvas, ACTIVE_CERT_CLUB, {
         pi_name: piName,
         pi_affiliation: piAffiliation
       });
+      CURRENT_CERT_RENDER_PROMISE.then(
+        () => { CURRENT_CERT_RENDER_SETTLED = true; },
+        () => { CURRENT_CERT_RENDER_SETTLED = true; }
+      );
       return CURRENT_CERT_RENDER_PROMISE;
     }
 
@@ -4118,12 +4155,12 @@
           pi_affiliation: piAffiliation
         });
         if (res.ok) {
-          alert("Default PI credentials saved successfully!");
+          UI.toast("Default PI credentials saved successfully!", { type: "success" });
         } else {
-          alert(`Save error: ${res.data.message || 'Failed to save.'}`);
+          UI.toast(`Save error: ${res.data.message || 'Failed to save.'}`, { type: "danger" });
         }
       } catch (e) {
-        alert(`Save error: ${e.message}`);
+        UI.toast(`Save error: ${e.message}`, { type: "danger" });
       }
     }
 
@@ -4134,7 +4171,7 @@
       }
       const canvas = document.getElementById("certificate-canvas");
       if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
-        alert("Certificate canvas not ready.");
+        UI.toast("Certificate canvas not ready.", { type: "danger" });
         return;
       }
       const filename = `NDLI_Renewal_Certificate_${ACTIVE_CERT_CLUB.club_id}.jpg`;
@@ -4148,35 +4185,52 @@
       }
       const canvas = document.getElementById("certificate-canvas");
       if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
-        alert("Certificate canvas not ready.");
+        UI.toast("Certificate canvas not ready.", { type: "danger" });
         return;
       }
       const filename = `NDLI_Renewal_Certificate_${ACTIVE_CERT_CLUB.club_id}.pdf`;
       await CertificateEngine.downloadCertificatePDF(canvas, filename);
     }
 
-    // Print Certificate
-    async function printActiveCertificate() {
-      if (CURRENT_CERT_RENDER_PROMISE) {
-        await CURRENT_CERT_RENDER_PROMISE;
-      }
+    // Print Certificate (R3 #16a fix)
+    // The old flow delegated to CertificateEngine.printCertificate() which opened
+    // a popup and called window.print() from the popup img's onload handler — by
+    // then the click's transient user activation is gone (and not inherited by
+    // the new window), so modern browsers silently ignored window.print() and
+    // NOTHING happened (popup blockers could also eat window.open).
+    // Fix: run the on-page print route SYNCHRONOUSLY inside this click so the
+    // activation is preserved. The popup route is kept only as a fallback when
+    // the on-page route cannot run.
+    function printActiveCertificate() {
       const canvas = document.getElementById("certificate-canvas");
       if (!canvas || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
-        alert("Certificate canvas not ready.");
+        UI.toast("Certificate canvas not ready.", { type: "danger" });
         return;
       }
-      await CertificateEngine.printCertificate(canvas);
-    }
-
-    // Opens Public Online Certificate Verification Page
-    function openActiveCertificateVerificationLink() {
-      if (!ACTIVE_CERT_CLUB) {
-        alert("No active certificate club selected.");
+      const runPrint = () => {
+        const c = document.getElementById("certificate-canvas");
+        if (!c || !ACTIVE_CERT_CLUB || typeof CertificateEngine === "undefined") {
+          UI.toast("Certificate canvas not ready.", { type: "danger" });
+          return;
+        }
+        if (typeof CertificateEngine.printCertificateOnPage === "function" && CertificateEngine.printCertificateOnPage(c)) {
+          return; // on-page A4 route succeeded
+        }
+        // Secondary fallback: legacy popup route (only if the on-page route could not run)
+        CertificateEngine.printCertificate(c);
+      };
+      if (CURRENT_CERT_RENDER_PROMISE && !CURRENT_CERT_RENDER_SETTLED) {
+        // Render still in flight: proceed best-effort once it settles.
+        CURRENT_CERT_RENDER_PROMISE.then(runPrint).catch((err) => {
+          if (typeof UI !== "undefined" && UI.toast) {
+            UI.toast("Print failed: " + err.message, { type: "danger" });
+          } else {
+            alert("Print failed: " + err.message);
+          }
+        });
         return;
       }
-      const reg = ACTIVE_CERT_CLUB.reg_no || ACTIVE_CERT_CLUB.club_id || "";
-      const url = `/verify?reg=${encodeURIComponent(reg)}`;
-      window.open(url, "_blank");
+      runPrint();
     }
 
     // =============================================================
@@ -4245,8 +4299,20 @@
           const editModal = document.getElementById("edit-modal");
           const issueModal = document.getElementById("employee-issue-modal");
           const remindersModal = document.getElementById("employee-reminders-list-modal");
+          const renewalSecModal = document.getElementById("renewal-security-modal");
+          const activityDeleteModal = document.getElementById("activity-delete-security-modal");
+          const certTerminalModal = document.getElementById("renewal-certificate-terminal-modal");
 
-          if (issueModal && (issueModal.classList.contains("active") || issueModal.style.display === "flex")) {
+          // Esc closes the topmost open modal first — z-index-ladder order:
+          // certificate terminal (1300) → activity-delete (1260) → renewal
+          // security (1250) → issue (1200) → reminders (1150) → edit (base).
+          if (certTerminalModal && (certTerminalModal.classList.contains("active") || certTerminalModal.style.display === "flex")) {
+            closeCertificateTerminal();
+          } else if (activityDeleteModal && (activityDeleteModal.classList.contains("active") || activityDeleteModal.style.display === "flex")) {
+            closeActivityDeleteSecurityModal();
+          } else if (renewalSecModal && (renewalSecModal.classList.contains("active") || renewalSecModal.style.display === "flex")) {
+            closeRenewalSecurityModal();
+          } else if (issueModal && (issueModal.classList.contains("active") || issueModal.style.display === "flex")) {
             closeEmployeeIssueModal();
           } else if (remindersModal && (remindersModal.classList.contains("active") || remindersModal.style.display === "flex")) {
             closeEmployeeRemindersListModal();
@@ -4256,7 +4322,8 @@
         }
       });
 
-      // Click outside modal content to close
+      // Click outside modal content to close (security/terminal modals included —
+      // backdrop dismissal is a cancel action, same as their Cancel buttons)
       document.querySelectorAll(".modal-overlay").forEach(overlay => {
         overlay.addEventListener("click", (e) => {
           if (e.target === overlay) {
@@ -4266,6 +4333,12 @@
               closeEmployeeRemindersListModal();
             } else if (overlay.id === "edit-modal") {
               closeEditModal();
+            } else if (overlay.id === "renewal-security-modal") {
+              closeRenewalSecurityModal();
+            } else if (overlay.id === "activity-delete-security-modal") {
+              closeActivityDeleteSecurityModal();
+            } else if (overlay.id === "renewal-certificate-terminal-modal") {
+              closeCertificateTerminal();
             }
           }
         });
@@ -4479,7 +4552,7 @@
       </div>
     </div>
   </footer>
-  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999999; background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
+  <div id="ui-error-boundary-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index: var(--z-error-banner, 999999); background:#be123c; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); font-size:0.875rem; align-items:center; gap:10px;"></div>
   <!-- ===== NDLI AI ASSISTANT WIDGET (Round 6 · Slice A) — additive block, safe to remove ===== -->
   <div class="ndli-asst" id="ndli-asst-root" data-asst-state="closed">
     <button type="button" class="ndli-asst-fab ui-focusable" id="ndli-asst-fab"

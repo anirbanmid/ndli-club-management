@@ -31,7 +31,7 @@
 
   /* --- Sky Info Accent --- */
   --sky:            #38BDF8;
-  --sky-dark:       #0284C7;
+  --sky-dark:       #0369A1; /* Round 3 (item 3): was #0284C7 (3.57:1 behind .pill-info labels — AA fail); only consumer is .pill-info */
   --sky-light:      #E0F2FE;
 
   /* --- Emerald Accent --- */
@@ -60,7 +60,11 @@
   /* --- Gradients --- */
   --gradient-nav:     linear-gradient(135deg, #0c2419 0%, #103125 45%, #1A503E 80%, #0D7751 100%);
   --gradient-accent:  linear-gradient(135deg, #1A503E 0%, #0D7751 100%);
-  --gradient-amber:   linear-gradient(135deg, #B45309 0%, #D97706 60%, #F59E0B 100%);
+  /* Round 3 (F4 decision — darken the LIGHT stops, keep the amber identity):
+     the old stops (#B45309/#D97706/#F59E0B) gave white labels 5.02/3.19/2.15:1.
+     New stops are all white-AA at every point: 7.12 / 5.08 / 5.02:1,
+     hues 25.8 / 30.2 / 26.0 deg (target 25-40deg — recognisably amber). */
+  --gradient-amber:   linear-gradient(135deg, #8F4208 0%, #A85A0B 55%, #B45309 100%);
   --gradient-dark:    linear-gradient(145deg, #071912 0%, #103125 50%, #1A503E 100%);
   --gradient-card:    linear-gradient(180deg, #ffffff 0%, #fafcfb 100%);
   --gradient-badge:   linear-gradient(135deg, #0D7751 0%, #1A503E 100%);
@@ -86,6 +90,34 @@
   --shadow-xl:    0 28px 60px -10px rgba(16, 49, 37, 0.20);
   --shadow-glow:  0 0 0 3px rgba(13, 119, 81, 0.20);
   --shadow-amber: 0 6px 20px rgba(217, 119, 6, 0.30);
+
+  /* --- Z-Index Ladder (r3-phase2: single source of truth for stacking) ---
+     Every modal/overlay z-index in the four portals maps onto one of these
+     rungs (values preserved 1:1 from the previous hard-coded numbers, so
+     visual stacking is unchanged). Ladder, low → high:
+       5 sticky table heads < 200 navbar < 1000 modal-base (edit-modal,
+       renewal-attention-modal) < 1100 club-details < 1150 list modals <
+       1200 issue modals < 1250 security-confirmation modals < 1260
+       destructive-confirm modals < 1300 certificate terminal < 2500 admin
+       re-auth login < 10050 UI.toast < 10060 UI progress bar < 999999 UI
+       error-boundary banner. UI.toast intentionally outranks every modal.
+     NOTE: `#renewal-attention-modal { z-index: 1000 }` /
+     `#club-details-modal { z-index: 1100 }` below (and the matching inline
+     styles in admin.html) keep their literal numbers — template/CSS test
+     locks assert those exact strings. */
+  --z-sticky-head:   5;
+  --z-navbar:        200;
+  --z-modal-base:    1000;
+  --z-modal-details: 1100;
+  --z-modal-list:    1150;
+  --z-modal-issue:   1200;
+  --z-modal-security: 1250;
+  --z-modal-confirm: 1260;
+  --z-modal-terminal: 1300;
+  --z-modal-top:     2500;
+  --z-toast:         10050;
+  --z-progress:      10060;
+  --z-error-banner:  999999;
 
   /* --- Transitions --- */
   --transition-fast:   0.14s cubic-bezier(0.16, 1, 0.3, 1);
@@ -232,7 +264,7 @@ body {
   box-shadow: 0 2px 20px rgba(16, 49, 37, 0.22);
   position: sticky;
   top: 0;
-  z-index: 200;
+  z-index: var(--z-navbar);
   border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -342,10 +374,12 @@ body {
 }
 
 /* Complementary Highlight Buttons: Admin Office / Employee Login (Warm Amber) & Main Portal (Sky Blue) */
+/* Round 3 (F4): amber chip gradients darkened to the passing ramp
+   (white labels: 7.12/5.08/5.02:1 at every stop; was 5.02/3.19/2.15:1). */
 .nav-link.nav-link-admin,
 .nav-link.nav-link-employee,
 .nav-link.nav-link-login {
-  background: linear-gradient(135deg, #b45309 0%, #d97706 55%, #f59e0b 100%) !important;
+  background: linear-gradient(135deg, #8f4208 0%, #a85a0b 55%, #b45309 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border: 1px solid rgba(251, 191, 36, 0.75) !important;
@@ -355,14 +389,16 @@ body {
 .nav-link.nav-link-admin:hover,
 .nav-link.nav-link-employee:hover,
 .nav-link.nav-link-login:hover {
-  background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%) !important;
+  background: linear-gradient(135deg, #7c3a0a 0%, #8f4208 55%, #a85a0b 100%) !important;
   border-color: #fde68a !important;
   box-shadow: 0 4px 14px rgba(217, 119, 6, 0.5) !important;
   transform: translateY(-1px);
 }
 
+/* Round 3 (F4 twin — same 'darken the light stops' decision, sky identity kept):
+   white labels 7.56/5.93/5.61:1 at every stop (was 5.93/4.10/2.14:1). */
 .nav-link.nav-link-portal {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 55%, #38bdf8 100%) !important;
+  background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0b6e9f 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border: 1px solid rgba(56, 189, 248, 0.75) !important;
@@ -370,7 +406,7 @@ body {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 .nav-link.nav-link-portal:hover {
-  background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0284c7 100%) !important;
+  background: linear-gradient(135deg, #084c74 0%, #075985 55%, #0369a1 100%) !important;
   border-color: #bae6fd !important;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
   transform: translateY(-1px);
@@ -893,7 +929,9 @@ input[readonly] {
 }
 
 .btn-amber:hover {
-  filter: brightness(1.08);
+  /* Round 3: was brightness(1.08) — pushed the lightest stop to 4.41:1 (AA fail
+     on hover). 1.05 keeps the lift and holds 4.63:1. */
+  filter: brightness(1.05);
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(217, 119, 6, 0.40);
 }
@@ -1027,7 +1065,7 @@ input[readonly] {
 .table-scroll-container thead th {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: var(--z-sticky-head);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -1293,12 +1331,17 @@ tbody tr:hover { background-color: #f0f7f3; }
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-base);
   padding: 1rem;
   box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.22s ease, visibility 0.22s ease;
+  /* Round 3 (F5 decision — accept instant close + delete dead code): the old
+     `transition: opacity 0.22s ease, visibility 0.22s ease;` never animated.
+     Every open/close path flips display (none <-> flex) in the same frame and
+     display changes suppress transitions (verified: all 15 template close fns
+     end at display:none). The opacity/visibility base pair stays — template
+     open paths explicitly defend against it. */
 }
 
 .modal-overlay.active,
@@ -1558,7 +1601,10 @@ tbody tr:hover { background-color: #f0f7f3; }
 /* Pie & Donut SVG */
 .retention-pie-svg  { display: block; }
 
-.pie-slice { transition: opacity 0.20s ease, filter 0.20s ease; }
+/* Round 3 hygiene (chart-mark cursor rules): chart marks are tooltip-only
+   (native <title>), never clickable. The hover highlight is inspection
+   feedback; cursor: default pins the mark as non-clickable. */
+.pie-slice { transition: opacity 0.20s ease, filter 0.20s ease; cursor: default; }
 .pie-slice:hover { opacity: 0.85; filter: brightness(1.12); }
 
 .pill-highlight-amber {
@@ -1648,6 +1694,7 @@ tbody tr:hover { background-color: #f0f7f3; }
   padding: 0.22rem 0.48rem;
   border-radius: var(--radius-xs);
   transition: background var(--transition-fast);
+  cursor: default; /* Round 3: legend rows are not links — hover tint is highlight, not a click cue */
 }
 
 .donut-legend-item:hover { background: #f0f7f3; }
