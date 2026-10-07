@@ -38,7 +38,9 @@ class TestR20VariantB(unittest.TestCase):
         self.assertIn("box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22);", self.style)
 
     def test_sidebar_light_tint(self):
-        self.assertIn(".app-sidebar { background: #F4F8F5; border-right: 1px solid var(--c-line); }",
+        # R21 (user 2026-10-08): the r20 tint (#F4F8F5 on a #F4F8F6 page) was
+        # imperceptible — the sidebar tint must be VISIBLE.
+        self.assertIn(".app-sidebar { background: #E2EFE8; border-right: 1px solid #CCDFD5; }",
                       self.style)
 
 

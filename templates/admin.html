@@ -629,15 +629,16 @@
             </table>
           </div>
 
-          <!-- Relative Volume Distribution (Quota Breakdown) -->
+          <!-- Activity Distribution Matrix (R21v3: replaced the plain volume
+               bars — share ribbon + heat matrix = distribution at a glance) -->
           <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
               <span style="font-size: 0.92rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-                Relative Activity Distribution (Volume Bars)
+                Activity Distribution Matrix
               </span>
               <span class="pill pill-success" style="font-size: 0.7rem;">Live Sync</span>
             </div>
-            <div id="employee-bars-container" style="padding: 0.25rem 0;">
+            <div id="activity-matrix-container" style="padding: 0.25rem 0;">
               <!-- Rendered dynamically -->
             </div>
           </div>
@@ -1054,7 +1055,7 @@
         renderTrajectoryAreaChart(res.data.month_wise_clubs);
         renderSupportBreakdown(res.data.support_type_breakdown);
         renderRenewalHealthGauge(res.data.renewal_health);
-        renderEmployeeBars(res.data.summary.quotas);
+        renderActivityMatrix(res.data.summary.quotas);
         renderStateBreakdown(res.data.state_wise_clubs);
       } else {
         renderUnauthenticatedKPIs(res.status || 401);
@@ -1852,9 +1853,16 @@
 
       const total = Object.values(items).reduce((a, b) => a + b, 0);
 
+      /* R21: harmonised modern palette (green family first, then sky / amber /
+         lavender / coral) — the all-green ramp read flat in the ring. */
       const colorPalette = [
-        "#103125", "#0D7751", "#1A503E", "#10b981", "#059669",
-        "#34d399", "#065f46", "#047857", "#6ee7b7", "#022c22"
+        "#0D7751", "#2FA97B", "#57C7A0", "#1E5F8C", "#4B9BC9",
+        "#D97706", "#E9A23B", "#8B5CF6", "#BE123C", "#647B70"
+      ];
+      /* R21v2: lighter gradient ends for the two-tone segment strokes */
+      const lightPalette = [
+        "#3BCB98", "#5AD9AC", "#8FE3C6", "#55A9DC", "#7FC2E6",
+        "#F2B255", "#F7CD86", "#B79CF8", "#EC6A80", "#93A89D"
       ];
 
       const radius = 70;
@@ -1882,6 +1890,7 @@
 
       let accumulatedAngle = 0;
       let paths = "";
+      let defs = "";
       let legendHtml = "";
 
       sortedEntries.forEach(([name, val], idx) => {
@@ -1890,6 +1899,16 @@
         const offset = -accumulatedAngle;
         accumulatedAngle += strokeDash;
         const color = colorPalette[idx % colorPalette.length];
+        const lightColor = lightPalette[idx % lightPalette.length];
+        /* R21: small segment gaps give the ring a modern segmented look */
+        const segGap = 5;
+        const dash = Math.max(strokeDash - segGap, 1);
+        /* R21v2: two-tone gradient stroke per segment */
+        defs += `
+          <linearGradient id="dzg${idx}" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${color}"/>
+            <stop offset="100%" stop-color="${lightColor}"/>
+          </linearGradient>`;
 
         paths += `
           <circle
@@ -1897,9 +1916,9 @@
             cy="${cy}"
             r="${radius}"
             fill="transparent"
-            stroke="${color}"
+            stroke="url(#dzg${idx})"
             stroke-width="26"
-            stroke-dasharray="${strokeDash} ${circumference - strokeDash}"
+            stroke-dasharray="${dash} ${circumference - dash}"
             stroke-dashoffset="${offset}"
             style="transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease; cursor: default;"
             title="${name}: ${val} clubs (${Math.round(pct * 100)}%)"
@@ -1913,6 +1932,7 @@
               <strong>${name}</strong>
             </div>
             <span><strong>${val}</strong> (${Math.round(pct * 100)}%)</span>
+            <div class="legend-mini-bar"><span style="width: ${Math.round(pct * 100)}%; background: linear-gradient(90deg, ${color}, ${lightColor});"></span></div>
           </div>
         `;
       });
@@ -1920,6 +1940,8 @@
       container.innerHTML = `
         <div class="donut-svg-wrapper">
           <svg class="donut-svg" viewBox="0 0 190 190">
+            <defs>${defs}</defs>
+            <circle cx="${cx}" cy="${cy}" r="${radius}" fill="transparent" stroke="#EAF2ED" stroke-width="26" />
             ${paths}
           </svg>
           <div class="donut-center-text">
@@ -1964,11 +1986,19 @@
         return { x, y, val: v, label: labels[i] };
       });
 
-      // Construct SVG curve path
-      let dLine = `M ${pts[0].x},${pts[0].y}`;
-      for (let i = 1; i < pts.length; i++) {
-        dLine += ` L ${pts[i].x},${pts[i].y}`;
+      // Construct SVG curve path (R21v2: Catmull-Rom smoothing — modern flow)
+      function smoothPath(points, tension) {
+        if (points.length < 2) return points.length ? `M ${points[0].x},${points[0].y}` : "";
+        let d = `M ${points[0].x},${points[0].y}`;
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[Math.max(0, i - 1)], p1 = points[i], p2 = points[i + 1], p3 = points[Math.min(points.length - 1, i + 2)];
+          const c1x = p1.x + (p2.x - p0.x) * tension, c1y = p1.y + (p2.y - p0.y) * tension;
+          const c2x = p2.x - (p3.x - p1.x) * tension, c2y = p2.y - (p3.y - p1.y) * tension;
+          d += ` C ${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+        }
+        return d;
       }
+      const dLine = smoothPath(pts, 0.2);
       const dArea = `${dLine} L ${pts[pts.length - 1].x},${padTop + plotH} L ${pts[0].x},${padTop + plotH} Z`;
 
       // Data dots and labels
@@ -1976,14 +2006,14 @@
       let labelsHtml = "";
       pts.forEach(p => {
         dotsHtml += `
-          <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: default;">
+          <circle cx="${p.x}" cy="${p.y}" r="5.5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: default; filter: drop-shadow(0 2px 4px rgba(13, 119, 81, 0.35));">
             <title>${p.label}: ${p.val} clubs approved</title>
           </circle>
-          <text x="${p.x}" y="${p.y - 10}" font-size="11" font-weight="700" fill="#103125" text-anchor="middle">${p.val}</text>
+          <text x="${p.x}" y="${p.y - 11}" font-size="11" font-weight="700" fill="#103125" text-anchor="middle" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${p.val}</text>
         `;
         const shortLabel = p.label;
         labelsHtml += `
-          <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">${shortLabel}</text>
+          <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="700" fill="#64748b" text-anchor="middle">${shortLabel}</text>
         `;
       });
 
@@ -1991,16 +2021,22 @@
         <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: auto;">
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0D7751" stop-opacity="0.38"/>
+              <stop offset="0%" stop-color="#0D7751" stop-opacity="0.45"/>
               <stop offset="100%" stop-color="#0D7751" stop-opacity="0.02"/>
             </linearGradient>
+            <linearGradient id="trajLine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#0D7751"/>
+              <stop offset="100%" stop-color="#57C7A0"/>
+            </linearGradient>
           </defs>
-          <!-- Grid line -->
-          <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" stroke="#e2e8f0" stroke-width="1"/>
+          <!-- Soft dashed grid (R21v2) -->
+          ${[0.25, 0.5, 0.75].map(f => `<line x1="${padLeft}" y1="${padTop + plotH * f}" x2="${width - padRight}" y2="${padTop + plotH * f}" stroke="#DCE9E2" stroke-width="1" stroke-dasharray="4 6"/>`).join("")}
+          <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" stroke="#C9DED4" stroke-width="1.5"/>
           <!-- Gradient Area -->
           <path d="${dArea}" fill="url(#areaGradient)"/>
-          <!-- Trajectory Line -->
-          <path d="${dLine}" fill="none" stroke="#0D7751" stroke-width="3" stroke-linecap="round"/>
+          <!-- Glow + Gradient Trajectory Line (R21v2) -->
+          <path d="${dLine}" fill="none" stroke="url(#trajLine)" stroke-width="12" stroke-linecap="round" opacity="0.16"/>
+          <path d="${dLine}" fill="none" stroke="url(#trajLine)" stroke-width="3.5" stroke-linecap="round"/>
           <!-- Data Points & Labels -->
           ${dotsHtml}
           ${labelsHtml}
@@ -2043,66 +2079,63 @@
       }).join("");
     }
 
-    // 5. Renewal Health Pie Chart & Color Scale Gauge
+    // 5. Renewal Health Donut & Color Scale Gauge
+    //    (R21: the flat pie became a segmented ring — same data, modern form.
+    //     The name generateRenewalPieSvg is kept because tests lock it.)
     function generateRenewalPieSvg(active, expiring, overdue) {
       const slices = [
-        { label: "Active Validity", value: active, color: "#0D7751" },
-        { label: "Expiring Soon", value: expiring, color: "#f59e0b" },
-        { label: "Overdue", value: overdue, color: "#e11d48" }
+        { label: "Active Validity", value: active, color: "#17A273", light: "#5AD9AC" },
+        { label: "Expiring Soon", value: expiring, color: "#E9A23B", light: "#F7CD86" },
+        { label: "Overdue", value: overdue, color: "#BE123C", light: "#EC6A80" }
       ];
       const total = slices.reduce((sum, s) => sum + s.value, 0);
-      const cx = 65, cy = 65, r = 52;
+      const size = 150, cx = size / 2, cy = size / 2, r = 54, ring = 20;
+      const circumference = 2 * Math.PI * r;
+
+      const track = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="#EDF3F0" stroke-width="${ring}" />`;
+      const centre = `
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; line-height:1.05;">
+          <div style="font-size:1.55rem; font-weight:900; letter-spacing:-0.035em; color:var(--primary-dark); font-variant-numeric:tabular-nums;">${total}</div>
+          <div style="font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted); font-weight:800;">Clubs</div>
+        </div>`;
 
       if (total === 0) {
-        return `<svg width="130" height="130" viewBox="0 0 130 130">
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
-          <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" fill="#64748b" font-weight="600">No Clubs</text>
-        </svg>`;
+        return `<div class="retention-pie-svg" style="position:relative; width:${size}px; height:${size}px;">
+          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${track}</svg>
+          ${centre}
+        </div>`;
       }
 
-      const nonZero = slices.filter(s => s.value > 0);
-      if (nonZero.length === 1) {
-        return `<svg width="130" height="130" viewBox="0 0 130 130" class="retention-pie-svg" style="filter: drop-shadow(0 3px 8px rgba(16,49,37,0.14));">
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${nonZero[0].color}" stroke="#ffffff" stroke-width="2.5">
-            <title>${nonZero[0].label}: ${nonZero[0].value} (100%)</title>
-          </circle>
-          <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">100%</text>
-        </svg>`;
-      }
-
-      let currentAngle = -Math.PI / 2;
-      let pathElements = [];
-
-      slices.forEach(slice => {
-        if (slice.value <= 0) return;
-        const sliceAngle = (slice.value / total) * 2 * Math.PI;
-        const startAngle = currentAngle;
-        const endAngle = currentAngle + sliceAngle;
-
-        const x1 = cx + r * Math.cos(startAngle);
-        const y1 = cy + r * Math.sin(startAngle);
-        const x2 = cx + r * Math.cos(endAngle);
-        const y2 = cy + r * Math.sin(endAngle);
-
-        const largeArc = sliceAngle > Math.PI ? 1 : 0;
-        const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
-
-        const pct = Math.round((slice.value / total) * 100);
-        pathElements.push(`
-          <path d="${d}" fill="${slice.color}" stroke="#ffffff" stroke-width="2" class="pie-slice">
-            <title>${slice.label}: ${slice.value} (${pct}%)</title>
-          </path>
-        `);
-        currentAngle = endAngle;
-      });
+      let accumulated = 0;
+      let rnwDefs = "";
+      const segs = slices.filter(s => s.value > 0).map((s, i) => {
+        const rawDash = (s.value / total) * circumference;
+        const offset = -accumulated;
+        accumulated += rawDash;
+        const gap = 5;
+        const dash = Math.max(rawDash - gap, 1);
+        /* R21v2: two-tone gradient segment strokes */
+        rnwDefs += `
+          <linearGradient id="rnwGrad${i}" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${s.color}"/>
+            <stop offset="100%" stop-color="${s.light}"/>
+          </linearGradient>`;
+        return `
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="url(#rnwGrad${i})" stroke-width="${ring}"
+            stroke-dasharray="${dash} ${circumference - dash}"
+            stroke-dashoffset="${offset}"
+            style="transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease;">
+            <title>${s.label}: ${s.value} (${Math.round((s.value / total) * 100)}%)</title>
+          </circle>`;
+      }).join("");
 
       return `
-        <svg width="130" height="130" viewBox="0 0 130 130" class="retention-pie-svg" style="overflow: visible; filter: drop-shadow(0 3px 8px rgba(16,49,37,0.14));">
-          ${pathElements.join("")}
-          <circle cx="${cx}" cy="${cy}" r="14" fill="#ffffff" stroke="rgba(16,49,37,0.08)" stroke-width="1.5" />
-          <circle cx="${cx}" cy="${cy}" r="6" fill="#1A503E" />
-        </svg>
-      `;
+        <div class="retention-pie-svg" style="position:relative; width:${size}px; height:${size}px;">
+          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="filter: drop-shadow(0 4px 10px rgba(16,49,37,0.12));">
+            <defs>${rnwDefs}</defs>${track}${segs}
+          </svg>
+          ${centre}
+        </div>`;
     }
 
     function renderRenewalHealthGauge(renewalHealth) {
@@ -2124,7 +2157,7 @@
       container.innerHTML = `
         <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
           <!-- SVG Pie Chart Visualization -->
-          <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 130px;">
+          <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 150px;">
             ${pieSvg}
             <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.45rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;">Status Distribution</span>
           </div>
@@ -2145,9 +2178,9 @@
 
             <!-- Existing Color Scale Legend Indicators -->
             <div class="retention-legend-row" style="margin-bottom: 0.85rem; font-size: 0.78rem;">
-              <span style="color: #0D7751; font-weight: 600;">🟢 Active: <strong>${active}</strong> (${actPct}%)</span>
-              <span style="color: #d97706; font-weight: 600;">🟡 Expiring (&le;90d): <strong>${expiring}</strong> (${expPct}%)</span>
-              <span style="color: #e11d48; font-weight: 600;">🔴 Overdue: <strong>${overdue}</strong> (${ovdPct}%)</span>
+              <span style="font-weight: 600; color: var(--text-main);"><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#17A273; margin-right:6px;"></span>Active: <strong>${active}</strong> (${actPct}%)</span>
+              <span style="font-weight: 600; color: var(--text-main);"><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#E9A23B; margin-right:6px;"></span>Expiring (&le;90d): <strong>${expiring}</strong> (${expPct}%)</span>
+              <span style="font-weight: 600; color: var(--text-main);"><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#BE123C; margin-right:6px;"></span>Overdue: <strong>${overdue}</strong> (${ovdPct}%)</span>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border);">
@@ -2163,36 +2196,116 @@
       `;
     }
 
-    // 6. Employee Quotas Performance Bars
-    function renderEmployeeBars(quotas) {
-      const container = document.getElementById("employee-bars-container");
+    // 6. Activity Distribution Matrix (R21v3 — replaced the plain volume bars:
+    //    a contribution share ribbon (who owns what share of total activity) over
+    //    heat-tinted matrix rows with clubs / support / share / recency columns.
+    //    Relative distribution is now readable at a glance AND per-dimension.)
+    function renderActivityMatrix(quotas) {
+      const container = document.getElementById("activity-matrix-container");
       if (!container) return;
-      container.innerHTML = "";
       if (!quotas || quotas.length === 0) {
-        container.innerHTML = "<p style='color: var(--text-muted);'>No quotas recorded yet.</p>";
+        container.innerHTML = "<p style='color: var(--text-muted);'>No activity recorded yet.</p>";
         return;
       }
 
-      const maxClubs = Math.max(...quotas.map(q => parseInt(q.clubs_approved_count || 0)), 1);
+      const ZONE_CHIP = {
+        "North":     { bg: "#E7F6EE", fg: "#0D7751" },
+        "Central":   { bg: "#EFEAFB", fg: "#6D4FC4" },
+        "West":      { bg: "#FDF2E3", fg: "#B45309" },
+        "East":      { bg: "#E7F0FB", fg: "#1E5F8C" },
+        "North East":{ bg: "#FDEBF0", fg: "#BE123C" },
+        "South":     { bg: "#E2F7EE", fg: "#17A273" }
+      };
+      const RIBBON_SHADES = [
+        "linear-gradient(135deg, #0B3B2A, #0D7751)",
+        "linear-gradient(135deg, #0D7751, #2FA97B)",
+        "linear-gradient(135deg, #2FA97B, #57C7A0)",
+        "linear-gradient(135deg, #4B9BC9, #7FC2E6)",
+        "linear-gradient(135deg, #8B5CF6, #B79CF8)",
+        "linear-gradient(135deg, #D97706, #F2B255)",
+        "linear-gradient(135deg, #647B70, #93A89D)"
+      ];
 
-      quotas.forEach(q => {
-        const clubs = parseInt(q.clubs_approved_count || 0);
-        const support = parseInt(q.support_logs_count || 0);
-        const pct = Math.round((clubs / maxClubs) * 100);
-
-        const row = document.createElement("div");
-        row.className = "bar-chart-row";
-        row.innerHTML = `
-          <div class="bar-chart-header">
-            <span><strong>${q.employee_name || q.emp_id}</strong> (${q.emp_id})</span>
-            <span><strong>${clubs}</strong> approved | <strong>${support}</strong> support</span>
-          </div>
-          <div class="bar-track">
-            <div class="bar-fill accent" style="width: ${Math.max(pct, 4)}%;"></div>
-          </div>
-        `;
-        container.appendChild(row);
+      const rows = quotas.map(q => {
+        const clubs = parseInt(q.clubs_approved_count || 0, 10) || 0;
+        const support = parseInt(q.support_logs_count || 0, 10) || 0;
+        let recency = null;
+        if (q.last_activity_timestamp) {
+          // ISO strings may carry microseconds — trim to milliseconds for Date.parse
+          const iso = String(q.last_activity_timestamp).replace(/(\.\d{3})\d+/, "$1");
+          const ts = Date.parse(iso);
+          if (!isNaN(ts)) recency = Math.max(0, Math.floor((Date.now() - ts) / 86400000));
+        }
+        return {
+          name: q.employee_name || q.emp_id,
+          empId: q.emp_id,
+          zone: q.zone || "",
+          clubs, support,
+          total: clubs + support,
+          recency
+        };
       });
+
+      const grandTotal = rows.reduce((a, r) => a + r.total, 0) || 1;
+      const maxClubs = Math.max(...rows.map(r => r.clubs), 1);
+      const maxSupport = Math.max(...rows.map(r => r.support), 1);
+      rows.sort((a, b) => b.total - a.total);
+
+      /* 1. Contribution share ribbon — the at-a-glance picture */
+      const ribbon = rows.map((r, i) => {
+        const share = (r.total / grandTotal) * 100;
+        const shade = RIBBON_SHADES[i % RIBBON_SHADES.length];
+        const label = share >= 11
+          ? `<span class="ribbon-label">${r.name.split(" ")[0]} ${Math.round(share)}%</span>` : "";
+        return `<div class="ribbon-seg" style="flex: 0 0 ${share.toFixed(2)}%; background: ${shade};" title="${r.name}: ${r.total} activities (${share.toFixed(1)}% of total)">${label}</div>`;
+      }).join("");
+
+      /* 2. Heat-tinted matrix rows */
+      const rowHtml = rows.map((r, i) => {
+        const share = (r.total / grandTotal) * 100;
+        const zone = ZONE_CHIP[r.zone] || { bg: "#EDF3F0", fg: "#647B70" };
+        const clubPct = Math.round((r.clubs / maxClubs) * 100);
+        const suppPct = Math.round((r.support / maxSupport) * 100);
+        const clubAlpha = (0.06 + 0.22 * (r.clubs / maxClubs)).toFixed(2);
+        const suppAlpha = (0.06 + 0.22 * (r.support / maxSupport)).toFixed(2);
+        let recChip = `<span class="recency-chip recency-unknown">no data</span>`;
+        if (r.recency !== null) {
+          const d = r.recency;
+          const cls = d <= 7 ? "recency-fresh" : (d <= 30 ? "recency-warm" : "recency-stale");
+          const word = d === 0 ? "today" : d + "d ago";
+          recChip = `<span class="recency-chip ${cls}">${word}</span>`;
+        }
+        return `
+          <div class="activity-row">
+            <div class="activity-officer">
+              <span class="activity-rank">#${i + 1}</span>
+              <span class="activity-name">${r.name} <span class="zone-chip" style="background:${zone.bg}; color:${zone.fg};">${r.zone}</span></span>
+            </div>
+            <div class="activity-cell" style="background: rgba(13, 119, 81, ${clubAlpha});" title="Clubs approved: ${r.clubs}">
+              <strong>${r.clubs}</strong>
+              <div class="cell-mini-track"><div class="cell-mini-fill" style="width:${clubPct}%;"></div></div>
+            </div>
+            <div class="activity-cell" style="background: rgba(30, 95, 140, ${suppAlpha});" title="Support logs: ${r.support}">
+              <strong>${r.support}</strong>
+              <div class="cell-mini-track"><div class="cell-mini-fill sky" style="width:${suppPct}%;"></div></div>
+            </div>
+            <div class="activity-share"><span class="share-pill">${share.toFixed(1)}%</span></div>
+            <div class="activity-recency">${recChip}</div>
+          </div>`;
+      }).join("");
+
+      container.innerHTML = `
+        <div class="activity-ribbon-wrap">
+          <div class="activity-ribbon">${ribbon}</div>
+          <div class="activity-ribbon-caption">Share of total recorded activity (${grandTotal} actions) — darker = higher rank · hover a segment for detail</div>
+        </div>
+        <div class="activity-matrix">
+          <div class="activity-row activity-head">
+            <div>Nodal Officer</div><div>Clubs Approved</div><div>Support Logs</div><div>Share</div><div>Last Activity</div>
+          </div>
+          ${rowHtml}
+        </div>
+      `;
     }
 
     // 6B. Employee Performance Evaluation & Star Rating Matrix Loader
