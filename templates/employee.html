@@ -426,8 +426,8 @@
   </style>
 </head>
 <body>
-  <header class="navbar">
-    <div class="nav-container">
+  <div class="app-shell">
+    <aside class="app-sidebar">
       <a href="/" class="brand">
         <div class="brand-logo-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
@@ -437,20 +437,57 @@
           <p>Activity Tracker & Club Approval System • NDLI IIT Kharagpur</p>
         </div>
       </a>
-      <div class="nav-links" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: nowrap;">
-        <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.8rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
-          <span>⏰ --:--:--</span>
-        </div>
-        <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
-          <!-- Dynamically populated by updateNavAuth() -->
-        </div>
-        <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
-        <a href="/api/download/user-manual" class="nav-link" target="_blank" rel="noopener noreferrer" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
-        <a href="/admin" class="nav-link nav-link-admin" title="Open Admin Office Dashboard"><span>⚙️</span> Admin Office</a>
-        <a href="/" class="nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
+
+      <div class="side-caption">Workspace</div>
+      <!-- Tabs Navigation -->
+      <div class="tabs" role="tablist" aria-label="Employee portal sections">
+        <button class="tab-btn active" id="tab-btn-activity" role="tab" aria-selected="true" aria-controls="tab-activity" data-target="tab-activity" title="Daily Activity Tracker (SEC A, B, C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4.5" width="14" height="16.5" rx="2.5"/><path d="M9 4.5h6v2.6H9z"/><path d="M8.8 12.2l2.1 2.1 4.3-4.4"/></svg>Daily Activity</button>
+        <button class="tab-btn" id="tab-btn-search" role="tab" aria-selected="false" aria-controls="tab-search" data-target="tab-search" title="Universal Club Search & Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg>Universal Search</button>
+        <button class="tab-btn" id="tab-btn-history" role="tab" aria-selected="false" aria-controls="tab-history" data-target="tab-history" title="My Node Activity History"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.3 2"/></svg>Activity History</button>
+        <button class="tab-btn" id="tab-btn-toolbox" role="tab" aria-selected="false" aria-controls="tab-toolbox" data-target="tab-toolbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>🧰 Tool Box</button>
       </div>
-    </div>
-  </header>
+
+      <div class="side-caption">Attention</div>
+      <button type="button" class="side-link" onclick="openEmployeeRemindersListModal()" title="Open due issue reminders list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Reminders<span class="side-count" id="side-count-reminders"></span></button>
+
+      <div class="side-caption">Portals &amp; Tools</div>
+      <a href="https://ndl.iitkgp.ac.in" class="side-link nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
+      <a href="/api/download/user-manual" class="side-link nav-link" target="_blank" rel="noopener noreferrer" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
+      <a href="/admin" class="side-link nav-link nav-link-admin" title="Open Admin Office Dashboard"><span>⚙️</span> Admin Office</a>
+      <a href="/" class="side-link nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
+
+      <div class="side-spacer"></div>
+      <div class="side-promo">
+        <div class="k">TOOL BOX</div>
+        <div class="v">Regional Officer Tools</div>
+        <div class="d">The 12 regional utilities — support ticketing, official mail, cloud drives and office tools — open from the Tool Box tab.</div>
+        <div class="side-promo-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="var b=document.querySelector('.tab-btn[data-target=\'tab-toolbox\']'); if(b)b.click();">Open Tool Box</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="app-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg>
+          <input type="text" id="topbar-search" data-shell-search="universal" placeholder="Search clubs, officers, issues…" aria-label="Search clubs, officers, issues">
+          <span class="kbd">⌘ K</span>
+        </div>
+        <div class="top-right">
+          <div class="top-chip plain">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+            <span data-shell-date>Oct 2026</span>
+          </div>
+          <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.8rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
+            <span>⏰ --:--:--</span>
+          </div>
+          <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
+            <!-- Dynamically populated by updateNavAuth() -->
+          </div>
+          <div class="avatar">EO</div>
+        </div>
+      </header>
 
   <main class="container">
     <!-- ============================================================= -->
@@ -593,14 +630,6 @@
 
     <!-- EMPLOYEE ACTIVE ISSUE REMINDER TOKENS (FEATURE 4) -->
     <div id="employee-reminders-container"></div>
-
-    <!-- Tabs Navigation -->
-    <div class="tabs" role="tablist" aria-label="Employee portal sections">
-      <button class="tab-btn active" id="tab-btn-activity" role="tab" aria-selected="true" aria-controls="tab-activity" data-target="tab-activity">Daily Activity Tracker (SEC A, B, C)</button>
-      <button class="tab-btn" id="tab-btn-search" role="tab" aria-selected="false" aria-controls="tab-search" data-target="tab-search">Universal Club Search & Edit</button>
-      <button class="tab-btn" id="tab-btn-history" role="tab" aria-selected="false" aria-controls="tab-history" data-target="tab-history">My Node Activity History</button>
-      <button class="tab-btn" id="tab-btn-toolbox" role="tab" aria-selected="false" aria-controls="tab-toolbox" data-target="tab-toolbox">🧰 Tool Box</button>
-    </div>
 
     <!-- TAB 1: DAILY ACTIVITY TRACKER -->
     <div class="tab-panel active" id="tab-activity" role="tabpanel" aria-labelledby="tab-btn-activity">
@@ -1247,6 +1276,8 @@
     </div>
 </section>
   </main>
+    </div><!-- /.app-main -->
+  </div><!-- /.app-shell -->
 
   <!-- EDIT & RENEWAL MODAL -->
   <div class="modal-overlay" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="modal-club-id" tabindex="-1">
@@ -1862,6 +1893,7 @@
   <script src="/static/js/certificate_engine.js?v=20261003"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
+  <script src="/static/js/shell.js?v=20261007"></script>
   <script>
     // Default initial profiles fallback (dynamically updated from master backend database)
     let EMP_PROFILES = {

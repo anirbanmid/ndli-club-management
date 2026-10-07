@@ -213,8 +213,8 @@
   </script>
 </head>
 <body>
-  <header class="navbar">
-    <div class="nav-container">
+  <div class="app-shell">
+    <aside class="app-sidebar">
       <a href="/" class="brand">
         <div class="brand-logo-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
@@ -224,58 +224,74 @@
           <p>NDLI Club Master Control &amp; Strategic Decision System</p>
         </div>
       </a>
-      <div class="nav-links">
+
+      <div class="side-caption">Workspace</div>
+      <!-- Tabs -->
+      <div class="tabs" role="tablist" aria-label="Admin portal sections">
+        <button class="tab-btn active" id="tab-btn-dashboard" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-target="tab-dashboard" title="Performance Dashboard &amp; Infographics"><svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Performance Dashboard</button>
+        <button class="tab-btn" id="tab-btn-ai" role="tab" aria-selected="false" aria-controls="tab-ai" data-target="tab-ai" title="AI Decision &amp; Strategic Roadmap"><svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.75 5.25L19 10l-5.25 1.75L12 17l-1.75-5.25L5 10l5.25-1.75L12 3z"/><path d="M18.6 15.2l.65 1.95 1.95.65-1.95.65-.65 1.95-.65-1.95-1.95-.65 1.95-.65.65-1.95z"/></svg>AI Strategic Roadmap</button>
+        <button class="tab-btn" id="tab-btn-employees" role="tab" aria-selected="false" aria-controls="tab-employees" data-target="tab-employees" title="Employee Management (Add / Edit / Block)"><svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M16 11a2.6 2.6 0 1 0 0-5.2M17 15c2 .6 3.3 2.3 3.7 5"/></svg>Employee Management</button>
+        <button class="tab-btn" id="tab-btn-sync" role="tab" aria-selected="false" aria-controls="tab-sync" data-target="tab-sync" title="Google Drive &amp; Node Sync Health"><svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5V9H15"/></svg>Node Sync Health</button>
+      </div>
+
+      <div class="side-caption">Attention</div>
+      <button type="button" class="side-link" onclick="openRenewalAttentionModal()">
+        <svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg>
+        <span>Renewal Attention</span>
+        <span class="side-count" id="side-count-renewals"></span>
+      </button>
+      <button type="button" class="side-link" onclick="openAdminEscalationsListModal()">
+        <svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3zM12 9.5v4.2M12 16.6v.2"/></svg>
+        <span>30-Day Escalations</span>
+        <span class="side-count" id="side-count-escalations"></span>
+      </button>
+      <div class="side-caption">Portals &amp; Tools</div>
+      <a href="#" class="side-link nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
+      <a href="https://ndl.iitkgp.ac.in" class="side-link nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
+      <a href="/login" class="side-link nav-link" title="Regional Employee Sign-In"><span>🔐</span> Employee Login</a>
+      <a href="/employee" class="side-link nav-link nav-link-employee" title="Regional Zonal Employee Portal"><span>👥</span> Employee Portal</a>
+      <a href="/" class="side-link nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
+      <a href="/api/download/user-manual" class="side-link nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
+
+      <div class="side-spacer"></div>
+      <div class="side-promo">
+        <div class="k">NODE SYNC</div>
+        <div class="v">Google Drive &amp; Node Health</div>
+        <div class="d">Open the Node Sync Health tab for Google Drive mirror status and per-node reconciliation.</div>
+        <div class="side-promo-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="var b=document.querySelector('.tab-btn[data-target=\'tab-sync\']'); if(b)b.click();">Open Sync Health</button>
+        </div>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="app-search">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg>
+          <input id="topbar-search" data-shell-search="filter" type="text" placeholder="Filter current view…" autocomplete="off">
+          <span class="kbd">⌘ K</span>
+        </div>
+        <div class="top-right">
+          <div class="top-chip plain">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+            <span data-shell-date>Oct 2026</span>
+          </div>
+          <div class="top-chip">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.6 2.4 3.9 5.3 3.9 8.5S14.6 18.1 12 20.5"/></svg>
+            <span data-shell-zone>All Zones · 6</span>
+          </div>
+          <button type="button" class="icon-btn" onclick="openAdminEscalationsListModal()" title="View 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
+            <svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6zM10 19a2 2 0 0 0 4 0"/></svg>
+            <span class="dot"></span>
+          </button>
+          <div class="top-user">
+            <div class="avatar">AD</div>
         <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem; min-width: 132px; text-align: center; display: inline-block;">ADMIN LOCKED 🔒</span>
         <span id="nav-admin-user" style="font-size: 0.86rem; color: var(--text-muted);">Access Restricted</span>
         <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem; white-space: nowrap;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
-        <a href="#" class="nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
-        <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
-        <a href="/login" class="nav-link" title="Regional Employee Sign-In"><span>🔐</span> Employee Login</a>
-        <a href="/employee" class="nav-link nav-link-employee" title="Regional Zonal Employee Portal"><span>👥</span> Employee Portal</a>
-        <a href="/" class="nav-link nav-link-portal" title="Return to Main Portal"><span>🏛️</span> Main Portal</a>
-        <a href="/api/download/user-manual" class="nav-link" target="_blank" title="Download Official NDLI User Manual (PDF)"><span>📖</span> User Manual</a>
-      </div>
-    </div>
-  </header>
-
-  <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
-  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: var(--z-modal-top); display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-login-modal-title" tabindex="-1">
-    <div class="modal-content" style="max-width: 480px; width: 95%;">
-      <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
-      <div class="card-header" style="margin-bottom: 1.25rem;">
-        <div>
-          <h3 class="card-title" id="admin-login-modal-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-            <span>🏛️</span> Central Admin Sign-In
-          </h3>
-          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
-        </div>
-      </div>
-      <div id="admin-modal-alert"></div>
-      <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
-        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
-          <div style="margin-bottom: 0.85rem;">
-            <label for="admin-modal-id" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
-            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-          </div>
-          <div>
-            <label for="admin-modal-pass" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
-            <div style="position: relative; display: flex; align-items: center;">
-              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.92rem; font-weight: 600;">👁️ Show</button>
-            </div>
           </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 1.15rem;">
-          <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
-          <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
-            <span>🔓</span> Verify &amp; Unlock
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <main class="container">
+      </header>
+      <main class="container">
     <!-- Top KPIs -->
     <div class="kpi-row">
       <div class="stat-card reveal-card">
@@ -318,14 +334,7 @@
 
     <!-- Global Alert -->
     <div id="admin-alert"></div>
-
-    <!-- Tabs -->
-    <div class="tabs" role="tablist" aria-label="Admin portal sections">
-      <button class="tab-btn active" id="tab-btn-dashboard" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-target="tab-dashboard">Performance Dashboard & Infographics</button>
-      <button class="tab-btn" id="tab-btn-ai" role="tab" aria-selected="false" aria-controls="tab-ai" data-target="tab-ai">AI Decision & Strategic Roadmap</button>
-      <button class="tab-btn" id="tab-btn-employees" role="tab" aria-selected="false" aria-controls="tab-employees" data-target="tab-employees">Employee Management (Add / Edit / Block)</button>
-      <button class="tab-btn" id="tab-btn-sync" role="tab" aria-selected="false" aria-controls="tab-sync" data-target="tab-sync">Google Drive & Node Sync Health</button>
-    </div>
+    <!-- The sign-in prompt banner is rendered at runtime by renderUnauthenticatedKPIs(); its id="admin-auth-prompt-banner" element is created from the frozen inline script, not from markup. -->
 
     <!-- TAB 1: PERFORMANCE DASHBOARD & INFOGRAPHICS -->
     <div class="tab-panel active" id="tab-dashboard" role="tabpanel" aria-labelledby="tab-btn-dashboard">
@@ -928,10 +937,50 @@
         </div>
       </div>
     </div>
-  </main>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: DEDICATED ADMIN AUTHENTICATION POPUP -->
+  <div class="modal-overlay modal" id="admin-login-modal" style="z-index: var(--z-modal-top); display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-login-modal-title" tabindex="-1">
+    <div class="modal-content" style="max-width: 480px; width: 95%;">
+      <button class="modal-close" onclick="closeAdminLoginModal()" title="Close Window">×</button>
+      <div class="card-header" style="margin-bottom: 1.25rem;">
+        <div>
+          <h3 class="card-title" id="admin-login-modal-title" style="color: #103125; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🏛️</span> Central Admin Sign-In
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">IIT Kharagpur Central Office Master Verification</p>
+        </div>
+      </div>
+      <div id="admin-modal-alert"></div>
+      <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
+          <div style="margin-bottom: 0.85rem;">
+            <label for="admin-modal-id" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
+            <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+          </div>
+          <div>
+            <label for="admin-modal-pass" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.92rem; font-weight: 600;">👁️ Show</button>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 1.15rem;">
+          <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
+          <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
+            <span>🔓</span> Verify &amp; Unlock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
+  <script src="/static/js/shell.js?v=20261007"></script>
   <script>
     let GLOBAL_METRICS = null;
     let CURRENT_TABLE_STATE_FILTER = null;

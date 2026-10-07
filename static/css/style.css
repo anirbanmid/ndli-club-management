@@ -1930,3 +1930,233 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .card            { padding: 0.95rem 1.05rem; }
   .stat-card       { padding: 0.75rem 0.90rem; }
 }
+
+/* ==========================================================================
+   R19 SHELL — Sample-C structural chrome (fixed sidebar + topbar) for the
+   admin & employee portals. Geometry copied from the chosen mockup
+   (r16_design_samples/screens-c-dashboard.html: sidebar 252px, topbar 70px,
+   nav-item 10.5/14 r13, promo card r18). Scoped under .app-shell so the
+   index/verify pages keep their own nav untouched.
+   ========================================================================== */
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; }
+
+/* ---- SIDEBAR ---- */
+.app-sidebar {
+  width: 252px;
+  flex: 0 0 252px;
+  align-self: stretch;
+  background: var(--c-card);
+  border-right: 1px solid var(--c-line);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.app-sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 8px 20px;
+  text-decoration: none;
+}
+.app-sidebar .brand .brand-logo-card {
+  width: 40px; height: 40px; flex: 0 0 40px;
+  border-radius: 13px; padding: 5px;
+  background: linear-gradient(140deg, #34C98F, #0D7751);
+  box-shadow: 0 8px 18px rgba(13, 119, 81, 0.28);
+  display: flex; align-items: center; justify-content: center;
+}
+.app-sidebar .brand .brand-logo-img { width: 100%; height: 100%; object-fit: contain; }
+.app-sidebar .brand .brand-text h1 {
+  font-size: 14.5px; font-weight: 800; letter-spacing: -0.012em; margin: 0;
+  color: var(--c-ink); line-height: 1.25;
+}
+.app-sidebar .brand .brand-text p {
+  font-size: 10px; color: var(--c-faint); letter-spacing: 0.10em;
+  text-transform: uppercase; margin: 2px 0 0; font-weight: 700;
+}
+
+.side-caption {
+  font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--c-faint); font-weight: 800; padding: 12px 14px 8px;
+}
+
+/* Sidebar restyle of the existing tab strip (same elements/roles — the
+   .tab-btn buttons stay the tab widgets, only the presentation changes). */
+.app-sidebar .tabs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+}
+.app-sidebar .tabs::-webkit-scrollbar { display: none; }
+.app-sidebar .tabs.ui-scroll-right,
+.app-sidebar .tabs.ui-scroll-left,
+.app-sidebar .tabs.ui-scroll-left.ui-scroll-right {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.app-sidebar .tab-btn {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 10.5px 14px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-muted);
+  margin: 0;
+  white-space: normal;
+}
+.app-sidebar .tab-btn svg { width: 16.5px; height: 16.5px; flex: 0 0 16.5px; }
+.app-sidebar .tab-btn:hover { background: var(--c-tint-2); color: var(--c-ink); }
+.app-sidebar .tab-btn.active { background: var(--c-green-soft); color: var(--c-green-deep); }
+
+/* Non-tab sidebar rows (portals, tools, attention items) */
+.side-link {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10.5px 14px; border-radius: 13px;
+  color: var(--c-muted); font-size: 13px; font-weight: 700;
+  cursor: pointer; margin-bottom: 3px; border: none; background: transparent;
+  width: 100%; text-align: left; text-decoration: none; font-family: var(--font);
+  transition: background .16s, color .16s;
+}
+.side-link svg { width: 16.5px; height: 16.5px; flex: 0 0 16.5px; stroke: currentColor; fill: none; stroke-width: 1.9; }
+.side-link:hover { background: var(--c-tint-2); color: var(--c-ink); }
+.side-link .side-count {
+  margin-left: auto; font-size: 10px; font-weight: 800;
+  padding: 2.5px 8px; border-radius: 999px;
+  background: var(--c-red-soft); color: var(--c-red-ink);
+}
+.side-link .side-count:empty,
+.side-link .side-count[data-empty="1"] { display: none; }
+
+.side-spacer { margin-top: auto; }
+
+.side-promo {
+  margin-top: 14px; border-radius: 18px; padding: 16px;
+  background: linear-gradient(150deg, #EAF6EF, #FDF4E4);
+  border: 1px solid var(--c-line);
+}
+.side-promo .k { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--c-green-deep); font-weight: 800; }
+.side-promo .v { font-size: 13px; font-weight: 800; color: var(--c-ink); margin: 6px 0 4px; letter-spacing: -0.01em; }
+.side-promo .d { font-size: 10.5px; color: var(--c-muted); line-height: 1.6; }
+.side-promo .side-promo-actions { display: flex; flex-direction: column; gap: 7px; margin-top: 11px; }
+.side-promo .btn { justify-content: center; width: 100%; }
+
+/* ---- MAIN COLUMN + TOPBAR ---- */
+.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.app-topbar {
+  height: 70px; flex: 0 0 70px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 26px;
+  background: var(--c-card);
+  border-bottom: 1px solid var(--c-line);
+  position: sticky; top: 0;
+  z-index: var(--z-sticky-head);
+}
+
+.app-search {
+  flex: 0 1 340px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--c-bg); border: 1px solid var(--c-line);
+  border-radius: 14px; padding: 0 15px;
+  color: var(--c-faint); font-size: 12.5px; font-weight: 600;
+}
+.app-search svg { width: 15px; height: 15px; stroke: var(--c-faint); fill: none; stroke-width: 2; flex: 0 0 15px; }
+.app-search input {
+  flex: 1; min-width: 0; border: none; background: transparent; outline: none;
+  padding: 11px 0; font: inherit; color: var(--c-ink);
+}
+.app-search input::placeholder { color: var(--c-faint); }
+.app-search .kbd {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: var(--c-faint);
+  border: 1px solid var(--c-line); border-radius: 7px; padding: 2.5px 7px; background: #fff;
+}
+
+.top-right { margin-left: auto; display: flex; align-items: center; gap: 11px; }
+
+.top-chip {
+  display: flex; align-items: center; gap: 7px; padding: 9px 14px;
+  border-radius: 999px; background: var(--c-green-soft); color: var(--c-green-deep);
+  font-size: 11.5px; font-weight: 800; cursor: pointer;
+  border: 1px solid transparent; transition: all .16s; white-space: nowrap;
+}
+.top-chip:hover { border-color: #BFE6D3; }
+.top-chip.plain { background: var(--c-bg); color: var(--c-muted); border: 1px solid var(--c-line); cursor: default; }
+.top-chip svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.icon-btn {
+  width: 39px; height: 39px; border-radius: 13px;
+  background: var(--c-bg); border: 1px solid var(--c-line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: background .16s;
+  padding: 0;
+}
+.icon-btn:hover { background: var(--c-tint); }
+.icon-btn svg { width: 16.5px; height: 16.5px; stroke: var(--c-muted); fill: none; stroke-width: 1.9; }
+.icon-btn .dot {
+  position: absolute; top: 9px; right: 10px; width: 7.5px; height: 7.5px;
+  border-radius: 50%; background: var(--c-amber); border: 2px solid var(--c-bg);
+}
+.icon-btn .side-count { position: absolute; top: -5px; right: -5px; margin: 0; }
+
+.avatar {
+  width: 38px; height: 38px; border-radius: 13px;
+  background: linear-gradient(140deg, #F2B34D, #D97706);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex: 0 0 38px;
+  box-shadow: 0 8px 16px rgba(217, 119, 6, 0.25);
+}
+.top-user { display: flex; align-items: center; gap: 10px; padding-left: 12px; }
+.top-user .nm { font-size: 12.5px; font-weight: 800; letter-spacing: -0.01em; color: var(--c-ink); }
+.top-user .rl { font-size: 10px; color: var(--c-faint); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Content column follows the mockup's generous padding */
+.app-main .container {
+  max-width: none;
+  margin: 0 auto;
+  padding: 16px 26px 12px;
+}
+
+/* Print: chrome disappears, content remains (report/cert print routes) */
+@media print {
+  .app-sidebar, .app-topbar { display: none !important; }
+  .app-shell { display: block; }
+  .app-main .container { padding: 0; }
+}
+
+/* Narrow screens: the rail collapses above the content as a scroll strip */
+@media (max-width: 980px) {
+  .app-shell { flex-direction: column; }
+  .app-sidebar {
+    width: 100%; flex: none; height: auto; position: static;
+    flex-direction: row; align-items: center; gap: 8px;
+    overflow-x: auto; padding: 12px 14px;
+    border-right: none; border-bottom: 1px solid var(--c-line);
+  }
+  .app-sidebar .brand { padding: 0 8px 0 0; flex: 0 0 auto; }
+  .app-sidebar .brand .brand-text p { display: none; }
+  .side-caption { display: none; }
+  .app-sidebar .tabs { flex-direction: row; width: auto; flex: 0 0 auto; }
+  .app-sidebar .tab-btn { width: auto; white-space: nowrap; padding: 8px 13px; }
+  .side-link { width: auto; white-space: nowrap; padding: 8px 13px; margin: 0; }
+  .side-link .side-count { margin-left: 6px; }
+  .side-spacer { display: none; }
+  .side-promo { display: none; }
+  .app-topbar { padding: 0 14px; }
+  .app-search { flex: 1 1 auto; }
+}

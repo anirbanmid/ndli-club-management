@@ -113,8 +113,22 @@ function initTabs() {
         btn.setAttribute("tabindex", "0");
       }
 
-      const parent = tabContainer.parentElement;
-      parent.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      // R19: the tab strip now lives in the sidebar shell while the panels stay
+      // in the content column, so the old parentElement scope may contain no
+      // panels. Prefer the nearest shell/content root, then fall back to the
+      // legacy parent scope, then document — first scope that has panels wins.
+      const scopes = [];
+      if (typeof tabContainer.closest === "function") {
+        const shell = tabContainer.closest(".app-shell");
+        if (shell) scopes.push(shell);
+      }
+      scopes.push(tabContainer.parentElement, document);
+      let panelScope = null;
+      for (let si = 0; si < scopes.length; si++) {
+        const cand = scopes[si];
+        if (cand && cand.querySelector(".tab-panel")) { panelScope = cand; break; }
+      }
+      (panelScope || document).querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       const targetPanel = document.getElementById(targetId);
       if (targetPanel) targetPanel.classList.add("active");
 
