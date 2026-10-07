@@ -29,10 +29,30 @@ class TestReportWiring(unittest.TestCase):
         self.js = read("static/js/report_generator.js")
 
     def test_buttons_present_and_labeled(self):
+        # R20 UI change (user, 2026-10-07): the two long toolbar buttons
+        #   "Generate Comprehensive Report (PDF)" / "... (DOC)"
+        # became ONE "Create Report" button opening a PDF/DOC dropdown — to save
+        # visual space. DELIBERATE lock update (user-requested behaviour change).
+        # The two entry-point ids stay on the dropdown items, so the wiring lock
+        # below is unchanged.
+        self.assertIn('id="btn-create-report"', self.admin)
         self.assertIn('id="btn-generate-report-pdf"', self.admin)
         self.assertIn('id="btn-generate-report-doc"', self.admin)
-        self.assertIn("Generate Comprehensive Report (PDF)", self.admin)
-        self.assertIn("Generate Comprehensive Report (DOC)", self.admin)
+        self.assertIn("> Create Report", self.admin)
+        self.assertNotIn("Generate Comprehensive Report (PDF)", self.admin)
+        self.assertNotIn("Generate Comprehensive Report (DOC)", self.admin)
+
+    def test_dropdown_structure_and_wiring(self):
+        # R20: accessible dropdown contract + menu handlers shipped with the
+        # report feature file (report_generator.js).
+        self.assertIn('id="report-menu"', self.admin)
+        self.assertIn('role="menu"', self.admin)
+        self.assertIn('aria-controls="report-menu"', self.admin)
+        self.assertIn('aria-haspopup="menu"', self.admin)
+        self.assertIn("toggleReportMenu(event)", self.admin)
+        self.assertIn("function toggleReportMenu", self.js)
+        self.assertIn("function closeReportMenu", self.js)
+        self.assertIn('setAttribute("aria-expanded"', self.js)
 
     def test_script_wired(self):
         self.assertIn('<script src="/static/js/report_generator.js"></script>', self.admin)

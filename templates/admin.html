@@ -368,8 +368,14 @@
           <button class="btn btn-outline btn-sm" onclick="loadDashboardData()">Refresh Metrics ↻</button>
           <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-user-manual" title="Download Official NDLI User Manual (PDF)" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" target="_blank"><span>📖</span> User Manual (PDF)</a>
           <button class="btn btn-amber btn-sm" id="btn-download-master-csv" onclick="downloadMasterCSV()" title="Download master_clubs.csv database copy" style="color: #ffffff; font-weight: 600;">Download Master CSV</button>
-          <button class="btn btn-outline btn-sm" id="btn-generate-report-pdf" onclick="generateComprehensiveReportPdf()" title="One-click comprehensive report (PDF): analytics, roadmap & fairness frame">📄 Generate Comprehensive Report (PDF)</button>
-          <button class="btn btn-outline btn-sm" id="btn-generate-report-doc" onclick="generateComprehensiveReportDoc()" title="Download the comprehensive report as a DOC file">📝 Generate Comprehensive Report (DOC)</button>
+          <!-- R20: one "Create Report" button + PDF/DOC dropdown (was 2 long buttons) -->
+          <div class="report-menu-wrap">
+            <button class="btn btn-outline btn-sm" id="btn-create-report" aria-haspopup="menu" aria-expanded="false" aria-controls="report-menu" onclick="toggleReportMenu(event)" title="Create the one-click comprehensive report — pick PDF or DOC"><span>📊</span> Create Report<span class="report-caret" aria-hidden="true">&#9662;</span></button>
+            <div class="report-menu" id="report-menu" role="menu" hidden>
+              <button class="report-menu-item" role="menuitem" id="btn-generate-report-pdf" onclick="generateComprehensiveReportPdf(); closeReportMenu();" title="One-click comprehensive report (PDF): analytics, roadmap & fairness frame">📄 PDF</button>
+              <button class="report-menu-item" role="menuitem" id="btn-generate-report-doc" onclick="generateComprehensiveReportDoc(); closeReportMenu();" title="Download the comprehensive report as a DOC file">📝 DOC</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2596,9 +2602,11 @@
         }
         if (userEl) userEl.innerText = user?.email || "admin@iitkgp.ac.in";
         if (btnEl) {
+          // R20 fix A: white text on the transparent btn-outline chip was invisible
+          // on the light topbar. Use the readable .btn-lock chip + drop the inline white.
           btnEl.innerText = "Lock Admin";
-          btnEl.className = "btn btn-sm btn-outline";
-          btnEl.style.color = "#ffffff";
+          btnEl.className = "btn btn-sm btn-lock";
+          btnEl.style.color = "";
         }
       } else {
         if (gateEl) gateEl.style.display = "block";
@@ -2839,19 +2847,19 @@
               </td>
               <td>
                 <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
-                  <button class="btn btn-outline btn-sm" onclick="openEditEmployeeModalById('${idSafe}')" title="Edit employee credentials & regional zone">
+                  <button class="btn btn-outline btn-sm btn-rowact" onclick="openEditEmployeeModalById('${idSafe}')" title="Edit employee credentials & regional zone">
                     ✏️ Edit
                   </button>
-                  <button class="btn btn-danger btn-sm" onclick="handleBlockEmployee('${idSafe}', '${nameSafe}')" ${!isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${isActive ? 'Block employee access' : 'Employee is already blocked'}">
+                  <button class="btn btn-danger btn-sm btn-rowact" onclick="handleBlockEmployee('${idSafe}', '${nameSafe}')" ${!isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${isActive ? 'Block employee access' : 'Employee is already blocked'}">
                     🚫 Block
                   </button>
-                  <button class="btn btn-success btn-sm" onclick="handleUnblockEmployee('${idSafe}', '${nameSafe}')" ${isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${!isActive ? 'Unblock employee and restore access' : 'Employee is already active'}">
+                  <button class="btn btn-success btn-sm btn-rowact" onclick="handleUnblockEmployee('${idSafe}', '${nameSafe}')" ${isActive ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} title="${!isActive ? 'Unblock employee and restore access' : 'Employee is already active'}">
                     🔓 Unblock
                   </button>
                 </div>
               </td>
               <td>
-                <a href="/employee/${emp.id}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">Open UI ↗</a>
+                <a href="/employee/${emp.id}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm btn-rowact">Open UI ↗</a>
               </td>
             </tr>
           `;

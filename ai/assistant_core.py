@@ -923,6 +923,10 @@ def ask_assistant(question: str, session: Dict[str, Any]) -> Dict[str, Any]:
     started = time.monotonic()
     result = _ask_assistant_inner(clean_q, session)
     if isinstance(result, dict):
+        # Slice G (2026-10-07): one output choke point -- credential-shaped
+        # VALUES are masked before anything is shown, logged or learned.
+        if isinstance(result.get("answer"), str):
+            result["answer"] = assistant_guard.redact_secrets(result["answer"])
         meta = _learn_meta(clean_q, result)
         try:
             ctx = build_context(session)

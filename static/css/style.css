@@ -2160,3 +2160,103 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .app-topbar { padding: 0 14px; }
   .app-search { flex: 1 1 auto; }
 }
+
+/* ==========================================================================
+   R20 POLISH (2026-10-07) — user-approved variant B (DECISIVE) + 3 UI fixes
+   1. global density pass (variant B: base 14.5px / body 14px)
+   2. bell dot: bigger + red + soft ring
+   3. sidebar: light green tint
+   4. fix A — "Lock Admin" chip was white-on-light (invisible) in the topbar
+   5. fix B — "Create Report" split dropdown (PDF / DOC) replaces 2 long buttons
+   6. fix C — compact in-table row actions (Edit / Block / Unblock / Open UI)
+   ========================================================================== */
+
+/* --- 1..3: variant B density + dot + sidebar (exact approved render) --- */
+html { font-size: 14.5px; }
+body { font-size: 14px; }
+.hero-banner { padding: 1.8rem 2rem !important; margin-bottom: 1.15rem !important; }
+.hero-banner h2 { font-size: 2rem !important; }
+.hero-banner p { font-size: 0.98rem !important; }
+.stat-card { padding: 0.85rem 1.05rem; }
+.icon-btn .dot { width: 11px; height: 11px; top: 7px; right: 8px; background: #EF4444; border: 2px solid var(--c-bg); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22); }
+.app-sidebar { background: #F4F8F5; border-right: 1px solid var(--c-line); }
+
+/* --- fix A: readable Lock Admin chip on the light topbar --- */
+.btn-lock {
+  background: var(--c-red-soft);
+  border: 1px solid #F3B9C4;
+  color: var(--c-red-ink);
+  font-weight: 700;
+}
+.btn-lock:hover {
+  background: #FBDCE2;
+  border-color: var(--c-red);
+  color: var(--c-red-ink);
+}
+
+/* --- fix B: Create Report dropdown --- */
+.report-menu-wrap { position: relative; display: inline-flex; }
+.report-caret { font-size: 0.68em; opacity: 0.75; margin-left: 2px; }
+.report-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  min-width: 138px;
+  padding: 5px;
+  background: var(--c-card);
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(16, 49, 37, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.report-menu[hidden] { display: none; }
+.report-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--c-ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.report-menu-item:hover,
+.report-menu-item:focus-visible {
+  background: var(--c-tint);
+  border-color: var(--c-green-soft);
+  color: var(--c-green-deep);
+  outline: none;
+}
+
+/* --- fix C: compact row actions inside dense tables --- */
+.btn-rowact {
+  padding: 0.26rem 0.62rem;
+  font-size: 0.76rem;
+  border-radius: 9px;
+  gap: 0.28rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.btn-rowact:hover { transform: none; box-shadow: none; }
+.btn-rowact:disabled { cursor: not-allowed; transform: none; }
+.btn-rowact.btn-outline { border-color: var(--c-line); color: var(--c-ink-2); }
+.btn-rowact.btn-outline:hover {
+  background: var(--c-tint);
+  border-color: var(--c-green);
+  color: var(--c-green-deep);
+}
+.btn-rowact.btn-danger { background: var(--c-red-soft); border: 1px solid #F3B9C4; color: var(--c-red-ink); }
+.btn-rowact.btn-danger:hover { background: #FBDCE2; border-color: var(--c-red); color: var(--c-red-ink); }
+.btn-rowact.btn-success { background: var(--c-green-soft); border: 1px solid var(--success-border); color: var(--c-green-deep); }
+.btn-rowact.btn-success:hover { background: #CBE9DA; border-color: var(--c-green); color: var(--c-green-deep); }

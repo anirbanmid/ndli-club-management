@@ -1020,10 +1020,43 @@
     downloadDoc(data);
   }
 
+  /**
+   * R20: "Create Report" split dropdown (PDF / DOC) — replaces the two long
+   * toolbar buttons. Menu chrome lives in style.css (.report-menu*), markup in
+   * templates/admin.html. Keyboard: Enter/Space on the button toggles, Escape
+   * dismisses, focus returns to the trigger.
+   */
+  function toggleReportMenu(evt) {
+    if (evt && evt.stopPropagation) evt.stopPropagation();
+    const menu = document.getElementById("report-menu");
+    const btn = document.getElementById("btn-create-report");
+    if (!menu) return;
+    const willOpen = menu.hasAttribute("hidden");
+    if (willOpen) {
+      menu.removeAttribute("hidden");
+    } else {
+      menu.setAttribute("hidden", "");
+    }
+    if (btn) btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  }
+
+  function closeReportMenu() {
+    const menu = document.getElementById("report-menu");
+    const btn = document.getElementById("btn-create-report");
+    if (!menu || menu.hasAttribute("hidden")) return;
+    menu.setAttribute("hidden", "");
+    if (btn) {
+      btn.setAttribute("aria-expanded", "false");
+      btn.focus();
+    }
+  }
+
   const ReportGenerator = {
     /* entry points */
     generatePdf: generateComprehensiveReportPdf,
     generateDoc: generateComprehensiveReportDoc,
+    toggleReportMenu: toggleReportMenu,
+    closeReportMenu: closeReportMenu,
     printReport: printReport,
     closeReportView: closeReportView,
     downloadDoc: function () {
@@ -1045,8 +1078,23 @@
     window.ReportGenerator = ReportGenerator;
     window.generateComprehensiveReportPdf = generateComprehensiveReportPdf;
     window.generateComprehensiveReportDoc = generateComprehensiveReportDoc;
+    window.toggleReportMenu = toggleReportMenu;
+    window.closeReportMenu = closeReportMenu;
     if (typeof document !== "undefined") {
-      const init = function () { prefetch(); };
+      const init = function () {
+        prefetch();
+        /* R20 dropdown: dismiss on outside click / Escape */
+        document.addEventListener("click", function (e) {
+          const menu = document.getElementById("report-menu");
+          if (!menu || menu.hasAttribute("hidden")) return;
+          const trigger = document.getElementById("btn-create-report");
+          if (trigger && trigger.contains(e.target)) return;
+          closeReportMenu();
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") closeReportMenu();
+        });
+      };
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
       } else {

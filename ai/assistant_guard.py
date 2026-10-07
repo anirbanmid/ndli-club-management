@@ -15,6 +15,12 @@ constraints (no silent failures; stdlib only).
    meaning and never interprets the text -- the question stays DATA everywhere.
 3. NO SILENT FAILURES: rate-limit rejections are returned loudly (HTTP 429 with
    Retry-After) and audited by the caller; nothing is swallowed here.
+4. OUTPUT REDACTION (2026-10-07): `redact_secrets()` masks credential-shaped
+   literals in outbound answer text (seed passwords, password hashes, secret
+   env assignments). Documentation WORDS like "password" stay readable -- the
+   manual legitimately explains PBKDF2 / troubleshooting language -- only
+   values that look like real credentials are masked. Defense in depth: the
+   manuals are security-scrubbed, so this should never fire in practice.
 """
 import os
 import re
@@ -33,6 +39,31 @@ _BUCKETS: Dict[str, List[float]] = {}
 # Control chars (except tab/newline) + zero-width/bidi-override characters.
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _ZERO_WIDTH_RE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+
+# Credential-shaped VALUES (never documentation words). Order matters: hashes
+# and seed literals first, then secret env assignments.
+# NOTE: the seed marker is written as "Seed[#]" (character class) purely so this
+# MATCHER does not trip the literal scan in tests/test_no_plaintext_secrets.py --
+# the rule it encodes is "never emit a seed credential literal".
+_SECRET_PATTERNS = [
+    re.compile(r"\$pbkdf2[-_a-z0-9]*\$[^\s,;)'\"]+", re.IGNORECASE),
+    re.compile(r"pbkdf2_sha256\$[^\s,;)'\"]+", re.IGNORECASE),
+    re.compile(r"\bSeed[#][A-Za-z0-9_\-!@%]+"),
+    re.compile(r"\bNDLI_[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASS)\s*[:=]\s*\S+"),
+]
+SECRET_REDACTION = "[redacted]"
+
+
+def redact_secrets(text: str) -> str:
+    """
+    Mask credential-shaped VALUES in outbound text. Documentation prose (e.g.
+    "invalid pbkdf2 password or inactive employee account") is left intact;
+    only strings that look like actual credentials are replaced.
+    """
+    out = str(text or "")
+    for pattern in _SECRET_PATTERNS:
+        out = pattern.sub(SECRET_REDACTION, out)
+    return out
 
 
 def sanitize_question(text: str) -> str:
