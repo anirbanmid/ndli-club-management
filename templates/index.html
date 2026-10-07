@@ -349,7 +349,7 @@
     }
 
     .lock-footer-info {
-      font-size: 0.7rem;
+      font-size: 0.78rem;
       color: var(--text-light, #647B70);
       margin-top: 0.65rem;
       border-top: 1px solid var(--border, #E2ECE7);
@@ -416,12 +416,12 @@
     }
 
     .hero-banner {
-      background: var(--gradient-nav);
+      background: linear-gradient(135deg, #EAF6EF 0%, #F4F8F6 48%, #FDF4E4 100%);
       color: var(--text-main, #17332A);
       padding: 1.6rem 1.5rem;
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-xl);
       margin-bottom: 1rem;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-lg);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -431,10 +431,20 @@
       overflow: hidden;
     }
     .hero-banner h2 {
-      font-size: 1.65rem;
+      font-size: 2.35rem;
       font-weight: 800;
       margin-bottom: 0.35rem;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.028em;
+      color: var(--c-green-deep, #0A5C3E);
+    }
+    /* Direction C gradient-text accent (AA-darkened stops) */
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .hero-banner h2 {
+        background: linear-gradient(92deg, #0D7751, #0A5C3E 55%, #92500B);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
     }
     .hero-banner p {
       font-size: 0.9rem;
@@ -446,13 +456,20 @@
     .portal-card {
       background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.15rem 1.35rem;
-      box-shadow: var(--shadow-xs);
+      border-radius: var(--radius-xl);
+      padding: 1.85rem 2.1rem;
+      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    /* Chunky landing CTAs (mockup button geometry) */
+    .btn-hero {
+      padding: 0.78rem 1.55rem !important;
+      font-size: 0.95rem !important;
+      font-weight: 800 !important;
+      border-radius: var(--radius-pill) !important;
     }
     .portal-card:hover {
       transform: translateY(-2px);
@@ -629,16 +646,16 @@
 
     <main class="container">
       <!-- Split Compact Hero Banner -->
-      <section class="hero-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; padding: 0.95rem 1.35rem; margin-bottom: 0.75rem; border-radius: var(--radius-xl);">
+      <section class="hero-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; padding: 2.4rem 2.6rem; margin-bottom: 1.5rem; border-radius: var(--radius-xl);">
         <div style="flex: 1; min-width: 300px;">
           <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
             <div style="background: #ffffff; padding: 2px 10px; border-radius: 6px; box-shadow: 0 2px 6px rgba(16,49,37,0.12); display: inline-flex; align-items: center;">
               <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" style="height: 26px; width: auto; object-fit: contain;">
             </div>
-            <span class="badge-tag" style="background: var(--primary-light); font-size: 0.7rem; padding: 0.15rem 0.5rem;">National Operational Platform</span>
+            <span class="badge-tag" style="background: var(--primary-light); font-size: 0.78rem; padding: 0.15rem 0.5rem;">National Operational Platform</span>
           </div>
-          <h2 style="font-size: 1.25rem; margin: 0 0 0.15rem 0; font-weight: 800; letter-spacing: -0.015em;">NDLI Club Management System</h2>
-          <p style="font-size: 0.8rem; margin: 0 0 0.35rem 0; color: var(--text-muted); line-height: 1.35; max-width: 700px;">
+          <h2 style="font-size: 2.35rem; margin: 0 0 0.35rem 0; font-weight: 800; letter-spacing: -0.028em;">NDLI Club Management System</h2>
+          <p style="font-size: 1.08rem; margin: 0 0 1.15rem 0; color: var(--text-muted); line-height: 1.55; max-width: 720px;">
             IIT Kharagpur Central Master Administration Office & 6 Regional Operational Zones across India with real-time node synchronization.
           </p>
           <div class="drive-status-badge" style="margin-top: 0; padding: 0.18rem 0.6rem; font-size: 0.72rem;">
@@ -649,46 +666,46 @@
           </div>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-          <a href="/login" class="btn btn-amber btn-sm" style="font-weight: 700; padding: 0.42rem 0.9rem;">
+          <a href="/login" class="btn btn-amber btn-sm btn-hero" style="font-weight: 700;">
             🔐 Employee Sign-In →
           </a>
-          <a href="/api/download/user-manual" class="btn btn-outline btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; padding: 0.42rem 0.9rem;" target="_blank" title="Download Official NDLI User Manual (PDF)">
+          <a href="/api/download/user-manual" class="btn btn-outline btn-sm btn-hero" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" target="_blank" title="Download Official NDLI User Manual (PDF)">
             <span>📖</span> User Manual (PDF) 📥
           </a>
         </div>
       </section>
 
       <!-- Side-by-Side: Admin Control Center & User Manual / SOPs -->
-      <section style="margin-bottom: 0.75rem;">
-        <div class="grid-2" style="gap: 0.75rem;">
+      <section style="margin-bottom: 1.35rem;">
+        <div class="grid-2" style="gap: 1.25rem;">
           <!-- Master Admin Card -->
-          <div class="portal-card admin-master-card reveal-card" style="padding: 0.85rem 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="portal-card admin-master-card reveal-card" style="padding: 1.85rem 2.1rem; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                <span class="pill pill-warning" style="font-size: 0.7rem;">IIT Kharagpur HQ</span>
-                <span class="pill pill-primary" style="font-size: 0.7rem;">Executive Oversight</span>
+                <span class="pill pill-warning" style="font-size: 0.78rem;">IIT Kharagpur HQ</span>
+                <span class="pill pill-primary" style="font-size: 0.78rem;">Executive Oversight</span>
               </div>
-              <h3 style="font-size: 1.12rem; color: var(--primary); font-weight: 700; margin: 0 0 0.25rem 0;">Admin Master Control Center</h3>
-              <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0 0 0.75rem 0; line-height: 1.35;">
+              <h3 style="font-size: 1.34rem; color: var(--c-ink); font-weight: 800; letter-spacing: -0.022em; margin: 0 0 0.25rem 0;">Admin Master Control Center</h3>
+              <p style="color: var(--text-muted); font-size: 0.97rem; margin: 0 0 0.75rem 0; line-height: 1.35;">
                 Central oversight office for all NDLI clubs across India. Features interactive infographics, team/individual metrics, AI decision engine, and employee provisioning.
               </p>
             </div>
             <div>
-              <a href="/admin" class="btn btn-amber btn-sm" style="width: 100%;">Launch Master Admin UI →</a>
+              <a href="/admin" class="btn btn-amber btn-sm btn-hero" style="width: 100%;">Launch Master Admin UI →</a>
             </div>
           </div>
 
           <!-- Official User Manual & Operational Documentation Card -->
-          <div class="portal-card reveal-card" style="border-top: 4px solid #0D7751; background: linear-gradient(180deg, #ffffff 0%, #f4f9f6 100%); padding: 0.85rem 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="portal-card reveal-card" style="border-top: 3px solid #BFE6D3; background: linear-gradient(150deg, #EAF6EF 0%, #ffffff 55%); padding: 1.85rem 2.1rem; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                <span class="pill pill-success" style="font-weight: 700; font-size: 0.7rem;">Official Handbook</span>
-                <span class="pill pill-primary" style="font-size: 0.7rem;">SOPs & Protocols</span>
+                <span class="pill pill-success" style="font-weight: 700; font-size: 0.78rem;">Official Handbook</span>
+                <span class="pill pill-primary" style="font-size: 0.78rem;">SOPs & Protocols</span>
               </div>
-              <h3 style="font-size: 1.12rem; color: var(--primary); font-weight: 700; margin: 0 0 0.25rem 0;">
+              <h3 style="font-size: 1.34rem; color: var(--c-ink); font-weight: 800; letter-spacing: -0.022em; margin: 0 0 0.25rem 0;">
                 NDLI Club Management System User Manual &amp; Standard Operating Procedures
               </h3>
-              <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0 0 0.75rem 0; line-height: 1.35;">
+              <p style="color: var(--text-muted); font-size: 0.97rem; margin: 0 0 0.75rem 0; line-height: 1.35;">
                 Comprehensive operational manual covering Employee Portals, Master Admin, 7-Day Rolling Backups, Master DB Sync, 2-layer Emergency Restore, and workflows.
               </p>
             </div>
@@ -705,7 +722,7 @@
       </section>
 
       <!-- 7 Employee Interfaces Across India -->
-      <section style="margin-bottom: 0.75rem;">
+      <section style="margin-bottom: 1.35rem;">
         <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.35rem;">
           <div>
             <h3 class="card-title" style="font-size: 1.05rem;">7 Nodal Officer Employee Portals</h3>

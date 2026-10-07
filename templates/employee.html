@@ -50,7 +50,7 @@
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: 1.15rem;
     }
     .officer-details h2 {
       font-size: 1.15rem;
@@ -58,7 +58,7 @@
       font-weight: 700;
     }
     .officer-details p {
-      font-size: 0.78rem;
+      font-size: 0.86rem;
       color: var(--text-muted);
     }
     .sec-c-container {
@@ -178,7 +178,7 @@
       border: 1px solid var(--border-subtle);
       padding: 0.35rem 0.45rem;
       border-radius: var(--radius-sm);
-      font-size: 0.72rem;
+      font-size: 0.8rem;
       text-align: left;
       cursor: pointer;
       /* R3: explicit animated properties only (was `transition: all`) — the
@@ -391,7 +391,7 @@
       font-size: 17px !important;
     }
     /* "ACTION REQUIRED" delta pill → tiny 999px pastel chip (spec §3c) */
-    #employee-reminders-container [style*="background: #dc2626; color: #ffffff; font-size: 0.72rem"] {
+    #employee-reminders-container [style*="background: #dc2626; color: #ffffff; font-size: 0.8rem"] {
       background: var(--c-red-soft, #FDE7EA) !important;
       color: var(--c-red-ink, #9F1239) !important;
       border-radius: 999px !important;
@@ -438,7 +438,7 @@
         </div>
       </a>
       <div class="nav-links" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: nowrap;">
-        <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.72rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
+        <div class="live-clock-badge nav-live-clock-compact" id="nav-live-clock" title="National Standard System Clock (IST)" style="font-size: 0.8rem; padding: 0.18rem 0.45rem; flex-shrink: 0; white-space: nowrap; line-height: 1.2;">
           <span>⏰ --:--:--</span>
         </div>
         <div id="nav-auth-section" style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
@@ -471,7 +471,7 @@
             <span class="badge-tag" style="background: var(--primary-light); font-size: 0.68rem; padding: 0.14rem 0.45rem;">Central System</span>
           </div>
           <!-- Live National Standard System Clock on Login Screen -->
-          <div id="login-live-clock" class="live-clock-badge" style="justify-content: center; margin: 0.35rem auto 0 auto; max-width: 400px; padding: 0.18rem 0.55rem; font-size: 0.72rem; line-height: 1.2;" title="Official IIT Kharagpur System Clock (IST)">
+          <div id="login-live-clock" class="live-clock-badge" style="justify-content: center; margin: 0.35rem auto 0 auto; max-width: 400px; padding: 0.18rem 0.55rem; font-size: 0.8rem; line-height: 1.2;" title="Official IIT Kharagpur System Clock (IST)">
             <span>⏰ --:--:--</span>
           </div>
         </div>
@@ -520,7 +520,7 @@
             type="submit"
             id="btn-login-submit"
             class="btn btn-primary"
-            style="width: 100%; margin-top: 0.35rem; justify-content: center; padding: 0.38rem 0.85rem; font-size: 0.84rem; font-weight: 700; height: 36px;"
+            style="width: 100%; margin-top: 0.35rem; justify-content: center; padding: 0.38rem 0.85rem; font-size: 0.94rem; font-weight: 700; height: 36px;"
           >
             <span>🔐</span> Sign In to Regional Portal →
           </button>
@@ -563,7 +563,7 @@
           <p id="current-states" style="font-size: 0.74rem; margin: 0; color: var(--text-muted); line-height: 1.3;"><strong>Assigned States:</strong> Jammu & Kashmir, Ladakh, Uttarakhand, Himachal Pradesh, Chandigarh, Punjab, Haryana, Delhi, Uttar Pradesh</p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; gap: 1.15rem; align-items: center; flex-wrap: wrap;">
           <div style="text-align: right; border-right: 1px solid var(--border); padding-right: 0.75rem;">
             <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg></div>
             <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700;">Performance Quota</div>
@@ -573,15 +573,15 @@
               <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Support</span>
             </div>
           </div>
-          <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><span>⏰ --:--:--</span></div>
+          <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.83rem;"><span>⏰ --:--:--</span></div>
           <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: var(--c-green-soft, #D9EFE4); color: var(--c-green-deep, #0A5C3E); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.78rem;" target="_blank" rel="noopener noreferrer">
+            <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-emp-user-manual" title="Download Official NDLI User Manual (PDF)" style="background: var(--c-green-soft, #D9EFE4); color: var(--c-green-deep, #0A5C3E); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; padding: 0.28rem 0.55rem; font-size: 0.86rem;" target="_blank" rel="noopener noreferrer">
               <span>📖</span> Manual
             </a>
-            <button class="btn btn-outline btn-sm" id="btn-download-activity-log" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.78rem;">
+            <button class="btn btn-outline btn-sm" id="btn-download-activity-log" onclick="downloadEmployeeActivityLog()" title="Download a copy of activity_log.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.86rem;">
               Activity Log
             </button>
-            <button class="btn btn-outline btn-sm" id="btn-download-clubs-log" onclick="downloadEmployeeClubsLog()" title="Download a copy of clubs.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.78rem;">
+            <button class="btn btn-outline btn-sm" id="btn-download-clubs-log" onclick="downloadEmployeeClubsLog()" title="Download a copy of clubs.csv from this employee account database" style="font-weight: 600; padding: 0.28rem 0.55rem; font-size: 0.86rem;">
               Clubs Log
             </button>
           </div>
@@ -628,23 +628,23 @@
             </div>
 
             <!-- Bulk Entry Provision for Phone Call & Remote Assistance ONLY -->
-            <div class="form-group" id="bulk-calls-group" style="display: none; background: var(--c-tint-2, #F0F8F4); border: 1px solid var(--c-green-soft, #D9EFE4); border-radius: var(--radius); padding: 0.85rem 1rem; margin-bottom: 1.15rem;">
+            <div class="form-group" id="bulk-calls-group" style="display: none; background: var(--c-tint-2, #F0F8F4); border: 1px solid var(--c-green-soft, #D9EFE4); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.15rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                 <label for="support-count" style="font-weight: 700; color: var(--c-green-deep, #0A5C3E); margin: 0; font-size: 0.88rem;">
                   📞 Bulk Entry: Total Number of Calls / Remote Assistance
                 </label>
-                <span class="pill pill-success" style="font-size: 0.72rem; padding: 2px 7px; background: #D9EFE4; color: #0A5C3E; border: 1px solid var(--c-green-soft, #D9EFE4);">
+                <span class="pill pill-success" style="font-size: 0.8rem; padding: 2px 7px; background: #D9EFE4; color: #0A5C3E; border: 1px solid var(--c-green-soft, #D9EFE4);">
                   Bulk Entry Facility
                 </span>
               </div>
-              <p style="color: var(--c-green-deep, #0A5C3E); font-size: 0.78rem; margin: 0 0 0.5rem 0; line-height: 1.35;">
+              <p style="color: var(--c-green-deep, #0A5C3E); font-size: 0.86rem; margin: 0 0 0.5rem 0; line-height: 1.35;">
                 Attended multiple calls or remote sessions one after another? Enter the total number below to log them in bulk at once into your activity history and quota.
               </p>
               <div style="display: flex; align-items: center; gap: 0.6rem;">
                 <input type="number" id="support-count" min="1" max="100" value="1" oninput="updateSecASubmitButtonLabel()" style="width: 110px; border: 1px solid var(--c-green-soft, #D9EFE4); border-radius: var(--radius); padding: 0.45rem 0.65rem; font-weight: 700; font-size: 1rem; background: #ffffff; color: var(--c-ink-2, #2E4A3E);" placeholder="1">
                 <span style="font-size: 0.82rem; color: var(--c-green-deep, #0A5C3E); font-weight: 600;">Total calls attended in batch</span>
               </div>
-              <small style="display: block; color: var(--c-green-deep, #0A5C3E); font-size: 0.72rem; margin-top: 0.35rem;">
+              <small style="display: block; color: var(--c-green-deep, #0A5C3E); font-size: 0.8rem; margin-top: 0.35rem;">
                 * Note: This bulk entry facility is available exclusively for Phone Call and Remote Assistance.
               </small>
             </div>
@@ -684,7 +684,7 @@
             <button type="button" class="btn btn-accent" id="btn-open-sec-c" onclick="toggleSecC()" style="width: 100%; padding: 0.55rem 1rem; font-size: 0.92rem;">
               <span>⚡</span> SEC B: Approve New NDLI Club →
             </button>
-            <p style="font-size: 0.72rem; text-align: center; color: var(--text-muted); margin-top: 0.35rem; margin-bottom: 0;">
+            <p style="font-size: 0.8rem; text-align: center; color: var(--text-muted); margin-top: 0.35rem; margin-bottom: 0;">
               ★ Instantly opens SEC C Form below
             </p>
           </div>
@@ -791,12 +791,12 @@
             <div class="form-group">
               <label>Date of Approval (Auto-Captured)</label>
               <input type="text" id="c-timestamp-display" data-alias="c-doa-display" readonly value="Auto-captured exact date & time on submit" style="background: var(--bg-muted); font-weight: 600; color: var(--primary);">
-              <small style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Logged in database as the first date & time of entry.</small>
+              <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Logged in database as the first date & time of entry.</small>
             </div>
             <div class="form-group">
               <label>Initial Registration Validity (Upcoming Renewal)</label>
               <input type="text" id="c-renewal-display" readonly value="Auto-computed: +1 Year from Date of Approval" style="background: var(--bg-main); font-weight: 600; color: #15803d;">
-              <small style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Automatically calculated and logged in database.</small>
+              <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Automatically calculated and logged in database.</small>
             </div>
           </div>
 
@@ -824,7 +824,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; gap: 1.15rem; margin-bottom: 1.25rem;">
           <input type="text" id="search-input" aria-label="Search clubs" placeholder="Search by institution name, club ID, state, zone, or email..." oninput="performUniversalSearch(this.value)">
           <button class="btn btn-primary" onclick="performUniversalSearch(document.getElementById('search-input').value)">Search</button>
         </div>
@@ -915,7 +915,7 @@
               Single-click access to support ticketing (osTicket), official email, video conferencing, cloud storage, collaborative documents, spreadsheets, presentations, notes, official YouTube channel, and broadcasting platforms for regional NDLI club operations.
             </p>
           </div>
-          <span class="badge-tag" style="background: var(--primary); color: #ffffff; padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+          <span class="badge-tag" style="background: var(--primary); color: #ffffff; padding: 0.4rem 0.8rem; font-size: 0.92rem;">
             Authorized External Workspaces
           </span>
         </div>
@@ -937,7 +937,7 @@
               <span class="pill" style="background: #ffedd5; color: #c2410c; font-size: 0.7rem; font-weight: 700;">Club Support Helpdesk</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">osTicket</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Official NDLI Club Helpdesk for tracking, resolving, and closing institutional support tickets and technical requests.
             </p>
           </div>
@@ -965,7 +965,7 @@
               <span class="pill pill-danger" style="font-size: 0.7rem;">Official Communications</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Gmail</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Manage official zonal correspondence, club communications, institutional notifications, and event invitations.
             </p>
           </div>
@@ -993,7 +993,7 @@
               <span class="pill pill-success" style="font-size: 0.7rem;">Online Training &amp; Meetings</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Meet</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Conduct 1-on-1 remote assistance, screen sharing, and online club onboarding sessions across regional institutions.
             </p>
           </div>
@@ -1019,7 +1019,7 @@
               <span class="pill pill-warning" style="font-size: 0.7rem;">Database &amp; Storage Mirror</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Drive</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Direct cloud repository access for synchronized CSV databases, institutional MoUs, official club logos, and backup archives.
             </p>
           </div>
@@ -1047,7 +1047,7 @@
               <span class="pill pill-primary" style="font-size: 0.7rem;">SOPs &amp; MoUs</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Docs</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Draft and review institutional agreements, standard operating procedures, support memos, and regional event minutes.
             </p>
           </div>
@@ -1074,7 +1074,7 @@
               <span class="pill pill-success" style="font-size: 0.7rem;">CSV Analytics &amp; Quotas</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Sheets</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Analyze regional club registration datasets, monthly quota logs, and external CSV data extracts with powerful spreadsheets.
             </p>
           </div>
@@ -1101,7 +1101,7 @@
               <span class="pill pill-warning" style="font-size: 0.7rem;">Presentations &amp; Seminars</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Slides</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Design and present orientation decks, institutional patron pitches, and interactive workshop slides for regional clubs.
             </p>
           </div>
@@ -1127,7 +1127,7 @@
               <span class="pill" style="background: #fef3c7; color: #b45309; font-size: 0.7rem; font-weight: 700;">Quick Notes &amp; Checklists</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Google Keep</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Capture rapid institutional call notes, operational checklists, daily reminders, and field inspection action points.
             </p>
           </div>
@@ -1152,7 +1152,7 @@
               <span class="pill pill-danger" style="background: #fee2e2; color: #dc2626; font-size: 0.7rem; font-weight: 700;">Official Video Channel</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">YouTube (NDL India)</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Official YouTube channel of NDL India (@NDLIndia) featuring instructional tutorials, masterclasses, national webinars, and awareness broadcasts.
             </p>
           </div>
@@ -1176,7 +1176,7 @@
               <span class="pill" style="background: #e0f2fe; color: #0284c7; font-size: 0.7rem; font-weight: 700;">National Webinars</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Zoom Meeting</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Host large-capacity national club orientation workshops, inter-state patron conferences, and online training seminars.
             </p>
           </div>
@@ -1204,7 +1204,7 @@
               <span class="pill" style="background: #ede9fe; color: #6d28d9; font-size: 0.7rem; font-weight: 700;">Team Chat &amp; Channels</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">Microsoft Teams</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Inter-nodal team chat, IIT Kharagpur central office coordination channels, and institutional committee meetings.
             </p>
           </div>
@@ -1233,7 +1233,7 @@
               <span class="pill pill-danger" style="font-size: 0.7rem;">Live Streaming Studio</span>
             </div>
             <h4 style="font-size: 1.02rem; color: var(--primary); font-weight: 700; margin: 0 0 0.3rem 0;">StreamYard</h4>
-            <p style="font-size: 0.8rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
+            <p style="font-size: 0.92rem; color: var(--text-light); line-height: 1.4; margin: 0 0 0.85rem 0;">
               Produce professional broadcast live streams to YouTube, Facebook, and LinkedIn for national NDLI events and announcements.
             </p>
           </div>
@@ -1273,7 +1273,7 @@
         <div class="form-group">
           <label for="edit-reg-no">Registration No</label>
           <input type="text" id="edit-reg-no" maxlength="64" placeholder="e.g. NDLI/REG/2026/001" style="font-family: monospace;">
-          <small style="color: var(--text-muted); font-size: 0.78rem;">Letters, digits, spaces, dots, underscores, hyphens and slashes (max 64). Must stay unique across approved clubs.</small>
+          <small style="color: var(--text-muted); font-size: 0.86rem;">Letters, digits, spaces, dots, underscores, hyphens and slashes (max 64). Must stay unique across approved clubs.</small>
         </div>
 
         <div class="grid-2">
@@ -1360,22 +1360,22 @@
         </p>
 
         <!-- 3 Renewal Properties Cards -->
-        <div class="grid-3" style="gap: 0.75rem; margin-bottom: 1rem;">
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
+        <div class="grid-3" style="gap: 1.15rem; margin-bottom: 1rem;">
+          <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
             <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M8 3v4.5M16 3v4.5M3.5 10.5h17"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Date of Approval</span>
             <strong style="font-size: 0.9rem; color: var(--primary); margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-date-of-approval">-</strong>
             <small style="font-size: 11px; color: var(--text-muted);" id="modal-date-of-approval-full">Inception timestamp</small>
           </div>
 
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
+          <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
             <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.6-7 9.5-4.1-1.9-7-5.1-7-9.5V6l7-3z"/><path d="M9 11.8l2.2 2.2 4.3-4.4"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Last Renewal Date</span>
             <strong style="font-size: 0.9rem; color: #b45309; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-last-renewal-date">None (Initial)</strong>
             <small style="font-size: 11px; color: var(--text-muted);" id="modal-last-renewal-date-full">Logged upon Renewal Approved</small>
           </div>
 
-          <div style="background: #ffffff; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #bbf7d0;">
+          <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #bbf7d0;">
             <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Upcoming Renewal Due Date</span>
             <strong style="font-size: 0.95rem; color: #15803d; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-upcoming-renewal">-</strong>
@@ -1383,8 +1383,8 @@
           </div>
         </div>
 
-        <div id="renew-action-container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.5rem;">
-          <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+        <div id="renew-action-container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.15rem; padding-top: 0.5rem;">
+          <label style="font-size: 0.92rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
             <input type="checkbox" id="renew-check-conditions" checked style="accent-color: var(--primary);">
             <span>Required renewal conditions fulfilled and verified by employee</span>
           </label>
@@ -1405,7 +1405,7 @@
           <h4 style="color: #854d0e; font-size: 1.05rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
             <span>⚠️</span> Report Unresolved Issue & Set Reminder
           </h4>
-          <span class="pill pill-warning" style="font-size: 0.75rem;">72-Hour Dashboard Alert</span>
+          <span class="pill pill-warning" style="font-size: 0.83rem;">72-Hour Dashboard Alert</span>
         </div>
 
         <p style="font-size: 0.82rem; color: #713f12; margin-bottom: 0.85rem; line-height: 1.4;">
@@ -1413,7 +1413,7 @@
         </p>
 
         <div class="form-group" style="margin-bottom: 0.75rem;">
-          <label for="issue-note-input" style="font-weight: 600; font-size: 0.85rem; color: #713f12;">Brief Note of Reported Issue:</label>
+          <label for="issue-note-input" style="font-weight: 600; font-size: 0.95rem; color: #713f12;">Brief Note of Reported Issue:</label>
           <textarea id="issue-note-input" rows="2" placeholder="Take a brief note of the unresolved issue reported by this club..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
         </div>
 
@@ -1433,7 +1433,7 @@
 
       <!-- Modal Header -->
       <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid #fee2e2; padding-bottom: 0.85rem;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 1.15rem;">
           <div style="background: var(--c-red-soft, #FDE7EA); color: var(--c-red-ink, #9F1239); width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px;">
             ⏰
           </div>
@@ -1452,12 +1452,12 @@
       </div>
 
       <!-- Search & Filter Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #fff5f5; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: 0.85rem;">
-        <div style="font-size: 0.85rem; color: #991b1b; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.15rem; background: #fff5f5; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: 0.85rem;">
+        <div style="font-size: 0.95rem; color: #991b1b; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
           <span>🔍</span> Filter Reminders Queue:
         </div>
         <div style="flex: 1; min-width: 260px; max-width: 400px;">
-          <input type="text" id="employee-reminders-search-input" aria-label="Search reminders" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius);">
+          <input type="text" id="employee-reminders-search-input" aria-label="Search reminders" placeholder="Search by Club ID, Institution, State..." oninput="handleEmployeeRemindersSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.95rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius);">
         </div>
       </div>
 
@@ -1505,11 +1505,11 @@
       </div>
 
       <div style="margin-bottom: 1rem;">
-        <label for="employee-issue-notes-input" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Resolution Remarks (Optional):</label>
+        <label for="employee-issue-notes-input" style="font-size: 0.95rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Resolution Remarks (Optional):</label>
         <textarea id="employee-issue-notes-input" rows="2" placeholder="Add any notes on resolution or reasons why still unresolved..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem; flex-wrap: wrap;">
         <button type="button" class="btn btn-warning" onclick="submitEmployeeIssueResolution('Not Resolved')">
           <span>⚠</span> Not Resolved (Auto-generate Reminder after 7 Days)
         </button>
@@ -1548,7 +1548,7 @@
         <div style="font-weight: 700; color: #92400e; font-size: 0.88rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
           <span>🛑</span> Verify Conditions Before Authorizing
         </div>
-        <p style="font-size: 0.8rem; color: #78350f; margin: 0 0 0.6rem 0; line-height: 1.4;">
+        <p style="font-size: 0.92rem; color: #78350f; margin: 0 0 0.6rem 0; line-height: 1.4;">
           Accidental approval extends the club's active charter and issues an official renewal certificate. Please ensure all activity quotas, OS tickets, and compliance proofs have been inspected.
         </p>
 
@@ -1575,16 +1575,16 @@
 
       <!-- Security Challenge Selection -->
       <div style="background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
           <span>🔐 Complete Security Challenge:</span>
-          <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
+          <span style="font-size: 0.83rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
         </div>
 
         <div id="sec-confirm-alert"></div>
 
         <!-- Option 1: Visual Alphanumeric CAPTCHA -->
         <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+          <label style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
             Option 1: Visual Alphanumeric CAPTCHA Code
           </label>
           <div style="display: flex; align-items: center; gap: 0.6rem;">
@@ -1594,32 +1594,32 @@
             </div>
             <input type="text" id="captcha-input" placeholder="Type 5 chars" maxlength="6" style="flex: 1; padding: 0.5rem 0.75rem; font-size: 1rem; font-family: monospace; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;" autocomplete="off">
           </div>
-          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+          <small style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
             Type the 5 characters shown above. Not case-sensitive.
           </small>
         </div>
 
-        <div style="text-align: center; font-size: 0.75rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
+        <div style="text-align: center; font-size: 0.83rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
           — OR —
         </div>
 
         <!-- Option 2: Employee Login Password -->
         <div>
-          <label for="sec-confirm-password" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+          <label for="sec-confirm-password" style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
             Option 2: Confirm with Employee Login Password
           </label>
           <div style="position: relative; display: flex; align-items: center;">
             <input type="password" id="sec-confirm-password" placeholder="Enter your portal login password" style="width: 100%; padding: 0.5rem 0.75rem; padding-right: 4.5rem; font-size: 0.9rem;" autocomplete="current-password">
             <button type="button" class="password-toggle-btn" onclick="toggleSecPasswordVisibility()">👁️ Show</button>
           </div>
-          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+          <small style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
             Verifies against your active employee account database.
           </small>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
         <button type="button" class="btn btn-outline" onclick="closeRenewalSecurityModal()">Cancel</button>
         <button type="button" class="btn btn-accent btn-lg" id="btn-confirm-renewal-approval" onclick="confirmRenewalApproval()" style="background: #b45309; border-color: #92400e;">
           <span>✓</span> Authorize & Confirm Renewal Approval →
@@ -1655,29 +1655,29 @@
         <div style="font-weight: 700; color: #991b1b; font-size: 0.88rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
           <span>🛑</span> This Action Cannot Be Undone
         </div>
-        <p style="font-size: 0.8rem; color: #7f1d1d; margin: 0 0 0.6rem 0; line-height: 1.4;" id="activity-delete-warning-text">
+        <p style="font-size: 0.92rem; color: #7f1d1d; margin: 0 0 0.6rem 0; line-height: 1.4;" id="activity-delete-warning-text">
           You are about to permanently delete <strong id="activity-delete-count-text">1 activity log entry</strong>.
           <span id="activity-delete-cascade-warning" style="display: none;"> This includes at least one <strong>Club Approval</strong> entry — deleting it will also permanently remove the corresponding club from the Clubs Log and Master Database to keep records consistent.</span>
         </p>
 
         <!-- Summary of Target Entries -->
-        <div style="background: #ffffff; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; font-size: 0.78rem; max-height: 140px; overflow-y: auto;">
+        <div style="background: #ffffff; border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; font-size: 0.86rem; max-height: 140px; overflow-y: auto;">
           <ul id="activity-delete-target-list" style="margin: 0; padding-left: 1.1rem; font-family: monospace;"></ul>
         </div>
       </div>
 
       <!-- Security Challenge Selection -->
       <div style="background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
           <span>🔐 Complete Security Challenge:</span>
-          <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
+          <span style="font-size: 0.83rem; font-weight: 500; color: var(--text-muted);">Either CAPTCHA or Password</span>
         </div>
 
         <div id="activity-delete-confirm-alert"></div>
 
         <!-- Option 1: Visual Alphanumeric CAPTCHA -->
         <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+          <label style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
             Option 1: Visual Alphanumeric CAPTCHA Code
           </label>
           <div style="display: flex; align-items: center; gap: 0.6rem;">
@@ -1687,32 +1687,32 @@
             </div>
             <input type="text" id="activity-delete-captcha-input" placeholder="Type 5 chars" maxlength="6" style="flex: 1; padding: 0.5rem 0.75rem; font-size: 1rem; font-family: monospace; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;" autocomplete="off">
           </div>
-          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+          <small style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
             Type the 5 characters shown above. Not case-sensitive.
           </small>
         </div>
 
-        <div style="text-align: center; font-size: 0.75rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
+        <div style="text-align: center; font-size: 0.83rem; color: var(--text-light, #647B70); margin: 0.5rem 0; font-weight: 600;">
           — OR —
         </div>
 
         <!-- Option 2: Employee Login Password -->
         <div>
-          <label for="activity-delete-confirm-password" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
+          <label for="activity-delete-confirm-password" style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; display: block;">
             Option 2: Confirm with Employee Login Password
           </label>
           <div style="position: relative; display: flex; align-items: center;">
             <input type="password" id="activity-delete-confirm-password" placeholder="Enter your portal login password" style="width: 100%; padding: 0.5rem 0.75rem; padding-right: 4.5rem; font-size: 0.9rem;" autocomplete="current-password">
             <button type="button" class="password-toggle-btn" onclick="toggleActivityDeletePasswordVisibility()">👁️ Show</button>
           </div>
-          <small style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+          <small style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
             Verifies against your active employee account database.
           </small>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
         <button type="button" class="btn btn-outline" onclick="closeActivityDeleteSecurityModal()">Cancel</button>
         <button type="button" class="btn btn-lg" id="btn-confirm-activity-delete" onclick="confirmActivityDeletion()" style="background: #b91c1c; border-color: #991b1b; color: #fff;">
           <span>🗑</span> Confirm Permanent Deletion →
@@ -1726,8 +1726,8 @@
       <button class="modal-close" onclick="closeCertificateTerminal()" title="Close Terminal">×</button>
 
       <!-- Terminal Header -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.85rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 0.85rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.15rem;">
+        <div style="display: flex; align-items: center; gap: 1.15rem;">
           <div style="background: #103125; color: #c29b38; width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1.5px solid #c29b38;">
             📜
           </div>
@@ -1735,15 +1735,15 @@
             <h3 id="renewal-certificate-terminal-modal-title" style="color: #103125; margin: 0; font-size: 1.25rem; font-weight: 800;">
               Renewal Certificate Generation & Download Terminal
             </h3>
-            <p style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+            <p style="margin: 0.15rem 0 0 0; font-size: 0.92rem; color: var(--text-muted);">
               High-Resolution (300 DPI A4 Portrait) Official NDLI Club IIT Kharagpur Renewal Certificate
             </p>
           </div>
         </div>
 
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-          <span class="pill pill-success" style="font-size: 0.78rem;">● Print-Ready 300 DPI</span>
-          <span class="pill" style="background: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.78rem;" id="cert-club-badge">Club: -</span>
+          <span class="pill pill-success" style="font-size: 0.86rem;">● Print-Ready 300 DPI</span>
+          <span class="pill" style="background: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.86rem;" id="cert-club-badge">Club: -</span>
         </div>
       </div>
 
@@ -1756,9 +1756,9 @@
             <h4 style="font-size: 0.88rem; font-weight: 700; color: #103125; margin: 0 0 0.6rem 0; display: flex; align-items: center; gap: 0.4rem;">
               <span>🏛️</span> Certificate Target Data (From Master CSV)
             </h4>
-            <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <div style="font-size: 0.92rem; display: flex; flex-direction: column; gap: 0.35rem;">
               <div>
-                <span style="color: var(--text-muted); display: block; font-size: 0.72rem;">Institution Name:</span>
+                <span style="color: var(--text-muted); display: block; font-size: 0.8rem;">Institution Name:</span>
                 <strong id="cert-display-inst-name" style="color: var(--primary);">-</strong>
               </div>
               <div style="display: flex; justify-content: space-between;">
@@ -1784,37 +1784,37 @@
 
             <!-- PI Signature File Upload -->
             <div class="form-group" style="margin-bottom: 0.85rem;">
-              <label for="cert-pi-signature-file" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
+              <label for="cert-pi-signature-file" style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
                 Upload New PI Signature (PNG / JPG)
               </label>
-              <input type="file" id="cert-pi-signature-file" accept="image/png, image/jpeg, image/jpg" onchange="handleSignatureUpload(event)" style="font-size: 0.8rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.35rem;">
-              <div id="sig-upload-status" style="margin-top: 0.35rem; font-size: 0.75rem; color: var(--text-muted);">
+              <input type="file" id="cert-pi-signature-file" accept="image/png, image/jpeg, image/jpg" onchange="handleSignatureUpload(event)" style="font-size: 0.92rem; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.35rem;">
+              <div id="sig-upload-status" style="margin-top: 0.35rem; font-size: 0.83rem; color: var(--text-muted);">
                 * Supports transparent PNG or high-contrast JPG.
               </div>
               <!-- Mini preview of uploaded signature -->
               <div id="sig-mini-preview-box" style="margin-top: 0.4rem; padding: 4px 8px; background: var(--bg-muted); border: 1px dashed var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 0.72rem; color: var(--text-muted);" id="sig-status-label">Default Script Signature</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="sig-status-label">Default Script Signature</span>
                 <img id="sig-preview-thumbnail" src="" alt="Signature" style="max-height: 28px; max-width: 90px; display: none; object-fit: contain;">
               </div>
             </div>
 
             <!-- New PI Name Input -->
             <div class="form-group" style="margin-bottom: 0.85rem;">
-              <label for="cert-pi-name-input" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
+              <label for="cert-pi-name-input" style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
                 New PI Name
               </label>
-              <input type="text" id="cert-pi-name-input" value="Prof. Partha Pratim Chakrabarti" oninput="handleCertificateInputChanged()" style="width: 100%; padding: 0.45rem 0.65rem; font-size: 0.85rem;">
+              <input type="text" id="cert-pi-name-input" value="Prof. Partha Pratim Chakrabarti" oninput="handleCertificateInputChanged()" style="width: 100%; padding: 0.45rem 0.65rem; font-size: 0.95rem;">
             </div>
 
             <!-- New PI Affiliation Input -->
             <div class="form-group" style="margin-bottom: 0.85rem;">
-              <label for="cert-pi-affil-input" style="font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
+              <label for="cert-pi-affil-input" style="font-size: 0.92rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem; display: block;">
                 New PI Affiliation
               </label>
               <textarea id="cert-pi-affil-input" rows="2" oninput="handleCertificateInputChanged()" style="width: 100%; padding: 0.45rem 0.65rem; font-size: 0.82rem;">Principal Investigator, NDLI Project, Central Library, IIT Kharagpur</textarea>
             </div>
 
-            <button type="button" class="btn btn-outline btn-sm" onclick="saveDefaultPISettings()" style="width: 100%; font-size: 0.78rem;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="saveDefaultPISettings()" style="width: 100%; font-size: 0.86rem;">
               <span>💾</span> Save Default PI Credentials
             </button>
           </div>
@@ -1843,7 +1843,7 @@
 
         <!-- Right Side Live Canvas Preview -->
         <div style="background: #334155; border-radius: var(--radius); padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; position: relative;">
-          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; color: #cbd5e1; font-size: 0.78rem;">
+          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; color: #cbd5e1; font-size: 0.86rem;">
             <span>★ Live High-DPI A4 Portrait Master Canvas</span>
             <span style="font-family: monospace;">Native: 2480 × 3508 px (300 DPI A4 Portrait)</span>
           </div>

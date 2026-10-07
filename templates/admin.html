@@ -111,6 +111,66 @@
       color: var(--warning);
       border-color: var(--warning);
     }
+
+    /* ===== Comprehensive Report (PDF via print + DOC export) — additive block
+       (static/js/report_generator.js). Report typography ships with the report
+       content itself; this block covers the on-page report view chrome and the
+       @media-print routing that makes the report the only printable surface. */
+    #report-view-root { display: none; }
+    body.report-view-open #report-view-root {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: var(--z-modal-top);
+      overflow-y: auto;
+      background: var(--bg-main);
+      padding: 1.1rem 1.25rem 2.25rem;
+    }
+    #report-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 960px;
+      margin: 0 auto 0.95rem;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 0.65rem 0.95rem;
+      box-shadow: var(--shadow-xs);
+    }
+    .report-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+    #report-print-root {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.35rem 1.6rem;
+      box-shadow: var(--shadow-xs);
+    }
+    @page { size: A4 portrait; margin: 14mm; }
+    @media print {
+      body.report-view-open > *:not(#report-view-root),
+      body.report-printing > *:not(#report-view-root) { display: none !important; }
+      body.report-view-open #report-view-root,
+      body.report-printing #report-view-root {
+        display: block;
+        position: static;
+        inset: auto;
+        overflow: visible;
+        background: #ffffff;
+        padding: 0;
+      }
+      body.report-view-open #report-toolbar,
+      body.report-printing #report-toolbar { display: none !important; }
+      body.report-view-open #report-print-root,
+      body.report-printing #report-print-root { border: 0; padding: 0; box-shadow: none; }
+    }
   </style>
   <script>
     // Immediate global bootstrap for Admin Sign-In modal
@@ -166,7 +226,7 @@
       </a>
       <div class="nav-links">
         <span class="badge-tag" id="nav-admin-badge" style="background:#be123c; font-size: 0.7rem; padding: 0.18rem 0.5rem; min-width: 132px; text-align: center; display: inline-block;">ADMIN LOCKED 🔒</span>
-        <span id="nav-admin-user" style="font-size: 0.78rem; color: var(--text-muted);">Access Restricted</span>
+        <span id="nav-admin-user" style="font-size: 0.86rem; color: var(--text-muted);">Access Restricted</span>
         <button id="nav-admin-auth-btn" class="btn btn-sm btn-amber" style="color:#ffffff; padding:0.22rem 0.55rem; font-size:0.75rem; white-space: nowrap;" onclick="toggleAdminAuthAction()">Admin Sign-In</button>
         <a href="#" class="nav-link" onclick="openChangePasswordModal(); return false;" title="Change your account password"><span>🔑</span> Change Password</a>
         <a href="https://ndl.iitkgp.ac.in" class="nav-link" target="_blank" rel="noopener noreferrer" title="Visit Official National Digital Library of India Portal"><span>🏛️</span> NDLI Main Site ↗</a>
@@ -194,18 +254,18 @@
       <form id="admin-modal-form" onsubmit="handleAdminModalLogin(event)">
         <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
           <div style="margin-bottom: 0.85rem;">
-            <label for="admin-modal-id" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
+            <label for="admin-modal-id" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Email or User ID</label>
             <input type="text" id="admin-modal-id" required placeholder="admin@iitkgp.ac.in or ADMIN01" autocomplete="username" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
           </div>
           <div>
-            <label for="admin-modal-pass" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
+            <label for="admin-modal-pass" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Admin Password</label>
             <div style="position: relative; display: flex; align-items: center;">
               <input type="password" id="admin-modal-pass" required placeholder="Enter administrator password" autocomplete="current-password" style="width: 100%; padding: 0.55rem 4.5rem 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
+              <button type="button" onclick="toggleModalAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.92rem; font-weight: 600;">👁️ Show</button>
             </div>
           </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <div style="display: flex; justify-content: flex-end; gap: 1.15rem;">
           <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">Cancel</button>
           <button type="submit" id="btn-admin-modal-unlock" class="btn btn-amber" style="font-weight: 700; color: #ffffff;">
             <span>🔓</span> Verify &amp; Unlock
@@ -240,16 +300,16 @@
         <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg></div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label">Renewal Attention</span>
-          <span style="font-size: 0.72rem; color: var(--danger); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
+          <span style="font-size: 0.8rem; color: var(--danger); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
         </div>
         <span class="stat-value" id="kpi-renewals">--</span>
         <span class="stat-desc">Overdue / Expiring soon (Click to inspect)</span>
       </div>
-      <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid var(--danger); transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
+      <div class="stat-card danger reveal-card" id="card-admin-escalations" role="button" tabindex="0" onclick="openAdminEscalationsListModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAdminEscalationsListModal();}" style="cursor: pointer; border-left: 4px solid var(--danger-border); transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view 30+ days unresolved escalated issues" aria-label="View 30+ days unresolved escalated issues">
         <div class="stat-icon ic-red" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDE7EA; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#9F1239" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19h18.4L12 3zM12 9.5v4.2M12 16.6v.2"/></svg></div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="stat-label" style="color: #991b1b; font-weight: 700;">30-Day Escalations</span>
-          <span id="badge-admin-escalations-prompt" style="font-size: 0.72rem; color: var(--c-red-ink); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
+          <span id="badge-admin-escalations-prompt" style="font-size: 0.8rem; color: var(--c-red-ink); background: var(--danger-light); padding: 2px 6px; border-radius: 999px; font-weight: 700;">View List ↗</span>
         </div>
         <span class="stat-value" id="kpi-admin-escalations" style="color: var(--danger);">--</span>
         <span class="stat-desc" id="kpi-admin-escalations-desc">Unresolved 30+ days (Click to inspect)</span>
@@ -275,8 +335,8 @@
           <span>🔍</span> Analytics & Geographic Scope:
         </div>
         <div>
-          <label for="filter-zone" style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Zone</label>
-          <select id="filter-zone" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+          <label for="filter-zone" style="font-size: 0.83rem; margin-bottom: 0.15rem;">Filter by Zone</label>
+          <select id="filter-zone" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.95rem;">
             <option value="ALL">All Operational Zones (6)</option>
             <option value="North">North Zone</option>
             <option value="Central">Central Zone</option>
@@ -287,8 +347,8 @@
           </select>
         </div>
         <div>
-          <label for="filter-year" style="font-size: 0.75rem; margin-bottom: 0.15rem;">Filter by Year</label>
-          <select id="filter-year" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+          <label for="filter-year" style="font-size: 0.83rem; margin-bottom: 0.15rem;">Filter by Year</label>
+          <select id="filter-year" onchange="applyFilters()" style="padding: 0.35rem 0.65rem; font-size: 0.95rem;">
             <option value="ALL">All Inception Years</option>
             <option value="2026">2026 (Current Cycle)</option>
             <option value="2025">2025</option>
@@ -299,6 +359,8 @@
           <button class="btn btn-outline btn-sm" onclick="loadDashboardData()">Refresh Metrics ↻</button>
           <a href="/api/download/user-manual" class="btn btn-outline btn-sm" id="btn-download-user-manual" title="Download Official NDLI User Manual (PDF)" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" target="_blank"><span>📖</span> User Manual (PDF)</a>
           <button class="btn btn-amber btn-sm" id="btn-download-master-csv" onclick="downloadMasterCSV()" title="Download master_clubs.csv database copy" style="color: #ffffff; font-weight: 600;">Download Master CSV</button>
+          <button class="btn btn-outline btn-sm" id="btn-generate-report-pdf" onclick="generateComprehensiveReportPdf()" title="One-click comprehensive report (PDF): analytics, roadmap & fairness frame">📄 Generate Comprehensive Report (PDF)</button>
+          <button class="btn btn-outline btn-sm" id="btn-generate-report-doc" onclick="generateComprehensiveReportDoc()" title="Download the comprehensive report as a DOC file">📝 Generate Comprehensive Report (DOC)</button>
         </div>
       </div>
 
@@ -312,7 +374,7 @@
           <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="11" r="2.4"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">National State Coverage</span>
-            <span class="pill pill-primary" id="badge-coverage-ratio" style="font-size: 0.72rem;">0 / 36</span>
+            <span class="pill pill-primary" id="badge-coverage-ratio" style="font-size: 0.8rem;">0 / 36</span>
           </div>
           <span class="stat-value" id="stat-coverage-pct">--</span>
           <span class="stat-desc" id="stat-coverage-desc">States with active club presence</span>
@@ -323,7 +385,7 @@
           <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.6-7 9.5-4.1-1.9-7-5.1-7-9.5V6l7-3z"/><path d="M9 11.8l2.2 2.2 4.3-4.4"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">Club Retention Rate</span>
-            <span class="pill pill-success" style="font-size: 0.72rem;">Active Cycle</span>
+            <span class="pill pill-success" style="font-size: 0.8rem;">Active Cycle</span>
           </div>
           <span class="stat-value" id="stat-retention-rate">--</span>
           <span class="stat-desc" id="stat-retention-desc">Clubs with active valid registration</span>
@@ -334,7 +396,7 @@
           <div class="stat-icon ic-lav" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #EDE9FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#5B45A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></svg></div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="stat-label">Support Density Ratio</span>
-            <span class="pill pill-primary" style="font-size: 0.72rem;">Logs / Club</span>
+            <span class="pill pill-primary" style="font-size: 0.8rem;">Logs / Club</span>
           </div>
           <span class="stat-value" id="stat-support-ratio">--</span>
           <span class="stat-desc">Average support logs per approved club</span>
@@ -418,10 +480,10 @@
       </div>
 
       <!-- 5. FILTERABLE STATE BREAKDOWN & EMPLOYEE PERFORMANCE -->
-      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; width: 100%;">
+      <div style="display: flex; flex-direction: column; gap: 1.15rem; margin-top: 0.75rem; width: 100%;">
         <!-- State-Wise Breakdown Table -->
         <div class="chart-container responsive-matrix-card" id="state-breakdown-container" style="width: 100%;">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.15rem;">
             <div>
               <h3 class="card-title" style="margin: 0;">National State-Wise Penetration &amp; Density Roster</h3>
               <p class="card-subtitle" style="margin: 0; font-size: 0.825rem; color: var(--text-muted);">All 36+ Indian States and Union Territories with color-gradient density indicators</p>
@@ -431,7 +493,7 @@
           <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table id="state-breakdown-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: left; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; z-index: var(--z-sticky-head);">
+                <tr style="background: #f1f5f9; text-align: left; font-size: 0.83rem; text-transform: uppercase; position: sticky; top: 0; z-index: var(--z-sticky-head);">
                   <th style="padding: 0.55rem 0.75rem; width: 28%; white-space: normal;">State / Union Territory</th>
                   <th style="padding: 0.55rem 0.5rem; width: 16%; text-align: center; white-space: normal;">Zone</th>
                   <th style="padding: 0.55rem 0.5rem; width: 12%; text-align: center; white-space: normal;">Clubs</th>
@@ -463,7 +525,7 @@
             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
               <div style="display: flex; flex-direction: column;">
                 <label for="perf-filter-year" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Year</label>
-                <select id="perf-filter-year" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 90px;" onchange="loadEmployeePerformance()">
+                <select id="perf-filter-year" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.92rem; min-width: 90px;" onchange="loadEmployeePerformance()">
                   <option value="ALL">All Years</option>
                   <option value="2026">2026</option>
                   <option value="2025">2025</option>
@@ -473,7 +535,7 @@
 
               <div style="display: flex; flex-direction: column;">
                 <label for="perf-filter-month" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Month</label>
-                <select id="perf-filter-month" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 105px;" onchange="loadEmployeePerformance()">
+                <select id="perf-filter-month" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.92rem; min-width: 105px;" onchange="loadEmployeePerformance()">
                   <option value="ALL">All Months</option>
                   <option value="1">January</option>
                   <option value="2">February</option>
@@ -492,7 +554,7 @@
 
               <div style="display: flex; flex-direction: column;">
                 <label for="perf-filter-state" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">State</label>
-                <select id="perf-filter-state" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 140px;" onchange="loadEmployeePerformance()">
+                <select id="perf-filter-state" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.92rem; min-width: 140px;" onchange="loadEmployeePerformance()">
                   <option value="ALL">All States / UTs</option>
                 </select>
               </div>
@@ -504,7 +566,7 @@
           </div>
 
           <!-- Scoring Rubric Summary Chips -->
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.6rem 0.85rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.75rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.95rem 1.25rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.83rem;">
               <span style="display: inline-flex; align-items: center; gap: 4px; color: #166534; font-weight: 600;">
               <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span>
               Clubs Approved: <strong>50 points</strong>
@@ -530,7 +592,7 @@
           <div class="table-responsive" style="max-height: 275px; overflow-y: auto; overflow-x: auto; width: 100%;">
             <table class="data-table" id="employee-performance-table" style="width: 100%; border-collapse: collapse; table-layout: auto;">
               <thead>
-                <tr style="background: #f1f5f9; text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: var(--z-sticky-head);">
+                <tr style="background: #f1f5f9; text-align: center; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: var(--z-sticky-head);">
                   <th style="padding: 0.5rem 0.35rem; width: 5%; text-align: center; white-space: normal;">Rank</th>
                   <th style="padding: 0.5rem 0.5rem; width: 17%; text-align: left; white-space: normal;">Officer &amp; Zone</th>
                   <th style="padding: 0.5rem 0.5rem; width: 16%; text-align: left; white-space: normal;">Assigned Jurisdiction</th>
@@ -555,7 +617,7 @@
           <!-- Relative Volume Distribution (Quota Breakdown) -->
           <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+              <span style="font-size: 0.92rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
                 Relative Activity Distribution (Volume Bars)
               </span>
               <span class="pill pill-success" style="font-size: 0.7rem;">Live Sync</span>
@@ -575,7 +637,7 @@
           <div>
             <span class="badge-tag" style="background: #5B45A8;">AI Decision Engine</span>
             <h3 style="font-size: 1.35rem; font-weight: 700; margin-top: 0.35rem;">Strategic Roadmap & Policy Insights</h3>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
               Automated analytical pipelines processing master records to formulate data-backed recommendations for IIT Kharagpur administration.
             </p>
           </div>
@@ -623,7 +685,7 @@
               🔒
             </div>
             <h3 style="font-size: 1.35rem; color: var(--primary); font-weight: 700;">Restricted Security Access: Employee Management</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-top: 0.35rem;">
               Employee Management, Node Database Configuration, and Access Control are restricted. Only Central IIT Kharagpur Administrators with verified Admin ID and Password may access this section.
             </p>
           </div>
@@ -640,12 +702,12 @@
               <label for="admin-gate-pass" class="label-required">Admin Password</label>
               <div style="position: relative; display: flex; align-items: center;">
                 <input type="password" id="admin-gate-pass" required placeholder="Enter master administration password" autocomplete="current-password" style="padding-right: 4.5rem;">
-                <button type="button" class="password-toggle-btn" onclick="toggleAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">👁️ Show</button>
+                <button type="button" class="password-toggle-btn" onclick="toggleAdminPassVisibility()" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.92rem; font-weight: 600;">👁️ Show</button>
               </div>
             </div>
 
             <div style="margin-bottom: 1.25rem;">
-              <span style="font-size: 0.75rem; color: var(--text-muted);">IIT Kharagpur Central Coordination • Authorized Admin Personnel Only</span>
+              <span style="font-size: 0.83rem; color: var(--text-muted);">IIT Kharagpur Central Coordination • Authorized Admin Personnel Only</span>
             </div>
 
             <button type="submit" id="btn-admin-unlock" class="btn btn-danger btn-lg" style="width: 100%; justify-content: center;">
@@ -658,10 +720,10 @@
       <!-- UNLOCKED EMPLOYEE MANAGEMENT WORKSPACE (REQUIRES ADMIN ROLE) -->
       <div id="admin-employee-content" style="display: none;">
         <!-- Banner with Lock option -->
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); padding: 1.05rem 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="pill pill-success">● Admin Authenticated</span>
-            <span style="font-size: 0.85rem; color: #166534;">Verified access to Employee Roster, Node Provisioning, and Access Control.</span>
+            <span style="font-size: 0.95rem; color: #166534;">Verified access to Employee Roster, Node Provisioning, and Access Control.</span>
           </div>
           <button class="btn btn-outline btn-sm" onclick="lockAdminSection()" style="color: #166534; border-color: #86efac;">
             🔒 Lock Section
@@ -818,19 +880,19 @@
 
           <div class="grid-3" style="margin-bottom: 1.25rem;">
             <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Backup Cycle</span>
+              <span style="font-size: 0.83rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Backup Cycle</span>
               <strong style="display: block; font-size: 1.1rem; color: var(--primary); margin-top: 0.2rem;">Every 7 Days</strong>
-              <small style="color: var(--text-muted); font-size: 0.75rem;">Next: <span id="backup-next-due">Checking...</span></small>
+              <small style="color: var(--text-muted); font-size: 0.83rem;">Next: <span id="backup-next-due">Checking...</span></small>
             </div>
             <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Retention Policy</span>
+              <span style="font-size: 0.83rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Retention Policy</span>
               <strong style="display: block; font-size: 1.1rem; color: #0D7751; margin-top: 0.2rem;">Last 6 Backups Stored</strong>
-              <small style="color: var(--text-muted); font-size: 0.75rem;">Previous backups pruned automatically</small>
+              <small style="color: var(--text-muted); font-size: 0.83rem;">Previous backups pruned automatically</small>
             </div>
             <div style="background: #f8fafc; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-              <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Stored Backups</span>
+              <span style="font-size: 0.83rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Stored Backups</span>
               <strong style="display: block; font-size: 1.1rem; color: #1e293b; margin-top: 0.2rem;" id="backup-count-display">0 / 6 Backups</strong>
-              <small style="color: var(--text-muted); font-size: 0.75rem;">Last: <span id="backup-last-time">Never</span></small>
+              <small style="color: var(--text-muted); font-size: 0.83rem;">Last: <span id="backup-last-time">Never</span></small>
             </div>
           </div>
 
@@ -843,16 +905,16 @@
             </div>
           </div>
 
-          <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; font-size: 0.85rem;">
+          <div id="backup-archives-list" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.05rem; font-size: 0.95rem;">
             <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading backup archives...</div>
           </div>
 
           <!-- DANGER ZONE: Test Data Reset (dual-layer security) -->
-          <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: var(--radius-sm); padding: 0.85rem 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: var(--radius-sm); padding: 1.25rem 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1.15rem; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 260px;">
                 <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Reset Test Data</strong>
-                <small style="color: #7f1d1d; font-size: 0.78rem; line-height: 1.45; display: block;">
+                <small style="color: #7f1d1d; font-size: 0.86rem; line-height: 1.45; display: block;">
                   Wipes ALL club &amp; activity data (Master DB + 7 Nodal Officer Node DBs) and reseeds clean test clubs. Employee accounts, credentials &amp; issues are preserved.
                   An automatic safety checkpoint is taken first (and the reset aborts if it cannot be written) — you can restore it from the archives list above.
                   Protected by dual-layer security: typed confirmation phrase + Master Admin password.
@@ -3731,7 +3793,7 @@
           <div class="form-group">
             <label for="edit-emp-id" class="label-required">Employee Code / ID</label>
             <input type="text" id="edit-emp-id" required placeholder="e.g. EMP01">
-            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
               Changing ID automatically renames the node folder (<code>data/employees/&lt;id&gt;</code>) and syncs activity logs & clubs.
             </p>
           </div>
@@ -3781,7 +3843,7 @@
           <input type="text" id="edit-emp-states" required placeholder="e.g. Delhi, Punjab, Haryana, Uttar Pradesh">
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+        <div style="display: flex; justify-content: flex-end; gap: 1.15rem; margin-top: 1.25rem;">
           <button type="button" class="btn btn-outline" onclick="closeEditEmployeeModal()">Cancel</button>
           <button type="submit" id="btn-save-emp-update" class="btn btn-primary">
             <span>✓</span> Save & Sync with Backend DB
@@ -3813,9 +3875,9 @@
       </div>
 
       <!-- Controls & Filter Toolbar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 0.85rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.15rem; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 0.85rem;">
         <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Filter:</span>
+          <span style="font-size: 0.92rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Filter:</span>
           <button type="button" class="btn btn-sm btn-primary attn-filter-btn" data-filter="ALL" onclick="filterAttentionList('ALL')">
             All (<span id="btn-count-all">0</span>)
           </button>
@@ -3828,7 +3890,7 @@
         </div>
 
         <div style="flex: 1; min-width: 240px; max-width: 380px;">
-          <input type="text" id="attn-search-input" placeholder="Search by Club ID, Institution, State, Zone..." oninput="handleAttentionSearch(this.value)" style="padding: 0.35rem 0.65rem; font-size: 0.85rem; width: 100%;">
+          <input type="text" id="attn-search-input" placeholder="Search by Club ID, Institution, State, Zone..." oninput="handleAttentionSearch(this.value)" style="padding: 0.35rem 0.65rem; font-size: 0.95rem; width: 100%;">
         </div>
       </div>
 
@@ -3854,7 +3916,7 @@
           </tbody>
         </table>
       </div>
-      <div id="attention-pagination-bar" style="display: none; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
+      <div id="attention-pagination-bar" style="display: none; padding: 1.05rem 1.25rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: var(--bg-muted); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);"></div>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
         <button type="button" class="btn btn-outline btn-sm" onclick="closeRenewalAttentionModal()">Close Window</button>
@@ -3879,7 +3941,7 @@
 
       <!-- Modal Header -->
       <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid #fee2e2; padding-bottom: 0.85rem;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 1.15rem;">
           <div style="background: #dc2626; color: #ffffff; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);">
             🚨
           </div>
@@ -3898,12 +3960,12 @@
       </div>
 
       <!-- Search & Filter Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #fff5f5; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: 0.85rem;">
-        <div style="font-size: 0.85rem; color: #991b1b; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.15rem; background: #fff5f5; padding: 0.65rem 0.85rem; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: 0.85rem;">
+        <div style="font-size: 0.95rem; color: #991b1b; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
           <span>🔍</span> Filter Escalated Queue:
         </div>
         <div style="flex: 1; min-width: 260px; max-width: 420px;">
-          <input type="text" id="admin-escalations-search-input" placeholder="Search by Club ID, Institution, State, Zone, Officer..." oninput="handleAdminEscalationsSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; width: 100%; border: 1px solid #fca5a5; border-radius: var(--radius);">
+          <input type="text" id="admin-escalations-search-input" placeholder="Search by Club ID, Institution, State, Zone, Officer..." oninput="handleAdminEscalationsSearch(this.value)" style="padding: 0.4rem 0.75rem; font-size: 0.95rem; width: 100%; border: 1px solid #fca5a5; border-radius: var(--radius);">
         </div>
       </div>
 
@@ -3952,11 +4014,11 @@
       </div>
 
       <div style="margin-bottom: 1rem;">
-        <label for="admin-issue-resolution-notes" style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Admin Remarks / Action Notes (Optional):</label>
+        <label for="admin-issue-resolution-notes" style="font-size: 0.95rem; font-weight: 600; display: block; margin-bottom: 0.35rem;">Admin Remarks / Action Notes (Optional):</label>
         <textarea id="admin-issue-resolution-notes" rows="2" placeholder="Enter notes or instructions for the regional employee..." style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem;"></textarea>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem; flex-wrap: wrap;">
         <button type="button" class="btn btn-warning" id="btn-admin-mark-not-resolved" onclick="submitAdminIssueResolution('Not Resolved')">
           <span>⚠</span> Not Resolved (Auto-generate Reminder after 7 Days)
         </button>
@@ -3981,7 +4043,7 @@
         <span class="pill pill-danger" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Critical Action</span>
       </div>
 
-      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; font-size: 0.94rem; color: #881337; line-height: 1.5;">
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE WIPE WARNING
         </strong>
@@ -3991,25 +4053,25 @@
       </div>
 
       <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
-        <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
           <span>🛡️</span> Dual-Layer Security Verification
         </h4>
 
         <div style="margin-bottom: 0.85rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>RESET-ALL-TEST-DATA</code> to confirm:</label>
-          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; font-family: monospace;">
+          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>RESET-ALL-TEST-DATA</code> to confirm:</label>
+          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; font-family: monospace;">
           <small style="color: var(--text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">Prevents accidental activation — the phrase must match exactly.</small>
         </div>
 
         <div style="margin-bottom: 0.85rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 2 — Master Admin Password:</label>
-          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem;">
-          <div id="reset-password-error" style="display: none; color: #b91c1c; font-size: 0.75rem; margin-top: 0.3rem;"></div>
+          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 2 — Master Admin Password:</label>
+          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
+          <div id="reset-password-error" style="display: none; color: #b91c1c; font-size: 0.83rem; margin-top: 0.3rem;"></div>
         </div>
 
         <div>
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Test clubs per employee (reseed count):</label>
-          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem;">
+          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Test clubs per employee (reseed count):</label>
+          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
         </div>
       </div>
 
@@ -4039,7 +4101,7 @@
       </div>
 
       <!-- Warning Banner -->
-      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; color: #881337; line-height: 1.5;">
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; font-size: 0.94rem; color: #881337; line-height: 1.5;">
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE ROLLBACK WARNING
         </strong>
@@ -4051,21 +4113,21 @@
         <div style="margin-bottom: 0.85rem;">
           <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 0.35rem;">Target Backup Archive to Restore:</label>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <select id="restore-target-select" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; background: #fff;">
+            <select id="restore-target-select" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; background: #fff;">
               <option value="">Latest Available Backup Snapshot (Default)</option>
             </select>
           </div>
-          <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Select a specific backup snapshot or leave on default to restore the latest backup.</small>
+          <small style="color: var(--text-muted); font-size: 0.83rem; margin-top: 0.25rem; display: block;">Select a specific backup snapshot or leave on default to restore the latest backup.</small>
         </div>
 
         <div style="border-top: 1px dashed var(--border); padding-top: 0.85rem; margin-top: 0.85rem;">
-          <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
             <span>🛡️</span> Dual-Layer Security Verification
           </h4>
 
           <!-- Layer 1: CAPTCHA -->
           <div style="margin-bottom: 0.85rem;">
-            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
+            <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
               Security Layer 1: Anti-Accidental CAPTCHA Verification
             </label>
             <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.35rem;">
@@ -4077,22 +4139,22 @@
               </button>
             </div>
             <input type="text" id="restore-captcha-input" placeholder="Type the 5-character code above" maxlength="5" autocomplete="off" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem; font-family: monospace; letter-spacing: 2px; text-transform: uppercase;">
-            <div id="restore-captcha-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
+            <div id="restore-captcha-error" style="color: #dc2626; font-size: 0.86rem; margin-top: 0.25rem; display: none;"></div>
           </div>
 
           <!-- Layer 2: Admin Password -->
           <div>
-            <label for="restore-admin-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
+            <label for="restore-admin-password" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">
               Security Layer 2: Master Administrator Password
             </label>
             <input type="password" id="restore-admin-password" placeholder="Enter Master Administrator Password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
-            <div id="restore-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.25rem; display: none;"></div>
+            <div id="restore-password-error" style="color: #dc2626; font-size: 0.86rem; margin-top: 0.25rem; display: none;"></div>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem; flex-wrap: wrap;">
         <button type="button" class="btn btn-outline" onclick="closeEmergencyRestoreModal()" id="btn-cancel-restore">
           Cancel
         </button>
@@ -4117,21 +4179,21 @@
       </div>
       <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.1rem;">
         <div style="margin-bottom: 0.8rem;">
-          <label for="chg-current-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Current Password</label>
+          <label for="chg-current-password" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Current Password</label>
           <input type="password" id="chg-current-password" placeholder="Enter current password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
         <div style="margin-bottom: 0.8rem;">
-          <label for="chg-new-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">New Password</label>
+          <label for="chg-new-password" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">New Password</label>
           <input type="password" id="chg-new-password" placeholder="Enter new password (min 8 characters)" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
         <div>
-          <label for="chg-confirm-password" style="display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Confirm New Password</label>
+          <label for="chg-confirm-password" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Confirm New Password</label>
           <input type="password" id="chg-confirm-password" placeholder="Re-enter new password" autocomplete="new-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.88rem;">
         </div>
-        <div id="chg-password-error" style="color: #dc2626; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
-        <div id="chg-password-success" style="color: #047857; font-size: 0.78rem; margin-top: 0.5rem; display: none;"></div>
+        <div id="chg-password-error" style="color: #dc2626; font-size: 0.86rem; margin-top: 0.5rem; display: none;"></div>
+        <div id="chg-password-success" style="color: #047857; font-size: 0.86rem; margin-top: 0.5rem; display: none;"></div>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+      <div style="display: flex; justify-content: flex-end; gap: 1.15rem;">
         <button type="button" class="btn btn-outline" onclick="closeChangePasswordModal()">Cancel</button>
         <button type="button" class="btn btn-primary" id="btn-submit-change-password" onclick="submitChangePassword()" style="font-weight: 600;">Update Password</button>
       </div>
@@ -4209,6 +4271,23 @@
     window.submitChangePassword = submitChangePassword;
   </script>
 
+  <!-- ===== COMPREHENSIVE REPORT VIEW (PDF via print + DOC export) — additive,
+       driven by static/js/report_generator.js. Printable surface only. ===== -->
+  <div id="report-view-root" role="region" aria-label="Comprehensive report view">
+    <div id="report-toolbar">
+      <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+        <strong id="report-view-title">NDLI Club Comprehensive Report</strong>
+        <span class="pill pill-primary" id="report-view-status">Compiling…</span>
+      </div>
+      <div class="report-toolbar-actions">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-report-print" onclick="ReportGenerator.printReport()">🖨 Print / Save as PDF</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-report-doc-download" onclick="ReportGenerator.downloadDoc()">⬇ Download DOC</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-report-close" onclick="ReportGenerator.closeReportView()">Close Report</button>
+      </div>
+    </div>
+    <div id="report-print-root"></div>
+  </div>
+
   <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
   <footer class="system-footer">
     <div class="footer-container">
@@ -4283,5 +4362,6 @@
   </div>
   <script src="/static/js/assistant.js"></script>
   <!-- ===== end NDLI AI ASSISTANT WIDGET ===== -->
+  <script src="/static/js/report_generator.js"></script>
 </body>
 </html>

@@ -215,11 +215,11 @@ body {
      amber bottom-left — screens-c-landing recipe). */
   background-color: var(--bg-main);
   background-image:
-    radial-gradient(900px 520px at 82% -8%, rgba(52, 201, 143, 0.16), transparent 62%),
-    radial-gradient(700px 480px at -6% 108%, rgba(242, 179, 77, 0.14), transparent 60%);
+    radial-gradient(900px 520px at 82% -8%, rgba(52, 201, 143, 0.22), transparent 62%),
+    radial-gradient(700px 480px at -6% 108%, rgba(242, 179, 77, 0.20), transparent 60%);
   background-attachment: fixed;
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -436,39 +436,40 @@ body {
 /* Round 3 (F4): amber chip gradients darkened to the passing ramp
    (white labels: 7.12/5.08/5.02:1 at every stop; was 5.02/3.19/2.15:1).
    Direction C: these stay DARK — they are small gradient accent chips. */
+/* Direction C fidelity: soft pastel pills (deep-ink labels — AA 5.5:1+ on the
+   pastel fills; the saturated gradient chips read as "button soup" vs mockup). */
 .nav-link.nav-link-admin,
 .nav-link.nav-link-employee,
 .nav-link.nav-link-login {
-  background: linear-gradient(135deg, #8f4208 0%, #a85a0b 55%, #b45309 100%) !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(251, 191, 36, 0.75) !important;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  background: var(--c-amber-soft, #FDEFD9) !important;
+  color: var(--c-amber-ink, #92500B) !important;
+  font-weight: 800 !important;
+  border: 1px solid var(--warning-border, #F3D9B2) !important;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.14) !important;
+  text-shadow: none;
 }
 .nav-link.nav-link-admin:hover,
 .nav-link.nav-link-employee:hover,
 .nav-link.nav-link-login:hover {
-  background: linear-gradient(135deg, #7c3a0a 0%, #8f4208 55%, #a85a0b 100%) !important;
-  border-color: #fde68a !important;
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.5) !important;
+  background: #F7E3C3 !important;
+  border-color: #E9C48F !important;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.22) !important;
   transform: translateY(-1px);
 }
 
-/* Round 3 (F4 twin — same 'darken the light stops' decision, sky identity kept):
-   white labels 7.56/5.93/5.61:1 at every stop (was 5.93/4.10/2.14:1). */
+/* Direction C fidelity: sky twin of the pastel nav pills (ink-on-pastel 5.4:1). */
 .nav-link.nav-link-portal {
-  background: linear-gradient(135deg, #075985 0%, #0369a1 55%, #0b6e9f 100%) !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(56, 189, 248, 0.75) !important;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  background: var(--c-sky-soft, #E2F0FB) !important;
+  color: var(--c-sky-ink, #1E5F8C) !important;
+  font-weight: 800 !important;
+  border: 1px solid #BFDCEF !important;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.16) !important;
+  text-shadow: none;
 }
 .nav-link.nav-link-portal:hover {
-  background: linear-gradient(135deg, #084c74 0%, #075985 55%, #0369a1 100%) !important;
-  border-color: #bae6fd !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
+  background: #D3E7F7 !important;
+  border-color: #A7CFEA !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.24) !important;
   transform: translateY(-1px);
 }
 
@@ -521,8 +522,8 @@ body {
    ========================================================================== */
 .container {
   max-width: 1600px;
-  margin: 0.75rem auto;
-  padding: 0 1.5rem;
+  margin: 1.25rem auto;
+  padding: 0 1.9rem;
   flex: 1;
   width: 100%;
 }
@@ -626,11 +627,11 @@ body {
    ========================================================================== */
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  padding: 1.15rem 1.35rem;
-  margin-bottom: 0.85rem;
+  box-shadow: var(--shadow);
+  padding: 1.55rem 1.8rem;
+  margin-bottom: 1.15rem;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 
@@ -642,19 +643,19 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.55rem;
+  margin-bottom: 1.05rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .card-title {
-  font-size: 1.0rem;
+  font-size: 1.28rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--c-ink);
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  letter-spacing: -0.015em;
+  gap: 0.55rem;
+  letter-spacing: -0.022em;
 }
 
 .card-subtitle {
@@ -669,7 +670,7 @@ body {
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 1.2rem 1.4rem;
+  padding: 1.75rem 2rem;
   box-shadow: var(--shadow-sm);
   /* Round 2 F9: was --transition-spring (overshoot easing) — springs are
      contractually reserved for modals/FABs, and hover-lift is a plain ease. */
@@ -692,30 +693,35 @@ body {
   border-color: rgba(13, 119, 81, 0.25);
 }
 
+/* Direction C: soft pastel-tinted portal cards (side-promo recipe) instead of
+   thick accent top-borders — semantics ride the pastel fills. */
 .admin-master-card {
-  border-top: 3px solid var(--amber);
-  background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+  border-top: 3px solid var(--warning-border, #F3D9B2);
+  background: linear-gradient(150deg, #FDF4E4 0%, #ffffff 55%);
 }
 
 .employee-node-card {
-  border-top: 3px solid var(--primary-light);
+  border-top: 3px solid #BFE6D3;
+  background: linear-gradient(150deg, #EAF6EF 0%, #ffffff 55%);
 }
 
 /* ==========================================================================
    KPI STAT CARDS — Direction C: white, radius 20, soft shadow + hover-lift
    ========================================================================== */
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1rem; }
-.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.15rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.15rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
 
 .kpi-row {
   display: grid;
   /* 190px matches the live admin override (admin.html) — harmonised, not restyled */
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
+  gap: 1.15rem;
+  margin-bottom: 1.15rem;
 }
 
+/* Direction C fidelity: KPI cards = shadow-lifted white cards (no thick colored
+   side-borders — semantics ride the pastel .stat-icon tiles + corner glows). */
 .stat-card {
   background: #ffffff;
   border: 1px solid var(--border);
@@ -725,7 +731,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   box-shadow: var(--shadow);
-  border-left: 4px solid var(--primary);
+  border-left: 1px solid var(--border);
   /* Round 2 F9: was --transition-spring (overshoot easing) — see .portal-card */
   transition: transform var(--transition), box-shadow var(--transition);
   position: relative;
@@ -746,15 +752,16 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-.stat-card.accent  { border-left-color: var(--primary-light); }
-.stat-card.accent::after { background: radial-gradient(circle at top right, rgba(13, 119, 81, 0.08) 0%, transparent 70%); }
-.stat-card.success { border-left-color: #17A273; }
-.stat-card.success::after { background: radial-gradient(circle at top right, rgba(23, 162, 115, 0.08) 0%, transparent 70%); }
-.stat-card.warning { border-left-color: var(--amber); }
-.stat-card.warning::after { background: radial-gradient(circle at top right, rgba(217, 119, 6, 0.08) 0%, transparent 70%); }
-.stat-card.danger  { border-left-color: var(--danger); cursor: pointer; }
-.stat-card.danger::after { background: radial-gradient(circle at top right, rgba(190, 18, 60, 0.07) 0%, transparent 70%); }
-.stat-card.danger:hover  { border-color: var(--danger); background: #FFF4F6; }
+/* Semantic variants: pastel corner-glow only (border edges unified hairline). */
+.stat-card.accent  { border-left-color: var(--border); }
+.stat-card.accent::after { background: radial-gradient(circle at top right, rgba(13, 119, 81, 0.10) 0%, transparent 70%); }
+.stat-card.success { border-left-color: var(--border); }
+.stat-card.success::after { background: radial-gradient(circle at top right, rgba(23, 162, 115, 0.12) 0%, transparent 70%); }
+.stat-card.warning { border-left-color: var(--border); }
+.stat-card.warning::after { background: radial-gradient(circle at top right, rgba(217, 119, 6, 0.12) 0%, transparent 70%); }
+.stat-card.danger  { border-left-color: var(--border); cursor: pointer; }
+.stat-card.danger::after { background: radial-gradient(circle at top right, rgba(190, 18, 60, 0.10) 0%, transparent 70%); }
+.stat-card.danger:hover  { border-color: var(--danger-border); background: #FFF4F6; }
 
 .stat-label {
   font-size: 0.66rem;
@@ -765,7 +772,7 @@ body {
 }
 
 .stat-value {
-  font-size: var(--text-xl); /* Direction C: 26–30px KPI values */
+  font-size: 1.88rem; /* Direction C fidelity: display-scale KPI numbers */
   font-weight: 900;
   color: var(--primary-dark);
   line-height: 1.1;
@@ -1126,8 +1133,8 @@ input[readonly] {
 }
 
 .btn-sm {
-  padding: 0.30rem 0.75rem;
-  font-size: 0.75rem;
+  padding: 0.48rem 1.15rem;
+  font-size: 0.84rem;
   border-radius: var(--radius-pill);
 }
 
@@ -1887,8 +1894,8 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
 .chart-container {
   background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.15rem 1.35rem;
+  border-radius: var(--radius-xl);
+  padding: 1.55rem 1.8rem;
   box-shadow: var(--shadow-xs);
 }
 
