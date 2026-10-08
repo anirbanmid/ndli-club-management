@@ -168,10 +168,11 @@ class TestR3Phase2A11y(unittest.TestCase):
 
     def test_modals_dialog_protocol(self):
         # R25: the admin Club Register modal joined the ladder (+1 admin modal).
+        # R26: the employee Bulk Import modal joined the ladder (+1 employee modal).
         self.assertEqual(self.admin.count('aria-modal="true"'), 11)
-        self.assertEqual(self.emp.count('aria-modal="true"'), 7)
+        self.assertEqual(self.emp.count('aria-modal="true"'), 8)
         self.assertEqual(self.admin.count('role="dialog"'), 11)
-        self.assertEqual(self.emp.count('role="dialog"'), 7)
+        self.assertEqual(self.emp.count('role="dialog"'), 8)
 
     def test_modal_focus_helpers_defined_and_exported(self):
         self.assertIn("function ndliModalOpened(modal)", self.app)

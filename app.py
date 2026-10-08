@@ -259,6 +259,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "GET  /api/state-zone/lookup?state=<name>",
                 "GET  /api/clubs/search?q=<query>",
                 "POST /api/clubs/create",
+                "POST /api/clubs/bulk-import/validate",
+                "POST /api/clubs/bulk-import/commit",
                 "POST /api/clubs/update",
                 "POST /api/clubs/correct-dates",
                 "POST /api/clubs/renew",
@@ -2006,6 +2008,134 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "success": True,
                 "message": msg,
                 **result
+            })
+            return
+
+        # R26: BULK IMPORT of legacy clubs (CSV) with a DRY-RUN validation pass.
+        # Client requisition 2026-10-09: employees migrating many legacy clubs from
+        # the official portal need batch entry with per-row validation BEFORE any
+        # write. Every row is validated exactly like an "Import existing club"
+        # submission (record_mode="import"): DOA required in 2019-01-01..today,
+        # LRD optional within DOA..today, duplicate reg-no/club-id blocked against
+        # the master DB and within the batch itself. Commit creates only rows that
+        # pass, then performs ONE batched durable-sync confirmation.
+        if path in ("/api/clubs/bulk-import/validate", "/api/clubs/bulk-import/commit"):
+            commit_mode = path.endswith("/commit")
+            emp_id = str(body.get("emp_id", "")).strip().upper()
+            if not emp_id:
+                self._send_error("emp_id is required.")
+                return
+            if not self._require_self_or_admin(emp_id):
+                return
+            if not self._is_employee_active(emp_id):
+                self._send_error(f"Employee account '{emp_id}' is blocked or inactive. Operation not permitted.", status=403)
+                return
+            rows = body.get("rows")
+            if not isinstance(rows, list) or not rows:
+                self._send_error("rows must be a non-empty JSON array of club records.", status=400)
+                return
+            if len(rows) > 200:
+                self._send_error("Bulk import is limited to 200 rows per batch. Split the CSV and retry.", status=422)
+                return
+
+            results = []
+            seen_reg = set()
+            seen_cid = set()
+            valid_rows = 0
+            created = 0
+            for idx, raw in enumerate(rows):
+                row = {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {}
+                cid = row.get("club_id", "").strip().upper()
+                reg_clean = row.get("reg_no", "").strip()
+                entry = {
+                    "row": idx + 1,
+                    "club_id": cid,
+                    "reg_no": reg_clean,
+                    "institution_name": row.get("institution_name", ""),
+                    "status": "error",
+                    "errors": []
+                }
+                errors = validate_club_payload(dict(row, emp_id=emp_id, record_mode="import"))
+                if cid:
+                    if cid in seen_cid:
+                        errors.append(f"Duplicate Club ID '{cid}' earlier in this batch.")
+                    seen_cid.add(cid)
+                    if CSVEngine.find_by_key(MASTER_CLUBS_CSV, "club_id", cid, CLUB_FIELDS, copy=False):
+                        errors.append(f"Club ID '{cid}' already exists in the master database.")
+                if reg_clean:
+                    reg_up = reg_clean.upper()
+                    if reg_up in seen_reg:
+                        errors.append(f"Duplicate Registration Number '{reg_clean}' earlier in this batch.")
+                    seen_reg.add(reg_up)
+                    _dup = SyncEngine.find_club_by_reg_no(reg_clean)
+                    if _dup:
+                        errors.append(
+                            f"Registration Number '{reg_clean}' is already approved for club "
+                            f"{_dup.get('club_id', '')} — {_dup.get('institution_name', '')}.")
+                if errors:
+                    entry["errors"] = errors
+                    results.append(entry)
+                    continue
+                entry["status"] = "ready"
+                valid_rows += 1
+                results.append(entry)
+
+            if not commit_mode:
+                self._send_json({
+                    "success": True,
+                    "dry_run": True,
+                    "total": len(rows),
+                    "valid": valid_rows,
+                    "invalid": len(rows) - valid_rows,
+                    "results": results
+                })
+                return
+
+            # COMMIT: create each ready row through the standard approval path
+            # (historical dates + record_origin="imported" provenance) with the
+            # per-club durable-sync confirmation deferred to ONE batched pass.
+            for entry, raw in zip(results, rows):
+                if entry["status"] != "ready":
+                    continue
+                row = {k: str(v or "").strip() for k, v in raw.items()}
+                row["record_mode"] = "import"
+                row["emp_id"] = emp_id
+                try:
+                    created_club = SyncEngine.approve_new_club(
+                        emp_id=emp_id, club_data=row, confirm_cloud_sync=False)
+                except Exception as exc:
+                    entry["status"] = "error"
+                    entry["errors"] = [f"Create failed: {exc}"]
+                    continue
+                entry["status"] = "created"
+                entry["date_of_approval"] = created_club.get("date_of_approval", "")
+                entry["renewal_date"] = created_club.get("renewal_date", "")
+                created += 1
+
+            cloud_confirmed = True
+            try:
+                from db.storage_adapter import get_storage_adapter
+                adapter = get_storage_adapter()
+                if hasattr(adapter, "confirm_durable"):
+                    cloud_confirmed = adapter.confirm_durable([
+                        MASTER_CLUBS_CSV,
+                        MASTER_ACTIVITIES_CSV,
+                        MASTER_QUOTAS_CSV,
+                        SyncEngine.get_employee_clubs_path(emp_id),
+                        SyncEngine.get_employee_activities_path(emp_id),
+                    ])
+            except Exception:
+                cloud_confirmed = False
+
+            self._send_json({
+                "success": True,
+                "dry_run": False,
+                "total": len(rows),
+                "created": created,
+                "valid": valid_rows,
+                "invalid": len(rows) - valid_rows,
+                "cloud_sync_confirmed": cloud_confirmed,
+                "results": results
             })
             return
 
