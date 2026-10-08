@@ -342,7 +342,7 @@
   }
 
   /* ============================ HTML building blocks ======================== */
-  function tableHtml(headers, rows, caption) {
+  function tableHtml(headers, rows, caption, colWidths) {
     const head = headers.map(function (h) { return "<th>" + h + "</th>"; }).join("");
     const body = rows.map(function (cells) {
       return "<tr>" + cells.map(function (c) {
@@ -350,8 +350,15 @@
           (c && Object.prototype.hasOwnProperty.call(c, "html") ? c.html : String(c)) + "</td>";
       }).join("") + "</tr>";
     }).join("");
+    /* R22: optional percentage widths let the fixed table layout keep wide
+       matrices readable (and printable at A4 width without right-edge clips). */
+    const cols = Array.isArray(colWidths) && colWidths.length
+      ? "<colgroup>" + colWidths.map(function (w) {
+          return '<col style="width: ' + Number(w) + '%;">';
+        }).join("") + "</colgroup>"
+      : "";
     return (caption ? '<div class="rpt-caption">' + caption + "</div>" : "") +
-      '<table class="rpt-table"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>";
+      '<table class="rpt-table">' + cols + "<thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>";
   }
 
   function cell(html, align) {
@@ -370,6 +377,224 @@
       '<span class="rpt-bar-track"><span class="rpt-bar-fill" style="width: ' + width + '%;"></span></span>' +
       '<span class="rpt-bar-count">' + esc(count) + "</span>" +
       (extra ? '<span class="rpt-bar-extra">' + esc(extra) + "</span>" : "") + "</div>";
+  }
+
+  /* ================== R22 visual summary — inline-SVG chart builders ======= */
+  /* Self-contained SVG (inline attributes only) so the same chart renders in
+     the print/PDF route and in the on-page report view. The DOC export carries
+     the same charts as PNG <img> (see chartsAsImages below) because Word drops
+     inline <svg> on HTML import. */
+  const ZONE_CHART_COLORS = ["#0D7751", "#34D399", "#1A503E", "#7FD1AE", "#BFE6D3", "#D97706"];
+  const RING_ACTIVE = "#0D7751";
+  const RING_EXPIRING = "#D97706";
+  const RING_OVERDUE = "#DC2626";
+  const TIER_BAR_HIGH = "#D97706";
+  const TIER_BAR_STANDARD = "#0D7751";
+  const TIER_BAR_UNATTRIBUTED = "#94A3B8";
+
+  function donutSvg(segments, centerValue, centerLabel) {
+    const total = segments.reduce(function (a, s) { return a + Number(s.value || 0); }, 0) || 1;
+    const r = 52, cx = 64, cy = 64, circ = 2 * Math.PI * r;
+    let offset = 0;
+    const arcs = segments.map(function (s) {
+      const frac = Math.max(0, Number(s.value || 0)) / total;
+      const dash = frac * circ;
+      const seg = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color +
+        '" stroke-width="16" stroke-dasharray="' + dash.toFixed(2) + " " + (circ - dash).toFixed(2) +
+        '" stroke-dashoffset="' + (-offset).toFixed(2) + '" transform="rotate(-90 ' + cx + " " + cy + ')"></circle>';
+      offset += dash;
+      return seg;
+    }).join("");
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img">' +
+      arcs +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="40" fill="#ffffff"></circle>' +
+      '<text x="64" y="61" text-anchor="middle" font-size="15" font-weight="700" fill="#103125">' + esc(String(centerValue)) + "</text>" +
+      '<text x="64" y="76" text-anchor="middle" font-size="7.5" fill="#55675e">' + esc(String(centerLabel)) + "</text></svg>";
+  }
+
+  function legendHtml(items) {
+    return '<div class="rpt-chart-legend">' + items.map(function (it) {
+      return '<span class="rpt-legend-item"><span class="rpt-legend-swatch" style="background:' + it.color +
+        ';"></span>' + esc(it.label) + (it.value !== undefined ? " (" + esc(fmtInt(it.value)) + ")" : "") + "</span>";
+    }).join("") + "</div>";
+  }
+
+  function trajectorySvg(months) {
+    const pts = months || [];
+    const W = 320, H = 118, padL = 24, padR = 8, padT = 10, padB = 20;
+    const iw = W - padL - padR, ih = H - padT - padB;
+    const vals = pts.map(function (m) { return Number(m.value || 0); });
+    const maxV = Math.max.apply(null, vals.concat([1]));
+    if (!pts.length) {
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" role="img">' +
+        '<text x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle" font-size="10" fill="#94A3B8">No monthly data</text></svg>';
+    }
+    const xy = pts.map(function (m, i) {
+      const x = padL + (pts.length > 1 ? (i * iw) / (pts.length - 1) : iw / 2);
+      const y = padT + ih - (Number(m.value || 0) / maxV) * ih;
+      return [x, y];
+    });
+    const line = xy.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
+    const area = "M" + xy[0][0].toFixed(1) + "," + (padT + ih) + " L" + xy.map(function (p) {
+      return p[0].toFixed(1) + "," + p[1].toFixed(1);
+    }).join(" L") + " L" + xy[xy.length - 1][0].toFixed(1) + "," + (padT + ih) + " Z";
+    const grid = [0, 0.5, 1].map(function (f) {
+      const y = padT + ih - f * ih;
+      return '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) +
+        '" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="3 3"></line>';
+    }).join("");
+    const dots = xy.map(function (p) {
+      return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.6" fill="#0D7751"></circle>';
+    }).join("");
+    const every = Math.max(1, Math.ceil(pts.length / 6));
+    const xlabels = pts.map(function (m, i) {
+      if (i % every !== 0 && i !== pts.length - 1) return "";
+      return '<text x="' + xy[i][0].toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="7" fill="#55675e">' +
+        esc(String(m.label || "")) + "</text>";
+    }).join("");
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img">' +
+      '<defs><linearGradient id="rptTrajFill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#34D399" stop-opacity="0.45"></stop>' +
+      '<stop offset="100%" stop-color="#34D399" stop-opacity="0.03"></stop></linearGradient></defs>' +
+      grid + '<path d="' + area + '" fill="url(#rptTrajFill)"></path>' +
+      '<polyline points="' + line + '" fill="none" stroke="#0D7751" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
+      dots + xlabels +
+      '<text x="2" y="' + (padT + 6) + '" font-size="7" fill="#94A3B8">' + esc(fmtInt(maxV)) + "</text></svg>";
+  }
+
+  function stackedTierBar(high, standard, unattributed) {
+    const parts = [
+      { label: TIER_HIGH, value: Number(high || 0), color: TIER_BAR_HIGH },
+      { label: TIER_STANDARD, value: Number(standard || 0), color: TIER_BAR_STANDARD },
+      { label: "Unattributed", value: Number(unattributed || 0), color: TIER_BAR_UNATTRIBUTED }
+    ];
+    const total = parts.reduce(function (a, p) { return a + p.value; }, 0) || 1;
+    const W = 320, H = 26;
+    let x = 0;
+    const rects = parts.map(function (p) {
+      const w = (p.value / total) * W;
+      const seg = '<rect x="' + x.toFixed(1) + '" y="0" width="' + Math.max(0, w).toFixed(1) + '" height="' + H +
+        '" fill="' + p.color + '"></rect>';
+      x += w;
+      return seg;
+    }).join("");
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H +
+      '" role="img"><rect x="0" y="0" width="' + W + '" height="' + H + '" rx="6" fill="#F1F5F9"></rect>' +
+      rects + '</svg>';
+  }
+
+  function chartCard(title, svg, legend, note) {
+    return '<div class="rpt-chart-card"><div class="rpt-chart-title">' + esc(title) + "</div>" + svg +
+      (legend || "") + (note ? '<div class="rpt-chart-note">' + esc(note) + "</div>" : "") + "</div>";
+  }
+
+  /** R22 "easy visual summary" — four charts backed by the verbatim tables. */
+  function visualSummary(model) {
+    const m = model.metrics || {};
+    const rh = m.renewal_health || {};
+    const months = m.month_wise_clubs || {};
+    const monthKeys = Object.keys(months).sort();
+    const traj = monthKeys.map(function (k) {
+      return { label: k, value: Number(months[k] || 0) };
+    });
+    const zoneSegs = (model.zoneRows || []).map(function (z, i) {
+      return { label: z.zone, value: Number(z.clubsOfficial || 0), color: ZONE_CHART_COLORS[i % ZONE_CHART_COLORS.length] };
+    }).filter(function (s) { return s.value > 0; });
+    const tier = model.tier || { high: 0, standard: 0, unattributed: 0, total: 0 };
+    const ringSegs = [
+      { label: "Active validity", value: Number(rh.active_validity_count || 0), color: RING_ACTIVE },
+      { label: "Expiring soon", value: Number(rh.expiring_soon_count || 0), color: RING_EXPIRING },
+      { label: "Overdue", value: Number(rh.overdue_count || 0), color: RING_OVERDUE }
+    ].filter(function (s) { return s.value > 0; });
+
+    const zoneChart = chartCard("Club share by zone",
+      donutSvg(zoneSegs, fmtInt((m.summary || {}).total_clubs), "CLUBS"),
+      legendHtml(zoneSegs), "Engine zone counts — see the Section 3a table for the verbatim figures.");
+    const trajChart = chartCard("Monthly approval trajectory",
+      trajectorySvg(traj), "", "Clubs approved per month (engine output) — verbatim figures in Section 3c.");
+    const ringChart = chartCard("Renewal health",
+      donutSvg(ringSegs, esc(String(rh.retention_rate_pct || "0")) + "%", "RETENTION"),
+      legendHtml(ringSegs), "Renewal health is reproduced verbatim from the metrics engine (Section 3d).");
+    const tierChart = chartCard("Field-difficulty tier split (advisory)",
+      stackedTierBar(tier.high, tier.standard, tier.unattributed),
+      legendHtml([
+        { label: TIER_HIGH, value: tier.high, color: TIER_BAR_HIGH },
+        { label: TIER_STANDARD, value: tier.standard, color: TIER_BAR_STANDARD },
+        { label: "Unattributed", value: tier.unattributed, color: TIER_BAR_UNATTRIBUTED }
+      ]), "Advisory layer only — official scores and star ratings stand unchanged (Section 4).");
+
+    return '<section class="rpt-section"><h2>Visual Summary — At a Glance</h2>' +
+      '<div class="rpt-note" style="margin-top:2px;">Charts follow the R21 dashboard palette and are backed by the ' +
+      "verbatim engine tables in Sections 2–4; where a chart and a table differ, the tables are the source of truth.</div>" +
+      '<div class="rpt-chart-grid">' + zoneChart + trajChart + ringChart + tierChart + "</div>" +
+      "</section>";
+  }
+
+  /* ================= R22b: identical charts in PDF *and* DOC ================
+     Word drops inline <svg> when it imports HTML, which is why the DOC export
+     used to arrive without any charts. Instead of hiding the charts from Word,
+     BOTH export paths now rasterise the same four SVGs to PNG data URIs, so the
+     PDF copy and the DOC/Word copy carry the very same chart images (same
+     geometry, same colours, same legends). If rasterisation is unavailable the
+     SVG markup is kept — the browser path still prints it correctly. */
+  const CHART_RASTER_SCALE = 3;
+
+  function svgChartSize(svgHtml) {
+    const w = /width="([\d.]+)"/.exec(svgHtml);
+    const h = /height="([\d.]+)"/.exec(svgHtml);
+    return { w: w ? Math.round(Number(w[1])) : 320, h: h ? Math.round(Number(h[1])) : 200 };
+  }
+
+  function svgToPngUri(svgHtml) {
+    return new Promise(function (resolve) {
+      const size = svgChartSize(svgHtml);
+      const img = new Image();
+      img.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(size.w * CHART_RASTER_SCALE));
+        canvas.height = Math.max(1, Math.round(size.h * CHART_RASTER_SCALE));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        try {
+          resolve({ uri: canvas.toDataURL("image/png"), w: size.w, h: size.h });
+        } catch (e) {
+          resolve(null);
+        }
+      };
+      img.onerror = function () { resolve(null); };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgHtml);
+    });
+  }
+
+  /** Replace every inline chart <svg> with a PNG <img> (for Word parity). */
+  function chartsAsImages(contentHtml) {
+    const re = /<svg\b[^>]*>[\s\S]*?<\/svg>/g;
+    const found = contentHtml.match(re);
+    if (!found || !found.length) return Promise.resolve(contentHtml);
+    return Promise.all(found.map(svgToPngUri)).then(function (res) {
+      let i = 0;
+      return contentHtml.replace(re, function () {
+        const r = res[i++];
+        return r
+          ? '<img class="rpt-chart-img" width="' + r.w + '" height="' + r.h +
+            '" alt="report chart" src="' + r.uri + '">'
+          : "";
+      });
+    });
+  }
+
+  /** Build report content with chart images; falls back to the SVG build if the
+      raster step cannot finish (keeps the click path from ever hanging). */
+  function buildReportContentWithCharts(data, timeoutMs) {
+    const html = buildReportContent(data);
+    return Promise.race([
+      chartsAsImages(html),
+      new Promise(function (resolve) {
+        setTimeout(function () { resolve(html); }, timeoutMs || 4000);
+      })
+    ]);
   }
 
   /* ================================ Sections ================================ */
@@ -727,7 +952,8 @@
           esc(o.stars_display) + " " + esc(o.rating_label)
         ];
       }),
-      "Star matrix — official engine output (Scoring Rubric: 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training); reproduced verbatim"
+      "Star matrix — official engine output (Scoring Rubric: 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training); reproduced verbatim",
+      [5, 15, 19, 9, 9, 9, 9, 9, 16]
     );
 
     const tierTable = tableHtml(
@@ -750,7 +976,8 @@
           r.actsStandard === null ? "—" : fmtInt(r.actsStandard)
         ];
       }),
-      "Field-difficulty tier split by officer — additive advisory columns beside the official matrix above"
+      "Field-difficulty tier split by officer — additive advisory columns beside the official matrix above",
+      [12, 23, 17, 16, 16, 16]
     );
 
     const detailCards = rows.map(function (r) {
@@ -838,10 +1065,25 @@
     ".rpt-card-value{font-size:18px;font-weight:700;color:#103125;}" +
     ".rpt-card-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:#41564c;font-weight:600;}" +
     ".rpt-card-note{font-size:10px;color:#55675e;margin-top:2px;}" +
-    ".rpt-table{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:11px;}" +
-    ".rpt-table th{background:#e9f2ee;border:1px solid #b9cdc4;padding:5px 6px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.3px;color:#22332b;}" +
+    ".rpt-table{width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0 16px;font-size:11px;}" +
+    ".rpt-table th,.rpt-table td{overflow-wrap:break-word;word-break:normal;}" +
+    ".rpt-table th{background:#e9f2ee;border:1px solid #b9cdc4;padding:5px 6px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.3px;color:#22332b;white-space:normal;}" +
     ".rpt-table td{border:1px solid #cfdcd6;padding:4px 6px;vertical-align:top;}" +
-    ".rpt-caption{font-size:10.5px;font-weight:700;color:#41564c;margin:8px 0 2px;text-transform:uppercase;letter-spacing:0.3px;}" +
+    /* R22b: style.css `tbody tr:last-child td{border-bottom:none}` (specificity
+       0-1-3) BEATS `.rpt-table td` (0-1-1) and was stripping the closing edge
+       off every report table — the "no breathing room under the last row"
+       defect. This rule outranks it (0-2-3) and restores the bottom border. */
+    ".rpt-table tbody tr:last-child td{border-bottom:1px solid #cfdcd6;}" +
+    ".rpt-caption{font-size:10.5px;font-weight:700;color:#41564c;margin:10px 0 3px;text-transform:uppercase;letter-spacing:0.3px;}" +
+    /* R22 visual summary — chart cards (PDF + on-page as SVG, DOC as PNG) */
+    ".rpt-chart-grid{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 6px;}" +
+    ".rpt-chart-card{flex:1 1 300px;min-width:280px;border:1px solid #c7d6cf;border-radius:8px;padding:8px 10px;background:#ffffff;}" +
+    ".rpt-chart-img{display:block;max-width:100%;height:auto;margin:2px auto;}" +
+    ".rpt-chart-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#41564c;margin:0 0 4px;}" +
+    ".rpt-chart-note{font-size:9px;color:#55675e;margin:4px 0 0;}" +
+    ".rpt-chart-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}" +
+    ".rpt-legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:#22332b;}" +
+    ".rpt-legend-swatch{width:9px;height:9px;border-radius:2px;display:inline-block;flex:0 0 auto;}" +
     ".rpt-two-col{display:flex;gap:14px;flex-wrap:wrap;}" +
     ".rpt-two-col>*{flex:1 1 320px;}" +
     ".rpt-note{border-left:4px solid #1A503E;background:#f2f7f4;padding:7px 10px;margin:10px 0;font-size:10.8px;color:#2c3f36;}" +
@@ -861,7 +1103,13 @@
     ".rpt-bar-fill{display:block;height:100%;background:#1A503E;border-radius:999px;}" +
     ".rpt-bar-count{font-size:10px;font-weight:700;color:#22332b;}" +
     ".rpt-bar-label,.rpt-bar-extra{font-size:10px;color:#41564c;}" +
-    "@media print{.rpt-doc{font-size:10.5px;}.rpt-card-grid{gap:6px;}.rpt-section{page-break-inside:auto;}}" +
+    "@media print{.rpt-doc{font-size:10.5px;}.rpt-card-grid{gap:6px;}.rpt-section{page-break-inside:auto;}" +
+    /* R22 print fidelity: tables fit the printable width (no right-edge clip),
+       keep breathing room below, and never split a row across pages. */
+    ".rpt-table{margin:10px 0 22px;font-size:8.6px;}.rpt-table th{font-size:7.8px;padding:4px 4px;}" +
+    ".rpt-table td{padding:4px 5px;}.rpt-table tr{page-break-inside:avoid;break-inside:avoid;}" +
+    ".rpt-table tbody tr:last-child td{padding-bottom:8px;}" +
+    ".rpt-chart-card{page-break-inside:avoid;break-inside:avoid;}}" +
     "</style>";
 
   function buildReportContent(data) {
@@ -877,6 +1125,7 @@
       esc(fmtInt(summary.total_clubs)) + " club records · " + esc(fmtInt(summary.total_activities)) +
       " activity records</div></div>" +
       section1Executive(model) +
+      visualSummary(model) +
       section2Snapshot(model) +
       section3Analytics(model) +
       section4Tiers(model) +
@@ -958,17 +1207,22 @@
 
   function downloadDoc(data) {
     const title = "NDLI Club Management — Comprehensive Report";
-    const html = wrapWordDocument(buildReportContent(data), title);
-    const blob = new Blob(["\ufeff", html], { type: "application/msword" });
-    const a = document.createElement("a");
-    const objUrl = URL.createObjectURL(blob);
-    a.href = objUrl;
-    a.download = "NDLI_Comprehensive_Report_" + todayFileStamp() + ".doc";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objUrl);
-    notify("Comprehensive report DOC downloaded (NDLI_Comprehensive_Report_" + todayFileStamp() + ".doc).", "success");
+    /* chartsAsImages: the DOC carries the SAME chart pictures as the PDF
+       (Word cannot draw inline <svg>, so the SVGs are rasterised first). */
+    return chartsAsImages(buildReportContent(data)).then(function (body) {
+      const html = wrapWordDocument(body, title);
+      const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+      const a = document.createElement("a");
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = "NDLI_Comprehensive_Report_" + todayFileStamp() + ".doc";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+      notify("Comprehensive report DOC downloaded (NDLI_Comprehensive_Report_" + todayFileStamp() + ".doc).", "success");
+      return true;
+    });
   }
 
   /* ============================ Public entry points ========================= */
@@ -984,12 +1238,14 @@
         notify("Comprehensive report could not be compiled. Please sign in as Administrator and try again.", "danger");
         return;
       }
-      openReportView(buildReportContent(data));
-      if (intent === "doc") {
-        downloadDoc(data);
-      } else {
-        notify("Report data compiled. Use “Print / Save as PDF” in the report toolbar to produce the PDF.", "success");
-      }
+      buildReportContentWithCharts(data).then(function (html) {
+        openReportView(html);
+        if (intent === "doc") {
+          downloadDoc(data);
+        } else {
+          notify("Report data compiled. Use “Print / Save as PDF” in the report toolbar to produce the PDF.", "success");
+        }
+      });
     });
   }
 
@@ -1005,8 +1261,12 @@
       openWhenReady("pdf");
       return;
     }
-    openReportView(buildReportContent(data));
-    printReport();
+    /* same chart images as the DOC export (falls back to SVG if rasterising
+       is unavailable) so both copies of the report are identical. */
+    buildReportContentWithCharts(data).then(function (html) {
+      openReportView(html);
+      printReport();
+    });
   }
 
   /** Button hook — Generate Comprehensive Report (DOC, application/msword). */
