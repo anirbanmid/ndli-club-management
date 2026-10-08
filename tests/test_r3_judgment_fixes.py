@@ -167,9 +167,10 @@ class TestR3Phase2A11y(unittest.TestCase):
         self.assertEqual(self.emp.count('role="tab"'), 4)
 
     def test_modals_dialog_protocol(self):
-        self.assertEqual(self.admin.count('aria-modal="true"'), 10)
+        # R25: the admin Club Register modal joined the ladder (+1 admin modal).
+        self.assertEqual(self.admin.count('aria-modal="true"'), 11)
         self.assertEqual(self.emp.count('aria-modal="true"'), 7)
-        self.assertEqual(self.admin.count('role="dialog"'), 10)
+        self.assertEqual(self.admin.count('role="dialog"'), 11)
         self.assertEqual(self.emp.count('role="dialog"'), 7)
 
     def test_modal_focus_helpers_defined_and_exported(self):

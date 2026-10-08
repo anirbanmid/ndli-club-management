@@ -294,7 +294,7 @@
       <main class="container">
     <!-- Top KPIs -->
     <div class="kpi-row">
-      <div class="stat-card reveal-card">
+      <div class="stat-card reveal-card" id="card-club-register" role="button" tabindex="0" onclick="openClubRegisterModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openClubRegisterModal();}" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to open the Club Register (full club list with details & corrections)" aria-label="Open Club Register">
         <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h2m2 0h2M9 13h2m2 0h2M9 17h6"/></svg></div>
         <span class="stat-label">Total NDLI Clubs</span>
         <span class="stat-value" id="kpi-clubs">--</span>
@@ -3474,10 +3474,28 @@
     // =============================================================
     // CLUB DETAILS VIEW MODAL CONTROLLER
     // =============================================================
-    async function openClubDetailsModal(clubId) {
+    // R25: context-aware back navigation for the details modal (register vs attention).
+    let CLUB_DETAILS_RETURN = "attention";
+    let CLUB_REGISTER_DATA = null;
+
+    function clubDetailsBackLabel() {
+      return (typeof CLUB_DETAILS_RETURN !== "undefined" && CLUB_DETAILS_RETURN === "register")
+        ? "← Back to Club Register" : "← Back to Renewal Attention List";
+    }
+
+    function goBackFromClubDetails() {
+      if (typeof CLUB_DETAILS_RETURN !== "undefined" && CLUB_DETAILS_RETURN === "register") {
+        backToClubRegister();
+      } else {
+        backToAttentionList();
+      }
+    }
+
+    async function openClubDetailsModal(clubId, returnTo) {
       if (!clubId) return;
       const cleanId = String(clubId).trim();
       if (!cleanId) return;
+      CLUB_DETAILS_RETURN = (returnTo === "register") ? "register" : "attention";
 
       const modal = document.getElementById("club-details-modal");
       const attnModal = document.getElementById("renewal-attention-modal");
@@ -3532,7 +3550,7 @@
                   <div>Could not load club details for Club ID: <strong>${escapeHtml(cleanId)}</strong></div>
                 </div>
                 <div style="margin-top: 1rem; text-align: right;">
-                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">${clubDetailsBackLabel()}</button>
                   <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
                 </div>
               </div>
@@ -3551,7 +3569,7 @@
                   <div>Network error fetching club properties.</div>
                 </div>
                 <div style="margin-top: 1rem; text-align: right;">
-                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">${clubDetailsBackLabel()}</button>
                   <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
                 </div>
               </div>
@@ -3582,7 +3600,111 @@
     }
 
     function backToAttentionList() {
+      // Context-aware (R25): when details were opened from the Club Register,
+      // going back returns to the register instead of the attention list.
+      if (typeof CLUB_DETAILS_RETURN !== "undefined" && CLUB_DETAILS_RETURN === "register") {
+        backToClubRegister();
+        return;
+      }
       closeClubDetailsModal(true);
+    }
+
+    // R25: CLUB REGISTER — the admin portal's direct club list (user requisition
+    // 2026-10-09): details + "Correct Historical Dates" were previously reachable
+    // only via Renewal Attention. Opens from the Total NDLI Clubs KPI card.
+    function renderClubRegisterList(rows) {
+      const body = document.getElementById("club-register-body");
+      if (!body) return;
+      if (!rows || !rows.length) {
+        body.innerHTML = '<div style="padding: 1.5rem; color: var(--text-muted); text-align: center;">No clubs found.</div>';
+        return;
+      }
+      const trs = rows.map(function (c) {
+        const cid = escapeHtml(String(c.club_id || ""));
+        return "<tr>" +
+          '<td style="font-family: monospace; padding: 0.4rem;">' + cid + "</td>" +
+          '<td style="font-family: monospace; padding: 0.4rem;">' + escapeHtml(String(c.reg_no || "")) + "</td>" +
+          '<td style="padding: 0.4rem;">' + escapeHtml(String(c.institution_name || "")) + "</td>" +
+          '<td style="padding: 0.4rem; white-space: nowrap;">' + escapeHtml(String(c.state || "")) + ' <small style="color: var(--text-muted);">(' + escapeHtml(String(c.zone || "")) + ")</small></td>" +
+          '<td style="font-family: monospace; white-space: nowrap; padding: 0.4rem;">' + escapeHtml(String(c.date_of_approval || c.submission_timestamp || "").split("T")[0]) + "</td>" +
+          '<td style="font-family: monospace; white-space: nowrap; padding: 0.4rem;">' + (escapeHtml(String(c.last_renewal_date || "").split("T")[0]) || "-") + "</td>" +
+          '<td style="font-family: monospace; white-space: nowrap; color: #15803d; font-weight: 600; padding: 0.4rem;">' + escapeHtml(String(c.renewal_date || c.next_renewal_date || "").split("T")[0]) + "</td>" +
+          '<td style="padding: 0.4rem;"><span class="pill ' + clubStatusPillClass(c.status) + '">' + escapeHtml(String(c.status || "Approved")) + "</span></td>" +
+          '<td style="text-align: right; padding: 0.4rem;"><button type="button" class="btn btn-outline btn-sm" onclick="openClubDetailsFromRegister(&quot;' + cid + '&quot;)">Open Details</button></td>' +
+          "</tr>";
+      }).join("");
+      body.innerHTML =
+        '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">' +
+        '<thead><tr style="border-bottom: 2px solid var(--primary);">' +
+        '<th style="text-align: left; padding: 0.45rem;">Club ID</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Reg No</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Institution</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">State / Zone</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Date of Approval</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Last Renewal</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Upcoming Renewal</th>' +
+        '<th style="text-align: left; padding: 0.45rem;">Status</th>' +
+        '<th></th></tr></thead><tbody>' + trs + "</tbody></table></div>" +
+        '<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem;">' +
+        String(rows.length) + ' club(s) shown. "Open Details" shows full properties, including the admin "Correct Historical Dates" block.</p>';
+    }
+
+    function filterClubRegister(q) {
+      const query = String(q || "").trim().toLowerCase();
+      const rows = CLUB_REGISTER_DATA || [];
+      if (!query) { renderClubRegisterList(rows); return; }
+      renderClubRegisterList(rows.filter(function (c) {
+        return [c.club_id, c.reg_no, c.institution_name, c.state, c.zone, c.status, c.approved_by_emp_id]
+          .some(function (v) { return String(v || "").toLowerCase().indexOf(query) !== -1; });
+      }));
+    }
+
+    async function openClubRegisterModal() {
+      const modal = document.getElementById("club-register-modal");
+      if (!modal) return;
+      modal.classList.add("active");
+      modal.classList.add("open");
+      modal.style.display = "flex";
+      if (typeof ndliModalOpened === "function") ndliModalOpened(modal);
+      const body = document.getElementById("club-register-body");
+      if (body && !CLUB_REGISTER_DATA) {
+        body.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">⏳ Loading club register...</div>';
+      }
+      try {
+        const res = await apiRequest("/api/clubs/search?q=");
+        const rows = (res && res.ok && res.data) ? (res.data.results || res.data.clubs || []) : [];
+        CLUB_REGISTER_DATA = rows;
+        const filterEl = document.getElementById("club-register-filter");
+        renderClubRegisterList(rows);
+        if (filterEl && filterEl.value) filterClubRegister(filterEl.value);
+      } catch (e) {
+        if (body) body.innerHTML = '<div class="alert alert-danger">Could not load the club register.</div>';
+      }
+    }
+
+    function closeClubRegisterModal() {
+      const modal = document.getElementById("club-register-modal");
+      if (modal) {
+        modal.classList.remove("active");
+        modal.classList.remove("open");
+        modal.style.display = "none";
+      }
+      if (typeof ndliModalClosed === "function") ndliModalClosed(modal);
+    }
+
+    function openClubDetailsFromRegister(clubId) {
+      const regModal = document.getElementById("club-register-modal");
+      if (regModal) {
+        regModal.classList.remove("active");
+        regModal.classList.remove("open");
+        regModal.style.display = "none";
+      }
+      openClubDetailsModal(clubId, "register");
+    }
+
+    function backToClubRegister() {
+      closeClubDetailsModal(false);
+      openClubRegisterModal();
     }
 
     // Status-pill semantic map (Round-3 #8): positive/approved → pill-success,
@@ -3836,7 +3958,7 @@
           <!-- Modal Footer Actions -->
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
             <button type="button" class="btn btn-outline" onclick="backToAttentionList()">
-              ← Back to Renewal Attention List
+              ${clubDetailsBackLabel()}
             </button>
             <div style="display: flex; gap: 0.5rem;">
               ${emailRecipients ? `
@@ -3859,7 +3981,7 @@
               <div>An unexpected error occurred while displaying club properties.</div>
             </div>
             <div style="margin-top: 1rem; text-align: right;">
-              <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">← Back to Renewal Attention List</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="backToAttentionList()">${clubDetailsBackLabel()}</button>
               <button type="button" class="btn btn-primary btn-sm" onclick="closeClubDetailsModal()">Close</button>
             </div>
           </div>
@@ -3871,6 +3993,13 @@
       window.openClubDetailsModal = openClubDetailsModal;
       window.closeClubDetailsModal = closeClubDetailsModal;
       window.backToAttentionList = backToAttentionList;
+      window.openClubRegisterModal = openClubRegisterModal;
+      window.closeClubRegisterModal = closeClubRegisterModal;
+      window.filterClubRegister = filterClubRegister;
+      window.openClubDetailsFromRegister = openClubDetailsFromRegister;
+      window.backToClubRegister = backToClubRegister;
+      window.goBackFromClubDetails = goBackFromClubDetails;
+      window.clubDetailsBackLabel = clubDetailsBackLabel;
       window.openRenewalAttentionModal = openRenewalAttentionModal;
       window.closeRenewalAttentionModal = closeRenewalAttentionModal;
       window.renderRenewalAttentionList = renderRenewalAttentionList;
@@ -3895,6 +4024,7 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           const detailsModal = document.getElementById("club-details-modal");
+          const registerModal = document.getElementById("club-register-modal");
           const attnModal = document.getElementById("renewal-attention-modal");
           const editEmpModal = document.getElementById("edit-employee-modal");
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
@@ -3922,6 +4052,8 @@
             closeAdminEscalationsListModal();
           } else if (detailsModal && (detailsModal.classList.contains("active") || detailsModal.classList.contains("open"))) {
             backToAttentionList();
+          } else if (registerModal && (registerModal.classList.contains("active") || registerModal.style.display === "flex")) {
+            closeClubRegisterModal();
           } else if (attnModal && (attnModal.classList.contains("active") || attnModal.classList.contains("open"))) {
             closeRenewalAttentionModal();
           } else if (editEmpModal && (editEmpModal.classList.contains("active") || editEmpModal.classList.contains("open"))) {
@@ -3938,6 +4070,8 @@
               closeAdminLoginModal();
             } else if (overlay.id === "club-details-modal") {
               backToAttentionList();
+            } else if (overlay.id === "club-register-modal") {
+              closeClubRegisterModal();
             } else if (overlay.id === "renewal-attention-modal") {
               closeRenewalAttentionModal();
             } else if (overlay.id === "edit-employee-modal") {
@@ -4163,8 +4297,25 @@
   <!-- CLUB DETAILS MODAL -->
   <div class="modal-overlay modal" id="club-details-modal" style="z-index: 1100;" role="dialog" aria-modal="true" aria-label="Club Details" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 840px; width: 95%;">
-      <button class="modal-close" onclick="backToAttentionList()" title="Back to Renewal Attention List">×</button>
+      <button class="modal-close" onclick="goBackFromClubDetails()" title="Back">×</button>
       <div id="club-details-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- R25: CLUB REGISTER MODAL (admin direct club list — user requisition 2026-10-09) -->
+  <div class="modal-overlay modal" id="club-register-modal" style="z-index: 1050; display: none;" role="dialog" aria-modal="true" aria-label="Club Register" tabindex="-1">
+    <div class="modal-content modal-lg" style="max-width: 1120px; width: 96%;">
+      <button class="modal-close" onclick="closeClubRegisterModal()" title="Close Club Register">×</button>
+      <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.85rem;">
+        <div>
+          <h3 class="card-title" style="color: var(--primary); font-size: 1.2rem; margin: 0;">📚 Club Register — all NDLI clubs</h3>
+          <p class="card-subtitle">Search and open any club's full properties (including the admin "Correct Historical Dates" block).</p>
+        </div>
+      </div>
+      <input type="search" id="club-register-filter" placeholder="Search by Club ID, Reg No, Institution, State, Zone, Status or Officer..." oninput="filterClubRegister(this.value)" style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 0.88rem; margin-bottom: 0.85rem;">
+      <div id="club-register-body">
         <!-- Rendered dynamically -->
       </div>
     </div>
