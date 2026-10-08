@@ -37,6 +37,7 @@ from db.schemas import (
     USER_FIELDS,
     ISSUE_FIELDS,
     validate_club_payload,
+    validate_historical_dates,
     REG_NO_PATTERN
 )
 from db.csv_engine import CSVEngine
@@ -259,6 +260,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "GET  /api/clubs/search?q=<query>",
                 "POST /api/clubs/create",
                 "POST /api/clubs/update",
+                "POST /api/clubs/correct-dates",
                 "POST /api/clubs/renew",
                 "POST /api/activity/log",
                 "GET  /api/activity/list",
@@ -2225,6 +2227,24 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                             "patron_email", "president_email", "secretary_email"}
                 body = {k: v for k, v in body.items() if k in _allowed}
 
+            # R24: historical dates (date_of_approval / last_renewal_date) are
+            # immutable on the general club-update path for EVERY role — blank
+            # values are ignored silently (existing pinned contract). Corrections
+            # go through the dedicated, logged POST /api/clubs/correct-dates
+            # workflow (admin-only).
+            if _sess.get("role") == "ADMIN":
+                _date_touch = [k for k in ("date_of_approval", "last_renewal_date")
+                               if str(body.get(k, "") or "").strip()]
+                if _date_touch:
+                    self._send_error(
+                        "Historical dates cannot be changed via club update "
+                        f"({', '.join(_date_touch)}). Use POST /api/clubs/correct-dates "
+                        "(admin-only, logged, validates and recomputes the renewal).",
+                        status=422)
+                    return
+                body = {k: v for k, v in body.items()
+                        if k not in ("date_of_approval", "last_renewal_date")}
+
             # Round-2 duplicate-entry checkpoint: an edited Registration Number
             # must stay unique across approved clubs (and keep its charset).
             _new_reg = str(body.get("reg_no", "")).strip()
@@ -2255,6 +2275,46 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             return
 
         # Registration Renewal ("Renewal Approved")
+        # R24: Admin-only historical date correction — the dedicated, logged path
+        # to fix a club whose Date of Approval / Last Renewal Date were recorded
+        # wrong (e.g. legacy clubs entered before "Import existing club" existed).
+        # Validates 2019-01-01 <= doa <= today and doa <= last_renewal <= today,
+        # recomputes the upcoming renewal (+1 year anchor rule) and logs a
+        # "Data Correction" activity row.
+        if path == "/api/clubs/correct-dates":
+            if not self._check_admin_access():
+                return
+            _sess = self._get_auth_session() or {}
+            club_id = str(body.get("club_id", "") or "").strip().upper()
+            doa_raw = str(body.get("date_of_approval", "") or "").strip()
+            lrd_raw = str(body.get("last_renewal_date", "") or "").strip()
+            errors = validate_historical_dates(doa_raw, lrd_raw)
+            if not club_id:
+                errors.insert(0, "club_id is required.")
+            if errors:
+                self._send_json({
+                    "error": True,
+                    "validation_errors": errors,
+                    "message": "Date correction validation failed. Please correct the highlighted fields."
+                }, status=422)
+                return
+            updated = SyncEngine.correct_club_dates(
+                club_id=club_id,
+                date_of_approval=doa_raw,
+                last_renewal_date=lrd_raw,
+                admin_id=str(_sess.get("user_id", "") or _sess.get("email", ""))
+            )
+            if not updated:
+                self._send_error(f"Club '{club_id}' not found.", status=404)
+                return
+            self._send_json({
+                "success": True,
+                "message": (f"Historical dates corrected for {updated.get('institution_name', club_id)}. "
+                            f"Upcoming renewal recomputed to {updated.get('renewal_date', '')}."),
+                "club": updated
+            })
+            return
+
         if path == "/api/clubs/renew":
             emp_id = str(body.get("emp_id", "")).strip().upper()
             club_id = str(body.get("club_id", "")).strip().upper()

@@ -3,6 +3,7 @@ NDLI Club Management - CSV Database Schemas and Field Definitions
 """
 from dataclasses import dataclass
 from typing import List, Dict, Any
+from datetime import date, datetime, timezone
 import re
 
 # Master & Employee Users Schema
@@ -36,7 +37,8 @@ CLUB_FIELDS: List[str] = [
     "approved_by_emp_id",
     "updated_at",
     "submission_timestamp",
-    "next_renewal_date"
+    "next_renewal_date",
+    "record_origin"     # R24: "created" (new club) | "imported" (legacy club historical entry)
 ]
 
 # Activity Log Schema (Daily Activity Tracker & SEC A Support Logs)
@@ -100,6 +102,60 @@ CLUB_ID_PATTERN = re.compile(r"^[0-9]{1,15}$")
 LEGACY_CLUB_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{2,63}$")
 REG_NO_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._\-/]{0,63}$")
 
+# R24 (2026-10-08, CLIENT REQUIREMENT): "Import existing club" — historical date
+# entry for legacy clubs migrating from the official NDLI portal. Event dates
+# (formation/approval + last renewal) are validated strictly; the record-entry
+# timestamp is separate metadata (updated_at / activity log).
+# Business rule (user-confirmed): earliest allowed formation date = 2019-01-01.
+MIN_FORMATION_DATE = date(2019, 1, 1)
+
+
+def _parse_date_lenient(val: str) -> "date | None":
+    """Extracts a calendar date from YYYY-MM-DD (or ISO datetime) input; None if unparseable."""
+    s = str(val or "").strip()
+    if not s:
+        return None
+    clean = s.split("T")[0].split(" ")[0].strip()
+    try:
+        return datetime.strptime(clean, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def validate_historical_dates(date_of_approval: str, last_renewal_date: str) -> List[str]:
+    """
+    R24 import/correction rules (user-confirmed business rules):
+      - Date of Approval REQUIRED, 2019-01-01 <= doa <= today
+      - Last Renewal Date optional; if present: doa <= lrd <= today
+    Returns a list of error messages (empty = valid).
+    """
+    errors: List[str] = []
+    today = datetime.now(timezone.utc).date()
+    doa_raw = str(date_of_approval or "").strip()
+    lrd_raw = str(last_renewal_date or "").strip()
+
+    doa = _parse_date_lenient(doa_raw)
+    if not doa_raw:
+        errors.append("Date of Approval (club formation date) is required when importing an existing club.")
+    elif doa is None:
+        errors.append(f"Date of Approval must be a valid date (YYYY-MM-DD): '{doa_raw}'.")
+    else:
+        if doa < MIN_FORMATION_DATE:
+            errors.append("Date of Approval cannot be earlier than 2019-01-01.")
+        if doa > today:
+            errors.append("Date of Approval cannot be in the future.")
+
+    if lrd_raw:
+        lrd = _parse_date_lenient(lrd_raw)
+        if lrd is None:
+            errors.append(f"Last Renewal Date must be a valid date (YYYY-MM-DD): '{lrd_raw}'.")
+        else:
+            if lrd > today:
+                errors.append("Last Renewal Date cannot be in the future.")
+            if doa and lrd < doa:
+                errors.append("Last Renewal Date cannot be earlier than the Date of Approval.")
+    return errors
+
 
 def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
     """Validates SEC C club details and returns a list of error messages."""
@@ -141,5 +197,24 @@ def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
         val = str(payload.get(email_key, "")).strip()
         if val and not validate_email(val):
             errors.append(f"Invalid email address for {label}: '{val}'.")
+
+    # R24: record-mode-aware historical date validation.
+    #  - "import": explicit formation/last-renewal dates REQUIRED and validated.
+    #  - "new"/legacy: dates are auto-stamped server-side; explicit dates are
+    #    REJECTED (no smuggling historical dates through the new-club path).
+    mode = str(payload.get("record_mode", "")).strip().lower()
+    if mode not in ("", "new", "import"):
+        errors.append(f"Unknown record_mode '{mode}' — expected 'new' or 'import'.")
+    else:
+        doa_raw = str(payload.get("date_of_approval", "")).strip()
+        lrd_raw = str(payload.get("last_renewal_date", "")).strip()
+        if mode == "import":
+            errors.extend(validate_historical_dates(doa_raw, lrd_raw))
+        else:
+            if doa_raw or lrd_raw:
+                errors.append(
+                    "Historical dates are accepted only via 'Import existing club'. "
+                    "Switch to import mode (record_mode='import') or clear the date fields."
+                )
 
     return errors

@@ -559,6 +559,14 @@ class SyncEngine:
             raw_doa = str(club_data.get("date_of_approval", "")).strip() or str(club_data.get("submission_timestamp", "")).strip()
             last_renewal_date = str(club_data.get("last_renewal_date", "")).strip()
 
+            # R24 record provenance: "imported" for historical entries (explicit
+            # dates / import mode / renewal-only legacy derivation), "created" for
+            # the standard auto-stamped new-club path.
+            _mode = str(club_data.get("record_mode", "")).strip().lower()
+            record_origin = "imported" if (
+                _mode == "import" or raw_doa or last_renewal_date or (ren_input and parsed_ren_input)
+            ) else "created"
+
             if raw_doa:
                 date_of_approval = raw_doa
             elif parsed_ren_input and not last_renewal_date:
@@ -599,7 +607,8 @@ class SyncEngine:
                 "approved_by_emp_id": emp_id,
                 "updated_at": now_iso,
                 "submission_timestamp": date_of_approval,
-                "next_renewal_date": ren_date
+                "next_renewal_date": ren_date,
+                "record_origin": record_origin
             }
 
             # 1. Write to Employee Node DB
@@ -1109,6 +1118,75 @@ class SyncEngine:
                 updater_path = cls.get_employee_clubs_path(clean_updater)
                 if updater_path.parent.exists():
                     CSVEngine.upsert_row(updater_path, CLUB_FIELDS, "club_id", target_record)
+
+            return target_record
+
+    @classmethod
+    def correct_club_dates(
+        cls,
+        club_id: str,
+        date_of_approval: str,
+        last_renewal_date: str = "",
+        admin_id: str = ""
+    ) -> Optional[Dict[str, Any]]:
+        """
+        R24: Admin-only historical date correction — the dedicated, logged path.
+        The general club-update route never alters these dates (immutability);
+        the API layer validates the window (2019-01-01 <= doa <= today and
+        doa <= last_renewal <= today) before this method is reached. The upcoming
+        renewal is recomputed from the corrected anchor (+1 year, Renewal
+        Protocol rule) and a "Data Correction" activity row is logged in the
+        owning employee node and the master activity log.
+        """
+        with _SYNC_LOCK:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            target_record = CSVEngine.find_by_key(
+                MASTER_CLUBS_CSV, "club_id", str(club_id).strip().upper(), CLUB_FIELDS)
+            if not target_record:
+                return None
+
+            target_record["date_of_approval"] = str(date_of_approval).strip()
+            lrd = str(last_renewal_date or "").strip()
+            target_record["last_renewal_date"] = lrd
+            # Compatibility alias (existing convention: submission_timestamp mirrors DOA).
+            target_record["submission_timestamp"] = target_record["date_of_approval"]
+            ren = calculate_next_renewal_date(
+                date_of_approval=target_record["date_of_approval"],
+                last_renewal_date=lrd
+            )
+            target_record["renewal_date"] = ren
+            target_record["next_renewal_date"] = ren
+            target_record["updated_at"] = now_iso
+
+            # Sync to Master + original approving employee node (same write
+            # pattern as update_club).
+            CSVEngine.upsert_row(MASTER_CLUBS_CSV, CLUB_FIELDS, "club_id", target_record)
+            orig_emp = target_record.get("approved_by_emp_id", "").strip().upper()
+            if orig_emp and orig_emp.startswith("EMP"):
+                orig_path = cls.get_employee_clubs_path(orig_emp)
+                if orig_path.parent.exists():
+                    CSVEngine.upsert_row(orig_path, CLUB_FIELDS, "club_id", target_record)
+
+                # Logged correction activity (priority_flag 0 = standard, no quota
+                # effect; quotas are only incremented by explicit workflow calls).
+                act_id = f"ACT-CORRECTION-{orig_emp}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+                activity_row = {
+                    "activity_id": act_id,
+                    "emp_id": orig_emp,
+                    "timestamp": now_iso,
+                    "support_type": "Data Correction",
+                    "priority_flag": "0",
+                    "club_id": target_record.get("club_id", ""),
+                    "notes": (
+                        f"Admin {admin_id or 'ADMIN'} corrected historical dates: "
+                        f"Date of Approval {target_record['date_of_approval']}, "
+                        f"Last Renewal Date {lrd or '(none)'}; "
+                        f"upcoming renewal recomputed to {ren}."
+                    )
+                }
+                emp_act_path = cls.get_employee_activities_path(orig_emp)
+                CSVEngine.append_row(emp_act_path, ACTIVITY_FIELDS, activity_row)
+                CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, activity_row)
 
             return target_record
 

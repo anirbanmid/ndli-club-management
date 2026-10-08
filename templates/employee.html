@@ -710,11 +710,14 @@
           </div>
 
           <div>
-            <button type="button" class="btn btn-accent" id="btn-open-sec-c" onclick="toggleSecC()" style="width: 100%; padding: 0.55rem 1rem; font-size: 0.92rem;">
+            <button type="button" class="btn btn-accent" id="btn-open-sec-c-import" onclick="toggleSecC('import')" style="width: 100%; padding: 0.55rem 1rem; font-size: 0.92rem;">
+              <span>📥</span> SEC B: Import Existing Club (historical dates) →
+            </button>
+            <button type="button" class="btn btn-outline" id="btn-open-sec-c" onclick="toggleSecC('new')" style="width: 100%; padding: 0.55rem 1rem; font-size: 0.92rem; margin-top: 0.5rem;">
               <span>⚡</span> SEC B: Approve New NDLI Club →
             </button>
             <p style="font-size: 0.8rem; text-align: center; color: var(--text-muted); margin-top: 0.35rem; margin-bottom: 0;">
-              ★ Instantly opens SEC C Form below
+              ★ Import = legacy clubs from the old records (editable dates) · New = fresh approval (auto-captured)
             </p>
           </div>
         </div>
@@ -726,6 +729,7 @@
           <div>
             <h3 class="card-title" style="color: var(--warning);">SEC C: New Club Details Entry</h3>
             <p class="card-subtitle">Fill in institution credentials. Zone maps automatically based on state selection.</p>
+            <span id="sec-c-mode-badge" style="display: inline-block; margin-top: 0.3rem; padding: 0.18rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; background: #D1FAE5; color: #065F46;">NEW CLUB MODE — dates auto-captured on submit</span>
           </div>
           <button type="button" class="btn btn-outline btn-sm" onclick="toggleSecC()">✕ Hide Form</button>
         </div>
@@ -816,7 +820,7 @@
             </div>
           </div>
 
-          <div class="grid-2">
+          <div class="grid-2" id="sec-c-auto-dates">
             <div class="form-group">
               <label>Date of Approval (Auto-Captured)</label>
               <input type="text" id="c-timestamp-display" data-alias="c-doa-display" readonly value="Auto-captured exact date & time on submit" style="background: var(--bg-muted); font-weight: 600; color: var(--primary);">
@@ -826,6 +830,30 @@
               <label>Initial Registration Validity (Upcoming Renewal)</label>
               <input type="text" id="c-renewal-display" readonly value="Auto-computed: +1 Year from Date of Approval" style="background: var(--bg-main); font-weight: 600; color: #15803d;">
               <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Automatically calculated and logged in database.</small>
+            </div>
+          </div>
+
+          <!-- R24: Historical dates group — visible only in "Import existing club" mode -->
+          <div id="sec-c-import-fields" style="display: none; border: 1px dashed #D97706; border-radius: 12px; padding: 0.9rem 1rem 0.2rem; margin-top: 0.75rem; background: #FFFBEF;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #92400E; margin-bottom: 0.6rem;">
+              📥 Historical Dates — enter the TRUE dates from the existing club register (legacy record)
+            </div>
+            <div class="grid-3">
+              <div class="form-group">
+                <label for="c-formation-date" class="label-required">Date of Approval / Formation (actual)</label>
+                <input type="date" id="c-formation-date" min="2019-01-01" oninput="updateImportPreview()" style="font-family: monospace; font-weight: 600;">
+                <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">The real date the club was formed/approved, e.g. 2024-06-15. Earliest allowed: 2019-01-01.</small>
+              </div>
+              <div class="form-group">
+                <label for="c-last-renewal-date">Last Renewal Date (if any)</label>
+                <input type="date" id="c-last-renewal-date" min="2019-01-01" oninput="updateImportPreview()" style="font-family: monospace; font-weight: 600;">
+                <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Leave empty if the club has never been renewed.</small>
+              </div>
+              <div class="form-group">
+                <label for="c-upcoming-preview">Upcoming Renewal Date (auto-computed)</label>
+                <input type="text" id="c-upcoming-preview" readonly value="Select formation / last renewal date" style="background: var(--bg-main); font-weight: 600; color: #15803d;">
+                <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">+1 year from the last renewal (or formation if never renewed) — Renewal Protocol anchor rule.</small>
+              </div>
             </div>
           </div>
 
@@ -2896,11 +2924,66 @@
     }
 
     // SEC B: Open SEC C Form
-    function toggleSecC() {
+    let SEC_C_MODE = "new";
+
+    function applySecCMode() {
+      const isImport = SEC_C_MODE === "import";
+      const importFields = document.getElementById("sec-c-import-fields");
+      const autoDates = document.getElementById("sec-c-auto-dates");
+      const badge = document.getElementById("sec-c-mode-badge");
+      if (importFields) importFields.style.display = isImport ? "block" : "none";
+      if (autoDates) autoDates.style.display = isImport ? "none" : "grid";
+      if (badge) {
+        badge.textContent = isImport
+          ? "IMPORT MODE — historical dates editable (legacy club record)"
+          : "NEW CLUB MODE — dates auto-captured on submit";
+        badge.style.background = isImport ? "#FDE68A" : "#D1FAE5";
+        badge.style.color = isImport ? "#92400E" : "#065F46";
+      }
+      const btn = document.querySelector("#sec-c-form button[type='submit']");
+      if (btn) {
+        btn.innerHTML = isImport
+          ? "<span>📥</span> Import Club Record (Priority Activity)"
+          : "<span>★</span> Submit & Approve Club (Priority Activity)";
+      }
+      const todayStr = new Date().toISOString().split("T")[0];
+      ["c-formation-date", "c-last-renewal-date"].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.max = todayStr;
+      });
+    }
+
+    // R24: derived preview — upcoming renewal = (last renewal || formation) + 1 year
+    function updateImportPreview() {
+      const f = document.getElementById("c-formation-date");
+      const l = document.getElementById("c-last-renewal-date");
+      const p = document.getElementById("c-upcoming-preview");
+      if (!p) return;
+      const anchorStr = (l && l.value) ? l.value : (f && f.value ? f.value : "");
+      if (!anchorStr || !/^\d{4}-\d{2}-\d{2}$/.test(anchorStr)) {
+        p.value = "Select formation / last renewal date";
+        return;
+      }
+      const anchor = new Date(anchorStr + "T00:00:00Z");
+      if (isNaN(anchor.getTime())) {
+        p.value = "Select formation / last renewal date";
+        return;
+      }
+      anchor.setUTCFullYear(anchor.getUTCFullYear() + 1);
+      p.value = anchor.toISOString().split("T")[0] + " (+1 Year)";
+    }
+
+    function toggleSecC(mode) {
       const container = document.getElementById("sec-c-card");
       if (container) {
-        container.classList.toggle("open");
+        if (mode === "import" || mode === "new") {
+          SEC_C_MODE = mode;
+          container.classList.add("open");
+        } else {
+          container.classList.toggle("open");
+        }
         if (container.classList.contains("open")) {
+          applySecCMode();
           container.scrollIntoView({ behavior: 'smooth' });
           const cidInput = document.getElementById("c-club-id");
           if (!cidInput.value) {
@@ -3028,6 +3111,40 @@
         return;
       }
 
+      // R24 import mode: client-side historical date validation (server re-validates).
+      const isImport = SEC_C_MODE === "import";
+      let formation = "";
+      let lastRenewal = "";
+      if (isImport) {
+        const fEl = document.getElementById("c-formation-date");
+        const lEl = document.getElementById("c-last-renewal-date");
+        formation = (fEl && fEl.value ? fEl.value : "").trim();
+        lastRenewal = (lEl && lEl.value ? lEl.value : "").trim();
+        const todayStr = new Date().toISOString().split("T")[0];
+        if (!formation) {
+          showAlert("global-alert", "Please enter the actual Date of Approval / Formation date of the club (from the old register).", "danger");
+          return;
+        }
+        if (formation < "2019-01-01") {
+          showAlert("global-alert", "⚠ Date of Approval cannot be earlier than 2019-01-01.", "danger");
+          return;
+        }
+        if (formation > todayStr) {
+          showAlert("global-alert", "⚠ Date of Approval cannot be in the future.", "danger");
+          return;
+        }
+        if (lastRenewal) {
+          if (lastRenewal < formation) {
+            showAlert("global-alert", "⚠ Last Renewal Date cannot be earlier than the Date of Approval.", "danger");
+            return;
+          }
+          if (lastRenewal > todayStr) {
+            showAlert("global-alert", "⚠ Last Renewal Date cannot be in the future.", "danger");
+            return;
+          }
+        }
+      }
+
       const payload = {
         emp_id: CURRENT_EMP_ID,
         club_id: clubId,
@@ -3037,15 +3154,24 @@
         zone: zone,
         patron_email: patron,
         president_email: president,
-        secretary_email: secretary
+        secretary_email: secretary,
+        record_mode: SEC_C_MODE
       };
+      if (isImport) {
+        payload.date_of_approval = formation;
+        payload.last_renewal_date = lastRenewal;
+      }
 
       const res = await apiRequest("/api/clubs/create", "POST", payload);
       if (res.ok) {
         const createdClub = res.data.club || {};
         const approvalDate = createdClub.date_of_approval || "Logged Now";
         const initialValidity = createdClub.renewal_date || "1 Year";
-        showAlert("global-alert", `★ Priority Success! NDLI Club "${instName}" (${clubId}) approved! Date of Approval logged: ${approvalDate}. Initial validity granted until: ${initialValidity}.`, "success");
+        if (isImport) {
+          showAlert("global-alert", `★ Priority Success! Legacy NDLI Club "${instName}" (${clubId}) imported with its true history. Date of Approval: ${approvalDate}. Last Renewal: ${createdClub.last_renewal_date || "(none)"}. Next renewal due: ${initialValidity}.`, "success");
+        } else {
+          showAlert("global-alert", `★ Priority Success! NDLI Club "${instName}" (${clubId}) approved! Date of Approval logged: ${approvalDate}. Initial validity granted until: ${initialValidity}.`, "success");
+        }
         document.getElementById("sec-c-form").reset();
         document.getElementById("sec-c-card").classList.remove("open");
         loadEmployeeQuota();

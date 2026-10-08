@@ -3596,6 +3596,49 @@
       return "pill-warning";
     }
 
+    // R24: Admin-only historical date correction — dedicated logged workflow.
+    // POST /api/clubs/correct-dates validates (2019-01-01 <= DOA <= today,
+    // DOA <= Last Renewal <= today), recomputes the upcoming renewal (+1y anchor)
+    // and writes a "Data Correction" activity entry.
+    async function submitClubDateCorrection(clubId) {
+      const doaEl = document.getElementById("cd-date-of-approval");
+      const lrdEl = document.getElementById("cd-last-renewal");
+      const fb = document.getElementById("cd-feedback");
+      const doa = doaEl && doaEl.value ? String(doaEl.value).trim() : "";
+      const lrd = lrdEl && lrdEl.value ? String(lrdEl.value).trim() : "";
+      const todayStr = new Date().toISOString().split("T")[0];
+      const fail = function (msg) {
+        if (fb) { fb.style.color = "#B91C1C"; fb.textContent = "⚠ " + msg; }
+      };
+      if (!clubId) return fail("Club ID missing — close and reopen the details view.");
+      if (!doa) return fail("Date of Approval is required.");
+      if (doa < "2019-01-01") return fail("Date of Approval cannot be earlier than 2019-01-01.");
+      if (doa > todayStr) return fail("Date of Approval cannot be in the future.");
+      if (lrd) {
+        if (lrd < doa) return fail("Last Renewal Date cannot be earlier than the Date of Approval.");
+        if (lrd > todayStr) return fail("Last Renewal Date cannot be in the future.");
+      }
+      try {
+        const res = await apiRequest("/api/clubs/correct-dates", "POST", {
+          club_id: clubId,
+          date_of_approval: doa,
+          last_renewal_date: lrd
+        });
+        if (res && res.ok && res.data && res.data.success) {
+          if (fb) {
+            fb.style.color = "#15803d";
+            fb.textContent = "✓ " + (res.data.message || "Historical dates corrected.") +
+              " Close and reopen the details view to refresh the cards.";
+          }
+        } else {
+          const d = (res && res.data) || {};
+          fail(d.validation_errors ? d.validation_errors.join(" ") : (d.message || "Correction failed."));
+        }
+      } catch (e) {
+        fail("Request failed: " + e);
+      }
+    }
+
     function renderClubDetailsView(club) {
       const body = document.getElementById("club-details-body");
       if (!body || !club) return;
@@ -3765,6 +3808,29 @@
             <p style="font-size: 0.78rem; color: #78350f; margin-top: 0.85rem;">
               ℹ️ <em>Rule Applied: Initial 1-year registration validity is logged upon club creation (Date of Approval). On renewal approval, the employee checks conditions and clicks "Renewal Approved", instantly logging the timestamp as Last Renewal Date and calculating the upcoming renewal date (+1 year).</em>
             </p>
+
+            <!-- R24: Admin-only historical date correction (dedicated, logged workflow) -->
+            <div style="margin-top: 0.85rem; border: 1px dashed #D97706; border-radius: var(--radius); padding: 0.85rem; background: #FFFBEF;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #92400E; font-weight: 700; display: block; margin-bottom: 0.55rem;">
+                🛠 Admin: Correct Historical Dates (logged)
+              </span>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+                <div style="flex: 1 1 180px;">
+                  <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;" for="cd-date-of-approval">Date of Approval</label>
+                  <input type="date" id="cd-date-of-approval" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.date_of_approval || club.submission_timestamp || '').split('T')[0])}" style="width: 100%; font-family: monospace; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
+                </div>
+                <div style="flex: 1 1 180px;">
+                  <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;" for="cd-last-renewal">Last Renewal Date (optional)</label>
+                  <input type="date" id="cd-last-renewal" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.last_renewal_date || '').split('T')[0])}" style="width: 100%; font-family: monospace; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitClubDateCorrection('${escapeHtml(String(club.club_id || ''))}')">
+                  ✓ Correct Dates
+                </button>
+              </div>
+              <small id="cd-feedback" style="font-size: 0.72rem; color: #92400E; display: block; margin-top: 0.5rem;">
+                For legacy clubs whose real formation / renewal dates were recorded wrongly. Rules: 2019-01-01 ≤ Date of Approval ≤ today, Date of Approval ≤ Last Renewal ≤ today. The upcoming renewal is recomputed (+1 year anchor) and a "Data Correction" entry is written to the activity log.
+              </small>
+            </div>
           </div>
 
           <!-- Modal Footer Actions -->
