@@ -2027,6 +2027,22 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
       </div>
     </div>
 
+    <h2>v4.2 Migration Toolkit (API &amp; data notes)</h2>
+    <p style="margin-bottom: 6px;">
+      The migration toolkit for legacy clubs (v4.2) adds the following surfaces. All validation is server-side; the UI merely previews it.
+    </p>
+    <ul style="margin-top: 4px;">
+      <li><strong><code>record_mode</code> on club creation:</strong> "import" accepts explicit historical dates (<code>date_of_approval</code> required,
+        <code>last_renewal_date</code> optional, window 2019-01-01 … today with formation ≤ last renewal ≤ today); "new" auto-stamps and REJECTS explicit dates.</li>
+      <li><strong><code>record_origin</code> schema field (CLUB_FIELDS):</strong> "imported" or "created" — record provenance alongside the entry timestamp.</li>
+      <li><strong><code>POST /api/clubs/bulk-import/validate</code>:</strong> dry-run — per-row report (READY/ERROR), writes nothing; duplicates (reg-no/club-id)
+        blocked against the master DB and within the batch; 200 rows max.</li>
+      <li><strong><code>POST /api/clubs/bulk-import/commit</code>:</strong> creates only valid rows via <code>approve_new_club(confirm_cloud_sync=False)</code>
+        followed by ONE batched durable-sync confirmation.</li>
+      <li><strong><code>POST /api/clubs/correct-dates</code> (admin-only, logged):</strong> the only path that alters historical dates — validates the same window,
+        recomputes the upcoming renewal (+1 year anchor), and appends a "Data Correction" activity row. The general club-update path treats historical dates as immutable.</li>
+    </ul>
+
     <div style="margin-top: 25px; text-align: center; border-top: 1.5px solid #E2E8F0; padding-top: 15px; font-size: 7.8pt; color: #64748B;">
       <strong>National Digital Library of India (NDLI) Club Management System</strong><br>
       Enterprise Technical Reference Manual &amp; System Handover Architecture Specification (v3.0)<br>

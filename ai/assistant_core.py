@@ -323,6 +323,9 @@ _INTENT_RULES: List[Tuple[str, re.Pattern]] = [
 # not steal plain "renew" questions), then the broader approval/registration rule.
 _HELP_TASK_RULES: List[Tuple[str, re.Pattern]] = [
     ("view_renewals", re.compile(r"\b(view|see|show|check|where)\b.*\brenew\w*\b|\brenew\w*\b.*\b(view|see|show|check|where)\b", re.IGNORECASE)),
+    ("bulk_import_csv", re.compile(r"\b(bulk|csv)\b.*\bimport\w*\b|\bimport\w*\b.*\b(bulk|csv)\b", re.IGNORECASE)),
+    ("import_existing_club", re.compile(r"\bimport\w*\b.*\b(club|existing|legacy|historical)\w*\b|\b(existing|legacy|historical)\w*\b.*\bimport\w*\b", re.IGNORECASE)),
+    ("correct_historical_dates", re.compile(r"\b(correct|fix|wrong)\w*\b.*\b(date|historical|renewal)\w*\b|\b(date|historical)\w*\b.*\b(correct|fix|wrong)\w*\b", re.IGNORECASE)),
     ("approve_renewal", re.compile(r"\b(approve|approval|register|registration|renew)\w*\b", re.IGNORECASE)),
     ("log_activity", re.compile(r"\b(log|record|add)\b.*\bactivit\w*\b|\bactivit\w*\b.*\b(log|record|add)\b", re.IGNORECASE)),
     ("create_issue", re.compile(r"\b(raise|create|open|report|file)\b.*\bissue\w*\b|\bissue\w*\b.*\b(raise|create|open|report|file)\b", re.IGNORECASE)),

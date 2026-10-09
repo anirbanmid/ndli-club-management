@@ -432,6 +432,33 @@ def _analytics_strategic_report(ctx: ToolContext, **_params: Any) -> Dict[str, A
 # into the knowledge base; the numbers below are process steps rendered as
 # bullets, not data figures).
 TASK_GUIDES: Dict[str, Dict[str, Any]] = {
+    "import_existing_club": {
+        "title": "How to import an existing legacy club (Import Existing Club)",
+        "steps": [
+            "In SEC B choose the amber-free first button: Import Existing Club (next to Approve New NDLI Club).",
+            "The SEC C form opens in IMPORT mode (amber badge) — enter the true Date of Approval and, if the club renewed before, its Last Renewal Date (leave empty if never renewed).",
+            "The Upcoming Renewal Date preview shows the Renewal Protocol anchor: last renewal (or formation) + 1 year.",
+            "Submit — the record keeps both historical dates and is tagged record_origin=imported.",
+        ],
+    },
+    "bulk_import_csv": {
+        "title": "How to bulk import legacy clubs from a CSV",
+        "steps": [
+            "In SEC B open Bulk Import Existing Clubs (CSV) and download the CSV template.",
+            "Fill one row per club: club_id, reg_no, institution, state, three stakeholder emails, date_of_approval and last_renewal_date.",
+            "Upload the file and press Validate (dry run) — the preview shows READY/ERROR per row and writes nothing.",
+            "Press Import valid rows (max 200 per batch); duplicates of Registration Number or Club ID are blocked, and quotas update as usual.",
+        ],
+    },
+    "correct_historical_dates": {
+        "title": "How to correct wrongly recorded historical dates (admin)",
+        "steps": [
+            "Admin portal: click the Total NDLI Clubs KPI to open the Club Register, then Open Details on the club (or open it from Renewal Attention).",
+            "In the club details view use the Correct Historical Dates block (admin-only, logged).",
+            "Set the true Date of Approval and optional Last Renewal Date within 2019-01-01 … today, then save.",
+            "The upcoming renewal is recomputed from the corrected anchor and a Data Correction entry is written to the activity log.",
+        ],
+    },
     "approve_renewal": {
         "title": "How to approve a club registration renewal",
         "steps": [

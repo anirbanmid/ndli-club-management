@@ -595,4 +595,24 @@ GOLDEN_QUESTIONS: List[Dict[str, Any]] = [
         "question": "How does the employee performance star rating work?",
         "expected_keywords": ["star", "performance"],
     },
+    {
+        "id": "import_existing_club",
+        "question": "What does the user manual say about Import Existing Club and its historical dates?",
+        "expected_keywords": ["Import Existing Club", "Date of Approval"],
+    },
+    {
+        "id": "bulk_import_csv",
+        "question": "How does the CSV bulk import of existing clubs work?",
+        "expected_keywords": ["Bulk Import", "dry-run"],
+    },
+    {
+        "id": "club_register",
+        "question": "What is the Admin Club Register and how is it opened?",
+        "expected_keywords": ["Club Register", "Total NDLI Clubs"],
+    },
+    {
+        "id": "correct_historical_dates",
+        "question": "How does an administrator correct wrongly recorded historical dates?",
+        "expected_keywords": ["Correct Historical Dates", "admin-only"],
+    },
 ]
