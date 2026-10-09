@@ -41,6 +41,31 @@ CLUB_FIELDS: List[str] = [
     "record_origin"     # R24: "created" (new club) | "imported" (legacy club historical entry)
 ]
 
+# R30 (2026-10-09, client migration Phase 2): EMPLOYEE ACTIVITY HISTORY baselines.
+# The client's legacy worksheets record per-period COUNTS with no club identity.
+# Past and present are kept separate: migrated history lives in its own table,
+# and Performance Quota = migrated baseline + live-derived counts. History rows
+# NEVER carry club_id — no fabricated links (user-approved architecture).
+MIGRATION_HISTORY_FIELDS: List[str] = [
+    "hist_id",
+    "emp_id",
+    "period_year",           # event period (Year_id) — NEVER the entry timestamp
+    "period_month",          # 01-12 when the client's month name parsed, else verbatim
+    "period_week",           # client free text (e.g. "Date: 24-31"), kept verbatim
+    "task_type",             # "Club Approval" | "Club Support" | "Online Workshop"
+    "approvals_count",
+    "support_count",
+    "online_workshops_count",     # client column "No. of Physical Workshop" = ONLINE
+    "user_registrations_count",
+    "local_events_count",
+    "global_events_count",
+    "nature",                # "Remote support (AnyDesk)" | "On Call" | "Both (...)"
+    "state",
+    "zone",
+    "entry_timestamp",       # client Timestamp_id (data-entry time; metadata only)
+    "batch_id",
+]
+
 # Activity Log Schema (Daily Activity Tracker & SEC A Support Logs)
 ACTIVITY_FIELDS: List[str] = [
     "activity_id",
@@ -57,9 +82,12 @@ QUOTA_FIELDS: List[str] = [
     "emp_id",
     "employee_name",
     "zone",
-    "clubs_approved_count",
-    "support_logs_count",
-    "last_activity_timestamp"
+    "clubs_approved_count",      # R30: live-derived + migrated baseline
+    "support_logs_count",         # R30: live-derived + migrated baseline
+    "last_activity_timestamp",
+    "legacy_clubs_count",         # R30: migrated baseline (from master_employee_history.csv)
+    "legacy_support_count",
+    "legacy_online_workshops_count"
 ]
 
 # Unresolved Issues & Reminders Schema (72h employee reminder, 30d admin escalation, 7d recurrent)

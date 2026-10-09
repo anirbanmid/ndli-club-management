@@ -609,6 +609,10 @@
               <span style="margin: 0 0.2rem; color: var(--border);">|</span>
               <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Support</span>
             </div>
+            <!-- R30: migrated-history split (past vs present, kept separate) -->
+            <div id="quota-legacy-line" style="display: none; font-size: 9.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.01em;">
+              incl. <strong id="quota-legacy-clubs">0</strong> clubs &amp; <strong id="quota-legacy-support">0</strong> support migrated (history)
+            </div>
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.83rem;"><span>⏰ --:--:--</span></div>
           <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
@@ -3296,6 +3300,10 @@
         BULK_ROWS = rows.slice(1).map(function (r) {
           const o = {};
           BULK_COLS.forEach(function (c) { o[c] = (r[header.indexOf(c)] || "").trim(); });
+          // R30: optional per-row attribution — the client's club log names the
+          // officer per club (admin sessions only; the server enforces the gate).
+          const oeIdx = header.indexOf("approved_by_emp_id");
+          if (oeIdx !== -1) { o.approved_by_emp_id = (r[oeIdx] || "").trim(); }
           return o;
         });
         if (out) out.textContent = String(BULK_ROWS.length) + " data row(s) loaded. Run the dry-run check — nothing is written yet.";
@@ -3387,6 +3395,21 @@
         const emp = pRes.data.employee;
         clubsCount = parseInt(emp.clubs_approved_count !== undefined ? emp.clubs_approved_count : 0, 10) || 0;
         supportCount = parseInt(emp.support_logs_count !== undefined ? emp.support_logs_count : 0, 10) || 0;
+        // R30: migrated-history split — shown only when history exists
+        const legacyClubs = parseInt(emp.legacy_clubs_count || 0, 10) || 0;
+        const legacySupport = parseInt(emp.legacy_support_count || 0, 10) || 0;
+        const legacyLine = document.getElementById("quota-legacy-line");
+        if (legacyLine) {
+          if (legacyClubs > 0 || legacySupport > 0) {
+            legacyLine.style.display = "block";
+            const lc = document.getElementById("quota-legacy-clubs");
+            const ls = document.getElementById("quota-legacy-support");
+            if (lc) lc.innerText = String(legacyClubs);
+            if (ls) ls.innerText = String(legacySupport);
+          } else {
+            legacyLine.style.display = "none";
+          }
+        }
       }
 
       const clubsEl = document.getElementById("quota-clubs-count");

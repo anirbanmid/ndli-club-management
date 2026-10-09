@@ -42,6 +42,11 @@ from db.schemas import (
 )
 from db.csv_engine import CSVEngine
 from db.sync_engine import SyncEngine, parse_iso_or_date, calculate_next_renewal_date
+from db.migration_engine import (
+    baselines_for as migration_baselines_for,
+    validate_employee_history as migration_validate_history,
+    commit_employee_history as migration_commit_history,
+)
 from db.storage_adapter import get_storage_adapter
 from db.backup_engine import BackupEngine
 from db.issue_manager import IssueManager
@@ -261,6 +266,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "POST /api/clubs/create",
                 "POST /api/clubs/bulk-import/validate",
                 "POST /api/clubs/bulk-import/commit",
+                "POST /api/admin/migration/history/validate",
+                "POST /api/admin/migration/history/commit",
                 "POST /api/clubs/update",
                 "POST /api/clubs/correct-dates",
                 "POST /api/clubs/renew",
@@ -529,6 +536,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "created_at": target.get("created_at"),
                     "clubs_approved_count": final_clubs,
                     "support_logs_count": final_support,
+                    # R30: honest split — live work vs migrated history baseline
+                    "live_clubs_approved_count": quota_result.get("live_clubs_approved_count", final_clubs),
+                    "live_support_logs_count": quota_result.get("live_support_logs_count", final_support),
+                    "legacy_clubs_count": quota_result.get("legacy_clubs_count", 0),
+                    "legacy_support_count": quota_result.get("legacy_support_count", 0),
+                    "legacy_online_workshops_count": quota_result.get("legacy_online_workshops_count", 0),
                     "last_activity_timestamp": q.get("last_activity_timestamp", "")
                 }
             })
@@ -848,6 +861,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             club_approvals_standalone: Dict[str, int] = {u.get("id", "").strip().upper(): 0 for u in officers}
 
             for c in all_clubs:
+                # R30: migrated/imported clubs are HISTORY — their performance
+                # credit lives in the migrated baseline (injected below), never
+                # in the live approval sets (anti-double-count: the club log and
+                # the activity worksheets are separate sources by design).
+                if str(c.get("record_origin", "")).strip().lower() == "imported":
+                    continue
                 c_state = c.get("state", "").strip()
                 if filter_state != "ALL" and c_state.lower() != filter_state.lower():
                     continue
@@ -924,7 +943,9 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
                 if is_club_approval:
                     if a_emp in clubs_approved_by_emp_set and cid and cid in club_lookup:
-                        clubs_approved_by_emp_set[a_emp].add(cid)
+                        _ref_origin = str(club_lookup.get(cid, {}).get("record_origin", "")).strip().lower()
+                        if _ref_origin != "imported":
+                            clubs_approved_by_emp_set[a_emp].add(cid)
                 elif stype == "Online training":
                     act_stats_by_emp[a_emp]["online"] += 1
                 elif stype == "Offline training":
@@ -945,6 +966,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 online_training = a_counts["online"]
                 offline_training = a_counts["offline"]
                 other_supports = a_counts["other"]
+
+                # R30 (user decision: star rating = migrated baseline + live):
+                # the client-worksheet baseline rides alongside live counts,
+                # sliced by the SAME period/state filters as the live numbers.
+                _base = migration_baselines_for(emp_id, filter_year,
+                                                target_month_num, filter_state)
+                live_clubs_approved = clubs_approved
+                live_other_supports = other_supports
+                live_online_training = online_training
+                clubs_approved += _base["approvals"]
+                other_supports += _base["support"]
+                online_training += _base["online_workshops"]
 
                 # 3. 50/30/20/10 Weighted Score Calculation
                 # 50% Club Approval + 30% Other Supports + 20% Offline Training + 10% Online Training
@@ -967,7 +1000,14 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "other_supports": other_supports,
                     "total_activities": online_training + offline_training + other_supports,
                     "weighted_score": weighted_score,
-                    "covers_selected_state": covers_state
+                    "covers_selected_state": covers_state,
+                    # R30: honest split (live work vs migrated history)
+                    "live_clubs_approved": live_clubs_approved,
+                    "migrated_clubs_approved": _base["approvals"],
+                    "migrated_support": _base["support"],
+                    "migrated_online_workshops": _base["online_workshops"],
+                    "live_other_supports": live_other_supports,
+                    "live_online_training": live_online_training
                 })
 
             # Sort officers descending by weighted_score, then clubs_approved, then total_activities
@@ -2043,19 +2083,30 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             seen_cid = set()
             valid_rows = 0
             created = 0
+            session = self._get_auth_session()
             for idx, raw in enumerate(rows):
                 row = {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {}
                 cid = row.get("club_id", "").strip().upper()
                 reg_clean = row.get("reg_no", "").strip()
+                # R30: optional per-row attribution — the client's club log names
+                # the officer per club, so a single migrated file can carry real
+                # attribution. Admin-only: employee sessions may only import
+                # clubs under their own name.
+                row_emp = row.get("approved_by_emp_id", "").strip().upper() or emp_id
                 entry = {
                     "row": idx + 1,
                     "club_id": cid,
                     "reg_no": reg_clean,
                     "institution_name": row.get("institution_name", ""),
+                    "approved_by_emp_id": row_emp,
                     "status": "error",
                     "errors": []
                 }
                 errors = validate_club_payload(dict(row, emp_id=emp_id, record_mode="import"))
+                if row_emp != emp_id and (not session or session.get("role") != "ADMIN"):
+                    errors.append("Only admins may attribute imported clubs to another employee.")
+                elif not self._is_employee_active(row_emp):
+                    errors.append(f"Attribution employee '{row_emp}' does not exist or is inactive.")
                 if cid:
                     if cid in seen_cid:
                         errors.append(f"Duplicate Club ID '{cid}' earlier in this batch.")
@@ -2099,10 +2150,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     continue
                 row = {k: str(v or "").strip() for k, v in raw.items()}
                 row["record_mode"] = "import"
-                row["emp_id"] = emp_id
+                row_emp = entry.get("approved_by_emp_id") or emp_id
+                row["emp_id"] = row_emp
                 try:
                     created_club = SyncEngine.approve_new_club(
-                        emp_id=emp_id, club_data=row, confirm_cloud_sync=False)
+                        emp_id=row_emp, club_data=row, confirm_cloud_sync=False)
                 except Exception as exc:
                     entry["status"] = "error"
                     entry["errors"] = [f"Create failed: {exc}"]
@@ -2117,13 +2169,15 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 from db.storage_adapter import get_storage_adapter
                 adapter = get_storage_adapter()
                 if hasattr(adapter, "confirm_durable"):
-                    cloud_confirmed = adapter.confirm_durable([
+                    confirm_paths = [
                         MASTER_CLUBS_CSV,
                         MASTER_ACTIVITIES_CSV,
                         MASTER_QUOTAS_CSV,
-                        SyncEngine.get_employee_clubs_path(emp_id),
-                        SyncEngine.get_employee_activities_path(emp_id),
-                    ])
+                    ]
+                    for _e in {e.get("approved_by_emp_id") or emp_id for e in results if e.get("status") == "created"}:
+                        confirm_paths.append(SyncEngine.get_employee_clubs_path(_e))
+                        confirm_paths.append(SyncEngine.get_employee_activities_path(_e))
+                    cloud_confirmed = adapter.confirm_durable(confirm_paths)
             except Exception:
                 cloud_confirmed = False
 
@@ -2137,6 +2191,41 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 "cloud_sync_confirmed": cloud_confirmed,
                 "results": results
             })
+            return
+
+        # R30: MIGRATION — employee activity history (client legacy worksheets).
+        # Admin-only. The client worksheets record per-period COUNTS with no club
+        # identity, so past and present are kept strictly separate (user-approved
+        # architecture 2026-10-09): validate is a dry-run that writes nothing;
+        # commit writes the history table + quota baselines + ONE clearly-marked
+        # "Data Migration" summary row. No club links are ever fabricated.
+        if path in ("/api/admin/migration/history/validate", "/api/admin/migration/history/commit"):
+            if not self._check_admin_access():
+                return
+            commit_mode = path.endswith("/commit")
+            mig_emp = str(body.get("emp_id", "")).strip().upper()
+            csv_text = body.get("csv_text")
+            if not mig_emp:
+                self._send_error("emp_id is required.")
+                return
+            if not isinstance(csv_text, str) or not csv_text.strip():
+                self._send_error("csv_text (the raw worksheet contents) is required.", status=400)
+                return
+            if not commit_mode:
+                self._send_json({"success": True,
+                                 **migration_validate_history(mig_emp, csv_text)})
+                return
+            result = migration_commit_history(
+                mig_emp, csv_text,
+                batch_id=str(body.get("batch_id", "") or "").strip(),
+                replace=bool(body.get("replace", False)),
+                actor=str(body.get("actor", "") or "ADMIN"))
+            if not result.get("success"):
+                self._send_json(result, status=result.get("status", 422))
+                return
+            # refresh master_quotas so baseline + live counts show immediately
+            SyncEngine.recompute_and_persist_quota(mig_emp)
+            self._send_json(result)
             return
 
         # SEC C: Approve New Club Details

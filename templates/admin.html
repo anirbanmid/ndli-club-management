@@ -376,6 +376,8 @@
               <button class="report-menu-item" role="menuitem" id="btn-generate-report-doc" onclick="generateComprehensiveReportDoc(); closeReportMenu();" title="Download the comprehensive report as a DOC file">📝 DOC</button>
             </div>
           </div>
+          <!-- R30: Data Migration tools (client employee-activity worksheets) -->
+          <button class="btn btn-outline btn-sm" id="btn-open-migration" onclick="openMigrationModal()" title="Migrate client employee-activity history (bulk-number baselines; dry-run first)" style="font-weight: 600;"><span>⚙</span> Data Migration</button>
         </div>
       </div>
 
@@ -3989,12 +3991,142 @@
       }
     }
 
+    // ================= R30: Data Migration (employee activity history) =================
+    // Client legacy worksheets: per-period COUNTS, no club identity (sample 2026-10-09:
+    // 5,518 rows / one employee). Past and present stay separate — the dry-run writes
+    // nothing; commit records the migrated history + quota baselines + ONE marked
+    // "Data Migration" summary row. No club links are ever fabricated.
+    let MIG_CSV_TEXT = "";
+    let MIG_LAST_REPORT = null;
+
+    function openMigrationModal() {
+      const modal = document.getElementById("migration-modal");
+      if (!modal) return;
+      modal.classList.add("active");
+      modal.classList.add("open");
+      modal.style.display = "flex";
+      if (typeof ndliModalOpened === "function") ndliModalOpened(modal);
+    }
+
+    function closeMigrationModal() {
+      const modal = document.getElementById("migration-modal");
+      if (!modal) return;
+      modal.classList.remove("active");
+      modal.classList.remove("open");
+      modal.style.display = "none";
+    }
+
+    function handleMigrationFile(input) {
+      const file = input.files && input.files[0];
+      const out = document.getElementById("mig-status");
+      const btn = document.getElementById("btn-mig-commit");
+      MIG_CSV_TEXT = "";
+      MIG_LAST_REPORT = null;
+      if (btn) btn.disabled = true;
+      const preview = document.getElementById("mig-preview");
+      if (preview) preview.innerHTML = "";
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        MIG_CSV_TEXT = String(reader.result || "");
+        if (out) out.textContent = "Worksheet loaded. Run the dry run — nothing is written yet.";
+      };
+      reader.readAsText(file);
+    }
+
+    function renderMigrationPreview(rep) {
+      const box = document.getElementById("mig-preview");
+      if (!box) return;
+      const s = (rep && rep.summary) || {};
+      const t = s.totals || {};
+      const span = s.span || {};
+      const notes = (s.notes || []).concat((rep && rep.file_errors) || []);
+      const errRows = (rep && rep.rows || []).filter(function (r) { return (r.errors || []).length; });
+      let html = '<div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:0.85rem;margin-bottom:0.7rem;">' +
+        '<div><strong style="color:var(--success);">' + escapeHtml(String(t.approvals || 0)) + '</strong> club approvals</div>' +
+        '<div><strong style="color:var(--warning);">' + escapeHtml(String(t.support || 0)) + '</strong> support</div>' +
+        '<div><strong>' + escapeHtml(String(t.online_workshops || 0)) + '</strong> online workshops</div>' +
+        '<div>span: <strong>' + escapeHtml(String(span.first_year || "?")) + '–' + escapeHtml(String(span.last_year || "?")) + '</strong></div>' +
+        '<div>' + escapeHtml(String(s.total_rows || 0)) + ' rows (' + escapeHtml(String(s.ok_rows || 0)) + ' ok)</div>' +
+        '</div>';
+      if (notes.length) {
+        html += '<div style="font-size:0.78rem;color:#92400E;background:#FEF3C7;border:1px solid #F3D9B2;border-radius:8px;padding:0.5rem 0.7rem;margin-bottom:0.7rem;"><strong>Notes:</strong> ' +
+          notes.map(escapeHtml).join(' · ') + '</div>';
+      }
+      if (errRows.length) {
+        html += '<div style="font-size:0.78rem;color:#B91C1C;"><strong>Rows needing fixes:</strong><ul>' +
+          errRows.slice(0, 20).map(function (r) {
+            return '<li>line ' + escapeHtml(String(r.line)) + ': ' + escapeHtml((r.errors || []).join(' ')) + '</li>';
+          }).join('') + '</ul></div>';
+      }
+      box.innerHTML = html;
+    }
+
+    async function runMigrationDryRun() {
+      const out = document.getElementById("mig-status");
+      const empEl = document.getElementById("mig-emp-id");
+      const empId = (empEl && empEl.value || "").trim().toUpperCase();
+      if (!empId) { if (out) out.textContent = "⚠ Enter the employee ID first."; return; }
+      if (!MIG_CSV_TEXT) { if (out) out.textContent = "⚠ Load the worksheet CSV first."; return; }
+      if (out) out.textContent = "Validating…";
+      try {
+        const res = await apiRequest("/api/admin/migration/history/validate", "POST", { emp_id: empId, csv_text: MIG_CSV_TEXT });
+        if (res && res.ok && res.data) {
+          MIG_LAST_REPORT = res.data;
+          renderMigrationPreview(res.data);
+          const btn = document.getElementById("btn-mig-commit");
+          if (btn) btn.disabled = !res.data.ready;
+          if (out) out.textContent = res.data.ready
+            ? "Dry run OK — review the totals above, then commit. Nothing written yet."
+            : "⚠ Dry run found problems — fix the worksheet and retry. Nothing written.";
+        } else {
+          if (out) out.textContent = "⚠ " + ((res && res.data && res.data.message) || "Validation request failed.");
+        }
+      } catch (e) {
+        if (out) out.textContent = "⚠ Request failed: " + e;
+      }
+    }
+
+    async function commitMigration() {
+      const out = document.getElementById("mig-status");
+      const empEl = document.getElementById("mig-emp-id");
+      const empId = (empEl && empEl.value || "").trim().toUpperCase();
+      const replace = !!(document.getElementById("mig-replace") || {}).checked;
+      if (!empId || !MIG_CSV_TEXT) { if (out) out.textContent = "⚠ Load a worksheet and run the dry run first."; return; }
+      const s = (MIG_LAST_REPORT && MIG_LAST_REPORT.summary) || {};
+      const t = s.totals || {};
+      if (!confirm("Record migrated history for " + empId + "?\n\n" +
+        (t.approvals || 0) + " club approvals, " + (t.support || 0) + " support, " + (t.online_workshops || 0) + " online workshops" +
+        (replace ? "\n\nThis REPLACES any existing migrated history for this employee." : ""))) return;
+      if (out) out.textContent = "Importing…";
+      try {
+        const res = await apiRequest("/api/admin/migration/history/commit", "POST", {
+          emp_id: empId, csv_text: MIG_CSV_TEXT, replace: replace
+        });
+        if (res && res.ok && res.data && res.data.success) {
+          if (out) out.textContent = "✓ " + (res.data.message || "Migrated history recorded.");
+          const btn = document.getElementById("btn-mig-commit");
+          if (btn) btn.disabled = true;
+          if (typeof loadDashboardData === "function") loadDashboardData();
+        } else {
+          if (out) out.textContent = "⚠ " + ((res && res.data && res.data.message) || "Commit failed — nothing changed.");
+        }
+      } catch (e) {
+        if (out) out.textContent = "⚠ Request failed: " + e;
+      }
+    }
+
     if (typeof window !== "undefined") {
       window.openClubDetailsModal = openClubDetailsModal;
       window.closeClubDetailsModal = closeClubDetailsModal;
       window.backToAttentionList = backToAttentionList;
       window.openClubRegisterModal = openClubRegisterModal;
       window.closeClubRegisterModal = closeClubRegisterModal;
+      window.openMigrationModal = openMigrationModal;
+      window.closeMigrationModal = closeMigrationModal;
+      window.handleMigrationFile = handleMigrationFile;
+      window.runMigrationDryRun = runMigrationDryRun;
+      window.commitMigration = commitMigration;
       window.filterClubRegister = filterClubRegister;
       window.openClubDetailsFromRegister = openClubDetailsFromRegister;
       window.backToClubRegister = backToClubRegister;
@@ -4029,6 +4161,7 @@
           const editEmpModal = document.getElementById("edit-employee-modal");
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
+          const migrationModal = document.getElementById("migration-modal");
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
           const resetTestModal = document.getElementById("reset-test-data-modal");
           const changePasswordModal = document.getElementById("change-password-modal");
@@ -4048,6 +4181,8 @@
             closeEmergencyRestoreModal();
           } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
+          } else if (migrationModal && (migrationModal.classList.contains("active") || migrationModal.style.display === "flex")) {
+            closeMigrationModal();
           } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
             closeAdminEscalationsListModal();
           } else if (detailsModal && (detailsModal.classList.contains("active") || detailsModal.classList.contains("open"))) {
@@ -4072,6 +4207,8 @@
               backToAttentionList();
             } else if (overlay.id === "club-register-modal") {
               closeClubRegisterModal();
+            } else if (overlay.id === "migration-modal") {
+              closeMigrationModal();
             } else if (overlay.id === "renewal-attention-modal") {
               closeRenewalAttentionModal();
             } else if (overlay.id === "edit-employee-modal") {
@@ -4318,6 +4455,32 @@
       <div id="club-register-body">
         <!-- Rendered dynamically -->
       </div>
+    </div>
+  </div>
+
+  <!-- R30: DATA MIGRATION MODAL — employee activity history (client worksheets) -->
+  <div class="modal-overlay modal" id="migration-modal" style="z-index: 1160; display: none;" role="dialog" aria-modal="true" aria-label="Data Migration" tabindex="-1">
+    <div class="modal-content modal-lg" style="max-width: 900px; width: 95%;">
+      <button class="modal-close" onclick="closeMigrationModal()" title="Close Data Migration">×</button>
+      <div class="card-header" style="margin-bottom: 1rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.85rem;">
+        <div>
+          <h3 class="card-title" style="color: var(--primary); font-size: 1.2rem; margin: 0;">⚙ Data Migration — Employee Activity History</h3>
+          <p class="card-subtitle">Client legacy worksheets (per-period counts). Past and present stay separate: migrated history feeds the Performance Quota baseline only — no club links are fabricated.</p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.8rem;">
+        <input type="text" id="mig-emp-id" placeholder="Employee ID (e.g. EMP01)" style="text-transform: uppercase; padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 0.88rem; width: 190px;">
+        <input type="file" id="mig-file" accept=".csv,text/csv" onchange="handleMigrationFile(this)" style="font-size: 0.84rem;">
+        <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" id="mig-replace"> replace existing migrated history
+        </label>
+      </div>
+      <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
+        <button class="btn btn-outline btn-sm" id="btn-mig-validate" onclick="runMigrationDryRun()" style="font-weight: 600;">🔍 Validate (dry run)</button>
+        <button class="btn btn-accent btn-sm" id="btn-mig-commit" onclick="commitMigration()" disabled style="font-weight: 600;">✓ Commit import</button>
+      </div>
+      <div id="mig-status" style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.75rem;">Load the employee's client worksheet CSV, then run the dry run — nothing is written until you commit.</div>
+      <div id="mig-preview"></div>
     </div>
   </div>
 

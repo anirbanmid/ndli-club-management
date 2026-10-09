@@ -28,6 +28,7 @@ from db.schemas import (
 )
 from db.csv_engine import CSVEngine
 from state_zone_mapper import get_zone_for_state
+from db.migration_engine import baselines_for as _migration_baselines_for
 
 _SYNC_LOCK = threading.RLock()
 # Round-2 duplicate-renewal guard: a second "Renewal Approved" for the same club
@@ -559,13 +560,20 @@ class SyncEngine:
             raw_doa = str(club_data.get("date_of_approval", "")).strip() or str(club_data.get("submission_timestamp", "")).strip()
             last_renewal_date = str(club_data.get("last_renewal_date", "")).strip()
 
-            # R24 record provenance: "imported" for historical entries (explicit
-            # dates / import mode / renewal-only legacy derivation), "created" for
-            # the standard auto-stamped new-club path.
+            # R24 record provenance, R30-corrected: "imported" follows the
+            # EXPLICIT import action (record_mode="import" — the R24 import
+            # flow, the R26 bulk import, the whole migration toolkit).
+            # Everything else is "created" (live app, existing rules).
+            # The old dates heuristic (explicit dates => "imported") mis-tagged
+            # engine-level creations that legitimately carry real dates
+            # (init_db benchmark seeds, internal callers) and R30's
+            # anti-double-count switch then swallowed their live quota credit.
+            # Through the validated HTTP flows provenance is unchanged:
+            # historical dates are accepted ONLY with record_mode="import"
+            # (schemas.validate_club_payload), so "imported" there is exactly
+            # the import path — PA's persisted rows map 1:1, no re-tagging.
             _mode = str(club_data.get("record_mode", "")).strip().lower()
-            record_origin = "imported" if (
-                _mode == "import" or raw_doa or last_renewal_date or (ren_input and parsed_ren_input)
-            ) else "created"
+            record_origin = "imported" if _mode == "import" else "created"
 
             if raw_doa:
                 date_of_approval = raw_doa
@@ -722,12 +730,19 @@ class SyncEngine:
         node_clubs_path = cls.get_employee_clubs_path(clean_id)
         if node_clubs_path.exists():
             for c in CSVEngine.read_all(node_clubs_path, CLUB_FIELDS):
+                # R30: migrated/imported clubs are history — their performance
+                # credit lives in the migrated baseline, never here (the
+                # anti-double-count switch: past and present stay separate).
+                if str(c.get("record_origin", "")).strip().lower() == "imported":
+                    continue
                 cid = c.get("club_id", "").strip().upper()
                 if cid and cid in master_club_ids:
                     c_owner = master_club_ids[cid].get("approved_by_emp_id", "").strip().upper()
                     if not c_owner or c_owner == clean_id:
                         approved_club_ids.add(cid)
         for c in master_clubs:
+            if str(c.get("record_origin", "")).strip().lower() == "imported":
+                continue
             if c.get("approved_by_emp_id", "").strip().upper() == clean_id:
                 cid = c.get("club_id", "").strip().upper()
                 if cid:
@@ -747,18 +762,31 @@ class SyncEngine:
                 latest_ts = ts
             stype = a.get("support_type", "").strip()
             aid = a.get("activity_id", "").strip()
+            # R30: "Data Migration" rows are audit markers for the bulk-number
+            # summary — never support work, never approvals.
+            if stype == "Data Migration":
+                continue
             if stype == "Club Approval" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
                 cid = a.get("club_id", "").strip().upper()
                 if cid and cid in master_club_ids:
                     c_owner = master_club_ids[cid].get("approved_by_emp_id", "").strip().upper()
-                    if not c_owner or c_owner == clean_id:
+                    c_origin = master_club_ids[cid].get("record_origin", "").strip().lower()
+                    if c_origin != "imported" and (not c_owner or c_owner == clean_id):
                         approved_club_ids.add(cid)
                         club_approval_acts += 1
             else:
                 support_logs += 1
 
-        final_clubs = len(approved_club_ids)
-        final_support = support_logs
+        # R30: Performance Quota = migrated baseline (immutable history from the
+        # client worksheets) + live-derived counts (anti-drift preserved: only
+        # the live part is derived here; the baseline lives in
+        # master_employee_history.csv and is only written by the migration
+        # engine).
+        _base = _migration_baselines_for(clean_id)
+        live_clubs = len(approved_club_ids)
+        live_support = support_logs
+        final_clubs = live_clubs + _base["approvals"]
+        final_support = live_support + _base["support"]
 
         q = {
             "emp_id": clean_id,
@@ -766,10 +794,21 @@ class SyncEngine:
             "zone": target.get("zone", "") if target else "",
             "clubs_approved_count": str(final_clubs),
             "support_logs_count": str(final_support),
-            "last_activity_timestamp": latest_ts
+            "last_activity_timestamp": latest_ts,
+            "legacy_clubs_count": str(_base["approvals"]),
+            "legacy_support_count": str(_base["support"]),
+            "legacy_online_workshops_count": str(_base["online_workshops"]),
         }
         CSVEngine.upsert_row(MASTER_QUOTAS_CSV, QUOTA_FIELDS, "emp_id", q)
-        return {"clubs_approved_count": final_clubs, "support_logs_count": final_support}
+        return {
+            "clubs_approved_count": final_clubs,
+            "support_logs_count": final_support,
+            "live_clubs_approved_count": live_clubs,
+            "live_support_logs_count": live_support,
+            "legacy_clubs_count": _base["approvals"],
+            "legacy_support_count": _base["support"],
+            "legacy_online_workshops_count": _base["online_workshops"],
+        }
 
     @classmethod
     def delete_club(cls, club_id: str) -> Dict[str, Any]:
