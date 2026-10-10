@@ -924,6 +924,19 @@
 
     <!-- TAB 3: NODE ACTIVITY HISTORY -->
     <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="tab-btn-history">
+      <!-- R30v2: migrated history summary (period-grain bulk numbers, shown where
+           people look for history — individual events were never logged) -->
+      <div id="migrated-history-strip" class="card" style="display: none; margin-bottom: 0.9rem; padding: 0.85rem 1.1rem; border-left: 4px solid var(--primary);">
+        <div style="font-size: 0.86rem; color: var(--text-main);">
+          <strong>📦 Migrated history (before this system):</strong>
+          <span id="mig-hist-summary">—</span>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Recorded as bulk numbers per period from the client worksheets. Individual
+            events were never logged in those sheets, so nothing is fabricated here —
+            live work stays in the activity table below.
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header">
           <div>
@@ -1325,6 +1338,9 @@
         "Import existing club": Date of Approval required (2019-01-01 or later, not in the
         future), Last Renewal optional (between formation and today). Nothing is written
         until you press the import button after a dry run.
+        Optional admin-only column: <code>approved_by_emp_id</code> attributes a club
+        to another employee (the client club log names the officer) — leave it empty
+        to keep the attribution with the importing employee.
       </p>
       <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
         <button type="button" class="btn btn-outline btn-sm" onclick="downloadBulkTemplate()">📄 Download CSV template</button>
@@ -3235,8 +3251,8 @@
     }
 
     function downloadBulkTemplate() {
-      const header = "club_id,reg_no,institution_name,state,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date";
-      const example = "2051,REG-2024-WB-001,Example Legacy College,West Bengal,patron@example.edu,president@example.edu,secretary@example.edu,2024-06-15,2025-07-20";
+      const header = "club_id,reg_no,institution_name,state,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,approved_by_emp_id";
+      const example = "2051,REG-2024-WB-001,Example Legacy College,West Bengal,patron@example.edu,president@example.edu,secretary@example.edu,2024-06-15,2025-07-20,EMP02";
       const csv = header + "\n" + example + "\n";
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");
@@ -3274,7 +3290,8 @@
     }
 
     const BULK_COLS = ["club_id", "reg_no", "institution_name", "state", "patron_email",
-      "president_email", "secretary_email", "date_of_approval", "last_renewal_date"];
+      "president_email", "secretary_email", "date_of_approval", "last_renewal_date",
+      "approved_by_emp_id"];
 
     function handleBulkFile(input) {
       const file = input.files && input.files[0];
@@ -3408,6 +3425,20 @@
             if (ls) ls.innerText = String(legacySupport);
           } else {
             legacyLine.style.display = "none";
+          }
+        }
+        // R30v2: migrated-history strip in the Activity History tab
+        const mhStrip = document.getElementById("migrated-history-strip");
+        if (mhStrip) {
+          const legacyWorkshops = parseInt(emp.legacy_online_workshops_count || 0, 10) || 0;
+          if (legacyClubs > 0 || legacySupport > 0) {
+            mhStrip.style.display = "block";
+            const fy = emp.legacy_first_year, ly = emp.legacy_last_year;
+            const spanTxt = (fy && ly) ? ` (${fy}-${ly})` : "";
+            const mhSum = document.getElementById("mig-hist-summary");
+            if (mhSum) mhSum.innerText = `${legacyClubs} club approvals / ${legacySupport} support interactions / ${legacyWorkshops} online workshops${spanTxt}`;
+          } else {
+            mhStrip.style.display = "none";
           }
         }
       }

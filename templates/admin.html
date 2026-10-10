@@ -299,12 +299,14 @@
         <span class="stat-label">Total NDLI Clubs</span>
         <span class="stat-value" id="kpi-clubs">--</span>
         <span class="stat-desc" id="kpi-clubs-desc">Across all 36 States &amp; UTs</span>
+        <span class="stat-desc" id="kpi-clubs-migrated" style="display: none; color: var(--primary); font-weight: 700;"></span>
       </div>
       <div class="stat-card accent reveal-card">
         <div class="stat-icon ic-lav" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #EDE9FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#5B45A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.6 2.4 3.9 5.3 3.9 8.5S14.6 18.1 12 20.5"/></svg></div>
         <span class="stat-label">Total Daily Support Logs</span>
         <span class="stat-value" id="kpi-activities">--</span>
         <span class="stat-desc" id="kpi-activities-desc">Real-time sync from 6 zones</span>
+        <span class="stat-desc" id="kpi-activities-migrated" style="display: none; color: var(--primary); font-weight: 700;"></span>
       </div>
       <div class="stat-card success reveal-card">
         <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M16 11a2.6 2.6 0 1 0 0-5.2M17 15c2 .6 3.3 2.3 3.7 5"/></svg></div>
@@ -1725,8 +1727,16 @@
     }
 
     function renderKPIs(data) {
-      document.getElementById("kpi-clubs").innerText = data.summary.total_clubs || 0;
-      document.getElementById("kpi-activities").innerText = data.summary.total_activities || 0;
+      // R30v3: headline = live + migrated (the combined programme total).
+      // live_clubs excludes imported records, so bulk-importing the club log
+      // can never double-count.
+      const migTotals = (data.summary && data.summary.migrated_totals) || {};
+      const liveClubs = (data.summary.live_clubs !== undefined)
+        ? data.summary.live_clubs : (data.summary.total_clubs || 0);
+      const migApprovals = migTotals.approvals || 0;
+      const migSupport = migTotals.support || 0;
+      document.getElementById("kpi-clubs").innerText = liveClubs + migApprovals;
+      document.getElementById("kpi-activities").innerText = (data.summary.total_activities || 0) + migSupport;
       document.getElementById("kpi-nodes").innerText = data.summary.total_employees !== undefined ? data.summary.total_employees : 7;
       if (data.summary.renewal_attention_count !== undefined) {
         document.getElementById("kpi-renewals").innerText = data.summary.renewal_attention_count;
@@ -1753,6 +1763,27 @@
       if (clubsDescEl) clubsDescEl.innerText = scopeDesc;
       const actsDescEl = document.getElementById("kpi-activities-desc");
       if (actsDescEl) actsDescEl.innerText = actsDesc;
+
+      // R30v3: explicit split wording ("incl." was misleading — the migrated
+      // history is not a subset of the live count; the headline sums both)
+      const migClubsEl = document.getElementById("kpi-clubs-migrated");
+      if (migClubsEl) {
+        if (migApprovals > 0) {
+          migClubsEl.style.display = "block";
+          migClubsEl.innerText = `${liveClubs} live + ${migApprovals} migrated club approvals (history)`;
+        } else {
+          migClubsEl.style.display = "none";
+        }
+      }
+      const migActsEl = document.getElementById("kpi-activities-migrated");
+      if (migActsEl) {
+        if (migSupport > 0) {
+          migActsEl.style.display = "block";
+          migActsEl.innerText = `${data.summary.total_activities || 0} live logs + ${migSupport} migrated support interactions (history)`;
+        } else {
+          migActsEl.style.display = "none";
+        }
+      }
       const nodesDescEl = document.getElementById("kpi-nodes-desc");
       if (nodesDescEl) nodesDescEl.innerText = nodesDesc;
     }

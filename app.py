@@ -46,6 +46,9 @@ from db.migration_engine import (
     baselines_for as migration_baselines_for,
     validate_employee_history as migration_validate_history,
     commit_employee_history as migration_commit_history,
+    history_grand_totals as migration_grand_totals,
+    history_period_years as migration_period_years,
+    history_summary as migration_history_summary,
 )
 from db.storage_adapter import get_storage_adapter
 from db.backup_engine import BackupEngine
@@ -542,6 +545,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "legacy_clubs_count": quota_result.get("legacy_clubs_count", 0),
                     "legacy_support_count": quota_result.get("legacy_support_count", 0),
                     "legacy_online_workshops_count": quota_result.get("legacy_online_workshops_count", 0),
+                    "legacy_first_year": (migration_history_summary(str(target.get("id", "")).strip().upper()) or {}).get("first_year"),
+                    "legacy_last_year": (migration_history_summary(str(target.get("id", "")).strip().upper()) or {}).get("last_year"),
                     "last_activity_timestamp": q.get("last_activity_timestamp", "")
                 }
             })
@@ -615,7 +620,11 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             filter_year = raw_year if raw_year.upper() != "ALL" and raw_year else "ALL"
 
             # Discover all available years dynamically across database
+            # (R30v2: incl. MIGRATED HISTORY period years — the worksheets
+            # bucket by Year_id, never the entry timestamp)
             available_years_set = {"2026", "2025", "2024"}
+            for _hy in migration_period_years():
+                available_years_set.add(_hy)
             for c in all_clubs:
                 ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
                 if ts:
@@ -629,6 +638,14 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     if dp:
                         available_years_set.add(str(dp.year))
             available_years = sorted(list(available_years_set), reverse=True)
+            # R30v3: the year filter is a CONTINUOUS programme range — gap
+            # years must not vanish (the client expects 2020..current even
+            # where a year like 2021 has zero entries), and earlier years
+            # appear automatically when historical data reaches further back.
+            _yrs = [int(y) for y in available_years_set if str(y).isdigit()]
+            _lo = min(_yrs + [2020])
+            _hi = max(_yrs + [datetime.now().year])
+            available_years = [str(y) for y in range(_hi, _lo - 1, -1)]
 
             # Build employee to zone mapping
             emp_to_zone = {u.get("id"): u.get("zone", "Other") for u in all_users if u.get("role") == "EMPLOYEE"}
@@ -763,13 +780,25 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "ratio": round(s_cnt / max(1, c_cnt), 2)
                 }
 
+            # R30v3: honest KPI split. The LIVE club count excludes imported
+            # records on purpose — those ARE the migrated clubs (counting both
+            # the records and the baseline would double-count the moment the
+            # client club log is bulk imported). Migrated totals follow the
+            # dashboard's zone/year scope.
+            live_clubs_count = sum(
+                1 for c in filtered_clubs
+                if str(c.get("record_origin", "")).strip().lower() != "imported")
+            _mig = migration_grand_totals(filter_year=filter_year,
+                                          filter_zone=filter_zone)
             self._send_json({
                 "summary": {
                     "total_clubs": len(filtered_clubs),
+                    "live_clubs": live_clubs_count,
                     "total_activities": len(filtered_activities),
                     "total_employees": len(filtered_emp_users),
                     "quotas": quotas,
-                    "renewal_attention_count": attention_data["total_attention_count"]
+                    "renewal_attention_count": attention_data["total_attention_count"],
+                    "migrated_totals": _mig
                 },
                 "filters": {
                     "zone": filter_zone,
@@ -825,7 +854,10 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             club_lookup = {c.get("club_id", "").strip().upper(): c for c in all_clubs if c.get("club_id")}
 
             # Discover available years dynamically
+            # (R30v2: incl. MIGRATED HISTORY period years)
             available_years_set = {"2026", "2025", "2024"}
+            for _hy in migration_period_years():
+                available_years_set.add(_hy)
             for c in all_clubs:
                 ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
                 if ts:
@@ -839,6 +871,14 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     if dp:
                         available_years_set.add(str(dp.year))
             available_years = sorted(list(available_years_set), reverse=True)
+            # R30v3: the year filter is a CONTINUOUS programme range — gap
+            # years must not vanish (the client expects 2020..current even
+            # where a year like 2021 has zero entries), and earlier years
+            # appear automatically when historical data reaches further back.
+            _yrs = [int(y) for y in available_years_set if str(y).isdigit()]
+            _lo = min(_yrs + [2020])
+            _hi = max(_yrs + [datetime.now().year])
+            available_years = [str(y) for y in range(_hi, _lo - 1, -1)]
 
             all_states_list = get_all_states()
 

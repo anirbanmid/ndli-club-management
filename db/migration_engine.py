@@ -468,6 +468,53 @@ def baselines_for(emp_id: str, filter_year: Optional[str] = None,
     return out
 
 
+def history_period_years() -> List[str]:
+    """Distinct PERIOD years across ALL migrated history — for analytics year
+    filters (the client worksheets bucket by Year_id, never the entry time)."""
+    years: set = set()
+    if MASTER_HISTORY_CSV.exists():
+        for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+            y = str(r.get("period_year", "")).strip()
+            if y.isdigit():
+                years.add(y)
+    return sorted(years, reverse=True)
+
+
+def history_grand_totals(filter_year: str = "", filter_zone: str = "") -> Dict[str, Any]:
+    """Grand totals across ALL migrated employees (read-only) — feeds the
+    admin dashboard's honest live-vs-migrated split display. The optional year /
+    zone filters match the dashboard scope (PERIOD year, worksheet zone) so
+    filtered views stay honest."""
+    fy = str(filter_year or "").strip()
+    fz = str(filter_zone or "").strip()
+    use_year = bool(fy) and fy.upper() != "ALL"
+    use_zone = bool(fz) and fz.upper() != "ALL"
+    out = {"approvals": 0, "support": 0, "online_workshops": 0,
+           "employees_migrated": 0, "first_year": "", "last_year": ""}
+    emps: set = set()
+    years: List[int] = []
+    if MASTER_HISTORY_CSV.exists():
+        for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+            if use_year and str(r.get("period_year", "")).strip() != fy:
+                continue
+            if use_zone and (r.get("zone", "") or "").strip().lower() != fz.lower():
+                continue
+            e = r.get("emp_id", "").strip().upper()
+            if e:
+                emps.add(e)
+            out["approvals"] += _parse_count(r.get("approvals_count", "0"))
+            out["support"] += _parse_count(r.get("support_count", "0"))
+            out["online_workshops"] += _parse_count(r.get("online_workshops_count", "0"))
+            y = _parse_count(r.get("period_year", "0"))
+            if y > 0:
+                years.append(y)
+    out["employees_migrated"] = len(emps)
+    if years:
+        out["first_year"] = str(min(years))
+        out["last_year"] = str(max(years))
+    return out
+
+
 def history_summary(emp_id: str) -> Dict[str, Any]:
     """UI summary: totals + span + row count for one employee (read-only)."""
     clean = str(emp_id or "").strip().upper()
