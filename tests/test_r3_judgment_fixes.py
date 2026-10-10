@@ -169,13 +169,14 @@ class TestR3Phase2A11y(unittest.TestCase):
     def test_modals_dialog_protocol(self):
         # R25: the admin Club Register modal joined the ladder (+1 admin modal).
         # R26: the employee Bulk Import modal joined the ladder (+1 employee modal).
-        # R30: the admin Data Migration modal joined the ladder (+1 admin modal):
-        # 10 base dialogs + Club Register + Data Migration = 12, every dialog
-        # paired 1:1 with aria-modal="true" (pre-R30 pin was 11/11 — verified
-        # against the deployed PA copy of admin.html).
-        self.assertEqual(self.admin.count('aria-modal="true"'), 12)
+        # R30: the admin Data Migration modal joined the ladder (+1 admin modal).
+        # R31: the Layer-2 #migration-gate-modal joined the ladder (+1 admin modal):
+        # 10 base dialogs + Club Register + Data Migration + Migration Gate = 13,
+        # every dialog paired 1:1 with aria-modal="true" (pre-R30 pin was 11/11;
+        # employee unchanged at 8 — no new employee modal in R31).
+        self.assertEqual(self.admin.count('aria-modal="true"'), 13)
         self.assertEqual(self.emp.count('aria-modal="true"'), 8)
-        self.assertEqual(self.admin.count('role="dialog"'), 12)
+        self.assertEqual(self.admin.count('role="dialog"'), 13)
         self.assertEqual(self.emp.count('role="dialog"'), 8)
 
     def test_modal_focus_helpers_defined_and_exported(self):

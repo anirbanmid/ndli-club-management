@@ -726,7 +726,7 @@
               <span>⚡</span> SEC B: Approve New NDLI Club →
             </button>
             <button type="button" class="btn btn-outline" id="btn-open-bulk-import" onclick="openBulkImportModal()" style="width: 100%; padding: 0.55rem 1rem; font-size: 0.92rem; margin-top: 0.5rem;">
-              <span>📥</span> SEC B: Bulk Import Existing Clubs (CSV) →
+              <span>📥</span> SEC B: Bulk Add New Clubs (CSV) →
             </button>
             <p style="font-size: 0.8rem; text-align: center; color: var(--text-muted); margin-top: 0.35rem; margin-bottom: 0;">
               ★ Import = legacy clubs from the old records (editable dates) · New = fresh approval (auto-captured)
@@ -1337,15 +1337,10 @@
   <div class="modal-overlay" id="bulk-import-modal" style="z-index: 1280; display: none;" role="dialog" aria-modal="true" aria-labelledby="bulk-import-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 980px; width: 95%; max-height: 90vh; overflow-y: auto;">
       <button class="modal-close" onclick="closeBulkImportModal()" title="Close Bulk Import">×</button>
-      <h3 id="bulk-import-modal-title" style="margin: 0 0 0.35rem; color: var(--primary); font-size: 1.15rem;">📥 Bulk Import Existing Clubs (CSV)</h3>
-      <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.9rem;">
-        For batches of legacy clubs from the old register. Dates are validated exactly like
-        "Import existing club": Date of Approval required (2019-01-01 or later, not in the
-        future), Last Renewal optional (between formation and today). Nothing is written
-        until you press the import button after a dry run.
+      <h3 id="bulk-import-modal-title" style="margin: 0 0 0.35rem; color: var(--primary); font-size: 1.15rem;">📥 Bulk Add New Clubs (CSV)</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.9rem;"><strong>This door records NEW clubs only</strong> (counted as new work on the dashboard). Leave the date columns empty — dates are stamped automatically. Rows carrying <strong>historical / past dates are refused</strong> here: pre-system clubs must be imported by the admin through the <strong>Data Migration portal (Bulk Club History Upload)</strong>, which records them as history (counters unchanged). Nothing is written until you press the import button after a dry run.
         Optional admin-only column: <code>approved_by_emp_id</code> attributes a club
-        to another employee (the client club log names the officer) — leave it empty
-        to keep the attribution with the importing employee.
+        to another employee — leave it empty to keep the attribution with the importing employee.
       </p>
       <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
         <button type="button" class="btn btn-outline btn-sm" onclick="downloadBulkTemplate()">📄 Download CSV template</button>
@@ -3333,9 +3328,12 @@
       reader.readAsText(file);
     }
 
-    function renderBulkPreview(results) {
+    function renderBulkPreview(results, consequence) {
       const box = document.getElementById("bulk-preview");
       if (!box) return;
+      const banner = consequence
+        ? '<div style="font-size:0.85rem;font-weight:700;color:#7C2D12;background:#FEF3C7;border:1px solid #F3D9B2;border-radius:8px;padding:0.55rem 0.75rem;margin-bottom:0.7rem;">⚑ ' + escapeHtml(String(consequence)) + '</div>'
+        : "";
       const trs = (results || []).map(function (r) {
         const ok = r.status === "ready" || r.status === "created";
         const color = ok ? "#15803d" : "#B91C1C";
@@ -3349,7 +3347,7 @@
           '<td style="padding:0.35rem;color:#B91C1C;font-size:0.75rem;">' + escapeHtml((r.errors || []).join(" ")) + "</td>" +
           "</tr>";
       }).join("");
-      box.innerHTML =
+      box.innerHTML = banner +
         '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.8rem;">' +
         '<thead><tr style="border-bottom:2px solid var(--primary);">' +
         '<th style="text-align:left;padding:0.35rem;">#</th>' +
@@ -3368,7 +3366,7 @@
       try {
         const res = await apiRequest("/api/clubs/bulk-import/validate", "POST", { emp_id: CURRENT_EMP_ID, rows: BULK_ROWS });
         if (res && res.ok && res.data) {
-          renderBulkPreview(res.data.results || []);
+          renderBulkPreview(res.data.results || [], res.data.consequence);
           if (out) out.textContent = "Dry run: " + res.data.valid + " ready, " + res.data.invalid + " with errors. Nothing written yet.";
           const btn = document.getElementById("btn-bulk-commit");
           if (btn) {
@@ -3390,7 +3388,7 @@
       try {
         const res = await apiRequest("/api/clubs/bulk-import/commit", "POST", { emp_id: CURRENT_EMP_ID, rows: BULK_ROWS });
         if (res && res.ok && res.data) {
-          renderBulkPreview(res.data.results || []);
+          renderBulkPreview(res.data.results || [], res.data.consequence);
           const cloud = res.data.cloud_sync_confirmed;
           const cloudNote = (cloud === true) ? "Cloud sync confirmed."
             : (cloud === null ? "Cloud sync queued (record saved on this server's disk)."

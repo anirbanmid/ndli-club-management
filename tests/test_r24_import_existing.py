@@ -175,7 +175,7 @@ class TestR24ImportExisting(unittest.TestCase):
         status, data = self._post("/api/clubs/create", self._club_payload(
             "242410", record_mode="new", date_of_approval="2024-06-15"))
         self.assertEqual(status, 422)
-        self.assertTrue(any("Import existing club" in e for e in data.get("validation_errors", [])), data)
+        self.assertTrue(any("Data Migration" in e for e in data.get("validation_errors", [])), data)
         # legacy (no record_mode) with dates is equally rejected
         status, data = self._post("/api/clubs/create", self._club_payload(
             "242411", date_of_approval="2024-06-15"))
@@ -285,7 +285,7 @@ class TestR24ImportExisting(unittest.TestCase):
         self.assertTrue(any("required" in e for e in errors))
         errors = validate_club_payload(dict(base, record_mode="new",
                                             last_renewal_date="2024-01-01"))
-        self.assertTrue(any("Import existing club" in e for e in errors))
+        self.assertTrue(any("Data Migration" in e for e in errors))
 
 
 if __name__ == "__main__":

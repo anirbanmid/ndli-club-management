@@ -241,8 +241,9 @@ def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
         else:
             if doa_raw or lrd_raw:
                 errors.append(
-                    "Historical dates are accepted only via 'Import existing club'. "
-                    "Switch to import mode (record_mode='import') or clear the date fields."
+                    "Historical (past) dates are not accepted here — this door records NEW clubs only. "
+                    "To import existing/pre-system clubs with their real dates, use the Admin Data "
+                    "Migration portal (Bulk Club History Upload) instead."
                 )
 
     return errors

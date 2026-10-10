@@ -77,6 +77,14 @@ class TestR30MigrationHistory(unittest.TestCase):
 
     def _post(self, path, payload, role="admin", emp_id="EMP01"):
         token = self._token(role, emp_id)
+        payload = dict(payload)
+        # R31 layer-2 gate: the migration history COMMIT endpoint now requires a
+        # Master Admin password re-auth. Auto-attach it here (mirrors admin_token)
+        # so these tests keep exercising migration behaviour, not the gate itself.
+        # Dedicated gate tests live in tests/test_r31_two_doors.py.
+        if path in ("/api/admin/migration/history/commit", "/api/admin/migration/clubs/commit") and "password" not in payload:
+            from config import DEFAULT_ADMIN_PASSWORD
+            payload["password"] = DEFAULT_ADMIN_PASSWORD
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             f"{self.base_url}{path}", data=data,
@@ -311,8 +319,9 @@ class TestR30MigrationHistory(unittest.TestCase):
                "president_email": "pr@r30.edu", "secretary_email": "s@r30.edu",
                "date_of_approval": "2021-03-04", "last_renewal_date": "2024-03-04",
                "approved_by_emp_id": "EMP02"}
-        status, data = self._post("/api/clubs/bulk-import/commit",
-                                  {"emp_id": "EMP01", "rows": [row]})
+        # R31 two-doors: historical/migrated clubs are imported via the ADMIN
+        # Data Migration door (/api/admin/migration/clubs) -> record_origin="imported".
+        status, data = self._post("/api/admin/migration/clubs/commit", {"rows": [row]})
         self.assertEqual(status, 200, data)
         self.assertEqual(data["created"], 1, data)
         status, data = self._get("/api/admin/employee-performance?year=ALL&month=ALL&state=ALL")
@@ -326,7 +335,7 @@ class TestR30MigrationHistory(unittest.TestCase):
         base = {"club_id": "931" + tag, "reg_no": "R30-ATTR-" + tag,
                 "institution_name": "R30 Attribution College", "state": "Kerala",
                 "patron_email": "p@r30.edu", "president_email": "pr@r30.edu",
-                "secretary_email": "s@r30.edu", "date_of_approval": "2020-05-06"}
+                "secretary_email": "s@r30.edu"}  # R31: dateless = NEW work (employee door)
         # non-admin may not attribute to someone else
         status, data = self._post("/api/clubs/bulk-import/validate",
                                   {"emp_id": "EMP01",

@@ -378,8 +378,10 @@
               <button class="report-menu-item" role="menuitem" id="btn-generate-report-doc" onclick="generateComprehensiveReportDoc(); closeReportMenu();" title="Download the comprehensive report as a DOC file">📝 DOC</button>
             </div>
           </div>
-          <!-- R30: Data Migration tools (client employee-activity worksheets) -->
-          <button class="btn btn-outline btn-sm" id="btn-open-migration" onclick="openMigrationModal()" title="Migrate client employee-activity history (bulk-number baselines; dry-run first)" style="font-weight: 600;"><span>⚙</span> Data Migration</button>
+          <!-- R30/R31: Data Migration tools (client employee-activity worksheets + club history)
+               R31: highlighted button (amber) because these tools move real history behind
+               the live counters, and the modal is behind a 2nd-layer admin security gate. -->
+          <button class="btn btn-sm" id="btn-open-migration" onclick="openMigrationModal()" title="Migrate client history (activity-worksheet baselines + club history). Opens behind a Master Admin security gate — dry-run first, nothing is written until you commit." style="font-weight: 700; background: #F59E0B; border: 1px solid #D97706; color: #7C2D12; box-shadow: 0 2px 8px rgba(245,158,11,0.35);"><span>⚙</span> Data Migration</button>
         </div>
       </div>
 
@@ -4050,14 +4052,96 @@
     // "Data Migration" summary row. No club links are ever fabricated.
     let MIG_CSV_TEXT = "";
     let MIG_LAST_REPORT = null;
+    // R31: 2nd-layer gate state. MIG_ADMIN_PWD is the verified Master Admin
+    // password, held only in page memory and re-sent to the commit endpoint
+    // so the server can re-verify (Layer 2) before any write.
+    let MIG_ADMIN_PWD = "";
+    let MIG_GATE_UNLOCKED = false;
 
     function openMigrationModal() {
+      // R31: the Data Migration tools sit behind a 2nd-layer admin gate.
+      // If already unlocked this session, open the modal directly.
+      if (MIG_GATE_UNLOCKED) {
+        showMigrationModal();
+        return;
+      }
+      const modal = document.getElementById("migration-gate-modal");
+      if (!modal) return;
+      const pInp = document.getElementById("migration-gate-password");
+      const err = document.getElementById("migration-gate-error");
+      if (pInp) pInp.value = "";
+      if (err) { err.style.display = "none"; err.innerText = ""; }
+      validateMigrationGate();
+      modal.classList.add("active");
+      modal.classList.add("open");
+      modal.style.display = "flex";
+      if (typeof ndliModalOpened === "function") ndliModalOpened(modal);
+      setTimeout(() => { if (pInp) pInp.focus(); }, 120);
+    }
+
+    function showMigrationModal() {
       const modal = document.getElementById("migration-modal");
       if (!modal) return;
       modal.classList.add("active");
       modal.classList.add("open");
       modal.style.display = "flex";
       if (typeof ndliModalOpened === "function") ndliModalOpened(modal);
+    }
+
+    function closeMigrationGateModal() {
+      const modal = document.getElementById("migration-gate-modal");
+      if (!modal) return;
+      modal.classList.remove("active");
+      modal.classList.remove("open");
+      modal.style.display = "none";
+      if (typeof ndliModalClosed === "function") ndliModalClosed(modal);
+    }
+
+    function validateMigrationGate() {
+      const pInp = document.getElementById("migration-gate-password");
+      const btn = document.getElementById("btn-unlock-migration");
+      if (!btn) return;
+      const ok = !!(pInp && pInp.value.trim());
+      btn.disabled = !ok;
+      btn.style.opacity = ok ? "1" : "0.45";
+      btn.style.cursor = ok ? "pointer" : "not-allowed";
+    }
+
+    function toggleMigrationGatePasswordVisibility() {
+      const pwd = document.getElementById("migration-gate-password");
+      if (pwd) pwd.type = pwd.type === "password" ? "text" : "password";
+    }
+
+    async function unlockMigrationGate() {
+      const pInp = document.getElementById("migration-gate-password");
+      const err = document.getElementById("migration-gate-error");
+      const btn = document.getElementById("btn-unlock-migration");
+      const pwd = pInp ? pInp.value.trim() : "";
+      if (!pwd) return;
+      if (err) { err.style.display = "none"; err.innerText = ""; }
+      if (btn) { btn.disabled = true; btn.innerHTML = "<span>⏳</span> Verifying…"; }
+      try {
+        // Layer 2 (server-verified): confirm the Master Admin password and
+        // that the account really is an ADMIN (admin access only).
+        const res = await apiRequest("/api/auth/verify-password", "POST", {
+          identifier: "admin@iitkgp.ac.in",
+          password: pwd
+        });
+        const ok = res && res.ok && res.data && res.data.valid && res.data.role === "ADMIN";
+        if (!ok) {
+          const msg = (res && res.data && (res.data.message || res.data.error)) || "Incorrect Master Admin password.";
+          if (err) { err.style.display = "block"; err.innerText = "⛔ " + msg + " Only the Master Administrator may open the Data Migration tools."; }
+          return;
+        }
+        MIG_ADMIN_PWD = pwd;
+        MIG_GATE_UNLOCKED = true;
+        closeMigrationGateModal();
+        showMigrationModal();
+      } catch (e) {
+        if (err) { err.style.display = "block"; err.innerText = "⛔ Verification error: " + (e && e.message ? e.message : e); }
+      } finally {
+        if (btn) { btn.innerHTML = "<span>🔓</span> Verify &amp; Open Data Migration →"; validateMigrationGate(); }
+      }
     }
 
     function closeMigrationModal() {
@@ -4153,11 +4237,144 @@
       if (out) out.textContent = "Importing…";
       try {
         const res = await apiRequest("/api/admin/migration/history/commit", "POST", {
-          emp_id: empId, csv_text: MIG_CSV_TEXT, replace: replace
+          emp_id: empId, csv_text: MIG_CSV_TEXT, replace: replace, password: MIG_ADMIN_PWD
         });
         if (res && res.ok && res.data && res.data.success) {
           if (out) out.textContent = "✓ " + (res.data.message || "Migrated history recorded.");
           const btn = document.getElementById("btn-mig-commit");
+          if (btn) btn.disabled = true;
+          if (typeof loadDashboardData === "function") loadDashboardData();
+        } else {
+          if (out) out.textContent = "⚠ " + ((res && res.data && res.data.message) || "Commit failed — nothing changed.");
+        }
+      } catch (e) {
+        if (out) out.textContent = "⚠ Request failed: " + e;
+      }
+    }
+
+    // ---- R31 TWO DOORS: Admin Data Migration — Bulk Club History Upload (HISTORY door) ----
+    // Rows uploaded here are pre-system clubs recorded as record_origin="imported":
+    // VISIBLE in the Club Register + the "history" half of every split, ZERO live
+    // credit (counters unchanged). Opposite of the employee bulk door (NEW work).
+    let MIG_CLUB_ROWS = [];
+    const MIG_CLUB_COLS = ["club_id", "reg_no", "institution_name", "state", "patron_email",
+      "president_email", "secretary_email", "date_of_approval", "last_renewal_date",
+      "approved_by_emp_id"];
+
+    function parseMigClubCsv(text) {
+      const rows = [];
+      let cur = [], field = "", inQ = false;
+      const s = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (inQ) {
+          if (ch === '"') {
+            if (s[i + 1] === '"') { field += '"'; i++; } else { inQ = false; }
+          } else { field += ch; }
+        } else if (ch === '"') {
+          inQ = true;
+        } else if (ch === ",") {
+          cur.push(field); field = "";
+        } else if (ch === "\n") {
+          cur.push(field); rows.push(cur); cur = []; field = "";
+        } else {
+          field += ch;
+        }
+      }
+      if (field.length || cur.length) { cur.push(field); rows.push(cur); }
+      return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ""; }); });
+    }
+
+    function handleMigClubFile(input) {
+      const out = document.getElementById("mig-club-status");
+      const btn = document.getElementById("btn-mig-club-commit");
+      const vbtn = document.getElementById("btn-mig-club-validate");
+      MIG_CLUB_ROWS = [];
+      if (btn) btn.disabled = true;
+      const f = input && input.files && input.files[0];
+      if (!f) { if (out) out.textContent = ""; return; }
+      const reader = new FileReader();
+      reader.onload = function () {
+        const grid = parseMigClubCsv(reader.result);
+        if (!grid.length) { if (out) out.textContent = "⚠ The CSV looks empty."; return; }
+        // First row = header. Map columns by name (tolerant of extra/missing cols).
+        const header = grid[0].map(function (h) { return String(h).trim().toLowerCase(); });
+        MIG_CLUB_ROWS = grid.slice(1).map(function (r) {
+          const o = {};
+          MIG_CLUB_COLS.forEach(function (c) {
+            const ix = header.indexOf(c);
+            o[c] = ix >= 0 ? String(r[ix] || "").trim() : "";
+          });
+          return o;
+        });
+        if (out) out.textContent = "Loaded " + MIG_CLUB_ROWS.length + " club rows. Run the dry run — nothing is written until you commit.";
+        if (vbtn) vbtn.disabled = false;
+      };
+      reader.readAsText(f);
+    }
+
+    function renderMigClubPreview(data) {
+      const box = document.getElementById("mig-club-preview");
+      if (!box) return;
+      const t = data || {};
+      const rows = (t.results || []);
+      const errRows = rows.filter(function (r) { return (r.errors || []).length; });
+      let html = "";
+      if (t.consequence) {
+        html += '<div style="font-size:0.85rem;font-weight:700;color:#7C2D12;background:#FEF3C7;border:1px solid #F3D9B2;border-radius:8px;padding:0.55rem 0.75rem;margin-bottom:0.7rem;">⚑ ' + escapeHtml(String(t.consequence)) + '</div>';
+      }
+      if (t.gap_warnings && t.gap_warnings.length) {
+        html += '<div style="font-size:0.8rem;color:#92400E;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:0.5rem 0.75rem;margin-bottom:0.7rem;"><strong>⚠ Worksheet gap check:</strong><ul style="margin:0.3rem 0 0 1.1rem;">' +
+          t.gap_warnings.map(function (w) { return '<li>' + escapeHtml(String(w)) + '</li>'; }).join('') + '</ul></div>';
+      }
+      html += '<div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:0.85rem;margin-bottom:0.7rem;">' +
+        '<div><strong style="color:var(--success);">' + escapeHtml(String(t.valid || 0)) + '</strong> ready</div>' +
+        '<div><strong style="color:#b91c1c;">' + escapeHtml(String(t.invalid || 0)) + '</strong> need fixes</div>' +
+        '<div>' + escapeHtml(String(t.total || 0)) + ' rows total</div></div>';
+      if (errRows.length) {
+        html += '<div style="font-size:0.78rem;color:#B91C1C;"><strong>Rows needing fixes:</strong><ul>' +
+          errRows.slice(0, 20).map(function (r) {
+            return '<li>row ' + escapeHtml(String(r.row)) + ' (' + escapeHtml(String(r.club_id || r.reg_no || '?')) + '): ' + escapeHtml((r.errors || []).join(' ')) + '</li>';
+          }).join('') + '</ul></div>';
+      }
+      box.innerHTML = html;
+    }
+
+    async function runMigClubDryRun() {
+      const out = document.getElementById("mig-club-status");
+      if (!MIG_CLUB_ROWS.length) { if (out) out.textContent = "⚠ Load the club history CSV first."; return; }
+      if (out) out.textContent = "Validating…";
+      try {
+        const res = await apiRequest("/api/admin/migration/clubs/validate", "POST", { rows: MIG_CLUB_ROWS });
+        if (res && res.ok && res.data) {
+          renderMigClubPreview(res.data);
+          const btn = document.getElementById("btn-mig-club-commit");
+          if (btn) btn.disabled = !(res.data.valid > 0);
+          if (out) out.textContent = res.data.valid > 0
+            ? "Dry run OK — review the consequence + gap check above, then commit. Nothing written yet."
+            : "⚠ Dry run found problems — fix the CSV and retry. Nothing written.";
+        } else {
+          if (out) out.textContent = "⚠ " + ((res && res.data && res.data.message) || "Validation request failed.");
+        }
+      } catch (e) {
+        if (out) out.textContent = "⚠ Request failed: " + e;
+      }
+    }
+
+    async function commitMigClubHistory() {
+      const out = document.getElementById("mig-club-status");
+      if (!MIG_CLUB_ROWS.length) { if (out) out.textContent = "⚠ Load the club history CSV and run the dry run first."; return; }
+      const valid = (MIG_CLUB_ROWS || []).length;
+      if (!confirm("Save these clubs as HISTORY (counters unchanged)?\n\nThey will appear in the Club Register as migrated/imported clubs but add NO new-work credit.")) return;
+      if (out) out.textContent = "Importing…";
+      try {
+        const res = await apiRequest("/api/admin/migration/clubs/commit", "POST", {
+          rows: MIG_CLUB_ROWS, password: MIG_ADMIN_PWD
+        });
+        if (res && res.ok && res.data && res.data.success) {
+          if (out) out.textContent = "✓ " + (res.data.consequence || res.data.message || "Club history recorded.");
+          renderMigClubPreview(res.data);
+          const btn = document.getElementById("btn-mig-club-commit");
           if (btn) btn.disabled = true;
           if (typeof loadDashboardData === "function") loadDashboardData();
         } else {
@@ -4176,6 +4393,14 @@
       window.closeClubRegisterModal = closeClubRegisterModal;
       window.openMigrationModal = openMigrationModal;
       window.closeMigrationModal = closeMigrationModal;
+      window.showMigrationModal = showMigrationModal;
+      window.closeMigrationGateModal = closeMigrationGateModal;
+      window.validateMigrationGate = validateMigrationGate;
+      window.toggleMigrationGatePasswordVisibility = toggleMigrationGatePasswordVisibility;
+      window.unlockMigrationGate = unlockMigrationGate;
+      window.handleMigClubFile = handleMigClubFile;
+      window.runMigClubDryRun = runMigClubDryRun;
+      window.commitMigClubHistory = commitMigClubHistory;
       window.handleMigrationFile = handleMigrationFile;
       window.runMigrationDryRun = runMigrationDryRun;
       window.commitMigration = commitMigration;
@@ -4214,6 +4439,7 @@
           const adminIssueModal = document.getElementById("admin-issue-resolution-modal");
           const adminEscalationsModal = document.getElementById("admin-escalations-list-modal");
           const migrationModal = document.getElementById("migration-modal");
+          const migrationGateModal = document.getElementById("migration-gate-modal");
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
           const resetTestModal = document.getElementById("reset-test-data-modal");
           const changePasswordModal = document.getElementById("change-password-modal");
@@ -4233,6 +4459,8 @@
             closeEmergencyRestoreModal();
           } else if (adminIssueModal && (adminIssueModal.classList.contains("active") || adminIssueModal.style.display === "flex")) {
             closeAdminIssueModal();
+          } else if (migrationGateModal && (migrationGateModal.classList.contains("active") || migrationGateModal.style.display === "flex")) {
+            closeMigrationGateModal();
           } else if (migrationModal && (migrationModal.classList.contains("active") || migrationModal.style.display === "flex")) {
             closeMigrationModal();
           } else if (adminEscalationsModal && (adminEscalationsModal.classList.contains("active") || adminEscalationsModal.style.display === "flex")) {
@@ -4511,6 +4739,57 @@
   </div>
 
   <!-- R30: DATA MIGRATION MODAL — employee activity history (client worksheets) -->
+  <!-- R31: 2nd-LAYER SECURITY GATE for the Data Migration tools (admin-only) -->
+  <div class="modal-overlay modal" id="migration-gate-modal" style="z-index: 1165; display: none;" role="dialog" aria-modal="true" aria-labelledby="migration-gate-modal-title" tabindex="-1">
+    <div class="modal-content" style="max-width: 640px; width: 95%; border-top: 6px solid #F59E0B;">
+      <button class="modal-close" onclick="closeMigrationGateModal()" title="Close Security Gate">×</button>
+      <div class="card-header" style="margin-bottom: 1rem;">
+        <div>
+          <h3 class="card-title" id="migration-gate-modal-title" style="color: #B45309; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🔐</span> Security Verification — Data Migration
+          </h3>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Second-layer admin check before the migration tools open</p>
+        </div>
+        <span class="pill" style="background: #FEF3C7; color: #92400E; border-color: #FCD34D;">Admin Only</span>
+      </div>
+
+      <!-- Clearly-written explanation of what the Data Migration modal does -->
+      <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; border-radius: var(--radius-sm); padding: 1.15rem 1.35rem; margin-bottom: 1.15rem; font-size: 0.94rem; color: #78350F; line-height: 1.55;">
+        <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.98rem; margin-bottom: 0.5rem;">
+          <span>ℹ️</span> What the Data Migration tool does
+        </strong>
+        <ul style="margin: 0.35rem 0 0.6rem 0; padding-left: 1.25rem;">
+          <li>Records <strong>client legacy history</strong> — per-period activity-worksheet counts and the historical club list.</li>
+          <li>That history becomes the <strong>“migrated”</strong> half of every split you see (and the Performance Quota baseline).</li>
+          <li>It is <strong>history only</strong>: it does <strong>not</strong> create live club records and does <strong>not</strong> change live club / KPI counters.</li>
+          <li>Every import is <strong>dry-run first</strong> — nothing is written until you explicitly commit.</li>
+        </ul>
+        <span style="display: block; margin-top: 0.45rem; font-size: 0.86rem;"><strong>Use this when</strong> you are migrating work done <em>before</em> the system existed. New, in-system work is entered through the employee portal instead.</span>
+      </div>
+
+      <!-- 2nd-layer admin password -->
+      <div style="background: var(--bg-muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.15rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
+          <span>🛡️</span> Layer 2 — Master Admin Password
+        </h4>
+        <label for="migration-gate-password" style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Enter your Master Admin password to unlock the migration tools:</label>
+        <div style="position: relative; display: flex; align-items: center;">
+          <input type="password" id="migration-gate-password" placeholder="Master Admin password" autocomplete="current-password" oninput="validateMigrationGate()" style="width: 100%; padding: 0.55rem 0.75rem; padding-right: 4.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
+          <button type="button" class="password-toggle-btn" onclick="toggleMigrationGatePasswordVisibility()" style="position: absolute; right: 6px; background: none; border: none; cursor: pointer; font-size: 0.82rem; color: var(--text-muted);">👁️ Show</button>
+        </div>
+        <div id="migration-gate-error" style="display: none; color: #b91c1c; font-size: 0.85rem; margin-top: 0.35rem;"></div>
+        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 0.35rem;">Only the Master Administrator account may open and use the Data Migration tools.</small>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <button class="btn btn-outline btn-sm" onclick="closeMigrationGateModal()" style="padding: 0.5rem 1.15rem;">Cancel</button>
+        <button class="btn btn-lg" id="btn-unlock-migration" onclick="unlockMigrationGate()" disabled style="background: #F59E0B; border-color: #D97706; color: #7C2D12; font-weight: 700; opacity: 0.45; cursor: not-allowed;">
+          <span>🔓</span> Verify &amp; Open Data Migration →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay modal" id="migration-modal" style="z-index: 1160; display: none;" role="dialog" aria-modal="true" aria-label="Data Migration" tabindex="-1">
     <div class="modal-content modal-lg" style="max-width: 900px; width: 95%;">
       <button class="modal-close" onclick="closeMigrationModal()" title="Close Data Migration">×</button>
@@ -4533,6 +4812,24 @@
       </div>
       <div id="mig-status" style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.75rem;">Load the employee's client worksheet CSV, then run the dry run — nothing is written until you commit.</div>
       <div id="mig-preview"></div>
+
+      <!-- R31 TWO DOORS: Bulk Club History Upload (HISTORY door) -->
+      <div style="margin-top: 1.25rem; border-top: 2px dashed #D97706; padding-top: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.3rem;">
+          <h4 class="card-title" style="color: #B45309; font-size: 1.02rem; margin: 0;">🗂 Bulk Club History Upload</h4>
+          <span class="pill" style="background: #FEF3C7; color: #7C2D12; border: 1px solid #F3D9B2; font-weight: 700; font-size: 0.72rem;">HISTORY · counters unchanged</span>
+        </div>
+        <p class="card-subtitle" style="margin: 0 0 0.7rem 0;">Pre-system clubs recorded as history. They appear in the Club Register (and the “history” half of every split) but add <strong>no new-work credit</strong>. Each row must name the officer (<code>approved_by_emp_id</code>). For NEW clubs, use the employee portal's bulk import instead.</p>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.8rem;">
+          <input type="file" id="mig-club-file" accept=".csv,text/csv" onchange="handleMigClubFile(this)" style="font-size: 0.84rem;">
+        </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
+          <button class="btn btn-outline btn-sm" id="btn-mig-club-validate" onclick="runMigClubDryRun()" disabled style="font-weight: 600;">🔍 Validate (dry run)</button>
+          <button class="btn btn-accent btn-sm" id="btn-mig-club-commit" onclick="commitMigClubHistory()" disabled style="font-weight: 600;">✓ Save as history</button>
+        </div>
+        <div id="mig-club-status" style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.75rem;">Load the club history CSV (same columns as the employee bulk template, plus <code>approved_by_emp_id</code> per row), then run the dry run.</div>
+        <div id="mig-club-preview"></div>
+      </div>
     </div>
   </div>
 

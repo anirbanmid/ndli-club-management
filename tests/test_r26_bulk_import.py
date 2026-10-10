@@ -1,16 +1,18 @@
 """
-R26 — CSV bulk import with dry-run preview — LOCK TESTS.
+R26 (as re-purposed by R31 "two doors") — EMPLOYEE bulk CSV import = NEW WORK —
+LOCK TESTS.
 
-Client requisition (2026-10-09): employees migrating many legacy clubs from the
-crashing official portal need batch entry. Every row is validated exactly like an
-"Import existing club" submission BEFORE anything is written (dry run), then only
-valid rows are committed through the standard approval path.
+R31 split club entry into two doors: the EMPLOYEE bulk door records NEW clubs
+only (counted live), while historical / pre-system clubs are imported by the
+ADMIN through the Data Migration portal (Bulk Club History Upload) as history
+(counters unchanged) — covered in tests/test_r31_two_doors.py.
 
 Locked here:
   * dry-run reports per-row status and writes NOTHING
+  * historical (old-looking) dates are REFUSED with a pointer to the migration portal
   * duplicate reg-no / club-id blocked against the master DB AND within the batch
-  * commit creates rows with historical dates + record_origin="imported",
-    derived renewal (anchor rule), quota increments
+  * commit creates rows as NEW work: record_origin="created", auto-stamped dates,
+    counted live (quota increments)
   * invalid rows are reported, never created
   * batch limit 200 rows
   * auth: employee session required
@@ -85,16 +87,19 @@ class TestR26BulkImport(unittest.TestCase):
         return "26" + self.tag + str(n)
 
     def _row(self, cid, **kw):
+        # R31 two-doors: the EMPLOYEE bulk door records NEW work only, so the
+        # default row carries NO historical dates (dates are auto-stamped). Pass
+        # date_of_approval / last_renewal_date explicitly to build a historical
+        # (old-looking) row — those are refused here with a pointer to the Admin
+        # Data Migration portal (covered in tests/test_r31_two_doors.py).
         b = {
             "club_id": cid,
             "reg_no": "REG-BULK-" + cid,
-            "institution_name": "Bulk Legacy College " + cid,
+            "institution_name": "Bulk New College " + cid,
             "state": "West Bengal",
             "patron_email": "patron@bulk.edu",
             "president_email": "pres@bulk.edu",
             "secretary_email": "sec@bulk.edu",
-            "date_of_approval": "2024-06-15",
-            "last_renewal_date": "2025-07-20",
         }
         b.update(kw)
         return b
@@ -106,10 +111,10 @@ class TestR26BulkImport(unittest.TestCase):
     # ---------- 1: dry-run is read-only + per-row report ----------
     def test_dry_run_reports_per_row_and_writes_nothing(self):
         before = self._master_count()
-        c_ok, c_old, c_noname = self._cid("01"), self._cid("02"), self._cid("03")
+        c_ok, c_hist, c_noname = self._cid("01"), self._cid("02"), self._cid("03")
         rows = [
-            self._row(c_ok),                                          # valid
-            self._row(c_old, date_of_approval="2018-01-01"),          # pre-2019
+            self._row(c_ok),                                          # valid new work
+            self._row(c_hist, date_of_approval="2018-01-01"),        # historical -> refused
             self._row(c_noname, institution_name=""),                 # missing name
         ]
         status, data = self._post("/api/clubs/bulk-import/validate",
@@ -119,10 +124,13 @@ class TestR26BulkImport(unittest.TestCase):
         self.assertEqual(data["total"], 3)
         self.assertEqual(data["valid"], 1)
         self.assertEqual(data["invalid"], 2)
+        # consequence states the door semantics
+        self.assertIn("NEW WORK", data.get("consequence", ""))
         by_cid = {r["club_id"]: r for r in data["results"]}
         self.assertEqual(by_cid[c_ok]["status"], "ready")
-        self.assertEqual(by_cid[c_old]["status"], "error")
-        self.assertTrue(any("2019-01-01" in e for e in by_cid[c_old]["errors"]), data)
+        self.assertEqual(by_cid[c_hist]["status"], "error")
+        # historical dates are refused with a pointer to the migration portal
+        self.assertTrue(any("Data Migration" in e for e in by_cid[c_hist]["errors"]), data)
         self.assertEqual(by_cid[c_noname]["status"], "error")
         self.assertTrue(any("Institution Name" in e for e in by_cid[c_noname]["errors"]), data)
         # NOTHING written
@@ -148,6 +156,7 @@ class TestR26BulkImport(unittest.TestCase):
         ]
         status, data = self._post("/api/clubs/bulk-import/validate", {"emp_id": "EMP01", "rows": batch})
         self.assertEqual(status, 200, data)
+        self.assertTrue(data.get("valid", 0) >= 1, data)
 
         def errs_of(cid):
             return [e for r in data["results"] if r["club_id"] == cid for e in r["errors"]]
@@ -159,7 +168,7 @@ class TestR26BulkImport(unittest.TestCase):
         self.assertTrue(dup_reg_errors, data)
 
     # ---------- 3/4: commit ----------
-    def test_commit_creates_rows_with_historical_dates(self):
+    def test_commit_creates_new_work_rows_counted_live(self):
         def _quota():
             for q in CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS):
                 if q.get("emp_id") == "EMP01":
@@ -169,33 +178,33 @@ class TestR26BulkImport(unittest.TestCase):
         q_before = _quota()
         c1_id, c2_id = self._cid("10"), self._cid("11")
         rows = [
-            self._row(c1_id, date_of_approval="2024-01-10", last_renewal_date="2025-01-12"),
-            self._row(c2_id, date_of_approval="2023-05-05", last_renewal_date=""),
+            self._row(c1_id),
+            self._row(c2_id),
         ]
         status, data = self._post("/api/clubs/bulk-import/commit", {"emp_id": "EMP01", "rows": rows})
         self.assertEqual(status, 200, data)
         self.assertEqual(data["created"], 2)
         self.assertIn("cloud_sync_confirmed", data)
+        self.assertIn("NEW WORK", data.get("consequence", ""))
         by_cid = {r["club_id"]: r for r in data["results"]}
         self.assertEqual(by_cid[c1_id]["status"], "created")
         self.assertEqual(by_cid[c2_id]["status"], "created")
-        # historical dates preserved + provenance + anchor rule
         master = {r["club_id"]: r for r in CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)}
         c1, c2 = master[c1_id], master[c2_id]
-        self.assertTrue(c1["date_of_approval"].startswith("2024-01-10"), c1)
-        self.assertTrue(c1["last_renewal_date"].startswith("2025-01-12"), c1)
-        self.assertEqual(c1["renewal_date"], "2026-01-12")   # LRD + 1y
-        self.assertEqual(c2["renewal_date"], "2024-05-05")   # DOA + 1y (never renewed)
-        self.assertEqual(c1["record_origin"], "imported")
-        self.assertEqual(c2["record_origin"], "imported")
-        # quota counts the two approvals
+        # R31 two-doors: the employee door records NEW work -> provenance "created",
+        # dates auto-stamped (not smuggled historical dates), and COUNTED live.
+        self.assertEqual(c1["record_origin"], "created")
+        self.assertEqual(c2["record_origin"], "created")
+        self.assertTrue(c1["date_of_approval"], c1)   # auto-stamped
+        self.assertTrue(c1["renewal_date"], c1)       # derived
+        # quota counts the two approvals (new work is counted live)
         self.assertEqual(_quota(), q_before + 2)
 
     def test_commit_skips_invalid_rows_and_reports(self):
         c_ok, c_bad = self._cid("12"), self._cid("13")
         rows = [
-            self._row(c_ok),                                  # valid
-            self._row(c_bad, date_of_approval="2031-01-01"),   # future -> error
+            self._row(c_ok),                                        # valid new work
+            self._row(c_bad, date_of_approval="2020-01-01"),        # historical -> refused
         ]
         status, data = self._post("/api/clubs/bulk-import/commit", {"emp_id": "EMP01", "rows": rows})
         self.assertEqual(status, 200, data)
