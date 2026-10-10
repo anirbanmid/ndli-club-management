@@ -1017,18 +1017,21 @@ input[readonly] {
   border-color: #C9DED4;
 }
 
-/* Polish round P1: two names, one look → two tiers. btn-primary is the deep
-   commit/submit tier (green gradient + glow); btn-accent keeps the brighter
-   --gradient-accent highlight tier; btn-amber stays the hero CTA. */
+/* UI/UX leftovers R33 — P1 REAL two-tier CTA hierarchy. (An earlier polish note
+   claimed two tiers, but btn-primary and btn-accent rendered the IDENTICAL
+   gradient + shadow — the audit's "two names, one look" complaint stood.)
+   btn-primary = solid deep-green commit/submit tier; btn-accent keeps the
+   brighter --gradient-accent highlight tier; btn-amber stays the hero CTA. */
 .btn-primary {
-  background: linear-gradient(135deg, #159B6B 0%, #0D7751 100%);
+  background: var(--primary-dark);
   color: #ffffff;
   box-shadow: 0 12px 26px rgba(13, 119, 81, 0.26);
   border-color: transparent;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.06);
+  background: var(--primary);
+  filter: none;
   transform: translateY(-2px);
   box-shadow: 0 16px 32px rgba(13, 119, 81, 0.32);
   border-color: transparent;
@@ -2357,7 +2360,7 @@ body { font-size: 14px; }
 }
 
 /* --- KPI type hierarchy: bigger values, urgency-tinted numbers --- */
-.stat-label { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-muted); }
+.stat-label { font-size: var(--text-xs); letter-spacing: 0.12em; color: var(--text-muted); }
 .stat-value {
   font-size: 2.25rem;
   letter-spacing: -0.04em;
@@ -2366,7 +2369,7 @@ body { font-size: 14px; }
 }
 .stat-card.warning .stat-value { color: #B45309; }
 .stat-card.danger  .stat-value { color: #BE123C; }
-.stat-desc  { font-size: 0.8rem; }
+.stat-desc  { font-size: var(--text-md); }
 
 /* --- infographic cards: tinted gradient chrome + gradient titles --- */
 .infographic-card {
@@ -2389,7 +2392,7 @@ body { font-size: 14px; }
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.infographic-card .card-subtitle { font-size: 0.79rem; }
+.infographic-card .card-subtitle { font-size: var(--text-md); }
 .donut-chart-container,
 .trajectory-svg-container {
   background: linear-gradient(180deg, #FFFFFF 0%, #F2F9F5 100%);

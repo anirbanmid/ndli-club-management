@@ -615,3 +615,22 @@
     reduced: reduced
   };
 })();
+
+/* --- UI/UX leftovers R33 — P3 skeleton first-paint (audit sketch) ----------
+   Big admin tables flash empty then fill. withSkeleton(elOrList, promise)
+   wraps the table's scroll container in the existing .ui-skeleton shimmer
+   (static/css/ui.css) while the fetch is pending, and always unwraps. */
+window.withSkeleton = function (elOrList, promise) {
+  var els = Array.isArray(elOrList) ? elOrList : [elOrList];
+  var wrapped = els.map(function (el) {
+    return el && (el.closest(".table-responsive") || el.closest(".table-scroll-container") || el.parentElement);
+  }).filter(Boolean);
+  wrapped.forEach(function (w) { w.classList.add("ui-skeleton"); });
+  var done = function () {
+    wrapped.forEach(function (w) { w.classList.remove("ui-skeleton"); });
+  };
+  return Promise.resolve(promise).then(
+    function (v) { done(); return v; },
+    function (e) { done(); throw e; }
+  );
+};

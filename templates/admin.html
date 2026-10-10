@@ -1043,7 +1043,11 @@
       const endpoint = qs ? `/api/admin/metrics?${qs}` : "/api/admin/metrics";
 
       const adminToken = sessionStorage.getItem("ndli_admin_token");
-      const res = await apiRequest(endpoint, "GET", null, adminToken);
+      // UI/UX leftovers R33 — P3 skeleton first-paint: the big dashboard tables
+      // used to flash empty then fill; they shimmer while the fetch is pending.
+      const res = await withSkeleton(
+        [document.getElementById("state-breakdown-tbody"), document.getElementById("penetration-tbody")],
+        apiRequest(endpoint, "GET", null, adminToken));
       if (res.ok && res.data) {
         GLOBAL_METRICS = res.data;
 
@@ -2396,7 +2400,7 @@
 
       try {
         const adminToken = sessionStorage.getItem("ndli_admin_token");
-        const res = await apiRequest(endpoint, "GET", null, adminToken);
+        const res = await withSkeleton(tbody, apiRequest(endpoint, "GET", null, adminToken));
         if (res.ok && res.data && res.data.success) {
           // Populate available years dynamically if provided
           if (res.data.available_years && yearEl) {
