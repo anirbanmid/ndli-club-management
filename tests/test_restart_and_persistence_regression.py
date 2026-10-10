@@ -1023,13 +1023,26 @@ class TestRestartAndPersistenceRegression(unittest.TestCase):
         self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN1" for a in node_acts))
         self.assertFalse(any(a.get("activity_id") == f"ACT-PRIORITY-{emp_id}-ORPHAN2" for a in node_acts))
 
-        # 4. Verify sum of all quotas strictly equals master total clubs
+        # 4. Verify every live master club is credited to exactly one employee.
+        # R29v2 note: master_quotas is now ALWAYS derived as live work +
+        # migrated baseline (recompute_and_persist_quota is the only writer --
+        # the R30 anti-double-count switch: imported records ARE history and
+        # their credit lives in the baseline, never in the live half).
+        # So the anti-drift invariant is asserted on the LIVE half, which is
+        # what the old "19 vs 17" production bug was actually about: no club
+        # may be counted twice or fall between two employees.
         master_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
         quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
         total_quota_clubs = sum(int(q.get("clubs_approved_count", "0") or "0") for q in quotas)
+        total_legacy_clubs = sum(int(q.get("legacy_clubs_count", "0") or "0") for q in quotas)
+        live_master_clubs = [c for c in master_clubs
+                             if str(c.get("record_origin", "")).strip().lower() != "imported"]
+        self.assertGreaterEqual(total_quota_clubs, total_legacy_clubs,
+                                "the live half of every quota is never negative")
         self.assertEqual(
-            total_quota_clubs, len(master_clubs),
-            f"Sum of quotas ({total_quota_clubs}) must strictly equal Master total clubs ({len(master_clubs)})"
+            total_quota_clubs - total_legacy_clubs, len(live_master_clubs),
+            f"Sum of live quota clubs ({total_quota_clubs - total_legacy_clubs}) must "
+            f"strictly equal live Master clubs ({len(live_master_clubs)})"
         )
 
 

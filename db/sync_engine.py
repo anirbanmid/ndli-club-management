@@ -190,6 +190,77 @@ class SyncEngine:
     def get_employee_issues_path(emp_id: str) -> Path:
         return SyncEngine.get_employee_dir(emp_id) / "issues.csv"
 
+    # ------------------------------------------------------------------
+    # R29v2: ONE bucketing rule + ONE activity source for EVERY performance
+    # view (quota card, admin performance matrix, rebuild sync).
+    #
+    # Why this exists (the EMP01 "26,663 vs 26,655" mismatch, 2026-10-10):
+    # the performance matrix only recognised 5 support_type labels and
+    # silently DROPPED every other row ("Registration Renewal",
+    # "Data Correction", anything new), while the quota counted every
+    # non-approval row -- so rows could be counted in one screen and
+    # invisible in the other. The catch-all below makes that impossible:
+    # every activity row lands in exactly one visible bucket.
+    # ------------------------------------------------------------------
+    @staticmethod
+    def bucket_activity(a: Dict[str, Any]) -> str:
+        """Classify one activity row for performance counting.
+
+        Returns 'approval' | 'online' | 'offline' | 'other' | 'skip'.
+
+        - 'skip' is ONLY the "Data Migration" audit-marker row (the bulk-
+          number summary row): history bookkeeping, never live work.
+        - 'other' is deliberately a CATCH-ALL: phone/OS-ticket support,
+          "Registration Renewal", "Data Correction", and any support_type
+          added in the future -- nothing may fall through uncounted.
+        """
+        stype = (a.get("support_type") or "").strip()
+        aid = (a.get("activity_id") or "").strip()
+        a_emp = (a.get("emp_id") or "").strip().upper()
+        if stype == "Data Migration":
+            return "skip"
+        if stype == "Club Approval" or (a_emp and aid.startswith(f"ACT-PRIORITY-{a_emp}")):
+            return "approval"
+        if stype == "Online training":
+            return "online"
+        if stype == "Offline training":
+            return "offline"
+        return "other"
+
+    @classmethod
+    def combined_activities_for(cls, emp_id: str = "") -> List[Dict[str, Any]]:
+        """The activity rows a performance view may see: the employee node
+        log UNION the master log, deduped by activity_id (master wins).
+
+        This is exactly the set recompute_and_persist_quota derives from.
+        R29v2: the admin performance matrix reads the SAME set (it used to
+        read master-only), so node-vs-master drift can no longer make the
+        quota and the matrix disagree.
+        """
+        clean = str(emp_id).strip().upper()
+        master = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+        if clean:
+            master = [a for a in master
+                      if (a.get("emp_id") or "").strip().upper() == clean]
+            node_paths = [cls.get_employee_activities_path(clean)]
+        else:
+            node_paths = []
+            if EMPLOYEE_NODES_DIR.exists():
+                for emp_dir in sorted(EMPLOYEE_NODES_DIR.iterdir()):
+                    p = cls.get_employee_activities_path(emp_dir.name)
+                    if p.exists():
+                        node_paths.append(p)
+        node_rows: List[Dict[str, Any]] = []
+        for p in node_paths:
+            if p.exists():
+                node_rows.extend(CSVEngine.read_all(p, ACTIVITY_FIELDS))
+        merged: Dict[str, Dict[str, Any]] = {}
+        for a in node_rows + master:
+            aid = (a.get("activity_id") or "").strip()
+            if aid:
+                merged[aid] = a
+        return list(merged.values())
+
     @classmethod
     def _migrate_club_csv_headers(cls, file_path: Path) -> None:
         """Ensures club CSV has the latest CLUB_FIELDS headers and populates date_of_approval/last_renewal_date."""
@@ -748,25 +819,24 @@ class SyncEngine:
                 if cid:
                     approved_club_ids.add(cid)
 
-        node_act_path = cls.get_employee_activities_path(clean_id)
-        node_acts = CSVEngine.read_all(node_act_path, ACTIVITY_FIELDS) if node_act_path.exists() else []
-        master_acts = [a for a in CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS) if a.get("emp_id", "").strip().upper() == clean_id]
-        combined_acts = {a.get("activity_id", "").strip(): a for a in (node_acts + master_acts) if a.get("activity_id")}.values()
+        combined_acts = cls.combined_activities_for(clean_id)
 
         club_approval_acts = 0
-        support_logs = 0
+        live_online = 0
+        live_offline = 0
+        live_other = 0
         latest_ts = ""
         for a in combined_acts:
             ts = a.get("timestamp", "")
             if ts and ts > latest_ts:
                 latest_ts = ts
-            stype = a.get("support_type", "").strip()
-            aid = a.get("activity_id", "").strip()
-            # R30: "Data Migration" rows are audit markers for the bulk-number
-            # summary — never support work, never approvals.
-            if stype == "Data Migration":
+            # R29v2: the SAME bucketing rule as the performance matrix
+            # (SyncEngine.bucket_activity) — "Data Migration" markers are
+            # skipped, every other row lands in exactly one bucket.
+            bucket = cls.bucket_activity(a)
+            if bucket == "skip":
                 continue
-            if stype == "Club Approval" or aid.startswith(f"ACT-PRIORITY-{clean_id}"):
+            if bucket == "approval":
                 cid = a.get("club_id", "").strip().upper()
                 if cid and cid in master_club_ids:
                     c_owner = master_club_ids[cid].get("approved_by_emp_id", "").strip().upper()
@@ -774,8 +844,13 @@ class SyncEngine:
                     if c_origin != "imported" and (not c_owner or c_owner == clean_id):
                         approved_club_ids.add(cid)
                         club_approval_acts += 1
+            elif bucket == "online":
+                live_online += 1
+            elif bucket == "offline":
+                live_offline += 1
             else:
-                support_logs += 1
+                live_other += 1
+        support_logs = live_online + live_offline + live_other
 
         # R30: Performance Quota = migrated baseline (immutable history from the
         # client worksheets) + live-derived counts (anti-drift preserved: only
@@ -808,6 +883,11 @@ class SyncEngine:
             "legacy_clubs_count": _base["approvals"],
             "legacy_support_count": _base["support"],
             "legacy_online_workshops_count": _base["online_workshops"],
+            # R29v2: the SAME four numbers the admin performance matrix shows
+            # (clubs / online / offline / other) so no two screens can disagree.
+            "live_online_training": live_online,
+            "live_offline_training": live_offline,
+            "live_other_supports": live_other,
         }
 
     @classmethod
@@ -1614,36 +1694,16 @@ class SyncEngine:
                             "last_activity_timestamp": ""
                         }
 
-            for emp_id, q_rec in quota_by_id.items():
-                # A) Clubs approved: exactly the distinct clubs in all_clubs owned by this employee
-                emp_clubs = [cid for cid, c in all_clubs.items() if c.get("approved_by_emp_id", "").strip().upper() == emp_id]
-
-                # B) Support logs: exactly the non-club-approval activities for this employee
-                emp_support = [a for a in all_activities.values()
-                               if a.get("emp_id", "").strip().upper() == emp_id
-                               and a.get("support_type", "").strip() != "Club Approval"
-                               and not a.get("activity_id", "").startswith(f"ACT-PRIORITY-{emp_id}")]
-
-                latest_ts = q_rec.get("last_activity_timestamp", "")
-                for cid in emp_clubs:
-                    c = all_clubs.get(cid)
-                    if c:
-                        c_ts = c.get("updated_at", "") or c.get("date_of_approval", "")
-                        if c_ts and c_ts > latest_ts:
-                            latest_ts = c_ts
-
-                for a in all_activities.values():
-                    if a.get("emp_id", "").strip().upper() == emp_id:
-                        ts = a.get("timestamp", "")
-                        if ts and ts > latest_ts:
-                            latest_ts = ts
-
-                q_rec["clubs_approved_count"] = str(len(emp_clubs))
-                q_rec["support_logs_count"] = str(len(emp_support))
-                if latest_ts:
-                    q_rec["last_activity_timestamp"] = latest_ts
-
-            CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, list(quota_by_id.values()))
+            for emp_id in quota_by_id:
+                # R29v2: quotas are ALWAYS derived by the one true method
+                # (recompute_and_persist_quota = live node∪master union +
+                # migrated baseline). The old inline count here mixed
+                # "Data Migration" marker rows into support and wrote
+                # live-only totals over the baseline columns, so quota rows
+                # read straight from master_quotas.csv could disagree with
+                # every screen that derives fresh numbers -- exactly the
+                # class of bug behind the EMP01 26,663-vs-26,655 mismatch.
+                cls.recompute_and_persist_quota(emp_id)
 
             return {
                 "total_master_clubs": len(all_clubs),

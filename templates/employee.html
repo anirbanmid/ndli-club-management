@@ -607,12 +607,16 @@
             <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.028em; color: var(--primary); line-height: 1.1;">
               <span id="quota-clubs-count" style="color: var(--success);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Clubs</span>
               <span style="margin: 0 0.2rem; color: var(--border);">|</span>
-              <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Support</span>
+              <span id="quota-online-count" style="color: var(--primary);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Online</span>
+              <span style="margin: 0 0.2rem; color: var(--border);">|</span>
+              <span id="quota-offline-count" style="color: var(--primary);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Offline</span>
+              <span style="margin: 0 0.2rem; color: var(--border);">|</span>
+              <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Other Support</span>
             </div>
             <!-- R30: migrated-history split (past vs present, kept separate)
                  R29: explicit "live + migrated" wording — "incl." read backwards. -->
             <div id="quota-legacy-line" style="display: none; font-size: 9.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.01em;">
-              <span id="quota-live-clubs">0</span> live + <strong id="quota-legacy-clubs">0</strong> migrated clubs &nbsp;·&nbsp; <span id="quota-live-support">0</span> live + <strong id="quota-legacy-support">0</strong> migrated support (history)
+              <span id="quota-live-clubs">0</span> live + <strong id="quota-legacy-clubs">0</strong> migrated clubs &nbsp;·&nbsp; <span id="quota-live-online">0</span> live + <strong id="quota-legacy-online">0</strong> migrated online workshops &nbsp;·&nbsp; <span id="quota-live-support">0</span> live + <strong id="quota-legacy-support">0</strong> migrated support (history)
             </div>
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.83rem;"><span>⏰ --:--:--</span></div>
@@ -3407,6 +3411,10 @@
     async function loadEmployeeQuota() {
       let clubsCount = 0;
       let supportCount = 0;
+      // R29v2: the quota card mirrors the admin performance matrix columns
+      let onlineShown = 0;
+      let offlineShown = 0;
+      let otherShown = 0;
 
       const pRes = await apiRequest(`/api/employees/profile?id=${encodeURIComponent(CURRENT_EMP_ID)}`);
       if (pRes.ok && pRes.data && pRes.data.employee) {
@@ -3416,9 +3424,23 @@
         // R30: migrated-history split — shown only when history exists
         const legacyClubs = parseInt(emp.legacy_clubs_count || 0, 10) || 0;
         const legacySupport = parseInt(emp.legacy_support_count || 0, 10) || 0;
+        // R29v2: the four cells are exactly the admin performance matrix
+        // columns (clubs / online training / offline training / other
+        // supports), each cell being live work + migrated history.
+        const liveOnline = parseInt(emp.live_online_training || 0, 10) || 0;
+        const liveOffline = parseInt(emp.live_offline_training || 0, 10) || 0;
+        const liveOther = parseInt(emp.live_other_supports !== undefined ? emp.live_other_supports : (supportCount - legacySupport), 10) || 0;
+        const migWorkshops = parseInt(emp.legacy_online_workshops_count || 0, 10) || 0;
+        onlineShown = liveOnline + migWorkshops;
+        offlineShown = liveOffline;
+        otherShown = liveOther + legacySupport;
+        const onlineCellEl = document.getElementById("quota-online-count");
+        const offlineCellEl = document.getElementById("quota-offline-count");
+        if (onlineCellEl) onlineCellEl.innerText = String(onlineShown);
+        if (offlineCellEl) offlineCellEl.innerText = String(offlineShown);
         const legacyLine = document.getElementById("quota-legacy-line");
         if (legacyLine) {
-          if (legacyClubs > 0 || legacySupport > 0) {
+          if (legacyClubs > 0 || legacySupport > 0 || migWorkshops > 0) {
             legacyLine.style.display = "block";
             const lc = document.getElementById("quota-legacy-clubs");
             const ls = document.getElementById("quota-legacy-support");
@@ -3433,6 +3455,11 @@
             const lvs = document.getElementById("quota-live-support");
             if (lvc) lvc.innerText = String(liveClubsShown);
             if (lvs) lvs.innerText = String(liveSupportShown);
+            // R29v2: the online workshops half gets the same split treatment
+            const lo = document.getElementById("quota-legacy-online");
+            const lvo = document.getElementById("quota-live-online");
+            if (lo) lo.innerText = String(migWorkshops);
+            if (lvo) lvo.innerText = String(liveOnline);
           } else {
             legacyLine.style.display = "none";
           }
@@ -3455,8 +3482,13 @@
 
       const clubsEl = document.getElementById("quota-clubs-count");
       const supportEl = document.getElementById("quota-support-count");
+      const onlineCell = document.getElementById("quota-online-count");
+      const offlineCell = document.getElementById("quota-offline-count");
       if (clubsEl) clubsEl.innerText = String(clubsCount);
-      if (supportEl) supportEl.innerText = String(supportCount);
+      // R29v2: this cell is "Other Support" now (the matrix's other column)
+      if (supportEl) supportEl.innerText = String(otherShown);
+      if (onlineCell) onlineCell.innerText = String(onlineShown);
+      if (offlineCell) offlineCell.innerText = String(offlineShown);
     }
 
     let ALL_ACTIVITIES_CACHE = null;

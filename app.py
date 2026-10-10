@@ -542,6 +542,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     # R30: honest split — live work vs migrated history baseline
                     "live_clubs_approved_count": quota_result.get("live_clubs_approved_count", final_clubs),
                     "live_support_logs_count": quota_result.get("live_support_logs_count", final_support),
+                    # R29v2: the SAME four cells the admin performance matrix
+                    # shows (online / offline / other + clubs) so the quota
+                    # card and the matrix can never disagree.
+                    "live_online_training": quota_result.get("live_online_training", 0),
+                    "live_offline_training": quota_result.get("live_offline_training", 0),
+                    "live_other_supports": quota_result.get("live_other_supports", 0),
                     "legacy_clubs_count": quota_result.get("legacy_clubs_count", 0),
                     "legacy_support_count": quota_result.get("legacy_support_count", 0),
                     "legacy_online_workshops_count": quota_result.get("legacy_online_workshops_count", 0),
@@ -848,7 +854,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
 
             all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
             all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS)
+            all_activities = SyncEngine.combined_activities_for()
 
             # Build club lookup for activity state resolution
             club_lookup = {c.get("club_id", "").strip().upper(): c for c in all_clubs if c.get("club_id")}
@@ -974,23 +980,24 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 if not date_match:
                     continue
 
-                stype = a.get("support_type", "").strip()
-                aid = a.get("activity_id", "").strip()
-                is_club_approval = (
-                    stype == "Club Approval"
-                    or aid.startswith(f"ACT-PRIORITY-{a_emp}")
-                )
+                # R29v2: the SAME bucketing rule as the quota card
+                # (SyncEngine.bucket_activity) — catch-all "other" so a row
+                # can never vanish from this matrix ("Registration Renewal",
+                # "Data Correction", any future type all land in "other").
+                bucket = SyncEngine.bucket_activity(a)
 
-                if is_club_approval:
+                if bucket == "skip":
+                    continue
+                if bucket == "approval":
                     if a_emp in clubs_approved_by_emp_set and cid and cid in club_lookup:
                         _ref_origin = str(club_lookup.get(cid, {}).get("record_origin", "")).strip().lower()
                         if _ref_origin != "imported":
                             clubs_approved_by_emp_set[a_emp].add(cid)
-                elif stype == "Online training":
+                elif bucket == "online":
                     act_stats_by_emp[a_emp]["online"] += 1
-                elif stype == "Offline training":
+                elif bucket == "offline":
                     act_stats_by_emp[a_emp]["offline"] += 1
-                elif stype in ["Phone call and remote assistance", "Closing of OS Ticket"]:
+                else:
                     act_stats_by_emp[a_emp]["other"] += 1
 
             evaluations = []
@@ -1047,7 +1054,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "migrated_support": _base["support"],
                     "migrated_online_workshops": _base["online_workshops"],
                     "live_other_supports": live_other_supports,
-                    "live_online_training": live_online_training
+                    "live_online_training": live_online_training,
+                    "live_offline_training": offline_training
                 })
 
             # Sort officers descending by weighted_score, then clubs_approved, then total_activities
