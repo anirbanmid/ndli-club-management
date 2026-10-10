@@ -609,9 +609,10 @@
               <span style="margin: 0 0.2rem; color: var(--border);">|</span>
               <span id="quota-support-count" style="color: var(--warning);">0</span> <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">Support</span>
             </div>
-            <!-- R30: migrated-history split (past vs present, kept separate) -->
+            <!-- R30: migrated-history split (past vs present, kept separate)
+                 R29: explicit "live + migrated" wording — "incl." read backwards. -->
             <div id="quota-legacy-line" style="display: none; font-size: 9.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.01em;">
-              incl. <strong id="quota-legacy-clubs">0</strong> clubs &amp; <strong id="quota-legacy-support">0</strong> support migrated (history)
+              <span id="quota-live-clubs">0</span> live + <strong id="quota-legacy-clubs">0</strong> migrated clubs &nbsp;·&nbsp; <span id="quota-live-support">0</span> live + <strong id="quota-legacy-support">0</strong> migrated support (history)
             </div>
           </div>
           <div class="live-clock-badge" id="live-clock" style="padding: 0.3rem 0.6rem; font-size: 0.83rem;"><span>⏰ --:--:--</span></div>
@@ -3423,6 +3424,15 @@
             const ls = document.getElementById("quota-legacy-support");
             if (lc) lc.innerText = String(legacyClubs);
             if (ls) ls.innerText = String(legacySupport);
+            // R29: also show the LIVE half so the line reads "X live + Y migrated"
+            // (the old "incl." wording made the migrated part look contained in
+            // the headline number, which it is not).
+            const liveClubsShown = parseInt(emp.live_clubs_approved_count !== undefined ? emp.live_clubs_approved_count : (clubsCount - legacyClubs), 10) || 0;
+            const liveSupportShown = parseInt(emp.live_support_logs_count !== undefined ? emp.live_support_logs_count : (supportCount - legacySupport), 10) || 0;
+            const lvc = document.getElementById("quota-live-clubs");
+            const lvs = document.getElementById("quota-live-support");
+            if (lvc) lvc.innerText = String(liveClubsShown);
+            if (lvs) lvs.innerText = String(liveSupportShown);
           } else {
             legacyLine.style.display = "none";
           }

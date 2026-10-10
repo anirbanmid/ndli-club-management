@@ -367,7 +367,14 @@ class TestR30MigrationHistory(unittest.TestCase):
         self.assertIn('id="quota-legacy-line"', emp)
         self.assertIn('id="quota-legacy-clubs"', emp)
         self.assertIn('id="quota-legacy-support"', emp)
-        self.assertIn("incl.", emp[emp.find('id="quota-legacy-line"'):][:300])
+        # R29 (user 2026-10-10): the old "incl." wording read backwards (the
+        # migrated part looked contained in the headline). The line now spells
+        # out BOTH halves: "X live + Y migrated". Pin follows the intended UI.
+        _legacy_line = emp[emp.find('id="quota-legacy-line"'):][:600]
+        self.assertIn("live + ", _legacy_line)
+        self.assertIn("migrated clubs", _legacy_line)
+        self.assertIn("migrated support", _legacy_line)
+        self.assertNotIn("incl.", _legacy_line)
         self.assertIn('id="quota-legacy-line"', emp)
         self.assertIn('id="quota-legacy-clubs"', emp)
         self.assertIn("approved_by_emp_id", emp)  # bulk CSV attribution passthrough

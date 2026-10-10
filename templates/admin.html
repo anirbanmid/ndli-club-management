@@ -2233,6 +2233,21 @@
     //    a contribution share ribbon (who owns what share of total activity) over
     //    heat-tinted matrix rows with clubs / support / share / recency columns.
     //    Relative distribution is now readable at a glance AND per-dimension.)
+    // R29: "live + migrated" split note. The API already sent these halves
+    // (live_* / legacy_* / migrated_* fields) — the views showed one blended
+    // total. Wording matches the admin KPI cards: "X live + Y migrated".
+    function splitNote(live, migrated) {
+      const mig = parseInt(migrated || 0, 10) || 0;
+      if (mig <= 0) return "";
+      const lv = parseInt(live || 0, 10) || 0;
+      return `<div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap;">${lv} live + ${mig} migrated</div>`;
+    }
+    function splitTitle(total, live, migrated, label) {
+      const mig = parseInt(migrated || 0, 10) || 0;
+      const lv = parseInt(live || 0, 10) || 0;
+      return mig > 0 ? `${label}: ${total} (${lv} live + ${mig} migrated)` : `${label}: ${total}`;
+    }
+
     function renderActivityMatrix(quotas) {
       const container = document.getElementById("activity-matrix-container");
       if (!container) return;
@@ -2269,11 +2284,17 @@
           const ts = Date.parse(iso);
           if (!isNaN(ts)) recency = Math.max(0, Math.floor((Date.now() - ts) / 86400000));
         }
+        // R29: split the total into live work vs migrated history (the quota
+        // rows carry the baseline in legacy_* columns).
+        const migClubs = parseInt(q.legacy_clubs_count || 0, 10) || 0;
+        const migSupport = parseInt(q.legacy_support_count || 0, 10) || 0;
         return {
           name: q.employee_name || q.emp_id,
           empId: q.emp_id,
           zone: q.zone || "",
           clubs, support,
+          liveClubs: clubs - migClubs, migClubs,
+          liveSupport: support - migSupport, migSupport,
           total: clubs + support,
           recency
         };
@@ -2314,12 +2335,12 @@
               <span class="activity-rank">#${i + 1}</span>
               <span class="activity-name">${r.name} <span class="zone-chip" style="background:${zone.bg}; color:${zone.fg};">${r.zone}</span></span>
             </div>
-            <div class="activity-cell" style="background: rgba(13, 119, 81, ${clubAlpha});" title="Clubs approved: ${r.clubs}">
-              <strong>${r.clubs}</strong>
+            <div class="activity-cell" style="background: rgba(13, 119, 81, ${clubAlpha});" title="${splitTitle(r.clubs, r.liveClubs, r.migClubs, 'Clubs approved')}">
+              <strong>${r.clubs}</strong>${splitNote(r.liveClubs, r.migClubs)}
               <div class="cell-mini-track"><div class="cell-mini-fill" style="width:${clubPct}%;"></div></div>
             </div>
-            <div class="activity-cell" style="background: rgba(30, 95, 140, ${suppAlpha});" title="Support logs: ${r.support}">
-              <strong>${r.support}</strong>
+            <div class="activity-cell" style="background: rgba(30, 95, 140, ${suppAlpha});" title="${splitTitle(r.support, r.liveSupport, r.migSupport, 'Support logs')}">
+              <strong>${r.support}</strong>${splitNote(r.liveSupport, r.migSupport)}
               <div class="cell-mini-track"><div class="cell-mini-fill sky" style="width:${suppPct}%;"></div></div>
             </div>
             <div class="activity-share"><span class="share-pill">${share.toFixed(1)}%</span></div>
@@ -2474,14 +2495,14 @@
             ${(selectedState && selectedState !== "ALL" && coversState) ? '<span style="display: inline-block; font-size: 0.65rem; color: #166534; margin-top: 1px;">✓ Selected State</span>' : ''}
           </td>
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.88rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 10px;">
+            <span style="display: inline-block; font-size: 0.88rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 10px;" title="${splitTitle(off.clubs_approved || 0, off.live_clubs_approved, off.migrated_clubs_approved, 'Club approvals')}">
               ${off.clubs_approved || 0}
-            </span>
+            </span>${splitNote(off.live_clubs_approved, off.migrated_clubs_approved)}
           </td>
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #6b21a8; background: #f3e8ff; padding: 2px 6px; border-radius: 10px;">
+            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #6b21a8; background: #f3e8ff; padding: 2px 6px; border-radius: 10px;" title="${splitTitle(off.online_training || 0, off.live_online_training, off.migrated_online_workshops, 'Online training')}">
               ${off.online_training || 0}
-            </span>
+            </span>${splitNote(off.live_online_training, off.migrated_online_workshops)}
           </td>
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
             <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #c2410c; background: #ffedd5; padding: 2px 6px; border-radius: 10px;">
@@ -2489,9 +2510,9 @@
             </span>
           </td>
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
-            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 2px 6px; border-radius: 10px;" title="Phone Call & Remote + OS Ticket">
+            <span style="display: inline-block; font-size: 0.84rem; font-weight: 600; color: #0369a1; background: #e0f2fe; padding: 2px 6px; border-radius: 10px;" title="${splitTitle(off.other_supports || 0, off.live_other_supports, off.migrated_support, 'Phone Call & Remote + OS Ticket')}">
               ${off.other_supports || 0}
-            </span>
+            </span>${splitNote(off.live_other_supports, off.migrated_support)}
           </td>
           <td style="padding: 0.5rem 0.25rem; text-align: center; vertical-align: middle;">
             <span style="display: inline-block; font-size: 0.92rem; font-weight: 800; color: var(--primary); background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 12px;">
@@ -2986,8 +3007,8 @@
               <td><strong>${escapeHtml(emp.full_name)}</strong></td>
               <td>${escapeHtml(emp.email)}</td>
               <td><span class="pill pill-primary">${emp.zone || '-'}</span></td>
-              <td><strong>${emp.clubs_approved_count || 0}</strong></td>
-              <td>${emp.support_logs_count || 0}</td>
+              <td title="${splitTitle(emp.clubs_approved_count || 0, (emp.clubs_approved_count || 0) - (emp.legacy_clubs_count || 0), emp.legacy_clubs_count, 'Club approvals')}"><strong>${emp.clubs_approved_count || 0}</strong></td>
+              <td title="${splitTitle(emp.support_logs_count || 0, (emp.support_logs_count || 0) - (emp.legacy_support_count || 0), emp.legacy_support_count, 'Support logs')}">${emp.support_logs_count || 0}</td>
               <td>
                 ${isActive ? '<span class="pill pill-success">Active</span>' : '<span class="pill pill-danger">Blocked</span>'}
               </td>

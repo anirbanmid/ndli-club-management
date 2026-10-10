@@ -423,6 +423,19 @@ def commit_employee_history(emp_id: str, csv_text: str,
             CSVEngine.append_row(emp_act, ACTIVITY_FIELDS, activity_row)
         CSVEngine.append_row(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, activity_row)
 
+        # R29: refresh the dependent quota row HERE, at the source. The quota
+        # totals are "live work + migrated baseline", so writing history without
+        # this refresh leaves master_quotas.csv stale -- and a stale total that
+        # is SMALLER than its own baseline produces a NEGATIVE "live" half
+        # (caught by tests/test_r29_split_display.py). The API handler already
+        # refreshed after this call; doing it inside makes every caller honest.
+        # Lazy import: the sync engine already reads this module for baselines.
+        try:
+            from db.sync_engine import SyncEngine as _SyncEngine
+            _SyncEngine.recompute_and_persist_quota(clean)
+        except Exception as _exc:
+            print(f"[migration] LOUD: quota refresh failed for {clean}: {_exc!r}")
+
     return {"success": True, "error": False, "batch_id": batch,
             "rows_written": written, "replaced_existing": bool(existing),
             "totals": totals, "emp_id": clean,

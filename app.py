@@ -1206,6 +1206,12 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                         "created_at": u.get("created_at"),
                         "clubs_approved_count": int(q.get("clubs_approved_count", "0") or "0"),
                         "support_logs_count": int(q.get("support_logs_count", "0") or "0"),
+                        # R29: the split halves travel with the row so the roster
+                        # can label "X live + Y migrated" instead of one blended
+                        # number (legacy_* = migrated baseline from the worksheets).
+                        "legacy_clubs_count": int(q.get("legacy_clubs_count", "0") or "0"),
+                        "legacy_support_count": int(q.get("legacy_support_count", "0") or "0"),
+                        "legacy_online_workshops_count": int(q.get("legacy_online_workshops_count", "0") or "0"),
                         "last_activity_timestamp": q.get("last_activity_timestamp", "")
                     })
             self._send_json({"count": len(employees), "employees": employees})
