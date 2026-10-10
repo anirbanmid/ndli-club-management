@@ -170,13 +170,15 @@ class TestR24ImportExisting(unittest.TestCase):
         self.assertEqual(club["last_renewal_date"], "")
         self.assertEqual(club["record_origin"], "created")
 
-    def test_new_mode_rejects_explicit_dates(self):
-        """No smuggling historical dates through the new-club path."""
+    def test_new_mode_rejects_historical_dates(self):
+        """No smuggling historical (past) dates through the new-club path.
+        R31v2: non-past dates (today or later) are legitimate new work and are
+        ACCEPTED — see tests/test_r31v2_date_guard.py for that half of the contract."""
         status, data = self._post("/api/clubs/create", self._club_payload(
             "242410", record_mode="new", date_of_approval="2024-06-15"))
         self.assertEqual(status, 422)
         self.assertTrue(any("Data Migration" in e for e in data.get("validation_errors", [])), data)
-        # legacy (no record_mode) with dates is equally rejected
+        # legacy (no record_mode) with a historical date is equally rejected
         status, data = self._post("/api/clubs/create", self._club_payload(
             "242411", date_of_approval="2024-06-15"))
         self.assertEqual(status, 422)

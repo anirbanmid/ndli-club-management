@@ -1338,7 +1338,7 @@
     <div class="modal-content" style="max-width: 980px; width: 95%; max-height: 90vh; overflow-y: auto;">
       <button class="modal-close" onclick="closeBulkImportModal()" title="Close Bulk Import">×</button>
       <h3 id="bulk-import-modal-title" style="margin: 0 0 0.35rem; color: var(--primary); font-size: 1.15rem;">📥 Bulk Add New Clubs (CSV)</h3>
-      <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.9rem;"><strong>This door records NEW clubs only</strong> (counted as new work on the dashboard). Leave the date columns empty — dates are stamped automatically. Rows carrying <strong>historical / past dates are refused</strong> here: pre-system clubs must be imported by the admin through the <strong>Data Migration portal (Bulk Club History Upload)</strong>, which records them as history (counters unchanged). Nothing is written until you press the import button after a dry run.
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.9rem;"><strong>This door records NEW clubs only</strong> (counted as new work on the dashboard). The date columns are optional: leave them empty and dates are stamped automatically, or enter the real approval date when it is <strong>today or later</strong> (accepted formats: <code>YYYY-MM-DD</code>, <code>YYYY/MM/DD</code>, <code>DD.MM.YYYY</code>, <code>DD/MM/YYYY</code>, <code>DD-MM-YYYY</code>). Rows carrying <strong>historical / past dates are refused</strong> here: pre-system clubs must be imported by the admin through the <strong>Data Migration portal (Bulk Club History Upload)</strong>, which records them as history (counters unchanged). Nothing is written until you press the import button after a dry run.
         Optional admin-only column: <code>approved_by_emp_id</code> attributes a club
         to another employee — leave it empty to keep the attribution with the importing employee.
       </p>
@@ -3252,7 +3252,7 @@
 
     function downloadBulkTemplate() {
       const header = "club_id,reg_no,institution_name,state,patron_email,president_email,secretary_email,date_of_approval,last_renewal_date,approved_by_emp_id";
-      const example = "2051,REG-2024-WB-001,Example Legacy College,West Bengal,patron@example.edu,president@example.edu,secretary@example.edu,2024-06-15,2025-07-20,EMP02";
+      const example = "2051,REG-2026-WB-001,Example New College,West Bengal,patron@example.edu,president@example.edu,secretary@example.edu,,,EMP02";
       const csv = header + "\n" + example + "\n";
       const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement("a");

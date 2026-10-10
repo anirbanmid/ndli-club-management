@@ -138,16 +138,41 @@ REG_NO_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._\-/]{0,63}$")
 MIN_FORMATION_DATE = date(2019, 1, 1)
 
 
+# R31v2 (2026-10-10, Issue-1): accepted CSV date formats. The client's worksheets
+# are day-first ("10.10.2026", "15/09/2023"), so dotted/slash/short-hyphen forms are
+# parsed DAY-FIRST; ISO forms are tried first and never collide (their year leads).
+DATE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
+DATE_FORMATS_HINT = "YYYY-MM-DD, YYYY/MM/DD, DD.MM.YYYY, DD/MM/YYYY or DD-MM-YYYY"
+
+
 def _parse_date_lenient(val: str) -> "date | None":
-    """Extracts a calendar date from YYYY-MM-DD (or ISO datetime) input; None if unparseable."""
+    """Extracts a calendar date from common CSV date input (see DATE_FORMATS,
+    plus ISO datetimes); None if unparseable."""
     s = str(val or "").strip()
     if not s:
         return None
     clean = s.split("T")[0].split(" ")[0].strip()
-    try:
-        return datetime.strptime(clean, "%Y-%m-%d").date()
-    except ValueError:
-        return None
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(clean, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def normalize_date_fields(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """R31v2: returns a COPY of payload with date_of_approval / last_renewal_date
+    normalized to ISO YYYY-MM-DD (whatever accepted CSV format the row carried),
+    so stored records never hold dotted/slash dates (year filters read date[:4]).
+    Empty and unparseable values are kept as-is so validation can report them."""
+    out = dict(payload)
+    for key in ("date_of_approval", "last_renewal_date"):
+        raw = str(out.get(key, "") or "").strip()
+        if raw:
+            parsed = _parse_date_lenient(raw)
+            if parsed is not None:
+                out[key] = parsed.isoformat()
+    return out
 
 
 def validate_historical_dates(date_of_approval: str, last_renewal_date: str) -> List[str]:
@@ -166,7 +191,7 @@ def validate_historical_dates(date_of_approval: str, last_renewal_date: str) -> 
     if not doa_raw:
         errors.append("Date of Approval (club formation date) is required when importing an existing club.")
     elif doa is None:
-        errors.append(f"Date of Approval must be a valid date (YYYY-MM-DD): '{doa_raw}'.")
+        errors.append(f"Date of Approval must be a valid date ({DATE_FORMATS_HINT}): '{doa_raw}'.")
     else:
         if doa < MIN_FORMATION_DATE:
             errors.append("Date of Approval cannot be earlier than 2019-01-01.")
@@ -176,7 +201,7 @@ def validate_historical_dates(date_of_approval: str, last_renewal_date: str) -> 
     if lrd_raw:
         lrd = _parse_date_lenient(lrd_raw)
         if lrd is None:
-            errors.append(f"Last Renewal Date must be a valid date (YYYY-MM-DD): '{lrd_raw}'.")
+            errors.append(f"Last Renewal Date must be a valid date ({DATE_FORMATS_HINT}): '{lrd_raw}'.")
         else:
             if lrd > today:
                 errors.append("Last Renewal Date cannot be in the future.")
@@ -226,10 +251,14 @@ def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
         if val and not validate_email(val):
             errors.append(f"Invalid email address for {label}: '{val}'.")
 
-    # R24: record-mode-aware historical date validation.
-    #  - "import": explicit formation/last-renewal dates REQUIRED and validated.
-    #  - "new"/legacy: dates are auto-stamped server-side; explicit dates are
-    #    REJECTED (no smuggling historical dates through the new-club path).
+    # R24/R31v2: record-mode-aware date validation.
+    #  - "import": explicit formation/last-renewal dates REQUIRED and validated
+    #    (2019-01-01 .. today — real history, recorded as "imported").
+    #  - "new"/legacy: dates are auto-stamped server-side when left empty. When
+    #    explicit dates ARE given they must NOT be in the past (this door records
+    #    NEW work only) — genuinely historical rows are refused with a pointer to
+    #    the Admin Data Migration portal. (R31v2, Issue-1: the pre-fix guard
+    #    refused ANY explicit date and blamed "history" even for today/tomorrow.)
     mode = str(payload.get("record_mode", "")).strip().lower()
     if mode not in ("", "new", "import"):
         errors.append(f"Unknown record_mode '{mode}' — expected 'new' or 'import'.")
@@ -239,11 +268,24 @@ def validate_club_payload(payload: Dict[str, Any]) -> List[str]:
         if mode == "import":
             errors.extend(validate_historical_dates(doa_raw, lrd_raw))
         else:
-            if doa_raw or lrd_raw:
+            today = datetime.now(timezone.utc).date()
+            doa = _parse_date_lenient(doa_raw) if doa_raw else None
+            lrd = _parse_date_lenient(lrd_raw) if lrd_raw else None
+            if doa_raw and doa is None:
+                errors.append(
+                    f"Date of Approval must be a valid date ({DATE_FORMATS_HINT}): '{doa_raw}'.")
+            if lrd_raw and lrd is None:
+                errors.append(
+                    f"Last Renewal Date must be a valid date ({DATE_FORMATS_HINT}): '{lrd_raw}'.")
+            past = (doa is not None and doa < today) or (lrd is not None and lrd < today)
+            if past:
                 errors.append(
                     "Historical (past) dates are not accepted here — this door records NEW clubs only. "
                     "To import existing/pre-system clubs with their real dates, use the Admin Data "
                     "Migration portal (Bulk Club History Upload) instead."
                 )
+            if doa is not None and lrd is not None and lrd < doa:
+                errors.append(
+                    "Last Renewal Date cannot be earlier than the Date of Approval.")
 
     return errors

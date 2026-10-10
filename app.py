@@ -38,6 +38,7 @@ from db.schemas import (
     ISSUE_FIELDS,
     validate_club_payload,
     validate_historical_dates,
+    normalize_date_fields,
     REG_NO_PATTERN
 )
 from db.csv_engine import CSVEngine
@@ -2107,14 +2108,16 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # R26: BULK IMPORT of legacy clubs (CSV) with a DRY-RUN validation pass.
-        # Client requisition 2026-10-09: employees migrating many legacy clubs from
-        # the official portal need batch entry with per-row validation BEFORE any
-        # write. Every row is validated exactly like an "Import existing club"
-        # submission (record_mode="import"): DOA required in 2019-01-01..today,
-        # LRD optional within DOA..today, duplicate reg-no/club-id blocked against
-        # the master DB and within the batch itself. Commit creates only rows that
-        # pass, then performs ONE batched durable-sync confirmation.
+        # R26/R31 "NEW WORK" door: BULK CSV entry of NEW clubs with a DRY-RUN
+        # validation pass. R31 repurposed this door: rows are record_mode="new"
+        # -> record_origin="created" = real new work, counted live. Dates are
+        # optional (auto-stamped when empty); explicit dates must NOT be in the
+        # past — genuinely historical rows are refused with a pointer to the Admin
+        # Data Migration portal (Bulk Club History Upload). Date fields accept the
+        # common CSV formats and are normalized to ISO (schemas.normalize_date_fields).
+        # Duplicate reg-no/club-id blocked against the master DB and within the batch.
+        # Commit creates only rows that pass, then performs ONE batched durable-sync
+        # confirmation.
         if path in ("/api/clubs/bulk-import/validate", "/api/clubs/bulk-import/commit"):
             commit_mode = path.endswith("/commit")
             emp_id = str(body.get("emp_id", "")).strip().upper()
@@ -2141,7 +2144,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             created = 0
             session = self._get_auth_session()
             for idx, raw in enumerate(rows):
-                row = {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {}
+                row = normalize_date_fields(
+                    {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {})
                 cid = row.get("club_id", "").strip().upper()
                 reg_clean = row.get("reg_no", "").strip()
                 # R30: optional per-row attribution — the client's club log names
@@ -2203,12 +2207,13 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 return
 
             # COMMIT: create each ready row through the standard approval path
-            # (historical dates + record_origin="imported" provenance) with the
-            # per-club durable-sync confirmation deferred to ONE batched pass.
+            # (record_mode="new" -> record_origin="created": NEW work, counted
+            # live) with the per-club durable-sync confirmation deferred to ONE
+            # batched pass.
             for entry, raw in zip(results, rows):
                 if entry["status"] != "ready":
                     continue
-                row = {k: str(v or "").strip() for k, v in raw.items()}
+                row = normalize_date_fields({k: str(v or "").strip() for k, v in raw.items()})
                 row["record_mode"] = "new"
                 row_emp = entry.get("approved_by_emp_id") or emp_id
                 row["emp_id"] = row_emp
@@ -2301,7 +2306,8 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             created = 0
             per_emp_ready = {}
             for idx, raw in enumerate(rows):
-                row = {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {}
+                row = normalize_date_fields(
+                    {k: str(v or "").strip() for k, v in raw.items()} if isinstance(raw, dict) else {})
                 cid = row.get("club_id", "").strip().upper()
                 reg_clean = row.get("reg_no", "").strip()
                 row_emp = row.get("approved_by_emp_id", "").strip().upper()
@@ -2383,7 +2389,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             for entry, raw in zip(results, rows):
                 if entry["status"] != "ready":
                     continue
-                row = {k: str(v or "").strip() for k, v in raw.items()}
+                row = normalize_date_fields({k: str(v or "").strip() for k, v in raw.items()})
                 row["record_mode"] = "import"
                 row_emp = entry.get("approved_by_emp_id")
                 row["emp_id"] = row_emp
