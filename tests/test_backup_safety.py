@@ -3,12 +3,13 @@ Safety-net tests for destructive admin operations.
 
 Verifies the automatic pre-destructive backup checkpoints:
 - POST /api/admin/clubs/delete        -> takes a checkpoint before deleting
-- POST /api/admin/data/reset-test-data -> takes a checkpoint before wiping
+- POST /api/admin/data/hard-reset       -> takes a checkpoint before wiping
 and that BOTH operations abort (leaving data untouched) when the safety
 checkpoint cannot be written. Also verifies the rolling retention policy
 keeps multiple archives (safety headroom beyond the historical 2).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+import hashlib
 import json
 import threading
 import time
@@ -21,11 +22,32 @@ from unittest import mock
 
 from app import NDLIRequestHandler
 from init_db import initialize_database
-from config import MASTER_CLUBS_CSV, EMPLOYEE_NODES_DIR, DEFAULT_ADMIN_PASSWORD, BASE_DIR
+from config import MASTER_CLUBS_CSV, EMPLOYEE_NODES_DIR, DEFAULT_ADMIN_PASSWORD, BASE_DIR, DATA_DIR
 from db.backup_engine import BackupEngine, MAX_RETAINED_BACKUPS
 from db.csv_engine import CSVEngine
 from db.schemas import CLUB_FIELDS
 from db.sync_engine import SyncEngine
+
+# Test-only PIN stand-in: tests patch app.HANDOVER_PIN_SHA256 with THIS digest,
+# so the REAL owner-only handover PIN appears nowhere in the repository.
+TEST_PIN = "123456"
+TEST_PIN_SHA256 = hashlib.sha256(TEST_PIN.encode("utf-8")).hexdigest()
+
+ASSISTANT_LOGS = [DATA_DIR / n for n in (
+    "assistant_interactions.csv", "assistant_preferences.csv", "assistant_feedback.csv")]
+
+
+def save_assistant_logs():
+    return {p: p.read_bytes() for p in ASSISTANT_LOGS if p.exists()}
+
+
+def restore_assistant_logs(saved):
+    for p in ASSISTANT_LOGS:
+        if p in saved:
+            p.write_bytes(saved[p])
+        elif p.exists():
+            p.unlink()
+
 
 SCRATCH_CLUB_ID = "NDLI-SCRATCH-9001"
 SCRATCH_ROW = {
@@ -153,56 +175,63 @@ class TestBackupSafetyCheckpoints(unittest.TestCase):
                 pass
 
     # ------------------------------------------------------------------
-    # data reset: checkpoint + abort semantics
+    # hard reset (handover): checkpoint + abort semantics
     # ------------------------------------------------------------------
-    def test_data_reset_aborts_when_checkpoint_fails(self):
+    def test_hard_reset_aborts_when_checkpoint_fails(self):
         """If the pre-reset checkpoint cannot be written, the wipe must NOT happen."""
         before_rows = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-        with mock.patch.object(BackupEngine, "create_backup", side_effect=OSError("simulated backup failure")):
-            status, res = self._post("/api/admin/data/reset-test-data",
-                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1,
-                                      "password": DEFAULT_ADMIN_PASSWORD})
+        with mock.patch.object(BackupEngine, "create_backup", side_effect=OSError("simulated backup failure")), \
+                mock.patch("app.HANDOVER_PIN_SHA256", TEST_PIN_SHA256):
+            status, res = self._post("/api/admin/data/hard-reset",
+                                     {"confirm": "HARD-RESET-FOR-HANDOVER",
+                                      "password": DEFAULT_ADMIN_PASSWORD,
+                                      "pin": TEST_PIN})
         self.assertGreaterEqual(status, 500, "Checkpoint failure must surface as an error")
         after_rows = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
         self.assertEqual(len(after_rows), len(before_rows),
                          "Master data must remain untouched when the safety checkpoint fails")
 
-    def test_data_reset_takes_pre_reset_checkpoint_and_restores(self):
-        """A successful reset must leave a checkpoint from which the data can be restored."""
+    def test_hard_reset_takes_pre_reset_checkpoint_and_restores(self):
+        """A successful hard reset must leave a checkpoint it can be rolled back from."""
         before = set(self._backup_ids())
+        saved_logs = save_assistant_logs()
+        clubs_before = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
         ckpt_dir = None
         try:
-            status, res = self._post("/api/admin/data/reset-test-data",
-                                     {"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 1,
-                                      "password": DEFAULT_ADMIN_PASSWORD})
+            with mock.patch("app.HANDOVER_PIN_SHA256", TEST_PIN_SHA256):
+                status, res = self._post("/api/admin/data/hard-reset",
+                                         {"confirm": "HARD-RESET-FOR-HANDOVER",
+                                          "password": DEFAULT_ADMIN_PASSWORD,
+                                          "pin": TEST_PIN})
             self.assertEqual(status, 200)
             self.assertTrue(res.get("success"))
 
-            # Regression: a reset must treat ONLY real zonal employees as seed
-            # targets. An admin-owned seeded club (ADMIN01) breaks the invariant
-            # Sum(quotas) == master total clubs (employee-vs-admin count mismatch).
-            self.assertEqual(res.get("employees_reset"), 7,
-                             "Reset must target exactly the 7 employees (never the admin account)")
+            # Blank-but-provisioned contract (user spec 2026-10-11):
+            self.assertFalse(res.get("reseeded"),
+                             "Hard Reset must NOT create any test data")
+            self.assertEqual(res.get("accounts_kept"), 8,
+                             "Master Admin + the 7 Nodal Officers must survive")
             node_dirs = sorted(p.name for p in EMPLOYEE_NODES_DIR.iterdir() if p.is_dir())
             self.assertEqual(node_dirs, [f"emp0{i}" for i in range(1, 8)],
-                             "No node directory may be provisioned for non-employee accounts")
-            clubs_after = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
-            owners = {(c.get("approved_by_emp_id") or "").strip().upper() for c in clubs_after}
-            self.assertTrue(owners <= {f"EMP0{i}" for i in range(1, 8)},
-                            f"All master clubs must be employee-owned, found: {owners}")
+                             "Exactly the 7 provisioned node dirs must remain")
+            self.assertEqual(len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)), 0,
+                             "The system must be left completely blank")
 
             ckpt_id = res.get("checkpoint_backup_id", "")
             self.assertTrue(ckpt_id, "Response must identify the pre-reset checkpoint")
             self.assertNotIn(ckpt_id, before, "A fresh checkpoint must have been created")
             ckpt_dir = BackupEngine.get_backup_dir() / ckpt_id
             manifest = json.loads((ckpt_dir / "manifest.json").read_text(encoding="utf-8"))
-            self.assertIn("Test Data Reset", manifest.get("note", ""))
+            self.assertIn("Hard Reset", manifest.get("note", ""))
         finally:
             # Undo the wipe using the very checkpoint this feature created
             if ckpt_dir and ckpt_dir.exists():
                 restore_res = BackupEngine.restore_backup(ckpt_dir)
                 self.assertTrue(restore_res.get("success", True))
                 SyncEngine.reconcile_all_nodes()
+            restore_assistant_logs(saved_logs)
+            self.assertEqual(len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)), clubs_before,
+                             "Rollback must return the store to its pre-test state")
 
     # ------------------------------------------------------------------
     # retention policy intent
@@ -214,46 +243,6 @@ class TestBackupSafetyCheckpoints(unittest.TestCase):
         status, data = self._get_json("/api/admin/backup/status")
         self.assertEqual(status, 200)
         self.assertEqual(data["max_retained_backups"], MAX_RETAINED_BACKUPS)
-
-    # ------------------------------------------------------------------
-    # dual-layer security on the destructive reset
-    # ------------------------------------------------------------------
-    def test_data_reset_dual_security_enforced(self):
-        """Reset requires: admin session + typed phrase (layer 1) + admin password (layer 2)."""
-        rows_before = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
-
-        # No admin session -> 401
-        st, _ = self._post("/api/admin/data/reset-test-data",
-                           {"confirm": "RESET-ALL-TEST-DATA", "password": DEFAULT_ADMIN_PASSWORD},
-                           use_token=False)
-        self.assertEqual(st, 401)
-
-        # Wrong typed phrase -> 400 (layer 1 blocks)
-        st, _ = self._post("/api/admin/data/reset-test-data",
-                           {"confirm": "reset-all", "password": DEFAULT_ADMIN_PASSWORD})
-        self.assertEqual(st, 400)
-
-        # Correct phrase but missing password -> 401 (layer 2 blocks)
-        st, _ = self._post("/api/admin/data/reset-test-data", {"confirm": "RESET-ALL-TEST-DATA"})
-        self.assertEqual(st, 401)
-
-        # Correct phrase but wrong password -> 403
-        st, _ = self._post("/api/admin/data/reset-test-data",
-                           {"confirm": "RESET-ALL-TEST-DATA", "password": "definitely-wrong-pass"})
-        self.assertEqual(st, 403)
-
-        rows_after = len(CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS))
-        self.assertEqual(rows_after, rows_before,
-                         "No rejected reset attempt may alter any data")
-
-    def test_reset_button_present_with_dual_security_ui(self):
-        """The admin UI must expose the Danger Zone reset button + dual-layer modal."""
-        admin_html = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
-        for marker in ("openResetTestModal()", "reset-test-data-modal", "reset-confirm-input",
-                       "reset-admin-password", "RESET-ALL-TEST-DATA",
-                       "Dual-Layer Security Verification"):
-            self.assertIn(marker, admin_html,
-                          f"Admin UI must contain the reset dual-layer security element: {marker}")
 
 
 if __name__ == "__main__":

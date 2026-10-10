@@ -931,19 +931,19 @@
             <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading backup archives...</div>
           </div>
 
-          <!-- DANGER ZONE: Test Data Reset (dual-layer security) -->
+          <!-- DANGER ZONE: HARD RESET / HANDOVER (triple-layer security) -->
           <div style="margin-top: 1rem; background: #fff7f7; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: var(--radius-sm); padding: 1.25rem 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 1.15rem; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 260px;">
-                <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Reset Test Data</strong>
+                <strong style="display: block; font-size: 0.92rem; color: #b91c1c; margin-bottom: 0.15rem;">⚠️ Danger Zone — Hard Reset (Handover)</strong>
                 <small style="color: #7f1d1d; font-size: 0.86rem; line-height: 1.45; display: block;">
-                  Wipes ALL club &amp; activity data (Master DB + 7 Nodal Officer Node DBs) and reseeds clean test clubs. Employee accounts, credentials &amp; issues are preserved.
+                  Blank-but-provisioned factory reset: wipes ALL data (Master DB + 7 Nodal Officer Node DBs + migrated history + issues + Robu's logs) and creates NOTHING — the system goes blank so new records can be entered from zero. Only the provisioned accounts survive (Master Admin + 7 Nodal Officers, credentials untouched).
                   An automatic safety checkpoint is taken first (and the reset aborts if it cannot be written) — you can restore it from the archives list above.
-                  Protected by dual-layer security: typed confirmation phrase + Master Admin password.
+                  Protected by triple security: typed confirmation phrase + Master Admin password + the owner-only handover PIN.
                 </small>
               </div>
-              <button class="btn btn-danger btn-sm" onclick="openResetTestModal()" style="font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem;">
-                <span>🧹</span> Reset Test Data…
+              <button class="btn btn-danger btn-sm" onclick="openHardResetModal()" style="font-weight: 700; white-space: nowrap; padding: 0.5rem 1rem;">
+                <span>🧨</span> Hard Reset…
               </button>
             </div>
           </div>
@@ -1214,22 +1214,24 @@
     }
 
     // =========================================================================
-    // DANGER ZONE: TEST DATA RESET (dual-layer security: phrase + admin password)
     // =========================================================================
-    function openResetTestModal() {
-      const modal = document.getElementById("reset-test-data-modal");
+    // DANGER ZONE: HARD RESET / HANDOVER (triple-layer security: phrase +
+    // admin password + owner-only handover PIN)
+    // =========================================================================
+    function openHardResetModal() {
+      const modal = document.getElementById("hard-reset-modal");
       if (!modal) return;
-      const cInp = document.getElementById("reset-confirm-input");
-      const pInp = document.getElementById("reset-admin-password");
-      const nInp = document.getElementById("reset-clubs-per-employee");
-      const st = document.getElementById("reset-test-status");
-      const pErr = document.getElementById("reset-password-error");
+      const cInp = document.getElementById("hard-reset-confirm-input");
+      const pInp = document.getElementById("hard-reset-admin-password");
+      const kInp = document.getElementById("hard-reset-pin-input");
+      const st = document.getElementById("hard-reset-status");
+      const pErr = document.getElementById("hard-reset-password-error");
       if (cInp) cInp.value = "";
       if (pInp) pInp.value = "";
-      if (nInp) nInp.value = "4";
+      if (kInp) kInp.value = "";
       if (st) { st.style.display = "none"; st.innerHTML = ""; }
       if (pErr) { pErr.style.display = "none"; pErr.innerText = ""; }
-      validateResetTestForm();
+      validateHardResetForm();
       modal.classList.add("active");
       modal.classList.add("open");
       modal.style.display = "flex";
@@ -1237,8 +1239,8 @@
       setTimeout(() => { if (cInp) cInp.focus(); }, 100);
     }
 
-    function closeResetTestModal() {
-      const modal = document.getElementById("reset-test-data-modal");
+    function closeHardResetModal() {
+      const modal = document.getElementById("hard-reset-modal");
       if (!modal) return;
       modal.classList.remove("active");
       modal.classList.remove("open");
@@ -1246,45 +1248,47 @@
       ndliModalClosed(modal);
     }
 
-    function validateResetTestForm() {
-      const cInp = document.getElementById("reset-confirm-input");
-      const pInp = document.getElementById("reset-admin-password");
-      const btn = document.getElementById("btn-execute-reset-test");
+    function validateHardResetForm() {
+      const cInp = document.getElementById("hard-reset-confirm-input");
+      const pInp = document.getElementById("hard-reset-admin-password");
+      const kInp = document.getElementById("hard-reset-pin-input");
+      const btn = document.getElementById("btn-execute-hard-reset");
       if (!btn) return;
-      const phraseOk = !!(cInp && cInp.value.trim() === "RESET-ALL-TEST-DATA");
+      const phraseOk = !!(cInp && cInp.value.trim() === "HARD-RESET-FOR-HANDOVER");
       const passOk = !!(pInp && pInp.value.trim());
-      btn.disabled = !(phraseOk && passOk);
+      const pinOk = !!(kInp && /^\d{6}$/.test(kInp.value.trim()));
+      btn.disabled = !(phraseOk && passOk && pinOk);
       btn.style.opacity = btn.disabled ? "0.45" : "1";
     }
 
-    async function executeResetTest() {
-      const cInp = document.getElementById("reset-confirm-input");
-      const pInp = document.getElementById("reset-admin-password");
-      const nInp = document.getElementById("reset-clubs-per-employee");
-      const st = document.getElementById("reset-test-status");
-      const btn = document.getElementById("btn-execute-reset-test");
-      const pErr = document.getElementById("reset-password-error");
-      if (!cInp || cInp.value.trim() !== "RESET-ALL-TEST-DATA") return;
-      if (btn) { btn.disabled = true; btn.innerHTML = "<span>⏳</span> Wiping & Reseeding..."; }
+    async function executeHardReset() {
+      const cInp = document.getElementById("hard-reset-confirm-input");
+      const pInp = document.getElementById("hard-reset-admin-password");
+      const kInp = document.getElementById("hard-reset-pin-input");
+      const st = document.getElementById("hard-reset-status");
+      const btn = document.getElementById("btn-execute-hard-reset");
+      const pErr = document.getElementById("hard-reset-password-error");
+      if (!cInp || cInp.value.trim() !== "HARD-RESET-FOR-HANDOVER") return;
+      if (btn) { btn.disabled = true; btn.innerHTML = "<span>⏳</span> Performing Hard Reset..."; }
       if (pErr) { pErr.style.display = "none"; pErr.innerText = ""; }
       try {
-        const res = await apiRequest("/api/admin/data/reset-test-data", "POST", {
+        const res = await apiRequest("/api/admin/data/hard-reset", "POST", {
           confirm: cInp.value.trim(),
           password: pInp ? pInp.value : "",
-          clubs_per_employee: nInp ? (parseInt(nInp.value, 10) || 4) : 4
+          pin: kInp ? kInp.value.trim() : ""
         });
         if (res.ok && res.data && res.data.success) {
           const d = res.data;
           if (st) {
             st.style.display = "block";
-            st.innerHTML = `<div class="alert alert-success" style="margin: 0;"><span>✓</span><div><strong>Reset complete.</strong> ${escapeHtml(d.message || "")}<br>Safety checkpoint <code>${escapeHtml(d.checkpoint_backup_id || "")}</code> — restore it from the archives list if needed.</div></div>`;
+            st.innerHTML = `<div class="alert alert-success" style="margin: 0;"><span>✓</span><div><strong>Hard Reset complete.</strong> ${escapeHtml(d.message || "")}<br>Safety checkpoint <code>${escapeHtml(d.checkpoint_backup_id || "")}</code> — restore it from the archives list if needed.</div></div>`;
           }
-          showAlert("admin-alert", "✓ Test data wiped & reseeded. Auto-checkpoint: " + (d.checkpoint_backup_id || "n/a"), "success");
+          showAlert("admin-alert", "✓ Hard Reset complete — system is blank. Auto-checkpoint: " + (d.checkpoint_backup_id || "n/a"), "success");
           loadDashboardData();
           loadAdminBackupStatus();
           loadEmployeesRoster();
         } else {
-          const msg = (res.data && (res.data.message || res.data.error)) || "Reset failed.";
+          const msg = (res.data && (res.data.message || res.data.error)) || "Hard Reset failed.";
           if ((res.status === 401 || res.status === 403) && pErr) {
             pErr.style.display = "block";
             pErr.innerText = msg;
@@ -1300,7 +1304,7 @@
           st.innerHTML = `<div class="alert alert-danger" style="margin: 0;"><span>⚠️</span><div>Network error: ${escapeHtml(e.message)}</div></div>`;
         }
       } finally {
-        if (btn) { btn.innerHTML = "<span>⚠️</span> Wipe & Reseed Test Data"; validateResetTestForm(); }
+        if (btn) { btn.innerHTML = "<span>⚠️</span> Perform Hard Reset"; validateHardResetForm(); }
       }
     }
 
@@ -4445,18 +4449,18 @@
           const migrationModal = document.getElementById("migration-modal");
           const migrationGateModal = document.getElementById("migration-gate-modal");
           const emergencyRestoreModal = document.getElementById("emergency-restore-modal");
-          const resetTestModal = document.getElementById("reset-test-data-modal");
+          const hardResetModal = document.getElementById("hard-reset-modal");
           const changePasswordModal = document.getElementById("change-password-modal");
           const adminLoginModal = document.getElementById("admin-login-modal");
 
           // Esc closes the topmost open modal first — checked in z-index-ladder
-          // order: admin-login (2500) → reset-test / change-password (1260) →
+          // order: admin-login (2500) → hard-reset / change-password (1260) →
           // emergency-restore (1250) → issue (1200) → escalations (1150) →
           // club-details (1100) → renewal-attention (1000) → edit-employee (base).
           if (adminLoginModal && (adminLoginModal.style.display === "flex" || adminLoginModal.classList.contains("active"))) {
             closeAdminLoginModal();
-          } else if (resetTestModal && (resetTestModal.classList.contains("active") || resetTestModal.style.display === "flex")) {
-            closeResetTestModal();
+          } else if (hardResetModal && (hardResetModal.classList.contains("active") || hardResetModal.style.display === "flex")) {
+            closeHardResetModal();
           } else if (changePasswordModal && (changePasswordModal.classList.contains("active") || changePasswordModal.style.display === "flex")) {
             closeChangePasswordModal();
           } else if (emergencyRestoreModal && (emergencyRestoreModal.classList.contains("active") || emergencyRestoreModal.style.display === "flex")) {
@@ -4503,8 +4507,8 @@
               closeAdminIssueModal();
             } else if (overlay.id === "emergency-restore-modal") {
               closeEmergencyRestoreModal();
-            } else if (overlay.id === "reset-test-data-modal") {
-              closeResetTestModal();
+            } else if (overlay.id === "hard-reset-modal") {
+              closeHardResetModal();
             } else if (overlay.id === "change-password-modal") {
               closeChangePasswordModal();
             }
@@ -4932,16 +4936,16 @@
     </div>
   </div>
 
-  <!-- DANGER ZONE: RESET TEST DATA SECURITY MODAL -->
-  <div class="modal-overlay modal" id="reset-test-data-modal" style="z-index: var(--z-modal-confirm); display: none;" role="dialog" aria-modal="true" aria-labelledby="reset-test-data-modal-title" tabindex="-1">
+  <!-- DANGER ZONE: HARD RESET / HANDOVER SECURITY MODAL -->
+  <div class="modal-overlay modal" id="hard-reset-modal" style="z-index: var(--z-modal-confirm); display: none;" role="dialog" aria-modal="true" aria-labelledby="hard-reset-modal-title" tabindex="-1">
     <div class="modal-content" style="max-width: 580px; width: 95%;">
-      <button class="modal-close" onclick="closeResetTestModal()" title="Close Window">×</button>
+      <button class="modal-close" onclick="closeHardResetModal()" title="Close Window">×</button>
       <div class="card-header" style="margin-bottom: 1rem;">
         <div>
-          <h3 class="card-title" id="reset-test-data-modal-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-            <span>🧹</span> Reset All Test Data
+          <h3 class="card-title" id="hard-reset-modal-title" style="color: #b91c1c; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>🧨</span> Hard Reset (Handover)
           </h3>
-          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Wipe club &amp; activity data and reseed clean test clubs</p>
+          <p class="card-subtitle" style="margin: 0.2rem 0 0 0;">Wipe everything except the provisioned accounts — no data is created</p>
         </div>
         <span class="pill pill-danger" style="background: #fef2f2; color: #b91c1c; border-color: #fecaca;">Critical Action</span>
       </div>
@@ -4950,40 +4954,41 @@
         <strong style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 0.35rem;">
           <span>⚠️</span> NON-REVERSIBLE WIPE WARNING
         </strong>
-        This permanently wipes ALL club and activity records (Master DB + all 7 Nodal Officer Node DBs) and reseeds clean test clubs.
-        <strong>Preserved:</strong> employee accounts, credentials, issues and signatures.
-        <strong>Safety net:</strong> an automatic checkpoint (<em>Auto Checkpoint before Test Data Reset</em>) is taken first — if it cannot be written, the reset is aborted and nothing changes. The checkpoint appears in the archives list above and can be restored at any time.
+        This permanently wipes ALL data (Master DB + all 7 Nodal Officer Node DBs + migrated history + issues + Robu's logs) and creates NOTHING.
+        <strong>Preserved:</strong> the Master Admin account, the 7 Nodal Officer accounts and their credentials (passwords stay as they are — change them after handover).
+        <strong>Safety net:</strong> an automatic checkpoint (<em>Auto Checkpoint before Hard Reset (handover)</em>) is taken first — if it cannot be written, the reset is aborted and nothing changes. The checkpoint appears in the archives list above and can be restored at any time.
       </div>
 
       <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
         <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.35rem;">
-          <span>🛡️</span> Dual-Layer Security Verification
+          <span>🛡️</span> Triple-Layer Security Verification
         </h4>
 
         <div style="margin-bottom: 0.85rem;">
-          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>RESET-ALL-TEST-DATA</code> to confirm:</label>
-          <input type="text" id="reset-confirm-input" oninput="validateResetTestForm()" placeholder="RESET-ALL-TEST-DATA" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; font-family: monospace;">
+          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 1 — Type <code>HARD-RESET-FOR-HANDOVER</code> to confirm:</label>
+          <input type="text" id="hard-reset-confirm-input" oninput="validateHardResetForm()" placeholder="HARD-RESET-FOR-HANDOVER" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; font-family: monospace;">
           <small style="color: var(--text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">Prevents accidental activation — the phrase must match exactly.</small>
         </div>
 
         <div style="margin-bottom: 0.85rem;">
           <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 2 — Master Admin Password:</label>
-          <input type="password" id="reset-admin-password" oninput="validateResetTestForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
-          <div id="reset-password-error" style="display: none; color: #b91c1c; font-size: 0.83rem; margin-top: 0.3rem;"></div>
+          <input type="password" id="hard-reset-admin-password" oninput="validateHardResetForm()" placeholder="Admin account password" autocomplete="current-password" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
+          <div id="hard-reset-password-error" style="display: none; color: #b91c1c; font-size: 0.83rem; margin-top: 0.3rem;"></div>
         </div>
 
         <div>
-          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Test clubs per employee (reseed count):</label>
-          <input type="number" id="reset-clubs-per-employee" min="1" max="25" value="4" style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;">
+          <label style="display: block; font-size: 0.92rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem;">Layer 3 — Handover PIN (6 digits, owner-only):</label>
+          <input type="password" id="hard-reset-pin-input" oninput="validateHardResetForm()" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" inputmode="numeric" maxlength="6" autocomplete="off" style="width: 160px; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; letter-spacing: 0.25rem;">
+          <small style="color: var(--text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">The server only stores an unreadable fingerprint of the PIN — never the digits themselves.</small>
         </div>
       </div>
 
-      <div id="reset-test-status" style="display: none; margin-bottom: 1rem;"></div>
+      <div id="hard-reset-status" style="display: none; margin-bottom: 1rem;"></div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
-        <button class="btn btn-outline btn-sm" onclick="closeResetTestModal()" style="padding: 0.5rem 1rem;">Cancel</button>
-        <button class="btn btn-danger btn-sm" id="btn-execute-reset-test" onclick="executeResetTest()" disabled style="font-weight: 700; padding: 0.5rem 1rem; opacity: 0.45; cursor: not-allowed;">
-          <span>⚠️</span> Wipe &amp; Reseed Test Data
+        <button class="btn btn-outline btn-sm" onclick="closeHardResetModal()" style="padding: 0.5rem 1rem;">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="btn-execute-hard-reset" onclick="executeHardReset()" disabled style="font-weight: 700; padding: 0.5rem 1rem; opacity: 0.45; cursor: not-allowed;">
+          <span>🧨</span> Perform Hard Reset
         </button>
       </div>
     </div>

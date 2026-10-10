@@ -613,7 +613,7 @@ class SyncEngine:
         `confirm_cloud_sync` (default True): block synchronously until the
         Google Drive mirror is confirmed for this club's files, so a normal
         single-club API call can honestly report whether it's durable. Bulk
-        operations (e.g. reset_all_and_reseed) pass False here and instead
+        operations (e.g. bulk import commits) pass False here and instead
         perform ONE synchronous confirmation pass across every affected file
         at the very end -- doing a full synchronous Drive round-trip for
         every single club in a large batch is what previously made a 28-club
@@ -991,8 +991,8 @@ class SyncEngine:
 
         A single batched Drive confirmation covers every file touched by
         the whole batch, not one confirmation per entry -- see
-        reset_all_and_reseed for why that matters once more than a couple
-        of items are involved.
+        hard_reset_for_handover's predecessor (bulk reseed) for why that
+        matters once more than a couple of items are involved.
         """
         clean_id = str(emp_id).strip().upper()
         ids_wanted = {str(a).strip() for a in activity_ids if str(a).strip()}
@@ -1076,103 +1076,111 @@ class SyncEngine:
             }
 
     @classmethod
-    def reset_all_and_reseed(cls, clubs_per_employee: int = 4) -> Dict[str, Any]:
+    def hard_reset_for_handover(cls) -> Dict[str, Any]:
         """
-        Full, controlled reset for testing: wipes ALL club and activity data
-        (master + every employee node) while explicitly preserving employee
-        accounts/credentials, then creates exactly `clubs_per_employee` fresh,
-        clearly-labeled test clubs for every employee, with quotas recomputed
-        from scratch (never incremented/ratcheted). Intended for an
-        explicit, admin-confirmed reset -- not for routine use.
+        HARD RESET (HANDOVER): wipe ALL application data down to a
+        blank-but-provisioned state so the system can be handed to the client,
+        who then starts entering from zero.
+
+        Preserved (the provisioned skeleton — the client keeps these and
+        changes the passwords later):
+          * master_users.csv  — the Master Admin + the 7 Nodal Officer accounts
+          * every node's credentials.csv — officer login credentials
+
+        Wiped (headers-only CSVs / truncated logs):
+          * master: clubs, activities, quotas (incl. migrated-history
+            baselines), issues, employee history (master_employee_history.csv)
+          * every node dir: clubs.csv, activity_log.csv, issues.csv
+          * Robu's data logs: assistant_interactions / assistant_preferences /
+            assistant_feedback (his capabilities live in code + the manual KB,
+            never in these logs, so this cannot degrade him)
+          * sync_issues.log
+
+        NO reseed of any kind: no test clubs, no quotas. This intentionally
+        replaces the old `reset_all_and_reseed` ("Reset Test Data") semantics.
         """
         with _SYNC_LOCK:
             users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
-            # Only real zonal EMPLOYEES take part in a reset/reseed -- never the
-            # admin account. Seeding an admin-owned club would create master clubs
-            # that no employee quota can count (breaking Sum(quotas) == total_clubs,
-            # i.e. the employee-vs-admin dashboard count mismatch).
-            emp_ids = sorted({
-                u.get("id", "").strip().upper()
-                for u in users
-                if u.get("id", "").strip() and u.get("role", "").strip().upper() == "EMPLOYEE"
-            })
+            accounts_kept = sum(1 for u in users if u.get("id", "").strip())
 
-            # 1. Wipe master club/activity data (headers only)
+            # 1. Wipe master data CSVs (headers only).
+            #    master_users.csv is NEVER touched here.
             CSVEngine.write_all(MASTER_CLUBS_CSV, CLUB_FIELDS, [])
             CSVEngine.write_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, [])
             CSVEngine.write_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, [])
+            CSVEngine.write_all(MASTER_ISSUES_CSV, ISSUE_FIELDS, [])
 
-            # 2. Wipe every node's clubs.csv and activity_log.csv only --
-            # credentials.csv and issues.csv are NEVER touched here. Iterating the
-            # actual node directories (not just emp_ids) also clears artifacts of
-            # historical bugs (e.g. a stray admin01 node), which reconcile would
-            # otherwise sync back into master.
+            # 2. Wipe the migrated-history baselines — nothing survives the
+            #    handover (client-confirmed 2026-10-11).
+            history_wiped = False
+            try:
+                from db.migration_engine import MASTER_HISTORY_CSV
+                from db.schemas import MIGRATION_HISTORY_FIELDS
+                CSVEngine.write_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS, [])
+                history_wiped = True
+            except Exception:
+                history_wiped = False
+
+            # 3. Wipe every node dir: clubs + activity_log + issues.
+            #    credentials.csv is NEVER touched. Iterating the actual node
+            #    directories (not just emp_ids) also clears artifacts of
+            #    historical bugs (e.g. a stray admin01 node).
+            nodes_wiped = 0
             if EMPLOYEE_NODES_DIR.exists():
                 for node_dir in EMPLOYEE_NODES_DIR.iterdir():
                     if not node_dir.is_dir():
                         continue
-                    clubs_path = node_dir / "clubs.csv"
-                    if clubs_path.exists():
-                        CSVEngine.write_all(clubs_path, CLUB_FIELDS, [])
-                    acts_path = node_dir / "activity_log.csv"
-                    if acts_path.exists():
-                        CSVEngine.write_all(acts_path, ACTIVITY_FIELDS, [])
+                    for _name, _fields in (("clubs.csv", CLUB_FIELDS),
+                                           ("activity_log.csv", ACTIVITY_FIELDS),
+                                           ("issues.csv", ISSUE_FIELDS)):
+                        _p = node_dir / _name
+                        if _p.exists():
+                            CSVEngine.write_all(_p, _fields, [])
+                    nodes_wiped += 1
 
-            # 3. Reseed exactly `clubs_per_employee` clean test clubs per employee.
-            # confirm_cloud_sync=False: skip the per-club synchronous Drive
-            # round-trip here (that's what made a 28-club reset take minutes
-            # of sequential network calls) -- confirmed once, in a single
-            # batched pass, in step 4 below instead.
-            created: Dict[str, List[str]] = {}
-            now = datetime.now(timezone.utc)
-            for emp_id in emp_ids:
-                created[emp_id] = []
-                for n in range(1, clubs_per_employee + 1):
-                    club_id = f"NDLI-{emp_id}-SEEDTEST{n}"
-                    club_data = {
-                        "club_id": club_id,
-                        "reg_no": f"REG-SEEDTEST-{emp_id}-{n}",
-                        "institution_name": f"{emp_id} Seed Test Institution {n}",
-                        "state": "Delhi",
-                        "patron_email": f"seed.patron.{emp_id.lower()}.{n}@example.com",
-                        "president_email": f"seed.president.{emp_id.lower()}.{n}@example.com",
-                        "secretary_email": f"seed.secretary.{emp_id.lower()}.{n}@example.com",
-                        "date_of_approval": now.isoformat(),
-                        "renewal_date": (now.replace(year=now.year + 1)).date().isoformat()
-                    }
-                    cls.approve_new_club(emp_id=emp_id, club_data=club_data, confirm_cloud_sync=False)
-                    created[emp_id].append(club_id)
+            # 4. Wipe Robu's data logs (interactions / preferences / feedback)
+            #    and the sync failure log. Each file is reduced to its own
+            #    existing header row (schema preserved, rows gone).
+            def _header_only(path: Path) -> bool:
+                if not path.exists():
+                    return True
+                try:
+                    first = path.read_text(encoding="utf-8").splitlines()[:1]
+                    path.write_text(("\n".join(first) + "\n") if first else "", encoding="utf-8")
+                    return True
+                except Exception:
+                    return False
 
-            # 4. One single, final, batched confirmation pass -- confirms
-            # every master file plus every employee's node files together,
-            # instead of a synchronous Drive round-trip per club (which is
-            # what previously made a large reseed hang for minutes).
-            cloud_sync_confirmed = True
             try:
-                from db.storage_adapter import get_storage_adapter
-                adapter = get_storage_adapter()
-                if hasattr(adapter, "confirm_durable"):
-                    paths_to_confirm = [MASTER_CLUBS_CSV, MASTER_ACTIVITIES_CSV, MASTER_QUOTAS_CSV]
-                    for emp_id in emp_ids:
-                        paths_to_confirm.append(cls.get_employee_clubs_path(emp_id))
-                        paths_to_confirm.append(cls.get_employee_activities_path(emp_id))
-                    cloud_sync_confirmed = adapter.confirm_durable(paths_to_confirm)
+                from ai.assistant_learning import (
+                    ASSISTANT_INTERACTIONS_CSV,
+                    ASSISTANT_PREFERENCES_CSV,
+                    ASSISTANT_FEEDBACK_CSV,
+                )
+                assistant_logs_wiped = all([
+                    _header_only(Path(ASSISTANT_INTERACTIONS_CSV)),
+                    _header_only(Path(ASSISTANT_PREFERENCES_CSV)),
+                    _header_only(Path(ASSISTANT_FEEDBACK_CSV)),
+                ])
             except Exception:
-                cloud_sync_confirmed = False
+                assistant_logs_wiped = False
 
-            # 5. Final confirmation pass: recompute every employee's quota
-            # fresh (approve_new_club already does this incrementally, this
-            # just guarantees consistency after a bulk reseed).
-            for emp_id in emp_ids:
-                cls.recompute_and_persist_quota(emp_id)
+            #    sync_issues.log is a plain log (no header) — truncate it fully.
+            sync_log_path = DATA_DIR / "sync_issues.log"
+            sync_log_wiped = True
+            try:
+                if sync_log_path.exists():
+                    sync_log_path.write_text("", encoding="utf-8")
+            except Exception:
+                sync_log_wiped = False
 
-            total_created = sum(len(v) for v in created.values())
             return {
-                "employees_reset": len(emp_ids),
-                "clubs_per_employee": clubs_per_employee,
-                "total_clubs_created": total_created,
-                "cloud_sync_confirmed": cloud_sync_confirmed,
-                "created": created
+                "accounts_kept": accounts_kept,
+                "nodes_wiped": nodes_wiped,
+                "history_wiped": history_wiped,
+                "assistant_logs_wiped": assistant_logs_wiped,
+                "sync_log_wiped": sync_log_wiped,
+                "reseeded": False,
             }
 
     @classmethod

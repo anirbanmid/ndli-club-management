@@ -5,6 +5,7 @@ Supports full REST API, Sessions, Authentication, State-Zone Mapping, and Drive 
 """
 import os
 import json
+import hashlib
 import base64
 import urllib.parse
 import re
@@ -43,6 +44,12 @@ from db.schemas import (
 )
 from db.csv_engine import CSVEngine
 from db.sync_engine import SyncEngine, parse_iso_or_date, calculate_next_renewal_date
+
+# Handover PIN verification: SHA-256 digest ONLY — the 6-digit owner-only PIN
+# itself is NEVER stored in this repository (the digest is a one-way
+# fingerprint, so reading the source cannot reveal the digits). Tests
+# monkeypatch this constant with a test-only digest.
+HANDOVER_PIN_SHA256 = "b2f528d83314a6d2a93027e75a428828db4916c06bc3442df4f68cd739715532"
 from db.migration_engine import (
     baselines_for as migration_baselines_for,
     validate_employee_history as migration_validate_history,
@@ -2461,7 +2468,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_error("csv_text (the raw worksheet contents) is required.", status=400)
                 return
             # Dual-layer security (layer 2): Master Admin password re-authentication,
-            # mirroring /api/admin/data/reset-test-data. The dry-run /validate stays
+            # mirroring /api/admin/data/hard-reset. The dry-run /validate stays
             # password-free (it writes nothing); only /commit persists history, so only
             # /commit requires the Master Admin password.
             if commit_mode:
@@ -2572,33 +2579,43 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
-        # Admin: Full Reset & Reseed of ALL club/activity data (DESTRUCTIVE).
-        # Requires an explicit confirmation phrase in the body to guard
-        # against accidental invocation -- this wipes every club and
-        # activity record (master + every employee node), preserving only
-        # employee accounts/credentials, then creates a fresh, clean,
-        # clearly-labeled set of test clubs per employee with quotas
-        # recomputed from scratch.
-        if path == "/api/admin/data/reset-test-data":
+        # Admin: HARD RESET (HANDOVER) — blank-but-provisioned factory reset
+        # (DESTRUCTIVE). Replaces the old "Reset Test Data" endpoint: it does
+        # NOT reseed anything. Keeps ONLY the provisioned accounts (Master
+        # Admin + 7 Nodal Officers + their node credentials); wipes clubs,
+        # activities, quotas (incl. migrated-history baselines), issues,
+        # employee history, Robu's data logs and sync_issues.log.
+        # Triple security (three independent locks):
+        #   layer 1: typed confirmation phrase (anti-accident)
+        #   layer 2: Master Admin password re-authentication
+        #   layer 3: the handover PIN — verified against a SHA-256 digest only.
+        #   The PIN digits are NEVER stored in this source code: the digest is
+        #   a one-way fingerprint, so reading the code cannot reveal the PIN.
+        if path == "/api/admin/data/hard-reset":
             if not self._check_admin_access():
                 return
             confirm = str(body.get("confirm", "")).strip()
-            if confirm != "RESET-ALL-TEST-DATA":
+            if confirm != "HARD-RESET-FOR-HANDOVER":
                 self._send_error(
-                    "This is a destructive operation that wipes ALL club and activity "
-                    "data. To proceed, resend with body: "
-                    '{"confirm": "RESET-ALL-TEST-DATA", "clubs_per_employee": 4}',
+                    "This is a destructive operation that wipes ALL data except the "
+                    "provisioned accounts. To proceed, resend with body: "
+                    '{"confirm": "HARD-RESET-FOR-HANDOVER", "password": "<admin password>", "pin": "<6-digit handover PIN>"}',
                     status=400
                 )
                 return
-            # Dual-layer security (layer 2): Master Admin password re-authentication,
-            # mirroring the emergency-restore endpoint. Session + typed confirmation
-            # phrase alone must never authorize a full data wipe.
+            # Layer 3 first: a wrong PIN must never reach the checkpoint/wipe
+            # stages. Checked against the module-level HANDOVER_PIN_SHA256 digest.
+            pin = str(body.get("pin", "")).strip()
+            if not pin or hashlib.sha256(pin.encode("utf-8")).hexdigest() != HANDOVER_PIN_SHA256:
+                self._send_error("Invalid handover PIN. Reset aborted.", status=403)
+                return
+            # Layer 2: Master Admin password re-authentication (a session alone
+            # must never authorize a full data wipe).
             password = str(body.get("password", "")).strip()
             admin_email = str(body.get("admin_email") or body.get("email") or DEFAULT_ADMIN_EMAIL).strip()
             if not password:
                 self._send_error(
-                    "Master Admin password is required to authorize test data reset.",
+                    "Master Admin password is required to authorize the hard reset.",
                     status=401,
                 )
                 return
@@ -2609,16 +2626,14 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     status=403,
                 )
                 return
-            try:
-                clubs_per_employee = int(body.get("clubs_per_employee", 4))
-            except (TypeError, ValueError):
-                clubs_per_employee = 4
-            # Safety checkpoint: full snapshot before wiping all data. If the
-            # checkpoint cannot be written, abort — never destroy without a net.
+            # Safety checkpoint (approved shield): full snapshot before wiping.
+            # If the checkpoint cannot be written, abort — never destroy without
+            # a net. The handover runbook deletes this archive (and the GDrive
+            # backups) as its final step.
             checkpoint = None
             checkpoint_err = ""
             try:
-                checkpoint = BackupEngine.create_backup(note="Auto Checkpoint before Test Data Reset (wipe-all)")
+                checkpoint = BackupEngine.create_backup(note="Auto Checkpoint before Hard Reset (handover)")
             except Exception as be:
                 checkpoint_err = str(be)
             if not checkpoint or not checkpoint.get("success"):
@@ -2629,16 +2644,18 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 )
                 return
             try:
-                result = SyncEngine.reset_all_and_reseed(clubs_per_employee=clubs_per_employee)
+                result = SyncEngine.hard_reset_for_handover()
             except Exception as e:
-                self._send_error(f"Error resetting data: {str(e)}", status=500)
+                self._send_error(f"Error during hard reset: {str(e)}", status=500)
                 return
             self._send_json({
                 "success": True,
                 "message": (
-                    f"Reset complete: {result['employees_reset']} employees, "
-                    f"{result['total_clubs_created']} clean test clubs created "
-                    f"({result['clubs_per_employee']} per employee). "
+                    f"Hard Reset complete: {result['accounts_kept']} accounts kept, "
+                    f"{result['nodes_wiped']} node databases wiped, "
+                    f"history wiped: {result['history_wiped']}, "
+                    f"Robu logs wiped: {result['assistant_logs_wiped']}. "
+                    "No test data was created — the system is blank and ready for the client. "
                     f"Pre-reset checkpoint: {checkpoint.get('backup_id', '')}."
                 ),
                 **result,
