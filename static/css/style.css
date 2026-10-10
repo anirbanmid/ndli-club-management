@@ -2640,3 +2640,34 @@ body { font-size: 14px; }
 .recency-warm    { background: #FDF2E3; color: #B45309; }
 .recency-stale   { background: #FDEBF0; color: #BE123C; }
 .recency-unknown { background: #EDF3F0; color: #647B70; }
+
+/* ==========================================================================
+   R32 (2026-10-10, cosmetic — user report: "Counts/Numbers on KPI Counters,
+   1st row of the ADMIN portal, are not aligned"). Measured in the DOM before
+   this fix: value baselines sat at y=176/176/176/202/236 in the top row — the
+   big numbers jumped across the card. Three root causes, all fixed here:
+   (1) label rows grew 1-3 lines depending on wrap, pushing numbers down at
+       different offsets -> uniform 3-line label band (min-height: 48px);
+   (2) the "View List" pills in label rows wrapped to 2 lines in narrow
+       columns -> white-space: nowrap;
+   (3) one card's value carried an inline margin-top -> zeroed.
+   Scoped to .kpi-row (admin dashboard) so no other portal's cards change.
+   The template's inline styles beat plain rules — hence the targeted
+   !important overrides (verified in-browser: all values land on one baseline).
+   ========================================================================== */
+.kpi-row .stat-card > .stat-label,
+.kpi-row .stat-card > div:not(.stat-icon) > .stat-label {
+  display: block;
+  min-height: 48px; /* reserve 3 label lines -> numbers share one baseline */
+  margin: 0 !important;
+}
+.kpi-row .stat-card > div:not(.stat-icon) {
+  align-items: flex-start !important;
+  margin: 0 !important;
+}
+.kpi-row .stat-card > div:not(.stat-icon) > span:not(.stat-label) {
+  white-space: nowrap; /* "View List" style pills must never wrap */
+}
+.kpi-row .stat-card > .stat-value {
+  margin-top: 0 !important;
+}
