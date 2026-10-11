@@ -290,11 +290,15 @@ class TestHardResetHandover(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_pin_is_stored_as_one_way_digest_only(self):
         app_src = (BASE_DIR / "app.py").read_text(encoding="utf-8")
+        # R39: the hard-reset HANDLER moved to routes/data_admin.py (mechanical router
+        # extraction) -- the source scan follows the code it pins, the constant stays
+        # in app.py where the tests monkeypatch it.
+        hard_reset_src = (BASE_DIR / "routes" / "data_admin.py").read_text(encoding="utf-8")
         admin_html = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
         # The digest constant exists and is a real SHA-256 hex digest
         self.assertRegex(app_src, r'HANDOVER_PIN_SHA256 = "[0-9a-f]{64}"')
         # The server hashes whatever the user types — it never compares digits
-        self.assertIn("sha256(pin", app_src)
+        self.assertIn("sha256(pin", hard_reset_src)
         self.assertNotIn(HANDOVER_PIN_SHA256, admin_html,
                          "The digest must never be echoed into the browser page")
         # The PIN input ships with no preset value
