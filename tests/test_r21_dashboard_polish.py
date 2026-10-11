@@ -72,7 +72,7 @@ class TestR21KpiCards(unittest.TestCase):
         self.assertIn(".stat-icon.ic-amber", chunk)
 
     def test_type_hierarchy(self):
-        self.assertIn(".stat-value {\n  font-size: 1.9rem;", self.style)
+        self.assertIn(".stat-value {\n  font-size: 1.62rem;", self.style)
         self.assertIn(".stat-label { font-size: var(--text-xs); letter-spacing: 0.12em;", self.style)
 
     def test_urgency_tinted_values(self):

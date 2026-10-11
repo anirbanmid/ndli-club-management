@@ -2060,7 +2060,7 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
 .side-promo .btn { justify-content: center; width: 100%; }
 
 /* ---- MAIN COLUMN + TOPBAR ---- */
-.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13px; }
+.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12.5px; }
 
 .app-topbar {
   height: 70px; flex: 0 0 70px;
@@ -2180,7 +2180,7 @@ body { font-size: 14px; }
 .hero-banner { padding: 1.8rem 2rem !important; margin-bottom: 1.15rem !important; }
 .hero-banner h2 { font-size: 2rem !important; }
 .hero-banner p { font-size: 0.98rem !important; }
-.stat-card { padding: 0.78rem 0.95rem; }
+.stat-card { padding: 0.65rem 0.85rem; }
 .icon-btn .dot { width: 11px; height: 11px; top: 7px; right: 8px; background: #EF4444; border: 2px solid var(--c-bg); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22); }
 .app-sidebar { background: #E2EFE8; border-right: 1px solid #CCDFD5; }
 
@@ -2362,7 +2362,7 @@ body { font-size: 14px; }
 /* --- KPI type hierarchy: bigger values, urgency-tinted numbers --- */
 .stat-label { font-size: var(--text-xs); letter-spacing: 0.12em; color: var(--text-muted); }
 .stat-value {
-  font-size: 1.9rem;
+  font-size: 1.62rem;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   color: #0B3B2A;
@@ -2384,7 +2384,7 @@ body { font-size: 14px; }
   padding-bottom: 0.9rem;
 }
 .infographic-card .card-title {
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   letter-spacing: -0.012em;
   color: var(--primary-dark);
   background: linear-gradient(120deg, #0B3B2A 0%, #0D7751 75%);
