@@ -315,11 +315,26 @@ def validate_employee_history(emp_id: str, csv_text: str) -> Dict[str, Any]:
     }
 
 
-def existing_history_count(emp_id: str) -> int:
+def history_rows(rows: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    """R40: THE single read seam for master_employee_history.csv.
+
+    Returns the caller-supplied rows when given (every consumer in this module
+    is read-only), else reads the file once. Hot routes load ONCE per request
+    via history_rows() and pass `rows=` down to the foundation functions below.
+    The pre-R40 shape re-read the whole history file per employee (measured:
+    7 full reads per /api/admin/employee-performance request at 100k rows).
+    """
+    if rows is not None:
+        return rows
+    return CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS)
+
+
+def existing_history_count(emp_id: str,
+                           rows: Optional[List[Dict[str, Any]]] = None) -> int:
     clean = str(emp_id or "").strip().upper()
-    if not MASTER_HISTORY_CSV.exists():
+    if rows is None and not MASTER_HISTORY_CSV.exists():
         return 0
-    return sum(1 for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS)
+    return sum(1 for r in history_rows(rows)
                if r.get("emp_id", "").strip().upper() == clean)
 
 
@@ -446,20 +461,26 @@ def commit_employee_history(emp_id: str, csv_text: str,
 
 def baselines_for(emp_id: str, filter_year: Optional[str] = None,
                   filter_month: Optional[int] = None,
-                  filter_state: Optional[str] = None) -> Dict[str, int]:
+                  filter_state: Optional[str] = None,
+                  rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, int]:
     """
     Sums the migrated baseline for one employee, optionally sliced by the same
     period/state filters the live performance endpoint supports. This is what
     makes baseline + live arithmetic honest under filtering.
+
+    R40: `rows` may be injected (read-only) so a request that touches many
+    employees reads the history file once instead of once per employee.
     """
     clean = str(emp_id or "").strip().upper()
     out = {"approvals": 0, "support": 0, "online_workshops": 0,
            "user_registrations": 0, "local_events": 0, "global_events": 0}
-    if not clean or not MASTER_HISTORY_CSV.exists():
+    if not clean:
+        return out
+    if rows is None and not MASTER_HISTORY_CSV.exists():
         return out
     fy = str(filter_year or "").strip()
     fs = str(filter_state or "").strip().lower()
-    for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+    for r in history_rows(rows):
         if r.get("emp_id", "").strip().upper() != clean:
             continue
         if fy and fy.upper() != "ALL" and r.get("period_year", "").strip() != fy:
@@ -481,23 +502,24 @@ def baselines_for(emp_id: str, filter_year: Optional[str] = None,
     return out
 
 
-def history_period_years() -> List[str]:
+def history_period_years(rows: Optional[List[Dict[str, Any]]] = None) -> List[str]:
     """Distinct PERIOD years across ALL migrated history — for analytics year
     filters (the client worksheets bucket by Year_id, never the entry time)."""
     years: set = set()
-    if MASTER_HISTORY_CSV.exists():
-        for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+    if rows is not None or MASTER_HISTORY_CSV.exists():
+        for r in history_rows(rows):
             y = str(r.get("period_year", "")).strip()
             if y.isdigit():
                 years.add(y)
     return sorted(years, reverse=True)
 
 
-def history_grand_totals(filter_year: str = "", filter_zone: str = "") -> Dict[str, Any]:
+def history_grand_totals(filter_year: str = "", filter_zone: str = "",
+                          rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """Grand totals across ALL migrated employees (read-only) — feeds the
     admin dashboard's honest live-vs-migrated split display. The optional year /
     zone filters match the dashboard scope (PERIOD year, worksheet zone) so
-    filtered views stay honest."""
+    filtered views stay honest. R40: `rows` may be injected (read-only)."""
     fy = str(filter_year or "").strip()
     fz = str(filter_zone or "").strip()
     use_year = bool(fy) and fy.upper() != "ALL"
@@ -506,8 +528,8 @@ def history_grand_totals(filter_year: str = "", filter_zone: str = "") -> Dict[s
            "employees_migrated": 0, "first_year": "", "last_year": ""}
     emps: set = set()
     years: List[int] = []
-    if MASTER_HISTORY_CSV.exists():
-        for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+    if rows is not None or MASTER_HISTORY_CSV.exists():
+        for r in history_rows(rows):
             if use_year and str(r.get("period_year", "")).strip() != fy:
                 continue
             if use_zone and (r.get("zone", "") or "").strip().lower() != fz.lower():
@@ -528,19 +550,21 @@ def history_grand_totals(filter_year: str = "", filter_zone: str = "") -> Dict[s
     return out
 
 
-def history_summary(emp_id: str) -> Dict[str, Any]:
-    """UI summary: totals + span + row count for one employee (read-only)."""
+def history_summary(emp_id: str,
+                    rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """UI summary: totals + span + row count for one employee (read-only).
+    R40: `rows` may be injected (read-only) — one read serves every sub-lookup."""
     clean = str(emp_id or "").strip().upper()
-    totals = baselines_for(clean)
-    rows = existing_history_count(clean)
+    totals = baselines_for(clean, rows=rows)
+    row_count = existing_history_count(clean, rows=rows)
     years: List[int] = []
-    if MASTER_HISTORY_CSV.exists():
-        for r in CSVEngine.read_all(MASTER_HISTORY_CSV, MIGRATION_HISTORY_FIELDS):
+    if rows is not None or MASTER_HISTORY_CSV.exists():
+        for r in history_rows(rows):
             if r.get("emp_id", "").strip().upper() != clean:
                 continue
             y = _parse_count(r.get("period_year", "0"))
             if y > 0:
                 years.append(y)
-    return {"emp_id": clean, "rows": rows, "totals": totals,
+    return {"emp_id": clean, "rows": row_count, "totals": totals,
             "first_year": min(years) if years else None,
             "last_year": max(years) if years else None}

@@ -15,6 +15,7 @@ from config import DEFAULT_ADMIN_EMAIL, MASTER_ACTIVITIES_CSV, MASTER_CLUBS_CSV,
 from db.csv_engine import CSVEngine
 from db.migration_engine import (
     baselines_for as migration_baselines_for,
+    history_rows as migration_history_rows,
     validate_employee_history as migration_validate_history,
     commit_employee_history as migration_commit_history,
     history_grand_totals as migration_grand_totals,
@@ -259,8 +260,11 @@ def post_migration_clubs(h, path, body):
     # club list is flagged, not silently accepted. e.g. "2,300 rows vs 2,289
     # approved — gap 11". Employees with no worksheet baseline are skipped.
     gap_warnings = []
+    # R40: one history snapshot feeds every officer's baseline lookup
+    # (pre-R40 this loop re-read the whole history file per officer).
+    _hist_rows = migration_history_rows()
     for _emp, _cnt in sorted(per_emp_ready.items()):
-        _base = migration_baselines_for(_emp) or {}
+        _base = migration_baselines_for(_emp, rows=_hist_rows) or {}
         _approvals = int(_base.get("approvals", 0) or 0)
         if _approvals and _cnt != _approvals:
             gap_warnings.append(

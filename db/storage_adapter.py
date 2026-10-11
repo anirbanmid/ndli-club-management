@@ -17,6 +17,93 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 _UPLOAD_SEMAPHORE = threading.BoundedSemaphore(value=4)
+# R40: the pre-R40 queue SILENTLY dropped an upload when all 4 workers were
+# busy (the roadmap's "silent-drop-when-busy" wall). Now busy = coalesce into
+# a bounded pending map (LATEST content wins per file — mirroring semantics)
+# that free workers drain; every queue event is LOUD (print + durable log).
+_PENDING_LOCK = threading.Lock()
+_PENDING: Dict[str, tuple] = {}       # rel_path -> (target_func, args)
+_PENDING_MAX = 256
+_QUEUE_EVENTS: List[str] = []         # bounded diagnostics record (tests read this)
+_QUEUE_EVENTS_MAX = 64
+
+
+def _queue_event(message: str) -> None:
+    """LOUD queue event: print + durable JSON line in sync_issues.log.
+
+    Prints alone are unreliable in WSGI workers (block-buffered stdout may
+    never reach the error log), so every queue event is ALSO appended to the
+    sync issues log — the same durable record the sync failures use.
+    """
+    print(f"[sync queue] {message}")
+    with _PENDING_LOCK:
+        _QUEUE_EVENTS.append(message)
+        if len(_QUEUE_EVENTS) > _QUEUE_EVENTS_MAX:
+            del _QUEUE_EVENTS[:-_QUEUE_EVENTS_MAX]
+    try:
+        from config import DATA_DIR
+        log_path = DATA_DIR / "sync_issues.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "event": "upload_queue",
+                "message": message,
+            }) + "\n")
+    except Exception:
+        # Logging must never itself break the sync/merge path.
+        pass
+
+
+def _drain_pending() -> None:
+    """Drains the coalescing backlog while the calling worker holds a slot."""
+    while True:
+        with _PENDING_LOCK:
+            if not _PENDING:
+                return
+            rel, (fn, args) = next(iter(_PENDING.items()))
+            del _PENDING[rel]
+        try:
+            fn(*args)
+            _queue_event(f"drained pending upload {rel}")
+        except Exception as exc:
+            _queue_event(f"pending upload FAILED {rel}: {exc!r} (next write re-mirrors)")
+
+
+def _dispatch_upload(target_func, *args):
+    """Dispatches background sync in a daemon thread bounded by semaphore.
+
+    R40: no silent loss. When all workers are busy, the upload is coalesced
+    into the pending map (latest content wins per file) and drained by the
+    next free worker. Pending overflow beyond the bound logs a LOUD event and
+    falls back to the old semantics (the next write of that file mirrors it).
+    """
+    rel = args[0] if args else ""
+
+    def _worker():
+        if not _UPLOAD_SEMAPHORE.acquire(blocking=False):
+            dropped = False
+            with _PENDING_LOCK:
+                existed = rel in _PENDING
+                if existed or len(_PENDING) < _PENDING_MAX:
+                    _PENDING[rel] = (target_func, args)
+                else:
+                    dropped = True
+                backlog = len(_PENDING)
+            if dropped:
+                _queue_event(
+                    f"OVERFLOW: dropped upload {rel} (backlog={backlog}); "
+                    f"the next write of that file re-mirrors it")
+            elif not existed:
+                _queue_event(f"queued upload {rel} (backlog={backlog})")
+            return
+        try:
+            target_func(*args)
+        finally:
+            _drain_pending()
+            _UPLOAD_SEMAPHORE.release()
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
 
 
 def _is_persistent_host() -> bool:
@@ -28,17 +115,6 @@ def _is_persistent_host() -> bool:
     )
 
 
-def _dispatch_upload(target_func, *args):
-    """Dispatches background sync in a daemon thread bounded by semaphore."""
-    def _worker():
-        if not _UPLOAD_SEMAPHORE.acquire(blocking=False):
-            return
-        try:
-            target_func(*args)
-        finally:
-            _UPLOAD_SEMAPHORE.release()
-    t = threading.Thread(target=_worker, daemon=True)
-    t.start()
 from config import (
     DATA_DIR,
     GOOGLE_DRIVE_FOLDER_ID,

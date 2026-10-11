@@ -14,6 +14,7 @@ from config import MASTER_QUOTAS_CSV, MASTER_USERS_CSV
 from db.csv_engine import CSVEngine
 from db.migration_engine import (
     baselines_for as migration_baselines_for,
+    history_rows as migration_history_rows,
     validate_employee_history as migration_validate_history,
     commit_employee_history as migration_commit_history,
     history_grand_totals as migration_grand_totals,
@@ -71,6 +72,10 @@ def get_employees_profile(h, path, query_params):
     final_support = quota_result.get("support_logs_count", 0)
     quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS)
     q = next((item for item in quotas if item.get("emp_id", "").strip().upper() == clean_id), {})
+    # R40: one history snapshot + one summary compute feeds both year fields
+    # (pre-R40: two summary calls = six history reads per profile request).
+    _legacy_summary = migration_history_summary(
+        str(target.get("id", "")).strip().upper(), rows=migration_history_rows())
 
     h._send_json({
         "found": True,
@@ -96,8 +101,8 @@ def get_employees_profile(h, path, query_params):
             "legacy_clubs_count": quota_result.get("legacy_clubs_count", 0),
             "legacy_support_count": quota_result.get("legacy_support_count", 0),
             "legacy_online_workshops_count": quota_result.get("legacy_online_workshops_count", 0),
-            "legacy_first_year": (migration_history_summary(str(target.get("id", "")).strip().upper()) or {}).get("first_year"),
-            "legacy_last_year": (migration_history_summary(str(target.get("id", "")).strip().upper()) or {}).get("last_year"),
+            "legacy_first_year": (_legacy_summary or {}).get("first_year"),
+            "legacy_last_year": (_legacy_summary or {}).get("last_year"),
             "last_activity_timestamp": q.get("last_activity_timestamp", "")
         }
     })

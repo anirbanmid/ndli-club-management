@@ -17,6 +17,7 @@ from db import counting_rules
 from db.csv_engine import CSVEngine
 from db.migration_engine import (
     baselines_for as migration_baselines_for,
+    history_rows as migration_history_rows,
     validate_employee_history as migration_validate_history,
     commit_employee_history as migration_commit_history,
     history_grand_totals as migration_grand_totals,
@@ -35,6 +36,9 @@ def get_admin_metrics(h, path, query_params):
     all_activities = CSVEngine.read_all(MASTER_ACTIVITIES_CSV, ACTIVITY_FIELDS, copy=False)
     all_quotas = CSVEngine.read_all(MASTER_QUOTAS_CSV, QUOTA_FIELDS, copy=False)
     all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS, copy=False)
+    # R40: read the migrated history ONCE per request (read-only seam) —
+    # pre-R40 this file was re-read by every history helper in the chain.
+    hist_rows = migration_history_rows()
 
     # Query Filters: Scope by Zone and/or Year
     raw_zone = query_params.get("zone", ["ALL"])[0].strip()
@@ -46,7 +50,7 @@ def get_admin_metrics(h, path, query_params):
     # (R30v2: incl. MIGRATED HISTORY period years — the worksheets
     # bucket by Year_id, never the entry timestamp)
     available_years_set = {"2026", "2025", "2024"}
-    for _hy in migration_period_years():
+    for _hy in migration_period_years(rows=hist_rows):
         available_years_set.add(_hy)
     for c in all_clubs:
         ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
@@ -210,7 +214,13 @@ def get_admin_metrics(h, path, query_params):
     # imported). Migrated totals follow the dashboard's zone/year scope.
     _h = counting_rules.headline(filtered_clubs,
                                  filter_year=filter_year,
-                                 filter_zone=filter_zone)
+                                 filter_zone=filter_zone,
+                                 # R40: the migrated half comes from the
+                                 # request's single history snapshot.
+                                 migrated_totals=migration_grand_totals(
+                                     filter_year=filter_year,
+                                     filter_zone=filter_zone,
+                                     rows=hist_rows))
     # R38: quota rows carry their live halves from the SAME module so
     # the JS never does split arithmetic (it used to subtract).
     quota_rows = []
@@ -290,6 +300,8 @@ def get_admin_employee_performance(h, path, query_params):
     all_users = CSVEngine.read_all(MASTER_USERS_CSV, USER_FIELDS)
     all_clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
     all_activities = SyncEngine.combined_activities_for()
+    # R40: one history snapshot per request feeds every helper below.
+    hist_rows = migration_history_rows()
 
     # Build club lookup for activity state resolution
     club_lookup = {c.get("club_id", "").strip().upper(): c for c in all_clubs if c.get("club_id")}
@@ -297,7 +309,7 @@ def get_admin_employee_performance(h, path, query_params):
     # Discover available years dynamically
     # (R30v2: incl. MIGRATED HISTORY period years)
     available_years_set = {"2026", "2025", "2024"}
-    for _hy in migration_period_years():
+    for _hy in migration_period_years(rows=hist_rows):
         available_years_set.add(_hy)
     for c in all_clubs:
         ts = c.get("date_of_approval", "") or c.get("submission_timestamp", "") or c.get("updated_at", "")
@@ -452,7 +464,8 @@ def get_admin_employee_performance(h, path, query_params):
         # the client-worksheet baseline rides alongside live counts,
         # sliced by the SAME period/state filters as the live numbers.
         _base = migration_baselines_for(emp_id, filter_year,
-                                        target_month_num, filter_state)
+                                        target_month_num, filter_state,
+                                        rows=hist_rows)
         live_clubs_approved = clubs_approved
         live_other_supports = other_supports
         live_online_training = online_training

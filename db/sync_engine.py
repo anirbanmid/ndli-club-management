@@ -5,6 +5,7 @@ Maintains synchronization between Employee Node CSVs and Master CSVs.
 import os
 import shutil
 import threading
+from functools import lru_cache
 from datetime import datetime, timezone, date, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -38,15 +39,15 @@ _SYNC_LOCK = threading.RLock()
 RENEWAL_DEDUPE_WINDOW_SEC = 60
 
 
-def parse_iso_or_date(val: Any) -> Optional[date]:
-    """Safely extracts a calendar date object from an ISO string, date string, or timestamp."""
-    if val is None:
-        return None
-    if isinstance(val, datetime):
-        return val.date()
-    if isinstance(val, date):
-        return val
-    s = str(val).strip()
+@lru_cache(maxsize=131072)
+def _parse_string_date(s: str) -> Optional[date]:
+    """Cached core of parse_iso_or_date for string inputs (R40).
+
+    Pure function of its input; the hot paths (renewal attention, metrics year
+    discovery) call it O(rows) times per request over the same handful of
+    date formats. lru_cache is thread-safe.
+    """
+    s = s.strip()
     if not s or s == "-":
         return None
     clean = s.split("T")[0].split(" ")[0].strip()
@@ -72,6 +73,17 @@ def parse_iso_or_date(val: Any) -> Optional[date]:
     except Exception:
         pass
     return None
+
+
+def parse_iso_or_date(val: Any) -> Optional[date]:
+    """Safely extracts a calendar date object from an ISO string, date string, or timestamp."""
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val.date()
+    if isinstance(val, date):
+        return val
+    return _parse_string_date(str(val))
 
 
 def calculate_next_renewal_date(
