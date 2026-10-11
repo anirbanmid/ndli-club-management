@@ -50,6 +50,49 @@ from db.sync_engine import SyncEngine, parse_iso_or_date, calculate_next_renewal
 # fingerprint, so reading the source cannot reveal the digits). Tests
 # monkeypatch this constant with a test-only digest.
 HANDOVER_PIN_SHA256 = "b2f528d83314a6d2a93027e75a428828db4916c06bc3442df4f68cd739715532"
+
+# ---- R35: PPT TRAINING LIBRARY (2 slots sharing ONE 15 MB budget) ----
+# Slot metadata lives in data/training/meta.json; the decks themselves are
+# slot1.<ext> / slot2.<ext>. Uploads travel base64-in-JSON (same convention as
+# the PI signature upload). Nothing here is public: listing/downloading needs
+# any authenticated session, uploading/deleting needs the Master Admin.
+
+TRAINING_MAX_TOTAL_BYTES = 15 * 1024 * 1024  # "15MB TOTAL" (user spec 2026-10-11)
+TRAINING_EXTS = (".ppt", ".pptx", ".ppsx")
+TRAINING_DIR = DATA_DIR / "training"
+TRAINING_META = DATA_DIR / "training" / "meta.json"
+TRAINING_SLOTS = ("1", "2")
+TRAINING_CONTENT_TYPES = {
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".ppsx": "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+}
+
+
+def training_meta_load() -> Dict[str, Any]:
+    try:
+        if TRAINING_META.exists():
+            data = json.loads(TRAINING_META.read_text(encoding="utf-8"))
+            slots = data.get("slots", data)
+            return {str(k): v for k, v in slots.items() if str(k) in TRAINING_SLOTS}
+    except Exception:
+        pass
+    return {}
+
+
+def training_meta_save(slots: Dict[str, Any]) -> None:
+    TRAINING_DIR.mkdir(parents=True, exist_ok=True)
+    TRAINING_META.write_text(json.dumps({"slots": slots}, indent=2), encoding="utf-8")
+
+
+def training_slot_file(slot: str) -> Optional[Path]:
+    if not TRAINING_DIR.exists():
+        return None
+    for f in TRAINING_DIR.glob(f"slot{slot}.*"):
+        if f.is_file():
+            return f
+    return None
+
 from db.migration_engine import (
     baselines_for as migration_baselines_for,
     validate_employee_history as migration_validate_history,
@@ -1767,6 +1810,47 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
             return
 
+        # ---- R35: PPT TRAINING LIBRARY — list decks (any authenticated session) ----
+        if path == "/api/training/files":
+            if not self._require_session():
+                return
+            slots = training_meta_load()
+            total = sum(int(i.get("size", 0) or 0) for i in slots.values())
+            self._send_json({
+                "success": True,
+                "slots": slots,
+                "total_bytes": total,
+                "max_total_bytes": TRAINING_MAX_TOTAL_BYTES,
+            })
+            return
+
+        # ---- R35: single-click training deck download (any authenticated session) ----
+        if path.startswith("/api/training/download/"):
+            if not self._require_session():
+                return
+            slot = path.rsplit("/", 1)[-1].strip()
+            if slot not in TRAINING_SLOTS:
+                self._send_error("Unknown training slot (only 1 and 2 exist).", status=404)
+                return
+            f = training_slot_file(slot)
+            if not f or not f.exists():
+                self._send_error("No training deck uploaded to this slot yet.", status=404)
+                return
+            slots = training_meta_load()
+            orig = (slots.get(slot) or {}).get("filename") or f.name
+            orig = str(orig).replace('"', "").replace("\n", "").replace("\r", "") or f.name
+            try:
+                content = f.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", TRAINING_CONTENT_TYPES.get(f.suffix.lower(), "application/octet-stream"))
+                self.send_header("Content-Disposition", f'attachment; filename="{orig}"')
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                self._send_error(f"Error serving training deck: {str(e)}", status=500)
+            return
+
         self._send_error(f"Endpoint not found: {path}", status=404)
 
     def do_POST(self):
@@ -3368,6 +3452,95 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(res)
             else:
                 self._send_json({"success": True, "message": "Storage adapter is running in local sync mode.", "info": adapter.get_info()})
+            return
+
+        # ---- R35: PPT TRAINING LIBRARY — admin upload/replace ----
+        if path == "/api/admin/training/upload":
+            if not self._check_admin_access():
+                return
+            slot = str(body.get("slot", "")).strip()
+            if slot not in TRAINING_SLOTS:
+                self._send_error("slot must be 1 or 2.", status=400)
+                return
+            filename = str(body.get("filename", "")).strip()
+            ext = Path(filename).suffix.lower()
+            if ext not in TRAINING_EXTS:
+                self._send_error("Only .ppt, .pptx and .ppsx files are accepted.", status=422)
+                return
+            b64_str = body.get("data", "")
+            if not isinstance(b64_str, str) or not b64_str.strip():
+                self._send_error("Missing file data (expected a base64 'data' field).", status=400)
+                return
+            try:
+                raw_bytes = base64.b64decode(b64_str)
+            except Exception as e:
+                self._send_error(f"Invalid base64 file data: {e}", status=400)
+                return
+            if not raw_bytes:
+                self._send_error("Uploaded file is empty.", status=400)
+                return
+            # Content sanity: OOXML decks (.pptx/.ppsx) are ZIP containers
+            if ext in (".pptx", ".ppsx") and not raw_bytes.startswith(b"PK"):
+                self._send_error("This file is not a valid .pptx/.ppsx deck.", status=422)
+                return
+            # ONE 15 MB budget shared by both slots — the OTHER slot's size counts
+            slots = training_meta_load()
+            other = sum(int(i.get("size", 0) or 0) for s, i in slots.items() if s != slot)
+            if other + len(raw_bytes) > TRAINING_MAX_TOTAL_BYTES:
+                self._send_error(
+                    f"Training library is full: both decks must fit in "
+                    f"{TRAINING_MAX_TOTAL_BYTES // (1024 * 1024)} MB COMBINED "
+                    f"(slot {slot} would need {len(raw_bytes)} bytes on top of "
+                    f"{other} already used).", status=413)
+                return
+            TRAINING_DIR.mkdir(parents=True, exist_ok=True)
+            # Replace semantics: any previous file for this slot is removed first
+            for old in TRAINING_DIR.glob(f"slot{slot}.*"):
+                if old.is_file():
+                    old.unlink()
+            target = TRAINING_DIR / f"slot{slot}{ext}"
+            target.write_bytes(raw_bytes)
+            session = self._get_auth_session() or {}
+            slots[slot] = {
+                "filename": filename,
+                "size": len(raw_bytes),
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "uploaded_by": str(session.get("email") or session.get("id") or ""),
+            }
+            training_meta_save(slots)
+            used = sum(int(i.get("size", 0) or 0) for i in slots.values())
+            self._send_json({
+                "success": True,
+                "message": (f"Training deck saved to slot {slot} — "
+                            f"{used} of {TRAINING_MAX_TOTAL_BYTES} bytes used."),
+                "slots": slots,
+                "total_bytes": used,
+                "max_total_bytes": TRAINING_MAX_TOTAL_BYTES,
+            })
+            return
+
+        # ---- R35: PPT TRAINING LIBRARY — admin delete (frees budget) ----
+        if path == "/api/admin/training/delete":
+            if not self._check_admin_access():
+                return
+            slot = str(body.get("slot", "")).strip()
+            if slot not in TRAINING_SLOTS:
+                self._send_error("slot must be 1 or 2.", status=400)
+                return
+            slots = training_meta_load()
+            removed = False
+            if TRAINING_DIR.exists():
+                for old in TRAINING_DIR.glob(f"slot{slot}.*"):
+                    if old.is_file():
+                        old.unlink()
+                        removed = True
+            slots.pop(slot, None)
+            training_meta_save(slots)
+            self._send_json({
+                "success": True,
+                "message": f"Slot {slot} cleared." if removed else f"Slot {slot} was already empty.",
+                "slots": slots,
+            })
             return
 
         self._send_error(f"Endpoint not found: {path}", status=404)

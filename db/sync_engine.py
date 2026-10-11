@@ -1095,6 +1095,7 @@ class SyncEngine:
             assistant_feedback (his capabilities live in code + the manual KB,
             never in these logs, so this cannot degrade him)
           * sync_issues.log
+          * R35: both PPT training decks (data/training/)
 
         NO reseed of any kind: no test clubs, no quotas. This intentionally
         replaces the old `reset_all_and_reseed` ("Reset Test Data") semantics.
@@ -1174,14 +1175,37 @@ class SyncEngine:
             except Exception:
                 sync_log_wiped = False
 
+            # 5. R35 tie-in: the two training decks do NOT survive the handover
+            #    (nothing but the provisioned accounts does — client re-uploads).
+            training = cls.wipe_training_slots()
+
             return {
                 "accounts_kept": accounts_kept,
                 "nodes_wiped": nodes_wiped,
                 "history_wiped": history_wiped,
                 "assistant_logs_wiped": assistant_logs_wiped,
                 "sync_log_wiped": sync_log_wiped,
+                "training_slots_wiped": training.get("training_slots_wiped", 0),
                 "reseeded": False,
             }
+
+    @staticmethod
+    def wipe_training_slots() -> Dict[str, Any]:
+        """
+        Hard-reset helper (R35): remove both PPT training decks and their
+        metadata — the training library never survives the handover.
+        """
+        removed = []
+        tdir = DATA_DIR / "training"
+        if tdir.exists():
+            for f in tdir.iterdir():
+                if f.is_file():
+                    try:
+                        f.unlink()
+                        removed.append(f.name)
+                    except Exception:
+                        pass
+        return {"training_slots_wiped": len(removed)}
 
     @classmethod
     def update_club(
