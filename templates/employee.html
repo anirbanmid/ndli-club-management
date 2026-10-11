@@ -3441,7 +3441,7 @@
         // supports), each cell being live work + migrated history.
         const liveOnline = parseInt(emp.live_online_training || 0, 10) || 0;
         const liveOffline = parseInt(emp.live_offline_training || 0, 10) || 0;
-        const liveOther = parseInt(emp.live_other_supports !== undefined ? emp.live_other_supports : (supportCount - legacySupport), 10) || 0;
+        const liveOther = parseInt(emp.live_other_supports !== undefined ? emp.live_other_supports : 0, 10) || 0;
         const migWorkshops = parseInt(emp.legacy_online_workshops_count || 0, 10) || 0;
         onlineShown = liveOnline + migWorkshops;
         offlineShown = liveOffline;
@@ -3461,8 +3461,10 @@
             // R29: also show the LIVE half so the line reads "X live + Y migrated"
             // (the old "incl." wording made the migrated part look contained in
             // the headline number, which it is not).
-            const liveClubsShown = parseInt(emp.live_clubs_approved_count !== undefined ? emp.live_clubs_approved_count : (clubsCount - legacyClubs), 10) || 0;
-            const liveSupportShown = parseInt(emp.live_support_logs_count !== undefined ? emp.live_support_logs_count : (supportCount - legacySupport), 10) || 0;
+            // R38: live halves arrive computed from db/counting_rules.py —
+            // never derived by subtraction here.
+            const liveClubsShown = parseInt(emp.live_clubs_approved_count !== undefined ? emp.live_clubs_approved_count : 0, 10) || 0;
+            const liveSupportShown = parseInt(emp.live_support_logs_count !== undefined ? emp.live_support_logs_count : 0, 10) || 0;
             const lvc = document.getElementById("quota-live-clubs");
             const lvs = document.getElementById("quota-live-support");
             if (lvc) lvc.innerText = String(liveClubsShown);

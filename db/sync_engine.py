@@ -29,6 +29,7 @@ from db.schemas import (
 from db.csv_engine import CSVEngine
 from state_zone_mapper import get_zone_for_state
 from db.migration_engine import baselines_for as _migration_baselines_for
+from db import counting_rules
 
 _SYNC_LOCK = threading.RLock()
 # Round-2 duplicate-renewal guard: a second "Renewal Approved" for the same club
@@ -206,26 +207,11 @@ class SyncEngine:
     def bucket_activity(a: Dict[str, Any]) -> str:
         """Classify one activity row for performance counting.
 
+        R38: the rule itself lives in db/counting_rules.bucket_activity (the
+        single source); this stays as the engine's well-known entry point.
         Returns 'approval' | 'online' | 'offline' | 'other' | 'skip'.
-
-        - 'skip' is ONLY the "Data Migration" audit-marker row (the bulk-
-          number summary row): history bookkeeping, never live work.
-        - 'other' is deliberately a CATCH-ALL: phone/OS-ticket support,
-          "Registration Renewal", "Data Correction", and any support_type
-          added in the future -- nothing may fall through uncounted.
         """
-        stype = (a.get("support_type") or "").strip()
-        aid = (a.get("activity_id") or "").strip()
-        a_emp = (a.get("emp_id") or "").strip().upper()
-        if stype == "Data Migration":
-            return "skip"
-        if stype == "Club Approval" or (a_emp and aid.startswith(f"ACT-PRIORITY-{a_emp}")):
-            return "approval"
-        if stype == "Online training":
-            return "online"
-        if stype == "Offline training":
-            return "offline"
-        return "other"
+        return counting_rules.bucket_activity(a)
 
     @classmethod
     def combined_activities_for(cls, emp_id: str = "") -> List[Dict[str, Any]]:
@@ -804,7 +790,7 @@ class SyncEngine:
                 # R30: migrated/imported clubs are history — their performance
                 # credit lives in the migrated baseline, never here (the
                 # anti-double-count switch: past and present stay separate).
-                if str(c.get("record_origin", "")).strip().lower() == "imported":
+                if counting_rules.is_imported_record(c):
                     continue
                 cid = c.get("club_id", "").strip().upper()
                 if cid and cid in master_club_ids:
@@ -812,7 +798,7 @@ class SyncEngine:
                     if not c_owner or c_owner == clean_id:
                         approved_club_ids.add(cid)
         for c in master_clubs:
-            if str(c.get("record_origin", "")).strip().lower() == "imported":
+            if counting_rules.is_imported_record(c):
                 continue
             if c.get("approved_by_emp_id", "").strip().upper() == clean_id:
                 cid = c.get("club_id", "").strip().upper()
@@ -840,8 +826,7 @@ class SyncEngine:
                 cid = a.get("club_id", "").strip().upper()
                 if cid and cid in master_club_ids:
                     c_owner = master_club_ids[cid].get("approved_by_emp_id", "").strip().upper()
-                    c_origin = master_club_ids[cid].get("record_origin", "").strip().lower()
-                    if c_origin != "imported" and (not c_owner or c_owner == clean_id):
+                    if (not counting_rules.is_imported_record(master_club_ids[cid])) and (not c_owner or c_owner == clean_id):
                         approved_club_ids.add(cid)
                         club_approval_acts += 1
             elif bucket == "online":

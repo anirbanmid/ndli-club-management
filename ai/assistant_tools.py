@@ -49,6 +49,7 @@ from db.schemas import (
     USER_FIELDS,
 )
 from db.csv_engine import CSVEngine
+from db import counting_rules
 from db.issue_manager import IssueManager
 from db.sync_engine import SyncEngine, calculate_next_renewal_date, parse_iso_or_date
 from ai.decision_module import AIDecisionEngine
@@ -121,25 +122,16 @@ def _read_master_clubs() -> List[Dict[str, Any]]:
 
 
 def _split_origin(clubs: List[Dict[str, Any]]) -> Tuple[int, int]:
-    """Record-level provenance split (R24/R31): a club RECORD is migrated iff
-    record_origin == "imported" (PA rows map 1:1). This is the REGISTER's
-    record-level view — NOT the headline count. The headline "Y migrated" is
-    the migrated club APPROVALS baseline (dashboard rule, see
-    `_migrated_totals`): history is numbers-first (worksheets), and adding the
-    imported records on top of the baseline would double-count."""
-    migrated = sum(
-        1 for c in clubs
-        if str(c.get("record_origin", "")).strip().lower() == "imported"
-    )
-    return len(clubs) - migrated, migrated
+    """Record-level provenance split (R24/R31) — R38: the rule lives in
+    db.counting_rules (single source); this is a thin alias kept for the
+    tool layer's readability. See counting_rules.split_register_rows."""
+    return counting_rules.split_register_rows(clubs)
 
 
 def _migrated_totals() -> Dict[str, Any]:
-    """Migrated HISTORY grand totals (dashboard rule): the same source the
-    admin KPI's "X live + Y migrated club approvals (history)" line reads
-    (db.migration_engine.history_grand_totals). Read-only."""
-    from db.migration_engine import history_grand_totals
-    return history_grand_totals()
+    """Migrated HISTORY grand totals (dashboard rule) — R38: delegated to
+    db.counting_rules (single source). Read-only."""
+    return counting_rules.migrated_history_totals()
 
 
 def _read_master_activities() -> List[Dict[str, Any]]:
@@ -243,18 +235,17 @@ def _clubs_list(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
         state_counts[st] = state_counts.get(st, 0) + 1
         zone_counts[zn] = zone_counts.get(zn, 0) + 1
     top_zone = max(zone_counts.items(), key=lambda kv: kv[1]) if zone_counts else ("", 0)
-    live_clubs, register_migrated_rows = _split_origin(clubs)
-    _mig = _migrated_totals()
-    migrated_approvals = int(_mig.get("approvals", 0) or 0)
+    # R38: the headline counts come from THE counting module (single source).
+    _h = counting_rules.headline(clubs, migrated_totals=_migrated_totals())
     return {
         "tool": "clubs.list",
         "scope": "aggregate",
-        "total_clubs": len(clubs),
-        "register_rows": len(clubs),
-        "live_clubs": live_clubs,
-        "register_migrated_rows": register_migrated_rows,
-        "migrated_approvals": migrated_approvals,
-        "programme_total": live_clubs + migrated_approvals,
+        "total_clubs": _h["register_rows"],
+        "register_rows": _h["register_rows"],
+        "live_clubs": _h["live_clubs"],
+        "register_migrated_rows": _h["register_migrated_rows"],
+        "migrated_approvals": _h["migrated_approvals"],
+        "programme_total": _h["programme_total"],
         "states_represented": len([s for s, n in state_counts.items() if n > 0 and s != "Unknown"]),
         "zone_distribution": zone_counts,
         "top_zone": top_zone[0],
@@ -435,18 +426,17 @@ def _metrics_get(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
         state_counts[st] = state_counts.get(st, 0) + 1
         zone_counts[zn] = zone_counts.get(zn, 0) + 1
     attention = AIDecisionEngine.get_renewal_attention_data()
-    live_clubs, register_migrated_rows = _split_origin(clubs)
-    _mig = _migrated_totals()
-    migrated_approvals = int(_mig.get("approvals", 0) or 0)
+    # R38: the headline counts come from THE counting module (single source).
+    _h = counting_rules.headline(clubs, migrated_totals=_migrated_totals())
     return {
         "tool": "metrics.get",
         "scope": "aggregate",
-        "total_clubs": len(clubs),
-        "register_rows": len(clubs),
-        "live_clubs": live_clubs,
-        "register_migrated_rows": register_migrated_rows,
-        "migrated_approvals": migrated_approvals,
-        "programme_total": live_clubs + migrated_approvals,
+        "total_clubs": _h["register_rows"],
+        "register_rows": _h["register_rows"],
+        "live_clubs": _h["live_clubs"],
+        "register_migrated_rows": _h["register_migrated_rows"],
+        "migrated_approvals": _h["migrated_approvals"],
+        "programme_total": _h["programme_total"],
         "total_activities": len(activities),
         "total_employees": sum(1 for u in users if u.get("role") == "EMPLOYEE"),
         "states_represented": len([s for s, n in state_counts.items() if n > 0 and s != "Unknown"]),

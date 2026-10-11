@@ -142,8 +142,11 @@ class TestR30V2SmokeFixes(unittest.TestCase):
         self.assertIn('id="kpi-clubs-migrated"', adm)
         self.assertIn('id="kpi-activities-migrated"', adm)
         self.assertIn("migrated_totals", adm)
-        # R30v3: combined headline + explicit split wording (never "incl.")
-        self.assertIn("liveClubs + migApprovals", adm)
+        # R38: the headline total comes from the API (counting_rules module),
+        # never JS addition (this pin replaced the R30v3 "liveClubs +
+        # migApprovals" pin when the rule went single-source).
+        self.assertIn("data.summary.programme_total", adm)
+        self.assertNotIn("liveClubs + migApprovals", adm)
         self.assertIn("live + ${migApprovals} migrated club approvals (history)", adm)
         self.assertIn("live logs + ${migSupport} migrated support interactions (history)", adm)
         self.assertNotIn("incl. ${mig", adm)

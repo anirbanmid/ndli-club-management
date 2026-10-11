@@ -1859,13 +1859,17 @@
       // R30v3: headline = live + migrated (the combined programme total).
       // live_clubs excludes imported records, so bulk-importing the club log
       // can never double-count.
+      // R38: the arithmetic lives server-side (db/counting_rules.py) — this
+      // renders the fields it is given and never re-derives them.
       const migTotals = (data.summary && data.summary.migrated_totals) || {};
       const liveClubs = (data.summary.live_clubs !== undefined)
         ? data.summary.live_clubs : (data.summary.total_clubs || 0);
-      const migApprovals = migTotals.approvals || 0;
+      const migApprovals = (data.summary.migrated_approvals !== undefined)
+        ? data.summary.migrated_approvals : (migTotals.approvals || 0);
       const migSupport = migTotals.support || 0;
-      document.getElementById("kpi-clubs").innerText = liveClubs + migApprovals;
-      document.getElementById("kpi-activities").innerText = (data.summary.total_activities || 0) + migSupport;
+      const programmeTotal = data.summary.programme_total || 0;
+      document.getElementById("kpi-clubs").innerText = programmeTotal;
+      document.getElementById("kpi-activities").innerText = data.summary.programme_activities || 0;
       document.getElementById("kpi-nodes").innerText = data.summary.total_employees !== undefined ? data.summary.total_employees : 7;
       if (data.summary.renewal_attention_count !== undefined) {
         document.getElementById("kpi-renewals").innerText = data.summary.renewal_attention_count;
@@ -2415,15 +2419,19 @@
         }
         // R29: split the total into live work vs migrated history (the quota
         // rows carry the baseline in legacy_* columns).
+        // R38: the live halves arrive computed from db/counting_rules.py
+        // (live_clubs_count / live_support_count) — never subtract here.
         const migClubs = parseInt(q.legacy_clubs_count || 0, 10) || 0;
         const migSupport = parseInt(q.legacy_support_count || 0, 10) || 0;
+        const liveClubs = parseInt(q.live_clubs_count || 0, 10) || 0;
+        const liveSupport = parseInt(q.live_support_count || 0, 10) || 0;
         return {
           name: q.employee_name || q.emp_id,
           empId: q.emp_id,
           zone: q.zone || "",
           clubs, support,
-          liveClubs: clubs - migClubs, migClubs,
-          liveSupport: support - migSupport, migSupport,
+          liveClubs, migClubs,
+          liveSupport, migSupport,
           total: clubs + support,
           recency
         };

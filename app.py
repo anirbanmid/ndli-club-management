@@ -101,6 +101,7 @@ from db.migration_engine import (
     history_period_years as migration_period_years,
     history_summary as migration_history_summary,
 )
+from db import counting_rules
 from db.storage_adapter import get_storage_adapter
 from db.backup_engine import BackupEngine
 from db.issue_manager import IssueManager
@@ -839,25 +840,43 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     "ratio": round(s_cnt / max(1, c_cnt), 2)
                 }
 
-            # R30v3: honest KPI split. The LIVE club count excludes imported
-            # records on purpose — those ARE the migrated clubs (counting both
-            # the records and the baseline would double-count the moment the
-            # client club log is bulk imported). Migrated totals follow the
-            # dashboard's zone/year scope.
-            live_clubs_count = sum(
-                1 for c in filtered_clubs
-                if str(c.get("record_origin", "")).strip().lower() != "imported")
-            _mig = migration_grand_totals(filter_year=filter_year,
-                                          filter_zone=filter_zone)
+            # R38: THE counting module computes the headline (single source —
+            # db/counting_rules.py). live excludes imported records on purpose
+            # — those ARE the migrated clubs (counting both the records and the
+            # baseline would double-count the moment the client club log is bulk
+            # imported). Migrated totals follow the dashboard's zone/year scope.
+            _h = counting_rules.headline(filtered_clubs,
+                                         filter_year=filter_year,
+                                         filter_zone=filter_zone)
+            # R38: quota rows carry their live halves from the SAME module so
+            # the JS never does split arithmetic (it used to subtract).
+            quota_rows = []
+            for q in quotas:
+                _ql, _qm = counting_rules.split_total(
+                    q.get("clubs_approved_count", 0), q.get("legacy_clubs_count", 0))
+                _sl, _sm = counting_rules.split_total(
+                    q.get("support_logs_count", 0), q.get("legacy_support_count", 0))
+                quota_rows.append({**q,
+                                   "live_clubs_count": _ql,
+                                   "live_support_count": _sl})
             self._send_json({
                 "summary": {
-                    "total_clubs": len(filtered_clubs),
-                    "live_clubs": live_clubs_count,
+                    "total_clubs": _h["register_rows"],
+                    "live_clubs": _h["live_clubs"],
+                    "register_migrated_rows": _h["register_migrated_rows"],
+                    "migrated_approvals": _h["migrated_approvals"],
+                    "programme_total": _h["programme_total"],
                     "total_activities": len(filtered_activities),
+                    "programme_activities": counting_rules.blended_total(
+                        len(filtered_activities), _h["migrated_support"]),
                     "total_employees": len(filtered_emp_users),
-                    "quotas": quotas,
+                    "quotas": quota_rows,
                     "renewal_attention_count": attention_data["total_attention_count"],
-                    "migrated_totals": _mig
+                    # the pre-R38 shape of the history totals (callers read
+                    # these keys); the headline fields live one level up now.
+                    "migrated_totals": {k: _h[k] for k in
+                                        ("approvals", "support", "online_workshops",
+                                         "employees_migrated", "first_year", "last_year")}
                 },
                 "filters": {
                     "zone": filter_zone,
@@ -964,7 +983,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                 # credit lives in the migrated baseline (injected below), never
                 # in the live approval sets (anti-double-count: the club log and
                 # the activity worksheets are separate sources by design).
-                if str(c.get("record_origin", "")).strip().lower() == "imported":
+                if counting_rules.is_imported_record(c):
                     continue
                 c_state = c.get("state", "").strip()
                 if filter_state != "ALL" and c_state.lower() != filter_state.lower():
@@ -1043,8 +1062,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
                     continue
                 if bucket == "approval":
                     if a_emp in clubs_approved_by_emp_set and cid and cid in club_lookup:
-                        _ref_origin = str(club_lookup.get(cid, {}).get("record_origin", "")).strip().lower()
-                        if _ref_origin != "imported":
+                        if not counting_rules.is_imported_record(club_lookup.get(cid, {})):
                             clubs_approved_by_emp_set[a_emp].add(cid)
                 elif bucket == "online":
                     act_stats_by_emp[a_emp]["online"] += 1
