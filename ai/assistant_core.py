@@ -290,6 +290,17 @@ _EXPLAIN_REPORT_RE = re.compile(
 _REC_INDEX_RE = re.compile(
     r"\b(?:recommendation|rec|point|item|suggestion)\s*#?\s*(\d+)\b", re.IGNORECASE)
 
+# R37 v5.0: the counting rule ("X live + Y migrated"). Checked BEFORE the
+# app-help gate so "how are clubs counted" gets the live-grounded rule answer
+# instead of a manual quote.
+_COUNT_RULE_RE = re.compile(
+    r"\bcounting rule\b|\bhow (?:are|is)\b[^.?]*\bcount(?:ed|s)?\b"
+    r"|\b(?:live|new)\b[^.?]*\b(?:migrated|imported|historical|legacy)\b"
+    r"|\b(?:migrated|imported|historical|legacy)\b[^.?]*\b(?:live|new)\b"
+    r"|\bcount(?:ed|s|ing)?\b[^.?]*\b(?:migrated|imported|historical|legacy)\b"
+    r"|\bwhy (?:do|does|is|are)\b[^.?]*\b(?:count|total|number)s?\b",
+    re.IGNORECASE)
+
 # Section explainers: ordered so "unrepresented" beats "states".
 _EXPLAIN_SECTION_RES: List[Tuple[str, re.Pattern]] = [
     ("unrepresented", re.compile(r"\bunrepresented\b", re.IGNORECASE)),
@@ -323,12 +334,28 @@ _INTENT_RULES: List[Tuple[str, re.Pattern]] = [
 # not steal plain "renew" questions), then the broader approval/registration rule.
 _HELP_TASK_RULES: List[Tuple[str, re.Pattern]] = [
     ("view_renewals", re.compile(r"\b(view|see|show|check|where)\b.*\brenew\w*\b|\brenew\w*\b.*\b(view|see|show|check|where)\b", re.IGNORECASE)),
-    ("bulk_import_csv", re.compile(r"\b(bulk|csv)\b.*\bimport\w*\b|\bimport\w*\b.*\b(bulk|csv)\b", re.IGNORECASE)),
+    ("bulk_history_upload", re.compile(
+        r"\bdata migration\b|\bclub history\b|"
+        r"\b(history|historical|existing|legacy|migrat\w*)\b[^.?]*\b(bulk|upload\w*|csv)\b|"
+        r"\b(bulk|upload\w*|csv)\b[^.?]*\b(history|historical|existing|legacy|migrat\w*)\b",
+        re.IGNORECASE)),
+    ("bulk_new_clubs", re.compile(
+        r"\b(bulk|csv)\b[^.?]*\b(new|add\w*|create\w*|import\w*)\b|"
+        r"\b(new|add\w*|create\w*|import\w*)\b[^.?]*\b(bulk|csv)\b",
+        re.IGNORECASE)),
     ("import_existing_club", re.compile(r"\bimport\w*\b.*\b(club|existing|legacy|historical)\w*\b|\b(existing|legacy|historical)\w*\b.*\bimport\w*\b", re.IGNORECASE)),
     ("correct_historical_dates", re.compile(r"\b(correct|fix|wrong)\w*\b.*\b(date|historical|renewal)\w*\b|\b(date|historical)\w*\b.*\b(correct|fix|wrong)\w*\b", re.IGNORECASE)),
     ("approve_renewal", re.compile(r"\b(approve|approval|register|registration|renew)\w*\b", re.IGNORECASE)),
     ("log_activity", re.compile(r"\b(log|record|add)\b.*\bactivit\w*\b|\bactivit\w*\b.*\b(log|record|add)\b", re.IGNORECASE)),
     ("create_issue", re.compile(r"\b(raise|create|open|report|file)\b.*\bissue\w*\b|\bissue\w*\b.*\b(raise|create|open|report|file)\b", re.IGNORECASE)),
+    ("hard_reset", re.compile(
+        r"\bhard[- ]?reset\b|\bhandover\b[^.?]*\b(reset|wipe|erase)\w*\b|"
+        r"\b(reset|wipe|erase)\w*\b[^.?]*\bhandover\b|\bwipe (?:everything|all)\b|\berase (?:everything|all)\b",
+        re.IGNORECASE)),
+    ("training_materials", re.compile(
+        r"\btraining\b[^.?]*\b(material|deck|ppt|upload|download)\w*\b|"
+        r"\b(material|deck|ppt)\w*\b[^.?]*\btraining\b",
+        re.IGNORECASE)),
     ("change_password", re.compile(r"\bpassword\b", re.IGNORECASE)),
 ]
 
@@ -360,6 +387,10 @@ _SUGGESTIONS_BY_INTENT: Dict[str, List[Dict[str, str]]] = {
     "clubs_list": [
         {"title": "Club search", "detail": "Find a club by institution or ID",
          "href": "/portal#clubs", "label": "Open"},
+    ],
+    "count_rule": [
+        {"title": "User manual", "detail": "v5.0 counting & reporting section",
+         "href": "/manual", "label": "Open"},
     ],
     "clubs_search": [
         {"title": "Club details", "detail": "Open the clubs screen for full records",
@@ -429,6 +460,10 @@ def _route(question: str) -> Tuple[str, Dict[str, Any]]:
                 ep["section"] = section
                 break
         return "explain_report", ep
+    # R37 v5.0: counting-rule questions ("how are clubs counted", "live vs
+    # migrated") are answered from live data + the rule, before the KB path.
+    if _COUNT_RULE_RE.search(q):
+        return "count_rule", {}
     # Slice C: app/FAQ/how-does-it-work phrasing (definitional/explanatory and
     # NOT a first-person live-data request) -> documentation knowledge base.
     # Checked before the data intents so "what is a renewal certificate" is
@@ -563,10 +598,42 @@ def _compose_activities(result: Dict[str, Any], ctx: ToolContext) -> str:
 def _compose_clubs_list(result: Dict[str, Any]) -> str:
     dist = result.get("zone_distribution") or {}
     dist_text = ", ".join(f"{z}: {n}" for z, n in sorted(dist.items(), key=lambda kv: (-kv[1], kv[0])))
+    live = result.get("live_clubs", 0)
+    migrated = result.get("migrated_approvals", 0)
+    total = result.get("programme_total", live + migrated)
+    reg_rows = result.get("register_rows", result.get("total_clubs", 0))
+    reg_mig = result.get("register_migrated_rows", 0)
     return (
-        f"There are {result['total_clubs']} clubs across {result['states_represented']} states. "
-        f"Zone distribution: {dist_text or 'none recorded'}. "
-        f"Largest zone: {result['top_zone']} ({result['top_zone_clubs']} clubs)."
+        f"Across all 36 States & UTs: {live} live + {migrated} migrated club "
+        f"approvals (history) — {total} in total. "
+        f"Counting rule: \"live\" = clubs created through the portal (new work, "
+        f"the only thing counted), \"migrated\" = legacy club approvals imported "
+        f"as history (admin Data Migration / Bulk Club History Upload) — kept "
+        f"visible, never counted as new work. "
+        f"The club register holds {reg_rows} individual records "
+        f"({live} live + {reg_mig} imported) covering {result.get('states_represented', 0)} "
+        f"states; records are the per-club detail and "
+        f"are never added on top of the history totals. "
+        f"Register records by zone: {dist_text or 'none recorded'}."
+    )
+
+
+def _compose_count_rule(result: Dict[str, Any]) -> str:
+    live = result.get("live_clubs", 0)
+    migrated = result.get("migrated_approvals", 0)
+    total = result.get("programme_total", live + migrated)
+    return (
+        f"The counting rule: every club figure is reported as X live + Y migrated. "
+        f"Right now: {live} live + {migrated} migrated club approvals (history) "
+        f"= {total} in total. "
+        f"Live = clubs created through the portal (new work). "
+        f"Migrated = legacy club approvals imported as history (admin Data "
+        f"Migration, Bulk Club History Upload): kept visible in every view but "
+        f"never counted as new work. Individual club records in the register are "
+        f"the per-club detail of the same programme and are never added on top "
+        f"of the history totals. "
+        f"Activities follow the same honesty rule — live support logs and migrated "
+        f"support interactions are always reported separately."
     )
 
 
@@ -585,9 +652,14 @@ def _compose_clubs_search(result: Dict[str, Any], ctx: ToolContext) -> str:
 
 
 def _compose_metrics(result: Dict[str, Any]) -> str:
+    live = result.get("live_clubs", 0)
+    migrated = result.get("migrated_approvals", 0)
+    total = result.get("programme_total", live + migrated)
     return (
-        f"Dashboard snapshot: {result['total_clubs']} clubs, {result['total_activities']} activities, "
-        f"{result['total_employees']} employees, {result['states_represented']} states represented. "
+        f"Dashboard snapshot: {total} clubs "
+        f"({live} live + {migrated} migrated club approvals (history)), "
+        f"{result['total_activities']} activities, "
+        f"{result['total_employees']} employees. "
         f"Renewal attention: {result['renewal_attention_count']} clubs "
         f"({result['overdue_count']} overdue, {result['expiring_soon_count']} expiring soon)."
     )
@@ -860,6 +932,8 @@ def _plan(intent: str, params: Dict[str, Any], ctx: ToolContext) -> Tuple[Option
         return "activities.summary", ({"emp_id": emp} if emp else {}), lambda r, c: _compose_activities(r, c)
     if intent == "clubs_list":
         return "clubs.list", {}, lambda r, c: _compose_clubs_list(r)
+    if intent == "count_rule":
+        return "clubs.list", {}, lambda r, c: _compose_count_rule(r)
     if intent == "clubs_search":
         return "clubs.search", {"query": params.get("query", ""), "limit": params.get("limit", 5)}, \
             lambda r, c: _compose_clubs_search(r, c)

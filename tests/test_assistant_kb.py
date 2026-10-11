@@ -347,8 +347,13 @@ class TestKBGoldenQuestionsAPI(_KBAPITestBase):
                 for kw in g["expected_keywords"]:
                     self.assertIn(kw.lower(), answer.lower(),
                                   f"[{g['id']}] answer missing keyword {kw!r}: {answer!r}")
-                # Inline citation marker present (citations are claimed).
-                self.assertIn("[1]", answer)
+                # Inline citation marker present (citations are claimed) —
+                # EXCEPT for live-data intents (R37): their figures come from
+                # the read-only tool layer, never from manual quotes (the
+                # opposite is locked by test_data_question_not_stolen_by_kb).
+                from ai.assistant_core import _route
+                if _route(g["question"])[0] == "app_help":
+                    self.assertIn("[1]", answer)
                 # Response shape: sources non-empty with title + detail.
                 self.assertTrue(data["sources"], f"[{g['id']}] sources must be non-empty")
                 for s in data["sources"]:

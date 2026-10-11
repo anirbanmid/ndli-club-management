@@ -601,9 +601,29 @@ GOLDEN_QUESTIONS: List[Dict[str, Any]] = [
         "expected_keywords": ["Import Existing Club", "Date of Approval"],
     },
     {
-        "id": "bulk_import_csv",
-        "question": "How does the CSV bulk import of existing clubs work?",
-        "expected_keywords": ["Bulk Import", "dry-run"],
+        "id": "bulk_new_clubs",
+        "question": "How does the Bulk Add New Clubs CSV door work?",
+        "expected_keywords": ["Bulk Add New Clubs", "dry-run"],
+    },
+    {
+        "id": "counting_rule",
+        "question": "How are clubs counted — live versus migrated?",
+        "expected_keywords": ["live", "migrated"],
+    },
+    {
+        "id": "two_doors",
+        "question": "What is the difference between Bulk Club History Upload and Bulk Add New Clubs?",
+        "expected_keywords": ["history", "new work"],
+    },
+    {
+        "id": "hard_reset_handover",
+        "question": "What does the Hard Reset for handover do?",
+        "expected_keywords": ["Hard Reset", "wipe"],
+    },
+    {
+        "id": "training_library",
+        "question": "How do the PPT training materials work?",
+        "expected_keywords": ["training", "PPT"],
     },
     {
         "id": "club_register",

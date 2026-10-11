@@ -260,14 +260,18 @@ class TestAssistantNumericTripwires(_AssistantAPITestBase):
         self.assertIn(f"{expected['expiring_soon_count']} expiring soon", answer)
 
     def test_tripwire_clubs_list(self):
-        """Q: 'how many clubs' -> total == clubs.list total."""
+        """Q: 'how many clubs' -> headline == clubs.list headline (dashboard rule:
+        live + migrated club approvals (history), register rows kept separate)."""
         from auth_util import admin_token
         token = admin_token(self.base_url, self.__class__.__name__)
         status, data = self._ask("how many clubs are there in total", token=token)
         self.assertEqual(status, 200)
         expected = call_tool("clubs.list", self._admin_ctx())
         answer = data["answer"]
-        self.assertIn(f"{expected['total_clubs']} clubs", answer)
+        self.assertIn(
+            f"{expected['live_clubs']} live + {expected['migrated_approvals']} "
+            f"migrated club approvals (history)", answer)
+        self.assertIn(f"{expected['programme_total']} in total", answer)
         self.assertIn(f"{expected['states_represented']} states", answer)
 
     def test_tripwire_activities(self):
@@ -282,14 +286,14 @@ class TestAssistantNumericTripwires(_AssistantAPITestBase):
         self.assertIn(f"{expected['priority_count']} flagged priority", answer)
 
     def test_tripwire_admin_metrics(self):
-        """Q: 'dashboard metrics' -> figures == metrics.get."""
+        """Q: 'dashboard metrics' -> figures == metrics.get (dashboard rule)."""
         from auth_util import admin_token
         token = admin_token(self.base_url, self.__class__.__name__)
         status, data = self._ask("give me the headline dashboard metrics", token=token)
         self.assertEqual(status, 200)
         expected = call_tool("metrics.get", self._admin_ctx())
         answer = data["answer"]
-        self.assertIn(f"{expected['total_clubs']} clubs", answer)
+        self.assertIn(f"{expected['programme_total']} clubs", answer)
         self.assertIn(f"{expected['total_activities']} activities", answer)
         self.assertIn(f"{expected['total_employees']} employees", answer)
         self.assertIn(f"{expected['renewal_attention_count']} clubs", answer)

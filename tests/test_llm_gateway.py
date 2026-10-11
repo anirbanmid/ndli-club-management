@@ -493,9 +493,9 @@ class TestNumericPostcheck(_GatewayTestBase):
 
     def test_consistent_llm_answer_is_accepted(self):
         self._use_key()
-        figures = assistant_core._compose_clubs_list(call_tool("clubs.list", _admin_ctx()))
-        import re as _re
-        total = _re.search(r"There are (\d+) clubs", figures).group(1)
+        res = call_tool("clubs.list", _admin_ctx())
+        figures = assistant_core._compose_clubs_list(res)
+        total = res["programme_total"]  # dashboard headline: live + migrated approvals
         patcher, _calls = _install_routes([
             ("generativelanguage.googleapis.com", _gemini_ok(f"Of course: there are {total} clubs.")),
         ])

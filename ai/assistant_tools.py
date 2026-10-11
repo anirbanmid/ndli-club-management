@@ -36,7 +36,7 @@ Tool whitelist (exactly these names, nothing else is reachable):
     help.steps                    advisor.nudges
     learning.insights
 """
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from config import (
     MASTER_CLUBS_CSV,
@@ -118,6 +118,28 @@ def build_context(session: Dict[str, Any]) -> ToolContext:
 
 def _read_master_clubs() -> List[Dict[str, Any]]:
     return CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+
+
+def _split_origin(clubs: List[Dict[str, Any]]) -> Tuple[int, int]:
+    """Record-level provenance split (R24/R31): a club RECORD is migrated iff
+    record_origin == "imported" (PA rows map 1:1). This is the REGISTER's
+    record-level view — NOT the headline count. The headline "Y migrated" is
+    the migrated club APPROVALS baseline (dashboard rule, see
+    `_migrated_totals`): history is numbers-first (worksheets), and adding the
+    imported records on top of the baseline would double-count."""
+    migrated = sum(
+        1 for c in clubs
+        if str(c.get("record_origin", "")).strip().lower() == "imported"
+    )
+    return len(clubs) - migrated, migrated
+
+
+def _migrated_totals() -> Dict[str, Any]:
+    """Migrated HISTORY grand totals (dashboard rule): the same source the
+    admin KPI's "X live + Y migrated club approvals (history)" line reads
+    (db.migration_engine.history_grand_totals). Read-only."""
+    from db.migration_engine import history_grand_totals
+    return history_grand_totals()
 
 
 def _read_master_activities() -> List[Dict[str, Any]]:
@@ -221,10 +243,18 @@ def _clubs_list(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
         state_counts[st] = state_counts.get(st, 0) + 1
         zone_counts[zn] = zone_counts.get(zn, 0) + 1
     top_zone = max(zone_counts.items(), key=lambda kv: kv[1]) if zone_counts else ("", 0)
+    live_clubs, register_migrated_rows = _split_origin(clubs)
+    _mig = _migrated_totals()
+    migrated_approvals = int(_mig.get("approvals", 0) or 0)
     return {
         "tool": "clubs.list",
         "scope": "aggregate",
         "total_clubs": len(clubs),
+        "register_rows": len(clubs),
+        "live_clubs": live_clubs,
+        "register_migrated_rows": register_migrated_rows,
+        "migrated_approvals": migrated_approvals,
+        "programme_total": live_clubs + migrated_approvals,
         "states_represented": len([s for s, n in state_counts.items() if n > 0 and s != "Unknown"]),
         "zone_distribution": zone_counts,
         "top_zone": top_zone[0],
@@ -405,10 +435,18 @@ def _metrics_get(ctx: ToolContext, **_params: Any) -> Dict[str, Any]:
         state_counts[st] = state_counts.get(st, 0) + 1
         zone_counts[zn] = zone_counts.get(zn, 0) + 1
     attention = AIDecisionEngine.get_renewal_attention_data()
+    live_clubs, register_migrated_rows = _split_origin(clubs)
+    _mig = _migrated_totals()
+    migrated_approvals = int(_mig.get("approvals", 0) or 0)
     return {
         "tool": "metrics.get",
         "scope": "aggregate",
         "total_clubs": len(clubs),
+        "register_rows": len(clubs),
+        "live_clubs": live_clubs,
+        "register_migrated_rows": register_migrated_rows,
+        "migrated_approvals": migrated_approvals,
+        "programme_total": live_clubs + migrated_approvals,
         "total_activities": len(activities),
         "total_employees": sum(1 for u in users if u.get("role") == "EMPLOYEE"),
         "states_represented": len([s for s, n in state_counts.items() if n > 0 and s != "Unknown"]),
@@ -441,13 +479,43 @@ TASK_GUIDES: Dict[str, Dict[str, Any]] = {
             "Submit — the record keeps both historical dates and is tagged record_origin=imported.",
         ],
     },
-    "bulk_import_csv": {
-        "title": "How to bulk import legacy clubs from a CSV",
+    "bulk_new_clubs": {
+        "title": "How to add new clubs in bulk (Bulk Add New Clubs — CSV)",
         "steps": [
-            "In SEC B open Bulk Import Existing Clubs (CSV) and download the CSV template.",
-            "Fill one row per club: club_id, reg_no, institution, state, three stakeholder emails, date_of_approval and last_renewal_date.",
-            "Upload the file and press Validate (dry run) — the preview shows READY/ERROR per row and writes nothing.",
-            "Press Import valid rows (max 200 per batch); duplicates of Registration Number or Club ID are blocked, and quotas update as usual.",
+            "In SEC B open Bulk Add New Clubs (CSV) — this door records NEW clubs only and is counted as new work on the dashboard.",
+            "Download the CSV template and fill one row per club. The date columns are optional: leave them empty and dates are stamped automatically, or enter the real approval date when it is today or later.",
+            "Accepted date formats: YYYY-MM-DD, YYYY/MM/DD, DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY (dotted/slash forms are day-first).",
+            "Rows carrying historical / past dates are REFUSED here — pre-system clubs belong in the admin Data Migration portal (Bulk Club History Upload), which records them as history without touching the counters.",
+            "Press Validate (dry run) first — the preview writes nothing — then Import valid rows (max 200 per batch). Duplicates of Registration Number or Club ID are blocked.",
+        ],
+    },
+    "bulk_history_upload": {
+        "title": "How to import club history in bulk (admin Data Migration — Bulk Club History Upload)",
+        "steps": [
+            "Admin portal: press Data Migration — the tools open only behind the Master Admin security gate (second-layer verification).",
+            "Choose Bulk Club History Upload — this door records HISTORY: the migrated clubs stay visible everywhere but are never counted as new work (counters unchanged).",
+            "Upload the CSV and run the dry-run: it states the consequence of the import (history only, zero live credit) and checks the club list against the worksheet numbers so gaps are visible before anything is written.",
+            "Commit behind the Master Admin password gate. Every row is tagged as migrated history (record_origin=imported) and reports split it as \"X live + Y migrated\" from then on.",
+        ],
+    },
+    "hard_reset": {
+        "title": "How to run the Hard Reset (Handover)",
+        "steps": [
+            "Admin portal: Danger Zone — Hard Reset (Handover), then the Hard Reset button.",
+            "It wipes the working data and leaves the system blank-but-provisioned — only the 7 officer accounts and the admin account survive.",
+            "Three locks must all pass: type the phrase HARD-RESET-FOR-HANDOVER, enter the Master Admin password, and enter the 6-digit handover PIN.",
+            "An automatic checkpoint is taken first — the reset aborts if the checkpoint cannot be written, so there is always a restore point.",
+            "The wipe covers clubs, activities, quotas, issues, migration history, Robu chat/learning logs and the training slots. Nothing is reseeded.",
+            "Do NOT press it before handover day — it exists to erase the demo data at the very end.",
+        ],
+    },
+    "training_materials": {
+        "title": "How to share PPT training materials",
+        "steps": [
+            "Admin portal: the Training Materials (PPT) card — upload up to 2 files (.ppt, .pptx, .ppsx only; 15 MB TOTAL across both slots).",
+            "Uploading to an occupied slot replaces that file; a delete button frees the slot. The original file names are kept for display.",
+            "Employees see the same Training Materials (PPT) card on their portal and download each deck with one click.",
+            "The Hard Reset wipes the training slots — re-upload the decks after handover.",
         ],
     },
     "correct_historical_dates": {
