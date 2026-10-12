@@ -98,17 +98,12 @@ LOG_QUESTIONS_ENV = "NDLI_ASSISTANT_LOG_QUESTIONS"
 # Secret redaction (never persist a credential-shaped fragment)
 # ---------------------------------------------------------------------------
 
-_SECRET_RE = re.compile(
-    r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|relay[_-]?key"
-    r"|authorization|bearer|private[_-]?key)\b(\s*[:=]\s*)((?:bearer\s+)?\S+)"
-)
-_BEARER_RE = re.compile(r"(?i)(?<!\[)\bbearer\s+\S+")
-
-
-def redact_secrets(text: str) -> str:
-    """`password: hunter2` -> `password: [redacted]`; leaves ordinary text alone."""
-    cleaned = _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}[redacted]", str(text or ""))
-    return _BEARER_RE.sub("bearer [redacted]", cleaned)
+# Secret redaction (never persist a credential-shaped fragment) -- R45 SINGLE
+# SOURCE. The rule set lives in ai/redaction.py; this module re-exports it so
+# `redact_secrets()` here, in ai.assistant_guard and in ai.assistant_audit are
+# literally the same function. Before R45 the storage path and the outbound path
+# had DIFFERENT rules and disagreed on 8 of 10 probe strings.
+from ai.redaction import SECRET_REDACTION, redact_secrets  # noqa: F401  (re-export)
 
 
 def _clip(text: str, limit: int) -> str:
