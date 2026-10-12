@@ -12,7 +12,7 @@ Locks the four follow-up fixes:
      strip (visible history without fabricating per-event rows)
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import json
 import threading
 import unittest
@@ -79,7 +79,7 @@ class TestR30V2SmokeFixes(unittest.TestCase):
 
     # ---------- #5: template documents the attribution column ----------
     def test_bulk_template_documents_attribution_column(self):
-        emp = self._read("templates/employee.html")
+        emp = employee_js_view()
         self.assertIn(
             "date_of_approval,last_renewal_date,approved_by_emp_id", emp,
             "the CSV template header must show the optional attribution column")
@@ -175,7 +175,7 @@ class TestR30V2SmokeFixes(unittest.TestCase):
         emp = data["employee"]
         self.assertEqual(str(emp.get("legacy_first_year")), "2020", emp)
         self.assertEqual(str(emp.get("legacy_last_year")), "2020", emp)
-        html = self._read("templates/employee.html")
+        html = employee_js_view()
         self.assertIn('id="migrated-history-strip"', html)
         self.assertIn('id="mig-hist-summary"', html)
         self.assertIn('getElementById("migrated-history-strip")', html,

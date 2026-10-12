@@ -13,6 +13,8 @@ import os
 import re
 import unittest
 
+from admin_view import employee_js_view
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -31,7 +33,7 @@ class TestR3CertificatePrintFix(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.engine = read("static/js/certificate_engine.js")
-        cls.emp = read("templates/employee.html")
+        cls.emp = employee_js_view()
 
     def test_onpage_print_route_exists_and_exported(self):
         self.assertIn("function printCertificateOnPage(canvas)", self.engine)
@@ -117,7 +119,7 @@ class TestR3RemindersTintAndAccentContrast(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.emp = read("templates/employee.html")
+        cls.emp = employee_js_view()
 
     def test_reminders_thead_red_tint(self):
         self.assertIn('thead class="reminders-thead"', self.emp)
@@ -136,7 +138,7 @@ class TestR3AlertHybrid(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.emp = read("templates/employee.html")
+        cls.emp = employee_js_view()
 
     def test_employee_success_path_uses_global_container(self):
         self.assertIn('showAlert("global-alert"', self.emp)
@@ -154,7 +156,7 @@ class TestR3Phase2A11y(unittest.TestCase):
         cls.app = read("static/js/app.js")
         cls.style = read("static/css/style.css")
         cls.admin = read("templates/admin.html")
-        cls.emp = read("templates/employee.html")
+        cls.emp = employee_js_view()
 
     def test_tabs_keyboard_and_aria(self):
         self.assertIn("role=\"tablist\"", self.admin)

@@ -2,7 +2,7 @@
 Comprehensive Integration Tests for NDLI Web Portals, Static Files, and Extended REST API Endpoints.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import unittest
 import threading
 import json
@@ -115,15 +115,16 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         self.assertIn('id="c-zone"', html)
         self.assertIn('data-alias="sec-c-zone"', html)
         self.assertIn('id="edit-state"', html)
+        view = employee_js_view()
         self.assertIn('value="West Bengal"', html)
         self.assertIn('value="Maharashtra"', html)
         self.assertIn('value="Delhi"', html)
         self.assertIn('value="Tamil Nadu"', html)
         self.assertIn('value="Dadar &amp; Nagar Haveli"', html)
         self.assertIn('value="Daman and Diu"', html)
-        self.assertIn('DEFAULT_INDIAN_STATES', html)
+        self.assertIn('DEFAULT_INDIAN_STATES', view)
         self.assertIn('sec-c-state', html)
-        self.assertIn('_origQuerySelector', html)
+        self.assertIn('_origQuerySelector', view)
 
         # 2. Verify Google Apps Script Employee.html dual-deployment parity
         with open("deployment_gas/Employee.html", "r", encoding="utf-8") as f:
@@ -369,16 +370,19 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         self.assertIn('id="nav-live-clock"', html)
         self.assertIn('id="login-live-clock"', html)
         self.assertIn('id="c-timestamp-display"', html)
+        # R44: the clock logic moved to static/js/employee_*.js -> scan the combined
+        # view so the assertNotIn below still covers the CODE (no vacuous pass).
+        view = employee_js_view()
 
         # Ensure obsolete UTC clock string is removed
-        self.assertNotIn('toISOString().replace("T", " ").substring(0, 19) + " UTC"', html)
+        self.assertNotIn('toISOString().replace("T", " ").substring(0, 19) + " UTC"', view)
 
         # Ensure Indian Standard Time (IST - Asia/Kolkata) formatting and local date/time formatting exist
-        self.assertIn("Asia/Kolkata", html)
+        self.assertIn("Asia/Kolkata", view)
         self.assertIn("IST", html)
-        self.assertIn("toLocaleDateString", html)
-        self.assertIn("toLocaleTimeString", html)
-        self.assertIn("formatLocalTimestamp", html)
+        self.assertIn("toLocaleDateString", view)
+        self.assertIn("toLocaleTimeString", view)
+        self.assertIn("formatLocalTimestamp", view)
         self.assertIn("Date & Time (Local)", html)
 
     # 7. Test Explicit Login Screen, Form Blank State, and Navigation Links
@@ -392,7 +396,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         self.assertIn('id="login-identifier"', html_l)
         self.assertIn('id="login-password"', html_l)
         # Ensure password field is never pre-filled automatically
-        self.assertIn('passInput.value = ""', html_l)
+        # (R44: this line lives in static/js/employee_auth.js now)
+        self.assertIn('passInput.value = ""', employee_js_view())
 
         # Index page contains direct Employee Login links
         status_idx, _, body_idx = self._get_raw("/portal")
@@ -900,8 +905,9 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         opens 'https://admin.club.ndl.iitkgp.ac.in/club-details/{club_id}' in a new tab/window.
         Ensures 100% parity across templates/employee.html and deployment_gas/Employee.html.
         """
-        with open("templates/employee.html", "r", encoding="utf-8") as f:
-            emp_html = f.read()
+        # R44: renderClubsTable / escapeHtml now live in static/js/employee_clubs.js,
+        # so the Python template scans the combined view (markup + modules).
+        emp_html = employee_js_view()
 
         with open("deployment_gas/Employee.html", "r", encoding="utf-8") as f:
             gas_html = f.read()
@@ -941,8 +947,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         test_script = r"""
         const fs = require('fs');
 
-        function testTemplate(filePath) {
-          const content = fs.readFileSync(filePath, 'utf8');
+        function testTemplate(filePath, jsPath) {
+          const content = fs.readFileSync(jsPath, 'utf8');
 
           // Extract escapeHtml
           const escapeHtmlMatch = content.match(/function escapeHtml\([\s\S]*?^    \}/m);
@@ -1044,8 +1050,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
           }
         }
 
-        testTemplate('templates/employee.html');
-        testTemplate('deployment_gas/Employee.html');
+        testTemplate('templates/employee.html', 'static/js/employee_clubs.js');
+        testTemplate('deployment_gas/Employee.html', 'deployment_gas/Employee.html');
         console.log('ALL_CLUB_SEARCH_LINK_TESTS_PASSED');
         """;
 

@@ -21,7 +21,7 @@ Locked here:
     correction block)
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import unittest
 import threading
 import json
@@ -265,8 +265,11 @@ class TestR24ImportExisting(unittest.TestCase):
 
     # ---------- 13: UI markup locks ----------
     def test_ui_markup_locks(self):
-        status, html_emp = self._get_raw("/employee")
+        status, _served = self._get_raw("/employee")
         self.assertEqual(status, 200)
+        # R44: employee JS lives in static/js/employee_*.js -> assert on the combined
+        # view (markup + modules) so these markers keep their subject.
+        html_emp = employee_js_view()
         for marker in ("btn-open-sec-c-import", "sec-c-import-fields", "c-formation-date",
                        "c-last-renewal-date", "c-upcoming-preview", "sec-c-mode-badge",
                        "2019-01-01", "toggleSecC('import')", "updateImportPreview",

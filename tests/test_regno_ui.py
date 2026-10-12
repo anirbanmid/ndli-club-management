@@ -10,6 +10,8 @@ import _seed_env  # noqa: F401  (seed test credentials before config import)
 import unittest
 from pathlib import Path
 
+from admin_view import employee_js_view
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 EMPLOYEE_HTML = BASE_DIR / "templates" / "employee.html"
 
@@ -17,7 +19,7 @@ EMPLOYEE_HTML = BASE_DIR / "templates" / "employee.html"
 class TestRegNoUi(unittest.TestCase):
 
     def setUp(self):
-        self.html = EMPLOYEE_HTML.read_text(encoding="utf-8")
+        self.html = employee_js_view()
 
     def _has(self, marker):
         return marker in self.html

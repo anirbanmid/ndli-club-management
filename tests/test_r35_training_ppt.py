@@ -8,7 +8,7 @@ Master-Admin-only; listing + single-click download is for any authenticated
 session; the Hard Reset wipes the library (nothing survives the handover).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import base64
 import json
 import shutil
@@ -236,7 +236,7 @@ class TestTrainingPptLibrary(unittest.TestCase):
                        "loadTrainingSlots()", "trainingPickUpload", "/api/admin/training/upload",
                        "15 MB budget"):
             self.assertIn(marker, admin_html, f"Admin training UI must contain: {marker}")
-        emp_html = (app_module.BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
+        emp_html = employee_js_view()
         for marker in ("📚 Training Materials (PPT)", "training-decks", "loadTrainingDecks()",
                        "trainingDownload", "/api/training/download/"):
             self.assertIn(marker, emp_html, f"Employee training UI must contain: {marker}")

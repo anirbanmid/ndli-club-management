@@ -1,5 +1,5 @@
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import unittest
 import json
 from pathlib import Path
@@ -39,7 +39,7 @@ class TestKPIStackReminders(unittest.TestCase):
         self.assertIn('selectAdminEscalatedIssue', admin_html)
 
     def test_employee_html_has_kpi_stack_and_modal_elements(self):
-        emp_html = (BASE_DIR / "templates" / "employee.html").read_text(encoding="utf-8")
+        emp_html = employee_js_view()
         
         # 1. In-page KPI stack card in #employee-reminders-container
         self.assertIn('id="employee-reminders-container"', emp_html)

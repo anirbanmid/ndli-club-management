@@ -15,7 +15,7 @@ Locks:
   6. anti-regression: the R30v3 KPI split wording and the migrated strip survive
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
-from admin_view import admin_js_view
+from admin_view import admin_js_view, employee_js_view
 import json
 import threading
 import unittest
@@ -69,7 +69,7 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     # ---------- 1. the employee quota line ----------
     def test_employee_quota_line_spells_out_live_and_migrated(self):
-        emp = self._read("templates/employee.html")
+        emp = employee_js_view()
         for anchor in ('id="quota-live-clubs"', 'id="quota-live-support"',
                        'id="quota-legacy-clubs"', 'id="quota-legacy-support"'):
             self.assertIn(anchor, emp, f"quota line must carry {anchor}")
@@ -79,7 +79,7 @@ class TestR29SplitDisplay(unittest.TestCase):
         self.assertIn("migrated support", line)
 
     def test_no_backwards_incl_wording_left(self):
-        emp = self._read("templates/employee.html")
+        emp = employee_js_view()
         adm = admin_js_view()
         self.assertNotIn('incl. <strong id="quota-legacy-clubs"', emp,
                          "the \"incl.\" wording reads backwards — it is gone")
@@ -147,7 +147,7 @@ class TestR29SplitDisplay(unittest.TestCase):
     # ---------- 6. anti-regression: R30v2/v3 work survives ----------
     def test_r30v2_r30v3_pin(self):
         adm = admin_js_view()
-        emp = self._read("templates/employee.html")
+        emp = employee_js_view()
         self.assertIn("live + ${migApprovals} migrated club approvals (history)", adm)
         self.assertIn('id="migrated-history-strip"', emp)
         self.assertIn("date_of_approval,last_renewal_date,approved_by_emp_id", emp)

@@ -24,6 +24,7 @@ ids/reg-nos by design, so fixed ids would fail on a second run against the same
 data store (measured: created=0). This also keeps PA re-runs safe.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import employee_js_view
 import unittest
 import threading
 import json
@@ -232,8 +233,11 @@ class TestR26BulkImport(unittest.TestCase):
 
     # ---------- 8: UI markup locks ----------
     def test_ui_markup_locks(self):
-        status, html = self._get_raw("/employee")
+        status, _served = self._get_raw("/employee")
         self.assertEqual(status, 200)
+        # R44: employee JS lives in static/js/employee_*.js -> assert on the combined
+        # view (markup + modules) so these markers keep their subject.
+        html = employee_js_view()
         for marker in (
             'id="btn-open-bulk-import"', "openBulkImportModal", 'id="bulk-import-modal"',
             "downloadBulkTemplate", "parseBulkCsv", "handleBulkFile", "runBulkDryRun",
