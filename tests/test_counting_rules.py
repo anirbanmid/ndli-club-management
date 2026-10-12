@@ -72,8 +72,12 @@ class _ServerBase(unittest.TestCase):
 class TestSingleSourceLocks(unittest.TestCase):
     """Only db/counting_rules.py may hold the provenance comparison."""
 
-    CALLERS = ("app.py", "db/sync_engine.py", "ai/assistant_tools.py",
-               "ai/assistant_core.py", "db/migration_engine.py")
+    # R46 pin-follow: the engine's rule consumers moved with the db/sync_engine.py
+    # split -- bucket_activity -> db/sync/activities.py, the imported-marker
+    # comparisons in recompute_and_persist_quota -> db/sync/quota.py.  The scan
+    # list follows the code (non-vacuous: each file here really uses the rule).
+    CALLERS = ("app.py", "db/sync/activities.py", "db/sync/quota.py",
+               "ai/assistant_tools.py", "ai/assistant_core.py", "db/migration_engine.py")
 
     def test_no_caller_re_implements_the_imported_marker_comparison(self):
         # Any `record_origin` string comparison outside counting_rules.py is
@@ -101,7 +105,8 @@ class TestSingleSourceLocks(unittest.TestCase):
 
     def test_all_surfaces_import_the_module(self):
         self.assertIn("from db import counting_rules", _read("app.py"))
-        self.assertIn("from db import counting_rules", _read("db/sync_engine.py"))
+        self.assertIn("from db import counting_rules", _read("db/sync/activities.py"))
+        self.assertIn("from db import counting_rules", _read("db/sync/quota.py"))
         self.assertIn("from db import counting_rules", _read("ai/assistant_tools.py"))
 
 
