@@ -739,22 +739,6 @@
     );
 
     /* 3d. Renewal health */
-    const attentionClubs = (attn.clubs || []).slice(0, 12);
-    const attnTable = tableHtml(
-      ["Club ID", "Institution", "State", "Field Tier (Advisory)", "Attention", "Due"],
-      attentionClubs.map(function (c) {
-        const tier = tierOfState(c.state);
-        return [
-          esc(c.club_id),
-          esc(c.institution_name),
-          esc(c.state || "—"),
-          '<span class="rpt-tag">' + esc(tier === "high" ? TIER_HIGH : (tier === "standard" ? TIER_STANDARD : "Unattributed")) + "</span>",
-          esc(c.attention_type),
-          esc(c.next_renewal_due_date || c.renewal_date || "—")
-        ];
-      }),
-      "Renewal attention — highest-risk clubs (AI renewal-attention scan; top " + attentionClubs.length + ")"
-    );
 
     return '<section class="rpt-section"><h2>3. Detailed Statistical Analytics</h2>' +
       "<h3>3a. Zone &amp; State Penetration and Density</h3>" + zoneTable + stateTable +
@@ -771,10 +755,10 @@
         fmtInt(attn.overdue_count) + " overdue · " + fmtInt(attn.expiring_soon_count) + " expiring") +
       "</div>" +
       '<div class="rpt-note">Renewal health figures are reproduced verbatim from the admin metrics engine. ' +
-      "The attention list is produced by the AI renewal-attention scan, which additionally merges " +
+      "The attention-scan counts are produced by the AI renewal-attention scan, which additionally merges " +
       "employee-node club records; counts may therefore exceed the master-CSV renewal health figures. " +
       "Both sources are shown as-is, without reconciliation maths.</div>" +
-      attnTable + "</section>";
+      "</section>";
   }
 
   function penetrationLabel(count) {
