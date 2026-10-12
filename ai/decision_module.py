@@ -215,3 +215,162 @@ class AIDecisionEngine:
             "overdue_clubs": overdue_clubs,
             "expiring_soon_clubs": expiring_soon_clubs
         }
+
+    # ------------------------------------------------------------------
+    # R42: server-side pagination seam for the renewal attention list.
+    # Classification mirrors get_renewal_attention_data(); row dicts are
+    # built ONLY for the returned page (bounded marshal). Order contract:
+    # Overdue by days_diff asc, then Expiring Soon by days_diff asc -
+    # exactly the compat `clubs` order (pinned by test_r42).
+    # ------------------------------------------------------------------
+    ATTENTION_PAGE_SIZE_DEFAULT = 50
+    ATTENTION_PAGE_SIZE_MAX = 200
+    ATTENTION_SEARCH_FIELDS = ("club_id", "institution_name", "state", "zone", "reg_no", "patron_email")
+
+    @classmethod
+    def get_renewal_attention_page(
+        cls,
+        page: Any = 1,
+        page_size: Any = None,
+        filter: str = "ALL",
+        q: str = "",
+        clubs: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        One scan of the clubs (same classification as get_renewal_attention_data)
+        -> summary counts + matched list -> sort -> slice page. Row dicts are
+        enriched only for the returned page. Out-of-range pages return an empty
+        `clubs` list (never an error). `filter`: ALL | Overdue | Expiring Soon
+        (unknown values fall back to ALL); `q`: case-insensitive substring over
+        ATTENTION_SEARCH_FIELDS. Paged responses carry no overdue_clubs /
+        expiring_soon_clubs duplicate arrays.
+        """
+        from db.sync_engine import calculate_next_renewal_date, parse_iso_or_date
+
+        if clubs is None:
+            clubs = CSVEngine.read_all(MASTER_CLUBS_CSV, CLUB_FIELDS)
+            seen_ids = {c.get("club_id", "").strip().upper() for c in clubs if c.get("club_id")}
+            if EMPLOYEE_NODES_DIR.exists():
+                for emp_dir in EMPLOYEE_NODES_DIR.iterdir():
+                    if emp_dir.is_dir():
+                        node_clubs = CSVEngine.read_all(emp_dir / "clubs.csv", CLUB_FIELDS)
+                        for nc in node_clubs:
+                            nid = nc.get("club_id", "").strip().upper()
+                            if nid and nid not in seen_ids:
+                                clubs.append(nc)
+                                seen_ids.add(nid)
+        today = datetime.now(timezone.utc).date()
+
+        # Param hygiene: coerce ints, clamp page >= 1, 1 <= page_size <= MAX.
+        try:
+            page = int(page)
+        except (TypeError, ValueError):
+            page = 1
+        page = max(1, page)
+        if page_size is None:
+            page_size = cls.ATTENTION_PAGE_SIZE_DEFAULT
+        try:
+            page_size = int(page_size)
+        except (TypeError, ValueError):
+            page_size = cls.ATTENTION_PAGE_SIZE_DEFAULT
+        page_size = max(1, min(page_size, cls.ATTENTION_PAGE_SIZE_MAX))
+
+        # Filter semantics mirror the old client-side JS exactly:
+        # "overdue" -> Overdue only; anything containing "expiring" ->
+        # Expiring Soon only; everything else (incl. unknown) -> ALL.
+        filter_l = (filter or "ALL").strip().lower()
+        if filter_l == "overdue":
+            want_type = "Overdue"
+        elif "expiring" in filter_l:
+            want_type = "Expiring Soon"
+        else:
+            want_type = None
+
+        q_l = (q or "").strip().lower()
+
+        total_attention_count = 0
+        overdue_count = 0
+        expiring_soon_count = 0
+        # (sort_key, days_diff, raw club) - kept raw; enriched after slicing.
+        matched: List[tuple] = []
+
+        for c in clubs:
+            doa_str = c.get("date_of_approval", "").strip() or c.get("submission_timestamp", "").strip()
+            last_ren_str = c.get("last_renewal_date", "").strip()
+            ren_date_str = c.get("renewal_date", "").strip() or c.get("next_renewal_date", "").strip()
+
+            if not ren_date_str:
+                if last_ren_str:
+                    ren_date_str = calculate_next_renewal_date(last_renewal_date=last_ren_str)
+                elif doa_str:
+                    ren_date_str = calculate_next_renewal_date(date_of_approval=doa_str)
+                else:
+                    continue
+
+            ren_date = parse_iso_or_date(ren_date_str)
+            if not ren_date:
+                continue
+
+            delta = (ren_date - today).days
+            if delta < 0:
+                attention_type = "Overdue"
+                sort_rank = 0
+                overdue_count += 1
+            elif delta <= 90:
+                attention_type = "Expiring Soon"
+                sort_rank = 1
+                expiring_soon_count += 1
+            else:
+                continue
+            total_attention_count += 1
+
+            if want_type is not None and attention_type != want_type:
+                continue
+            if q_l and not any(q_l in str(c.get(f, "") or "").lower() for f in cls.ATTENTION_SEARCH_FIELDS):
+                continue
+
+            matched.append((sort_rank, delta, c, attention_type, doa_str, last_ren_str, ren_date_str, ren_date))
+
+        # Order contract: overdue first then expiring, each by days_diff asc.
+        matched.sort(key=lambda t: (t[0], t[1]))
+
+        total_matches = len(matched)
+        total_pages = (total_matches + page_size - 1) // page_size
+        start = (page - 1) * page_size
+
+        # Enrich ONLY the page rows (the marshal stays bounded).
+        page_rows: List[Dict[str, Any]] = []
+        for _rank, delta, c, attention_type, doa_str, last_ren_str, ren_date_str, ren_date in matched[start:start + page_size]:
+            club_data = dict(c)
+            club_data["date_of_approval"] = doa_str
+            club_data["submission_timestamp"] = doa_str
+            club_data["last_renewal_date"] = last_ren_str
+            club_data["renewal_date"] = ren_date_str
+            club_data["next_renewal_date"] = ren_date_str
+            club_data["effective_renewal_date"] = ren_date.isoformat()
+            club_data["next_renewal_due_date"] = ren_date.isoformat()
+            club_data["days_diff"] = delta
+            if attention_type == "Overdue":
+                club_data["attention_type"] = "Overdue"
+                club_data["days_overdue"] = abs(delta)
+                club_data["days_left"] = 0
+                club_data["badge_label"] = f"{abs(delta)} days overdue"
+                club_data["badge_class"] = "pill-danger"
+            else:
+                club_data["attention_type"] = "Expiring Soon"
+                club_data["days_overdue"] = 0
+                club_data["days_left"] = delta
+                club_data["badge_label"] = f"{delta} days left" if delta > 0 else "Expires today"
+                club_data["badge_class"] = "pill-warning"
+            page_rows.append(club_data)
+
+        return {
+            "total_attention_count": total_attention_count,
+            "overdue_count": overdue_count,
+            "expiring_soon_count": expiring_soon_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "total_matches": total_matches,
+            "clubs": page_rows,
+        }

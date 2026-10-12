@@ -34,7 +34,7 @@ DEFINITIONS = {
     "function splitNote(live, migrated)": "admin_analytics.js",
     "async function loadDashboardData()": "admin_dashboard.js",
     "async function loadEmployeePerformance()": "admin_analytics.js",
-    "function renderRenewalAttentionList(page = 1)": "admin_attention.js",
+    "function renderRenewalAttentionList()": "admin_attention.js",  # R42: pure renderer, no page arg (server paging)
     "async function openClubDetailsModal(clubId, returnTo)": "admin_club_details.js",
     "function renderClubDetailsView(club)": "admin_club_details.js",
     "async function commitMigration()": "admin_migration.js",

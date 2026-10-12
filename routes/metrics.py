@@ -559,6 +559,21 @@ def get_admin_employee_performance(h, path, query_params):
 def get_admin_renewal_attention(h, path, query_params):
     if not h._check_admin_access():
         return
+    # R42: opt-in paged mode - any attention query param (page / page_size /
+    # filter / q) switches to the bounded paged response. Zero params keeps
+    # today's response byte-compatible (existing callers and tests untouched).
+    if any(k in query_params for k in ("page", "page_size", "filter", "q")):
+        def _qp(name, default=""):
+            vals = query_params.get(name) or []
+            return vals[0] if vals else default
+        page_data = AIDecisionEngine.get_renewal_attention_page(
+            page=_qp("page", "1"),
+            page_size=_qp("page_size", None),
+            filter=_qp("filter", "ALL"),
+            q=_qp("q", ""),
+        )
+        h._send_json({"success": True, **page_data})
+        return
     attention_data = AIDecisionEngine.get_renewal_attention_data()
     h._send_json({"success": True, **attention_data})
     return

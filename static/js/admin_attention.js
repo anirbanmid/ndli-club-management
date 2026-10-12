@@ -1,13 +1,47 @@
     // =============================================================
     // RENEWAL ATTENTION & CLUB DETAILS MODALS CONTROLLER
+    // R42: server-side pagination - the browser fetches ONE page at a
+    // time (filter + search run server-side). renderRenewalAttentionList
+    // stays a PURE renderer of the last response (no fetch inside).
     // =============================================================
     var RENEWAL_ATTENTION_DATA = null;
     var CURRENT_ATTENTION_FILTER = "ALL";
     var CURRENT_ATTENTION_QUERY = "";
+    let ATTENTION_PAGE_SIZE = 50;
+    let CURRENT_ATTENTION_PAGE = 1;
+    let ATTENTION_SEARCH_DEBOUNCE = null;
+
+    async function fetchAttentionPage(page) {
+      const tbody = document.getElementById("renewal-attention-tbody");
+      const params = new URLSearchParams({
+        page: String(page || 1),
+        page_size: String(ATTENTION_PAGE_SIZE),
+        filter: CURRENT_ATTENTION_FILTER || "ALL",
+        q: CURRENT_ATTENTION_QUERY || ""
+      });
+      try {
+        const res = await apiRequest("/api/admin/renewal-attention?" + params.toString());
+        if (res.ok && res.data) {
+          RENEWAL_ATTENTION_DATA = res.data;
+          CURRENT_ATTENTION_PAGE = res.data.page || 1;
+          updateAttentionCountsUI(res.data);
+          renderRenewalAttentionList();
+        } else {
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Failed to fetch renewal attention records.</td></tr>';
+          }
+        }
+      } catch (err) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Network error fetching renewal attention records.</td></tr>';
+        }
+      }
+    }
 
     async function openRenewalAttentionModal(initialFilter = "ALL") {
       CURRENT_ATTENTION_FILTER = initialFilter;
       CURRENT_ATTENTION_QUERY = "";
+      CURRENT_ATTENTION_PAGE = 1;
 
       updateAttentionFilterButtons(initialFilter);
 
@@ -27,22 +61,7 @@
         tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Loading renewal attention records...</td></tr>';
       }
 
-      try {
-        const res = await apiRequest("/api/admin/renewal-attention");
-        if (res.ok && res.data) {
-          RENEWAL_ATTENTION_DATA = res.data;
-          updateAttentionCountsUI(res.data);
-          renderRenewalAttentionList();
-        } else {
-          if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Failed to fetch renewal attention records.</td></tr>';
-          }
-        }
-      } catch (err) {
-        if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 2rem;">Network error fetching renewal attention records.</td></tr>';
-        }
-      }
+      await fetchAttentionPage(1);
     }
 
     function closeRenewalAttentionModal() {
@@ -96,53 +115,40 @@
 
     function filterAttentionList(filterType) {
       CURRENT_ATTENTION_FILTER = filterType;
+      CURRENT_ATTENTION_PAGE = 1;
       updateAttentionFilterButtons(filterType);
-      renderRenewalAttentionList();
+      fetchAttentionPage(1);
     }
 
     function handleAttentionSearch(query) {
       CURRENT_ATTENTION_QUERY = (query || "").trim().toLowerCase();
-      renderRenewalAttentionList();
+      CURRENT_ATTENTION_PAGE = 1;
+      if (ATTENTION_SEARCH_DEBOUNCE) clearTimeout(ATTENTION_SEARCH_DEBOUNCE);
+      ATTENTION_SEARCH_DEBOUNCE = setTimeout(() => { fetchAttentionPage(1); }, 250);
     }
 
-    let ATTENTION_PAGE_SIZE = 50;
-    let CURRENT_ATTENTION_PAGE = 1;
-
     function changeAttentionPage(page) {
-      CURRENT_ATTENTION_PAGE = page;
-      renderRenewalAttentionList(page);
+      fetchAttentionPage(page);
       const t = document.getElementById("renewal-attention-tbody");
       if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function renderRenewalAttentionList(page = 1) {
+    // Pure renderer of RENEWAL_ATTENTION_DATA (the LAST paged response).
+    // Filtering/search/pagination all happen server-side - this function
+    // never fetches and never re-slices a full clubs array (R42 source lock).
+    function renderRenewalAttentionList() {
       const tbody = document.getElementById("renewal-attention-tbody");
       const pBar = document.getElementById("attention-pagination-bar");
       if (!tbody || !RENEWAL_ATTENTION_DATA) return;
 
-      let list = RENEWAL_ATTENTION_DATA.clubs || [];
+      const data = RENEWAL_ATTENTION_DATA;
+      const renderList = data.clubs || [];
+      const page = data.page || 1;
+      const pageSize = data.page_size || ATTENTION_PAGE_SIZE;
+      const totalPages = data.total_pages || 0;
+      const totalMatches = (data.total_matches != null) ? data.total_matches : renderList.length;
 
-      // Filter by attention type
-      if (CURRENT_ATTENTION_FILTER.toLowerCase() === "overdue") {
-        list = list.filter(c => c.attention_type === "Overdue");
-      } else if (CURRENT_ATTENTION_FILTER.toLowerCase().includes("expiring")) {
-        list = list.filter(c => c.attention_type === "Expiring Soon");
-      }
-
-      // Filter by search query
-      if (CURRENT_ATTENTION_QUERY) {
-        const q = CURRENT_ATTENTION_QUERY;
-        list = list.filter(c =>
-          (c.club_id || "").toLowerCase().includes(q) ||
-          (c.institution_name || "").toLowerCase().includes(q) ||
-          (c.state || "").toLowerCase().includes(q) ||
-          (c.zone || "").toLowerCase().includes(q) ||
-          (c.reg_no || "").toLowerCase().includes(q) ||
-          (c.patron_email || "").toLowerCase().includes(q)
-        );
-      }
-
-      if (list.length === 0) {
+      if (renderList.length === 0) {
         if (pBar) pBar.style.display = "none";
         tbody.innerHTML = `
           <tr>
@@ -158,26 +164,21 @@
         return;
       }
 
-      let renderList = list;
-      if (list.length > ATTENTION_PAGE_SIZE) {
-        const totalPages = Math.ceil(list.length / ATTENTION_PAGE_SIZE);
-        CURRENT_ATTENTION_PAGE = Math.max(1, Math.min(page, totalPages));
-        const startIdx = (CURRENT_ATTENTION_PAGE - 1) * ATTENTION_PAGE_SIZE;
-        renderList = list.slice(startIdx, startIdx + ATTENTION_PAGE_SIZE);
-
+      if (totalPages > 1) {
+        const startIdx = (page - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, totalMatches);
         if (pBar) {
-          const endIdx = Math.min(startIdx + ATTENTION_PAGE_SIZE, list.length);
           pBar.style.display = "flex";
           pBar.innerHTML = `
             <div style="font-size: 0.85rem; color: var(--text-muted);">
-              Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${list.length.toLocaleString()}</strong> clubs
+              Showing <strong>${startIdx + 1}</strong> – <strong>${endIdx}</strong> of <strong>${totalMatches.toLocaleString()}</strong> clubs
             </div>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(1)">« First</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE - 1})">‹ Prev</button>
-              <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${CURRENT_ATTENTION_PAGE} of ${totalPages}</span>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${CURRENT_ATTENTION_PAGE + 1})">Next ›</button>
-              <button type="button" class="btn btn-outline btn-sm" ${CURRENT_ATTENTION_PAGE === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${totalPages})">Last »</button>
+              <button type="button" class="btn btn-outline btn-sm" ${page === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(1)">« First</button>
+              <button type="button" class="btn btn-outline btn-sm" ${page === 1 ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${page - 1})">‹ Prev</button>
+              <span style="font-size: 0.85rem; font-weight: 600; padding: 0 0.5rem;">Page ${page} of ${totalPages}</span>
+              <button type="button" class="btn btn-outline btn-sm" ${page === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${page + 1})">Next ›</button>
+              <button type="button" class="btn btn-outline btn-sm" ${page === totalPages ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''} onclick="changeAttentionPage(${totalPages})">Last »</button>
             </div>
           `;
         }
@@ -219,4 +220,3 @@
         `;
       }).join("");
     }
-
