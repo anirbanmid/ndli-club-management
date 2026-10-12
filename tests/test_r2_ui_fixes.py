@@ -7,6 +7,7 @@ implementation phase (changelogs: r2_impl_css.md / r2_impl_emp_changelog.md /
 r2_impl_aiv_changelog.md).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import os
 import re
 import unittest
@@ -33,7 +34,7 @@ class TestR2AdminFixes(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.html = read("templates/admin.html")
+        cls.html = admin_js_view()
 
     def test_single_system_footer(self):
         self.assertEqual(self.html.count('class="system-footer"'), 1,

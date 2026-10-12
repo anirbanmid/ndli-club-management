@@ -12,6 +12,7 @@ Locks the four follow-up fixes:
      strip (visible history without fabricating per-event rows)
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import json
 import threading
 import unittest
@@ -138,7 +139,7 @@ class TestR30V2SmokeFixes(unittest.TestCase):
         self.assertEqual(data["summary"]["migrated_totals"]["approvals"], 7)
 
     def test_admin_kpi_split_markup(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertIn('id="kpi-clubs-migrated"', adm)
         self.assertIn('id="kpi-activities-migrated"', adm)
         self.assertIn("migrated_totals", adm)

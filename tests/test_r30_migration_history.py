@@ -21,6 +21,7 @@ mapping, lump notes, replace semantics, baseline survives recompute (anti-drift)
 imported clubs are NOT double-counted in performance, attribution gate, UI locks.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import os
 import time
 import unittest
@@ -359,8 +360,8 @@ class TestR30MigrationHistory(unittest.TestCase):
 
     # ---------- UI locks ----------
     def test_ui_markup_locks(self):
-        with open("templates/admin.html", encoding="utf-8") as fh:
-            admin = fh.read()
+        # R41: JS lives in static/js/admin_*.js - scan the combined view.
+        admin = admin_js_view()
         with open("templates/employee.html", encoding="utf-8") as fh:
             emp = fh.read()
         self.assertIn('id="migration-modal"', admin)

@@ -19,6 +19,7 @@ NOTE: ids are UNIQUE PER RUN (timestamp tag) so re-runs against a persistent sto
 are safe (bulk doors block existing club ids/reg-nos by design).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -283,6 +284,8 @@ class TestR31TwoDoors(unittest.TestCase):
                 html = resp.read().decode("utf-8")
         except urllib.error.HTTPError as e:
             html = e.read().decode("utf-8")
+        # R41: JS lives in static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
         for marker in (
             'id="migration-gate-modal"', "unlockMigrationGate", 'id="migration-modal"',
             "Bulk Club History Upload", "handleMigClubFile", "runMigClubDryRun",

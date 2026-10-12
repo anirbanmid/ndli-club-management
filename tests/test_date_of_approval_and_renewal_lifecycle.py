@@ -10,6 +10,7 @@ Validates the logic:
 7. Full API endpoints and template element integrity.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -298,7 +299,8 @@ class TestApprovalAndRenewalLifecycle(unittest.TestCase):
         # 2. Admin template
         status_adm, _, body_adm = self._get_raw("/admin")
         self.assertEqual(status_adm, 200)
-        html_adm = body_adm.decode("utf-8")
+        # R41: JS lives in static/js/admin_*.js - assert on the combined view.
+        html_adm = admin_js_view()
         self.assertIn("Date of Approval", html_adm)
         self.assertIn("Last Renewal Date", html_adm)
         self.assertIn("Upcoming Renewal Due Date", html_adm)

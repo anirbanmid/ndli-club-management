@@ -18,6 +18,7 @@ Status at build time (checked against the deployed code first, per user's order)
                               onto --text-xs / --text-md tokens.
 """
 import os
+from admin_view import admin_js_view
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,7 +60,7 @@ class TestR33P3SkeletonFirstPaint(unittest.TestCase):
         self.assertIn('w.classList.remove("ui-skeleton")', ui)
 
     def test_admin_dashboard_tables_use_skeletons(self):
-        html = read("templates/admin.html")
+        html = admin_js_view()
         self.assertGreaterEqual(html.count("withSkeleton("), 2,
                                 "dashboard + performance fetches must both shimmer")
         self.assertIn('document.getElementById("state-breakdown-tbody")', html)

@@ -11,6 +11,7 @@ What the user signed off (webchat, 2026-10-07 23:06):
 Static grep-based guards (same style as tests/test_r2_ui_fixes.py).
 """
 import os
+from admin_view import admin_js_view
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,7 +49,7 @@ class TestR20LockAdminReadable(unittest.TestCase):
     """Fix A: the Lock Admin chip must never be white-on-light again."""
 
     def setUp(self):
-        self.admin = read("templates/admin.html")
+        self.admin = admin_js_view()
         self.style = read("static/css/style.css")
 
     def test_lock_chip_class(self):
@@ -69,7 +70,7 @@ class TestR20CreateReportDropdown(unittest.TestCase):
     """Fix B: one Create Report button + PDF/DOC dropdown (see test_report_gen)."""
 
     def setUp(self):
-        self.admin = read("templates/admin.html")
+        self.admin = admin_js_view()
         self.style = read("static/css/style.css")
 
     def test_dropdown_markup_present(self):
@@ -94,7 +95,7 @@ class TestR20RowActions(unittest.TestCase):
     """Fix C: compact row actions in the Employee Credential Database table."""
 
     def setUp(self):
-        self.admin = read("templates/admin.html")
+        self.admin = admin_js_view()
         self.style = read("static/css/style.css")
 
     def test_compact_tier_defined(self):

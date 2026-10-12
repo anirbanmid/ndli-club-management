@@ -1,4 +1,5 @@
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import json
 from pathlib import Path
@@ -12,7 +13,8 @@ class TestKPIStackReminders(unittest.TestCase):
     """
 
     def test_admin_html_has_kpi_stack_and_modal_elements(self):
-        admin_html = (BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
+        # R41: JS lives in static/js/admin_*.js - scan the combined view.
+        admin_html = admin_js_view()
         
         # 1. Top KPI card with red highlight
         self.assertIn('id="card-admin-escalations"', admin_html)

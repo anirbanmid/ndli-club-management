@@ -21,6 +21,7 @@ Locked here:
     correction block)
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -271,7 +272,9 @@ class TestR24ImportExisting(unittest.TestCase):
                        "2019-01-01", "toggleSecC('import')", "updateImportPreview",
                        "record_mode"):
             self.assertIn(marker, html_emp)
-        status, html_adm = self._get_raw("/admin")
+        status, _served = self._get_raw("/admin")
+        # R41: JS lives in static/js/admin_*.js - assert on the combined view.
+        html_adm = admin_js_view()
         self.assertEqual(status, 200)
         for marker in ("submitClubDateCorrection", "cd-date-of-approval", "cd-last-renewal",
                        "Correct Historical Dates", "/api/clubs/correct-dates"):

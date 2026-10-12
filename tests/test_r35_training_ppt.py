@@ -8,6 +8,7 @@ Master-Admin-only; listing + single-click download is for any authenticated
 session; the Hard Reset wipes the library (nothing survives the handover).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import base64
 import json
 import shutil
@@ -229,7 +230,8 @@ class TestTrainingPptLibrary(unittest.TestCase):
     # UI markers (both portals) — no new DOM modals (test_r3 pins stay)
     # ------------------------------------------------------------------
     def test_ui_markers_present(self):
-        admin_html = (app_module.BASE_DIR / "templates" / "admin.html").read_text(encoding="utf-8")
+        # R41: JS lives in static/js/admin_*.js - scan the combined view.
+        admin_html = admin_js_view()
         for marker in ("📚 Training Materials (PPT)", "training-file-input", "training-slots",
                        "loadTrainingSlots()", "trainingPickUpload", "/api/admin/training/upload",
                        "15 MB budget"):
