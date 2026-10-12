@@ -15,6 +15,7 @@ Locked here:
   * anti-regression: renewal-attention flow + r24 correction block pins intact
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -128,7 +129,9 @@ class TestR25ClubRegister(unittest.TestCase):
 
     # ---------- UI markup locks ----------
     def test_register_markup_locks(self):
-        status, html = self._get_raw("/admin")
+        status, _html_served = self._get_raw("/admin")
+        # R41: JS moved to static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
         self.assertEqual(status, 200)
         for marker in (
             'id="card-club-register"', 'onclick="openClubRegisterModal()"',
@@ -142,14 +145,18 @@ class TestR25ClubRegister(unittest.TestCase):
             self.assertIn(marker, html)
 
     def test_kpi_card_accessibility(self):
-        status, html = self._get_raw("/admin")
+        status, _html_served = self._get_raw("/admin")
+        # R41: JS moved to static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
         self.assertEqual(status, 200)
         self.assertIn('id="card-club-register" role="button" tabindex="0"', html)
         self.assertIn('aria-label="Open Club Register"', html)
         self.assertIn("event.key==='Enter'", html)
 
     def test_details_back_navigation_is_context_aware(self):
-        status, html = self._get_raw("/admin")
+        status, _html_served = self._get_raw("/admin")
+        # R41: JS moved to static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
         self.assertEqual(status, 200)
         # the choke-point back handler routes to the register when in register context
         self.assertIn("backToAttentionList()", html)
@@ -160,7 +167,9 @@ class TestR25ClubRegister(unittest.TestCase):
         self.assertIn("closeClubRegisterModal();", html)
 
     def test_anti_regression_pins(self):
-        status, html = self._get_raw("/admin")
+        status, _html_served = self._get_raw("/admin")
+        # R41: JS moved to static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
         self.assertEqual(status, 200)
         # renewal-attention flow intact
         self.assertIn('id="card-renewal-attention"', html)

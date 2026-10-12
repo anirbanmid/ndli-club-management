@@ -15,6 +15,7 @@ Locks:
   6. anti-regression: the R30v3 KPI split wording and the migrated strip survive
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import json
 import threading
 import unittest
@@ -79,7 +80,7 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     def test_no_backwards_incl_wording_left(self):
         emp = self._read("templates/employee.html")
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertNotIn('incl. <strong id="quota-legacy-clubs"', emp,
                          "the \"incl.\" wording reads backwards — it is gone")
         self.assertNotIn("incl. ${mig", adm,
@@ -87,7 +88,7 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     # ---------- 2. the admin performance matrix ----------
     def test_perf_matrix_labels_the_split_on_every_blended_column(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertIn("function splitNote(live, migrated)", adm)
         self.assertIn("function splitTitle(total, live, migrated, label)", adm)
         # 3 performance-matrix columns (clubs / online training / other supports)
@@ -101,7 +102,7 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     # ---------- 3. the activity distribution matrix ----------
     def test_activity_matrix_splits_from_quota_rows(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertIn("q.legacy_clubs_count", adm)
         self.assertIn("q.legacy_support_count", adm)
         self.assertIn("splitNote(r.liveClubs, r.migClubs)", adm)
@@ -109,7 +110,7 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     # ---------- 4. the employee roster ----------
     def test_roster_labels_the_split(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertIn("emp.legacy_clubs_count", adm)
         self.assertIn("emp.legacy_support_count", adm)
         self.assertIn("splitTitle(emp.clubs_approved_count", adm)
@@ -139,13 +140,13 @@ class TestR29SplitDisplay(unittest.TestCase):
 
     # ---------- 5. no history, no noise ----------
     def test_split_note_is_hidden_without_history(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         self.assertIn("if (mig <= 0) return \"\";", adm,
                       "views with no migrated history must show no split note")
 
     # ---------- 6. anti-regression: R30v2/v3 work survives ----------
     def test_r30v2_r30v3_pin(self):
-        adm = self._read("templates/admin.html")
+        adm = admin_js_view()
         emp = self._read("templates/employee.html")
         self.assertIn("live + ${migApprovals} migrated club approvals (history)", adm)
         self.assertIn('id="migrated-history-strip"', emp)

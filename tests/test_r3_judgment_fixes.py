@@ -57,7 +57,9 @@ class TestR3CertificatePrintFix(unittest.TestCase):
         self.assertNotIn("openActiveCertificateVerificationLink", self.emp)
         self.assertNotIn("Verify Online", self.emp)
         # removed from every template + static js, not just employee.html
-        for rel in TEMPLATES + ["static/js/certificate_engine.js", "static/js/app.js"]:
+        admin_js = ["static/js/" + f for f in sorted(os.listdir(os.path.join(ROOT, "static", "js")))
+                    if f.startswith("admin_") and f.endswith(".js")]
+        for rel in TEMPLATES + ["static/js/certificate_engine.js", "static/js/app.js"] + admin_js:
             self.assertNotIn("openActiveCertificateVerificationLink", read(rel), rel)
 
 

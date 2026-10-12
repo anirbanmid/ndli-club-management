@@ -2,6 +2,7 @@
 Comprehensive Integration Tests for NDLI Web Portals, Static Files, and Extended REST API Endpoints.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -410,7 +411,8 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
     def test_admin_renewal_attention_and_club_details_modal_integration(self):
         status, _, body = self._get_raw("/admin")
         self.assertEqual(status, 200)
-        html = body.decode("utf-8")
+        # R41: JS lives in static/js/admin_*.js - assert on the combined view.
+        html = admin_js_view()
 
         # Master Performance Dashboard Renewal Attention KPI Card
         self.assertIn('id="card-renewal-attention"', html)
@@ -473,8 +475,9 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
     def test_admin_infographics_and_analytics_integration(self):
         # 1. Verify /admin template contains modern Infographics and detailed analytics markup
         s_adm, _, body_adm = self._get_raw("/admin")
+        body_adm = admin_js_view()  # R41: JS lives in static/js/admin_*.js
         self.assertEqual(s_adm, 200)
-        html = body_adm.decode("utf-8")
+        html = body_adm
         self.assertIn('id="zone-donut-container"', html)
         self.assertIn('id="trajectory-svg-container"', html)
         self.assertIn('id="support-split-grid"', html)
@@ -582,6 +585,11 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
                     import os
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
+
+            # R41: admin JS lives in static/js/admin_*.js modules - syntax-check every one
+            for mod in re.findall(r'<script[^>]*src="(/static/js/admin_[^"]+\.js)', content):
+                res = subprocess.run([node_bin, "--check", mod.lstrip("/")], capture_output=True, text=True)
+                self.assertEqual(res.returncode, 0, f"{mod} has JS syntax error: {res.stderr}")
 
     # 11. Test Regional Employee Node Clubs (NDLI-EMP01-002, NDLI-EMP04-001) in Renewal Attention & Details API
     def test_regional_employee_node_club_details_and_overdue_workflow(self):
@@ -753,11 +761,13 @@ class TestPortalAndExtendedAPI(unittest.TestCase):
         const appJsCode = fs.readFileSync('static/js/app.js', 'utf8');
         eval(appJsCode);
 
-        // Extract inline script from templates/admin.html
+        // R41: admin JS lives in static/js/admin_*.js modules; load them in the
+        // template's <script src> order (concatenated = one-scope eval semantics,
+        // faithful to how the browser shares one global lexical scope across scripts).
         const adminHtml = fs.readFileSync('templates/admin.html', 'utf8');
-        const scriptBlocks = adminHtml.match(/<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi) || [];
-        const inlineBlock = scriptBlocks.find(b => !b.includes('src=') && b.includes('renderRenewalAttentionList')) || scriptBlocks[scriptBlocks.length - 1];
-        const adminScript = inlineBlock.replace(/^<script(?:\s+[^>]*)?>/i, '').replace(/<\/script>$/i, '');
+        const srcOrder = [...adminHtml.matchAll(/<script[^>]*src="(\/static\/js\/admin_[^"?]+\.js)(?:\?[^"?]*)?"[^>]*><\/script>/g)].map(m => m[1]);
+        if (srcOrder.length === 0) throw new Error('no admin_*.js modules referenced in admin.html');
+        const adminScript = srcOrder.map(p => fs.readFileSync('.' + p, 'utf8')).join('\n');
         eval(adminScript);
 
         // Populate sample attention dataset

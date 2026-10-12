@@ -7,6 +7,7 @@ Validates:
 - Synchronized Presence in templates/admin.html, deployment_gas/Admin.html, and deployment_gas/Code.gs
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -119,7 +120,8 @@ class TestEmployeePerformanceRatings(unittest.TestCase):
     def test_templates_markup_integration(self):
         admin_tmpl = BASE_DIR / "templates" / "admin.html"
         self.assertTrue(admin_tmpl.exists())
-        content = admin_tmpl.read_text(encoding="utf-8")
+        # R41: JS moved to static/js/admin_*.js - scan the combined view.
+        content = admin_js_view()
 
         self.assertIn("perf-filter-year", content)
         self.assertIn("perf-filter-month", content)

@@ -17,6 +17,7 @@ more modern looks." v1 was surface-only; v2 locks the BOLD design language:
 Static grep-based guards (same style as tests/test_r20_polish.py).
 """
 import os
+from admin_view import admin_js_view
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,7 +110,7 @@ class TestR21InfographicChrome(unittest.TestCase):
 
 class TestR21Charts(unittest.TestCase):
     def setUp(self):
-        self.admin = read("templates/admin.html")
+        self.admin = admin_js_view()
 
     def test_donut_modern_palette(self):
         self.assertIn('"#0D7751", "#2FA97B", "#57C7A0", "#1E5F8C", "#4B9BC9"', self.admin)
@@ -173,7 +174,7 @@ class TestR21ActivityMatrix(unittest.TestCase):
     (share ribbon + heat rows) delivers relative distribution at a glance."""
 
     def setUp(self):
-        self.admin = read("templates/admin.html")
+        self.admin = admin_js_view()
         self.style = read("static/css/style.css")
 
     def test_volume_bars_replaced(self):

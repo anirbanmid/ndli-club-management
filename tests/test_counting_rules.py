@@ -21,6 +21,7 @@ These tests assert SAMENESS ACROSS SURFACES, not just per-surface values:
      (SyncEngine.bucket_activity delegates).
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import re
 import threading
 import unittest
@@ -88,7 +89,8 @@ class TestSingleSourceLocks(unittest.TestCase):
                                   f"{rel}:{n} re-implements the provenance rule: {line.strip()}")
 
     def test_no_js_re_derives_the_split(self):
-        adm = _read("templates/admin.html")
+        # R41: the JS lives in static/js/admin_*.js - scan the combined view.
+        adm = admin_js_view()
         # The quota card used to compute live = total - baseline in JS.
         self.assertNotIn("clubs - migClubs", adm,
                          "the live half comes from the API (counting_rules), never JS subtraction")

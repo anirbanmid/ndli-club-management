@@ -2,6 +2,7 @@
 Tests for Admin Dashboard 'Analytics & Geographic Scope' Zone and Year Filtering.
 """
 import _seed_env  # noqa: F401  (seed test credentials before config import)
+from admin_view import admin_js_view
 import unittest
 import threading
 import json
@@ -109,7 +110,8 @@ class TestAdminMetricsFilters(unittest.TestCase):
         ]
         for tmpl_path in templates_to_check:
             self.assertTrue(tmpl_path.exists())
-            html = tmpl_path.read_text(encoding="utf-8")
+            # R41: JS moved to static/js/admin_*.js - admin.html pins use the combined view.
+            html = admin_js_view() if "deployment_gas" not in str(tmpl_path) else tmpl_path.read_text(encoding="utf-8")
 
             self.assertIn('id="filter-zone"', html)
             self.assertIn('onchange="applyFilters()"', html)
