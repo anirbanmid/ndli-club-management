@@ -2169,6 +2169,11 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .app-topbar { padding: 0 14px; }
   .app-search { flex: 1 1 auto; min-width: 0; }
   .app-search input { min-width: 0; }
+  /* R50 root cause: the stacked shell left .app-main width-auto (= fit-content
+     -> min-content) because .app-shell has align-items: flex-start. On the admin
+     dashboard the KPI grids' min-content was 822px at a 390px viewport, so the
+     whole page overflowed and every card/table squeezed. Stretch it. */
+  .app-main { align-self: stretch; min-width: 0; }
 }
 
 /* ==========================================================================
@@ -2677,4 +2682,90 @@ body { font-size: 14px; }
 }
 .kpi-row .stat-card > .stat-value {
   margin-top: 0 !important;
+}
+
+/* ==========================================================================
+   R50: dashboard small-display fixes (2026-10-13) — the authenticated
+   dashboards at laptop (<=1400px) and phone (<=520px) widths. Every rule here
+   is inside a max-width media block: desktop >1400px stays pixel-identical.
+   The root-cause overflow fix lives in the <=980px stacked-shell block above.
+   ========================================================================== */
+@media (max-width: 1400px) {
+  /* JS-rendered alert banners (inline-styled flex rows) squeezed their text and
+     stacked the button label vertically at phone widths — let them wrap, keep
+     the action button label on one line, and let text blocks shrink. */
+  .escalation-kpi-stack,
+  .employee-reminders-kpi-stack {
+    flex-wrap: wrap !important;
+    gap: 0.75rem 1rem !important;
+  }
+  .escalation-kpi-stack > div,
+  .employee-reminders-kpi-stack > div { min-width: 0; }
+  .escalation-kpi-stack .btn,
+  .employee-reminders-kpi-stack .btn { white-space: nowrap; }
+
+  /* Analytics toolbar: the action-button cluster (margin-left: auto inline)
+     wrapped to its own line at laptop width and floated mid-bar — give it a
+     full-width line that starts at the left edge like the filters above it. */
+  .filter-bar { row-gap: 0.75rem; }
+  .filter-bar > div:last-child {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  /* Wide analytical matrices scroll inside .table-responsive instead of
+     crushing their headers into 3-line wraps on narrow screens. */
+  #state-breakdown-table { min-width: 680px; }
+  #employee-performance-table { min-width: 920px; }
+  #state-breakdown-table th, #state-breakdown-table td,
+  #employee-performance-table th, #employee-performance-table td {
+    vertical-align: middle;
+  }
+
+  /* Micro-type floors (measured 9.5px quota line / 8.3px credit line). */
+  #quota-legacy-line { font-size: 11px !important; }
+  .footer-credit-box .dev-role { font-size: 0.72rem; }
+}
+
+@media (max-width: 520px) {
+  /* The IST clock badge wrapped to 3 lines on phones ("PM" dropped below the
+     time): it is an inline-flex of 4 rendered segments — wrap BETWEEN segments
+     (flex lines), never inside one (each span keeps white-space: nowrap). */
+  #live-clock {
+    flex-wrap: wrap !important;
+    row-gap: 4px;
+    white-space: normal !important;
+    font-size: 0.78rem !important;
+    justify-content: center;
+  }
+  #live-clock span { white-space: nowrap; }
+
+  /* Topbar user cluster (avatar + name + Lock Admin) was 400px wide and could
+     not shrink -> the page kept a small horizontal overflow. Wrap + ellipsis. */
+  .top-user {
+    flex-wrap: wrap;
+    min-width: 0;
+    padding-left: 0;
+  }
+  .top-user .nm {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Activity Distribution Matrix: the 5-column rows have a ~400px min-content
+     (nowrap share/recency chips) -> scroll the matrix like the tables instead
+     of letting the page overflow. */
+  .activity-matrix { overflow-x: auto; }
+  .activity-row { min-width: 480px; }
+
+  /* SEC B action buttons: balanced two-line wrap instead of orphaning
+     "(historical dates) ->" onto a second line. */
+  #btn-open-sec-c-import,
+  #btn-open-sec-c,
+  #btn-open-bulk-import {
+    text-wrap: balance;
+    line-height: 1.4;
+  }
 }

@@ -176,10 +176,12 @@ class TestLaptopPositioning(unittest.TestCase):
 
 class TestCacheStamp(unittest.TestCase):
     def test_stylesheet_links_carry_the_r49_stamp(self):
+        # Pin-follow (R50): the stamp literal moves forward with every style.css
+        # change (R50 bumped it d -> f); the invariant is "a stamp is present".
         for rel in TMPL_FILES:
             for m in re.finditer(r'<link rel="stylesheet" href="([^"]+)"', read(rel)):
-                self.assertIn("?v=20261013d", m.group(1),
-                              "%s: stylesheet link missing the R49 stamp: %s" % (rel, m.group(1)))
+                self.assertIn("?v=20261013g", m.group(1),
+                              "%s: stylesheet link missing the R50 stamp: %s" % (rel, m.group(1)))
 
 
 class TestDesktopUntouched(unittest.TestCase):
