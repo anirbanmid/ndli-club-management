@@ -11,6 +11,8 @@ from config import EMPLOYEE_NODES_DIR, MASTER_ACTIVITIES_CSV, MASTER_CLUBS_CSV, 
 
 from datetime import datetime, timezone
 
+import re
+
 from db import counting_rules
 
 from db.csv_engine import CSVEngine
@@ -21,6 +23,27 @@ from db.sync.state import _SYNC_LOCK
 
 from typing import Any, Dict, List
 
+
+
+_BULK_MEMBER_RE_TMPL = r"^ACT-{emp}-(\d+)-\d+$"
+
+
+def bulk_group_base(activity_id: str, emp_id: str) -> str:
+    """R47: the bulk-group key of one activity id ('' when not a bulk member).
+
+    A bulk entry (log_support_activity with count>1) writes N rows sharing one
+    timestamp base: `ACT-<emp>-<ts_base>-<i>` for i in 1..N.  The group key is
+    everything before the `-<i>` suffix.  Suffix-less ids (`ACT-<emp>-<ts_base>`
+    -- single rows) return '' and therefore NEVER form a group, so a single row
+    can never be swept away by another row's cascade.  Matching is scoped to
+    the owning employee id, so cross-employee ids never group either.
+    """
+    aid = str(activity_id or "").strip().upper()
+    emp = str(emp_id or "").strip().upper()
+    if not aid or not emp:
+        return ""
+    m = re.match(_BULK_MEMBER_RE_TMPL.format(emp=re.escape(emp)), aid)
+    return f"ACT-{emp}-{m.group(1)}" if m else ""
 
 
 class SyncActivitiesMixin:
@@ -165,11 +188,22 @@ class SyncActivitiesMixin:
         the whole batch, not one confirmation per entry -- see
         hard_reset_for_handover's predecessor (bulk reseed) for why that
         matters once more than a couple of items are involved.
+
+        R47 bulk-group deletion semantics (user requirement: "If a entry is
+        in bulk then deletion should be performed in bulk."): a bulk entry is
+        ONE unit.  Requesting any member id cascades to every sibling row
+        sharing its bulk base id (`ACT-<emp>-<ts_base>-<i>`), node + master,
+        with ONE quota recompute at the end -- so deleting one bulk entry
+        brings the count back to its pre-bulk value instead of dropping by
+        one per click.  Suffix-less single rows are never swept (their ids
+        never form a group).  deleted_count / results / not_found stay
+        honest: the count is the rows actually removed, and not_found still
+        reports only the REQUESTED ids that do not exist.
         """
         clean_id = str(emp_id).strip().upper()
         ids_wanted = {str(a).strip() for a in activity_ids if str(a).strip()}
         if not clean_id or not ids_wanted:
-            return {"deleted_count": 0, "cascaded_clubs": [], "not_found": sorted(ids_wanted), "results": [], "cloud_sync_confirmed": True}
+            return {"deleted_count": 0, "cascaded_clubs": [], "not_found": sorted(ids_wanted), "results": [], "bulk_groups": [], "cloud_sync_confirmed": True}
 
         with _SYNC_LOCK:
             node_act_path = cls.get_employee_activities_path(clean_id)
@@ -177,7 +211,22 @@ class SyncActivitiesMixin:
             # Only entries that actually belong to this employee's own node
             # are eligible -- prevents deleting another employee's log entry
             # by guessing/passing an activity_id that isn't theirs.
-            target_acts = [a for a in node_acts if a.get("activity_id", "").strip() in ids_wanted]
+            #
+            # R47: any requested bulk member drags its WHOLE group along
+            # (see the docstring) -- expand the target set to the siblings.
+            group_bases = set()
+            for rid in ids_wanted:
+                base = bulk_group_base(rid, clean_id)
+                if base:
+                    group_bases.add(base)
+
+            def _in_requested_group(aid: str) -> bool:
+                base = bulk_group_base(aid, clean_id)
+                return bool(base) and base in group_bases
+
+            target_acts = [a for a in node_acts
+                           if a.get("activity_id", "").strip() in ids_wanted
+                           or _in_requested_group(a.get("activity_id", "").strip())]
             found_ids = {a.get("activity_id", "").strip() for a in target_acts}
             not_found = sorted(ids_wanted - found_ids)
 
@@ -202,11 +251,17 @@ class SyncActivitiesMixin:
                     results.append({
                         "activity_id": aid,
                         "deleted": del_result.get("deleted", False),
-                        "cascaded_club_id": club_id if del_result.get("deleted") else None
+                        "cascaded_club_id": club_id if del_result.get("deleted") else None,
+                        "bulk_group": bulk_group_base(aid, clean_id) or None
                     })
                 else:
                     direct_delete_ids.add(aid)
-                    results.append({"activity_id": aid, "deleted": True, "cascaded_club_id": None})
+                    results.append({
+                        "activity_id": aid,
+                        "deleted": True,
+                        "cascaded_club_id": None,
+                        "bulk_group": bulk_group_base(aid, clean_id) or None
+                    })
 
             # Remove plain (non-approval) entries directly, node + master.
             if direct_delete_ids:
@@ -239,11 +294,21 @@ class SyncActivitiesMixin:
             except Exception:
                 cloud_sync_confirmed = False
 
+            # R47: report which bulk groups went in full (honest feedback --
+            # the caller asked for 1 row and N were removed as one unit).
+            bulk_groups = []
+            for base in sorted(group_bases):
+                gone = sorted(i for i in direct_delete_ids
+                              if bulk_group_base(i, clean_id) == base)
+                if gone:
+                    bulk_groups.append({"base": base, "deleted_ids": gone})
+
             return {
                 "deleted_count": len(direct_delete_ids) + sum(1 for c in cascaded_clubs if c["deleted"]),
                 "cascaded_clubs": cascaded_clubs,
                 "not_found": not_found,
                 "cloud_sync_confirmed": cloud_sync_confirmed,
-                "results": results
+                "results": results,
+                "bulk_groups": bulk_groups
             }
 

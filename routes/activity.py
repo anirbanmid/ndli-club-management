@@ -116,6 +116,10 @@ def post_activity_delete(h, path, body):
 
     cascaded_count = sum(1 for c in result["cascaded_clubs"] if c["deleted"])
     msg = f"{result['deleted_count']} activity log entr{'y' if result['deleted_count'] == 1 else 'ies'} deleted"
+    # R47: a bulk entry is ONE unit -- when the cascade removed sibling rows
+    # too, say so instead of letting "1 entry -> 3 rows deleted" look wrong.
+    if result.get("bulk_groups"):
+        msg += " (bulk entry deleted in full)"
     if cascaded_count:
         msg += f", including {cascaded_count} club{'s' if cascaded_count != 1 else ''} cascade-deleted from Master DB"
     if result["not_found"]:

@@ -5,7 +5,8 @@ R44 — employee.html inline JS extraction: layout locks.
 
 templates/employee.html now carries MARKUP ONLY; its JS lives in
 static/js/employee_*.js loaded in <script src> order (20 modules, cache-busted
-?v=20261013). These pins lock the arrangement so it cannot silently regress:
+?v=20261013b -- the family stamp bumps whenever any module changes; R47 was
+the first bump). These pins lock the arrangement so it cannot silently regress:
 
   * the template can never grow inline <script> bodies back;
   * every referenced module exists, is cached, and loads in the pinned order;
@@ -26,7 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 TMPL = ROOT / "templates" / "employee.html"
 JS = ROOT / "static" / "js"
 
-CACHE = "?v=20261013"
+CACHE = "?v=20261013b"
 
 # The 20 modules, in the exact <script src> order the template must use.
 EXPECTED_ORDER = [

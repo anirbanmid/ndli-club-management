@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/ui.css">
   <link rel="stylesheet" href="/static/css/assistant.css">
-  <script src="/static/js/employee_head_boot.js?v=20261013"></script>
+  <script src="/static/js/employee_head_boot.js?v=20261013b"></script>
   <style>
     /* Instant Seamless Pre-Unlock state (prevents jerky login-screen flash) */
     html.auth-portal-unlocked #employee-login-view {
@@ -1759,6 +1759,7 @@
         <p style="font-size: 0.92rem; color: #7f1d1d; margin: 0 0 0.6rem 0; line-height: 1.4;" id="activity-delete-warning-text">
           You are about to permanently delete <strong id="activity-delete-count-text">1 activity log entry</strong>.
           <span id="activity-delete-cascade-warning" style="display: none;"> This includes at least one <strong>Club Approval</strong> entry — deleting it will also permanently remove the corresponding club from the Clubs Log and Master Database to keep records consistent.</span>
+          <span id="activity-delete-bulk-warning" style="display: none;"> This includes rows of a <strong>bulk entry</strong> — a bulk entry is deleted as one unit, so all of its rows go together (see the list below).</span>
         </p>
 
         <!-- Summary of Target Entries -->
@@ -1964,25 +1965,25 @@
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
   <script src="/static/js/shell.js?v=20261007"></script>
-  <script src="/static/js/employee_boot.js?v=20261013"></script>
-  <script src="/static/js/employee_roster.js?v=20261013"></script>
-  <script src="/static/js/employee_clock.js?v=20261013"></script>
-  <script src="/static/js/employee_auth.js?v=20261013"></script>
-  <script src="/static/js/employee_profile.js?v=20261013"></script>
-  <script src="/static/js/employee_downloads.js?v=20261013"></script>
-  <script src="/static/js/employee_reminders.js?v=20261013"></script>
-  <script src="/static/js/employee_states.js?v=20261013"></script>
-  <script src="/static/js/employee_add_clubs.js?v=20261013"></script>
-  <script src="/static/js/employee_bulk_import.js?v=20261013"></script>
-  <script src="/static/js/employee_quota.js?v=20261013"></script>
-  <script src="/static/js/employee_activities.js?v=20261013"></script>
-  <script src="/static/js/employee_clubs.js?v=20261013"></script>
-  <script src="/static/js/employee_club_edit.js?v=20261013"></script>
-  <script src="/static/js/employee_renewal.js?v=20261013"></script>
-  <script src="/static/js/employee_activity_delete.js?v=20261013"></script>
-  <script src="/static/js/employee_certificate.js?v=20261013"></script>
-  <script src="/static/js/employee_init.js?v=20261013"></script>
-  <script src="/static/js/employee_training.js?v=20261013"></script>
+  <script src="/static/js/employee_boot.js?v=20261013b"></script>
+  <script src="/static/js/employee_roster.js?v=20261013b"></script>
+  <script src="/static/js/employee_clock.js?v=20261013b"></script>
+  <script src="/static/js/employee_auth.js?v=20261013b"></script>
+  <script src="/static/js/employee_profile.js?v=20261013b"></script>
+  <script src="/static/js/employee_downloads.js?v=20261013b"></script>
+  <script src="/static/js/employee_reminders.js?v=20261013b"></script>
+  <script src="/static/js/employee_states.js?v=20261013b"></script>
+  <script src="/static/js/employee_add_clubs.js?v=20261013b"></script>
+  <script src="/static/js/employee_bulk_import.js?v=20261013b"></script>
+  <script src="/static/js/employee_quota.js?v=20261013b"></script>
+  <script src="/static/js/employee_activities.js?v=20261013b"></script>
+  <script src="/static/js/employee_clubs.js?v=20261013b"></script>
+  <script src="/static/js/employee_club_edit.js?v=20261013b"></script>
+  <script src="/static/js/employee_renewal.js?v=20261013b"></script>
+  <script src="/static/js/employee_activity_delete.js?v=20261013b"></script>
+  <script src="/static/js/employee_certificate.js?v=20261013b"></script>
+  <script src="/static/js/employee_init.js?v=20261013b"></script>
+  <script src="/static/js/employee_training.js?v=20261013b"></script>
 
   <!-- SYSTEM FOOTER WITH DEVELOPER ATTRIBUTION -->
   <footer class="system-footer">

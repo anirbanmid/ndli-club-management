@@ -2,6 +2,20 @@
     // ACTIVITY LOG DELETION (single or bulk) — with security modal
     // =============================================================
 
+    // R47: bulk entries delete as ONE unit. A bulk row's id is
+    // `ACT-<emp>-<ts_base>-<i>`; every sibling row sharing the same
+    // `<base>` is part of the same bulk entry. Suffix-less ids (single
+    // rows) never form a group, so they are never swept along.
+    function getActivityBulkGroupIds(activityId) {
+      const id = String(activityId || "").trim();
+      const m = id.match(/^(ACT-.+-\d+)-\d+$/);
+      if (!m) return [];
+      const base = m[1];
+      return (ALL_ACTIVITIES_CACHE || [])
+        .map(a => (a && a.activity_id) ? String(a.activity_id).trim() : "")
+        .filter(aid => aid && aid !== id && aid.indexOf(base + "-") === 0 && /^\d+$/.test(aid.slice(base.length + 1)));
+    }
+
     function openActivityDeleteSecurityModal(singleActivityId) {
       try {
         ACTIVITY_DELETE_PENDING_IDS = singleActivityId
@@ -11,6 +25,22 @@
         if (ACTIVITY_DELETE_PENDING_IDS.length === 0) {
           return;
         }
+
+        // R47: expand each requested bulk member to its WHOLE group before
+        // confirming -- the modal must show the true number of rows that
+        // will go, and the request must match what the engine will do.
+        const bulkGroupBases = new Set();
+        const expandedIds = new Set();
+        ACTIVITY_DELETE_PENDING_IDS.forEach(id => {
+          expandedIds.add(id);
+          const gid = getActivityBulkGroupIds(id);
+          if (gid.length > 0) {
+            const gm = String(id).match(/^(ACT-.+-\d+)-\d+$/);
+            if (gm) bulkGroupBases.add(gm[1]);
+            gid.forEach(s => expandedIds.add(s));
+          }
+        });
+        ACTIVITY_DELETE_PENDING_IDS = Array.from(expandedIds);
 
         const modal = document.getElementById("activity-delete-security-modal");
         if (!modal) {
@@ -29,6 +59,11 @@
         const countEl = document.getElementById("activity-delete-count-text");
         if (countEl) countEl.innerText = `${n} activity log entr${n === 1 ? 'y' : 'ies'}`;
 
+        // R47: warn up front when a bulk entry is involved -- "1 entry"
+        // silently becoming 3 deletions was exactly the reported bug.
+        const bulkWarnEl = document.getElementById("activity-delete-bulk-warning");
+        if (bulkWarnEl) bulkWarnEl.style.display = bulkGroupBases.size > 0 ? "inline" : "none";
+
         // Detect whether any selected entry is a Club Approval, to show
         // the cascade-deletion warning up front rather than as a surprise.
         const cache = ALL_ACTIVITIES_CACHE || [];
@@ -46,7 +81,9 @@
             const match = targetActs.find(a => a.activity_id === id);
             const isApproval = match && match.support_type === "Club Approval";
             const clubTag = match && match.club_id ? ` — Club: ${escapeHtml(match.club_id)}${isApproval ? ' (will be cascade-deleted)' : ''}` : '';
-            return `<li>${escapeHtml(id)}${clubTag}</li>`;
+            const gm = String(id).match(/^(ACT-.+-\d+)-\d+$/);
+            const bulkTag = (gm && bulkGroupBases.has(gm[1])) ? ' (bulk entry — deleted together)' : '';
+            return `<li>${escapeHtml(id)}${clubTag}${bulkTag}</li>`;
           }).join("");
         }
 
