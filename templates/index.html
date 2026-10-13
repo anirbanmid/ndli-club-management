@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/ui.css">
-  <link rel="stylesheet" href="/static/css/assistant.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013c">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky lock-screen flash when navigating between portals */
     (function() {
@@ -109,13 +109,13 @@
       z-index: 2;
       width: 100%;
       max-width: 480px;
-      background: rgba(8, 22, 14, 0.84);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      /* R48: solid dark surface (was rgba + blur(28px) = glass tell). */
+      background: #0A1A10;
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 22px;
       padding: 1.25rem 1.75rem;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 60px rgba(13, 119, 81, 0.18);
+      /* R48: elevation, not glow (dropped the 0 0 60px green glow term). */
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
       box-sizing: border-box;
       text-align: center;
     }
@@ -419,14 +419,9 @@
       letter-spacing: -0.028em;
       color: var(--c-green-deep, #0A5C3E);
     }
-    /* Direction C gradient-text accent (AA-darkened stops) */
-    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-      .hero-banner h2 {
-        background: linear-gradient(92deg, #0D7751, #0A5C3E 55%, #92500B);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
+    /* R48: solid ink — gradient text was an AI-uniform tell. */
+    .hero-banner h2 {
+      color: var(--c-green-deep, #0A5C3E);
     }
     .hero-banner p {
       font-size: 0.9rem;
@@ -477,14 +472,14 @@
       font-weight: 600;
       color: var(--c-green-deep, #0A5C3E);
       margin-top: 0.75rem;
-      backdrop-filter: blur(4px);
     }
     .pulse-dot {
       width: 9px;
       height: 9px;
       background: #34d399;
       border-radius: 50%;
-      box-shadow: 0 0 10px #34d399;
+      /* R48: ring, not glow. */
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18);
     }
     /* Enhanced orbit glow rings */
     .logo-trail-container { filter: drop-shadow(0 0 8px rgba(13, 119, 81, 0.40)); }

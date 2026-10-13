@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/ui.css">
-  <link rel="stylesheet" href="/static/css/assistant.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013c">
   <style>
     /* .ai-card / .ai-rec-box: the old dark-glass override block was removed —
        the class-level Direction C light recipe in style.css now applies.
@@ -56,8 +56,8 @@
     #employee-performance-table th { vertical-align: bottom; line-height: 1.2; }
     /* Navbar auth badge animations */
     #nav-admin-badge { transition: background 0.3s ease; }
-    /* Modal overlay enhanced backdrop */
-    .modal-overlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    /* R48: modal overlay is a plain dim scrim (the blur "enhanced backdrop"
+       was a glass tell; base .modal-overlay in style.css applies). */
     /* Stat card reveal */
     .stat-card { animation: statCardIn 0.40s cubic-bezier(0.16, 1, 0.3, 1) both; }
     @keyframes statCardIn {

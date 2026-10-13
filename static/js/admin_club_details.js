@@ -431,7 +431,7 @@
             <div class="grid-3" style="gap: 1rem;">
               <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #fef3c7;">
                 <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Date of Approval</span>
-                <strong style="font-size: 0.95rem; color: var(--primary); margin-top: 0.25rem; display: block; font-family: monospace;">
+                <strong style="font-size: 0.95rem; color: var(--primary); margin-top: 0.25rem; display: block; font-variant-numeric: tabular-nums;;">
                   ${escapeHtml(estDateShort)}
                 </strong>
                 <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">${escapeHtml(estDateFormatted)}</small>
@@ -439,7 +439,7 @@
 
               <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #fef3c7;">
                 <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: block;">Last Renewal Date</span>
-                <strong style="font-size: 0.95rem; color: #b45309; margin-top: 0.25rem; display: block; font-family: monospace;">
+                <strong style="font-size: 0.95rem; color: #b45309; margin-top: 0.25rem; display: block; font-variant-numeric: tabular-nums;;">
                   ${escapeHtml(lastRenShort)}
                 </strong>
                 <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">${escapeHtml(lastRenFormatted)}</small>
@@ -447,7 +447,7 @@
 
               <div style="background: #ffffff; padding: 0.85rem; border-radius: var(--radius); border: 1px solid #bbf7d0;">
                 <span style="font-size: 0.72rem; text-transform: uppercase; color: #166534; font-weight: 700; display: block;">Upcoming Renewal Due Date (Next Renewal Due Date)</span>
-                <strong style="font-size: 1rem; color: #15803d; margin-top: 0.25rem; display: block; font-family: monospace;" id="club-details-next-renewal">
+                <strong style="font-size: 1rem; color: #15803d; margin-top: 0.25rem; display: block; font-variant-numeric: tabular-nums;;" id="club-details-next-renewal">
                   ${escapeHtml(nextRenewalDue)}
                 </strong>
                 <small style="font-size: 0.72rem; color: #15803d; display: block; margin-top: 0.2rem;">+1 Year automatically computed</small>
@@ -466,11 +466,11 @@
               <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
                 <div style="flex: 1 1 180px;">
                   <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;" for="cd-date-of-approval">Date of Approval</label>
-                  <input type="date" id="cd-date-of-approval" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.date_of_approval || club.submission_timestamp || '').split('T')[0])}" style="width: 100%; font-family: monospace; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
+                  <input type="date" id="cd-date-of-approval" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.date_of_approval || club.submission_timestamp || '').split('T')[0])}" style="width: 100%; font-variant-numeric: tabular-nums;; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
                 </div>
                 <div style="flex: 1 1 180px;">
                   <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;" for="cd-last-renewal">Last Renewal Date (optional)</label>
-                  <input type="date" id="cd-last-renewal" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.last_renewal_date || '').split('T')[0])}" style="width: 100%; font-family: monospace; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
+                  <input type="date" id="cd-last-renewal" min="2019-01-01" max="${new Date().toISOString().split('T')[0]}" value="${escapeHtml(String(club.last_renewal_date || '').split('T')[0])}" style="width: 100%; font-variant-numeric: tabular-nums;; font-weight: 600; padding: 0.35rem 0.5rem; border: 1px solid #E5E7EB; border-radius: 8px;">
                 </div>
                 <button type="button" class="btn btn-primary btn-sm" onclick="submitClubDateCorrection('${escapeHtml(String(club.club_id || ''))}')">
                   ✓ Correct Dates

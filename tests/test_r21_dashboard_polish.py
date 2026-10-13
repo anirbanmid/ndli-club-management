@@ -90,9 +90,16 @@ class TestR21InfographicChrome(unittest.TestCase):
         self.assertIn("background: linear-gradient(165deg, #FFFFFF 0%, #F3FAF6 55%, #ECF6F0 100%);", self.style)
         self.assertIn("border-bottom: 1px solid #E7F1EB;", self.style)
 
-    def test_gradient_titles(self):
-        self.assertIn("-webkit-background-clip: text;", self.style)
-        self.assertIn("background: linear-gradient(120deg, #0B3B2A 0%, #0D7751 75%);", self.style)
+    def test_card_titles_are_solid_ink(self):
+        # R21 pinned GRADIENT-text titles here. R48 (design polish, user go
+        # 2026-10-13) removed gradient text -- an "AI-uniform" tell -- in
+        # favour of solid ink, so this pin follows the design decision: the
+        # title block keeps its R21 typography, its ink is the deep brand
+        # green, and clip-to-text must not come back.
+        self.assertIn(".infographic-card .card-title {", self.style)
+        self.assertIn("/* R48: solid ink", self.style)
+        self.assertIn("color: var(--primary-dark);", self.style)
+        self.assertNotIn("background-clip: text", self.style)
 
     def test_soft_plot_surface(self):
         self.assertIn("background: linear-gradient(180deg, #FFFFFF 0%, #F2F9F5 100%);", self.style)

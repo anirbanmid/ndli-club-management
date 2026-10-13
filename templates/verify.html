@@ -8,8 +8,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/ui.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
   <style>
     :root {
       --ndli-dark: #071912;
@@ -38,9 +38,8 @@
     }
 
     .verification-header {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      /* R48: solid surface (was rgba + blur(18px) = glass tell). */
+      background: #FFFFFF;
       border-bottom: 2px solid var(--gold-seal);
       padding: 1.25rem 1.5rem;
       box-shadow: var(--shadow);
@@ -127,15 +126,9 @@
       color: var(--c-green-deep, #0A5C3E);
     }
 
-    /* Gradient-text accent (spec §3a) — AA-darkened stops (spec's #34C98F/#E9A23B
-       stops fail §0.8 contrast on the light band; see changelog). */
-    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-      .banner-title span:last-child {
-        background: linear-gradient(92deg, #0D7751, #0A5C3E 55%, #92500B);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
+    /* R48: solid ink — gradient text was an AI-uniform tell. */
+    .banner-title span:last-child {
+      color: #0A5C3E;
     }
 
     .banner-sub {

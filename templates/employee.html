@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/ui.css">
-  <link rel="stylesheet" href="/static/css/assistant.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013c">
   <script src="/static/js/employee_head_boot.js?v=20261013b"></script>
   <style>
     /* Instant Seamless Pre-Unlock state (prevents jerky login-screen flash) */
@@ -837,12 +837,12 @@
             <div class="grid-3">
               <div class="form-group">
                 <label for="c-formation-date" class="label-required">Date of Approval / Formation (actual)</label>
-                <input type="date" id="c-formation-date" min="2019-01-01" oninput="updateImportPreview()" style="font-family: monospace; font-weight: 600;">
+                <input type="date" id="c-formation-date" min="2019-01-01" oninput="updateImportPreview()" style="font-variant-numeric: tabular-nums;; font-weight: 600;">
                 <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">The real date the club was formed/approved, e.g. 2024-06-15. Earliest allowed: 2019-01-01.</small>
               </div>
               <div class="form-group">
                 <label for="c-last-renewal-date">Last Renewal Date (if any)</label>
-                <input type="date" id="c-last-renewal-date" min="2019-01-01" oninput="updateImportPreview()" style="font-family: monospace; font-weight: 600;">
+                <input type="date" id="c-last-renewal-date" min="2019-01-01" oninput="updateImportPreview()" style="font-variant-numeric: tabular-nums;; font-weight: 600;">
                 <small style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Leave empty if the club has never been renewed.</small>
               </div>
               <div class="form-group">
@@ -1465,21 +1465,21 @@
           <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
             <div class="stat-icon ic-sky" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #E2F0FB; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#1E5F8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M8 3v4.5M16 3v4.5M3.5 10.5h17"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Date of Approval</span>
-            <strong style="font-size: 0.9rem; color: var(--primary); margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-date-of-approval">-</strong>
+            <strong style="font-size: 0.9rem; color: var(--primary); margin-top: 0.2rem; display: block; font-variant-numeric: tabular-nums;;" id="modal-date-of-approval">-</strong>
             <small style="font-size: 11px; color: var(--text-muted);" id="modal-date-of-approval-full">Inception timestamp</small>
           </div>
 
           <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
             <div class="stat-icon ic-green" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #D9EFE4; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0A5C3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.6-7 9.5-4.1-1.9-7-5.1-7-9.5V6l7-3z"/><path d="M9 11.8l2.2 2.2 4.3-4.4"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Last Renewal Date</span>
-            <strong style="font-size: 0.9rem; color: #b45309; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-last-renewal-date">None (Initial)</strong>
+            <strong style="font-size: 0.9rem; color: #b45309; margin-top: 0.2rem; display: block; font-variant-numeric: tabular-nums;;" id="modal-last-renewal-date">None (Initial)</strong>
             <small style="font-size: 11px; color: var(--text-muted);" id="modal-last-renewal-date-full">Logged upon Renewal Approved</small>
           </div>
 
           <div style="background: #ffffff; padding: 1.05rem; border-radius: var(--radius-sm); border: 1px solid #bbf7d0;">
             <div class="stat-icon ic-amber" aria-hidden="true" style="width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #FDEFD9; flex: 0 0 auto; margin-bottom: 4px;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#92500B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2.2"/></svg></div>
             <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-light); font-weight: 700; display: block;">Upcoming Renewal Due Date</span>
-            <strong style="font-size: 0.95rem; color: #15803d; margin-top: 0.2rem; display: block; font-family: monospace;" id="modal-upcoming-renewal">-</strong>
+            <strong style="font-size: 0.95rem; color: #15803d; margin-top: 0.2rem; display: block; font-variant-numeric: tabular-nums;;" id="modal-upcoming-renewal">-</strong>
             <small style="font-size: 11px; color: var(--text-muted);">+1 Year from Last Renewal / Approval</small>
           </div>
         </div>
@@ -1665,11 +1665,11 @@
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
             <span style="color: var(--text-muted);">Inception Approval Date:</span>
-            <span style="font-family: monospace;" id="sec-confirm-doa">-</span>
+            <span style="font-variant-numeric: tabular-nums;;" id="sec-confirm-doa">-</span>
           </div>
           <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.3rem; margin-top: 0.3rem;">
             <span style="color: #15803d; font-weight: 700;">New Extended Validity:</span>
-            <strong style="color: #15803d; font-family: monospace;" id="sec-confirm-new-renewal">+1 Year Extension</strong>
+            <strong style="color: #15803d; font-variant-numeric: tabular-nums;;" id="sec-confirm-new-renewal">+1 Year Extension</strong>
           </div>
         </div>
       </div>
@@ -1869,11 +1869,11 @@
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span style="color: var(--text-muted);">Date of Approval:</span>
-                <span id="cert-display-doa" style="font-family: monospace;">-</span>
+                <span id="cert-display-doa" style="font-variant-numeric: tabular-nums;;">-</span>
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span style="color: #15803d; font-weight: 600;">Renewal Validity Upto:</span>
-                <strong id="cert-display-renewal" style="color: #15803d; font-family: monospace;">-</strong>
+                <strong id="cert-display-renewal" style="color: #15803d; font-variant-numeric: tabular-nums;;">-</strong>
               </div>
             </div>
           </div>
@@ -1947,7 +1947,7 @@
         <div style="background: #334155; border-radius: var(--radius); padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; position: relative;">
           <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; color: #cbd5e1; font-size: 0.86rem;">
             <span>★ Live High-DPI A4 Portrait Master Canvas</span>
-            <span style="font-family: monospace;">Native: 2480 × 3508 px (300 DPI A4 Portrait)</span>
+            <span style="font-variant-numeric: tabular-nums;;">Native: 2480 × 3508 px (300 DPI A4 Portrait)</span>
           </div>
 
           <!-- Canvas Element -->
