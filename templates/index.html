@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
-  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
-  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013d">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013d">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013d">
   <script>
     /* Immediate synchronous auth resolution to eliminate jerky lock-screen flash when navigating between portals */
     (function() {
@@ -367,6 +367,23 @@
       .lock-card {
         padding: 1.15rem 1rem;
         max-width: 95%;
+      }
+      /* R49: the captcha row wraps instead of squeezing the input into the
+         "Enter Code" placeholder getting clipped; the canvas keeps its size
+         and the input grows on its own line when needed. */
+      .captcha-container {
+        flex-wrap: wrap;
+      }
+      #lock-captcha-canvas {
+        flex: 0 0 auto;
+      }
+      .captcha-container .lock-input {
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+      /* R49: footer disclaimer was ~10px (unreadable on phones). */
+      .lock-footer-info {
+        font-size: 0.8rem;
       }
       .lock-fields-grid {
         grid-template-columns: 1fr;

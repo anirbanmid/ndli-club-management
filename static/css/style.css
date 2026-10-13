@@ -1919,6 +1919,22 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .hero-banner     { padding: 1rem 1.1rem; }
   .card            { padding: 0.95rem 1.05rem; }
   .stat-card       { padding: 0.75rem 0.90rem; }
+
+  /* ---- R49: small-display shell fixes ----
+     The topbar flex row could not shrink below ~420px, so the whole page
+     overflowed horizontally at 390px and clipped the tab titles, the date
+     chip and the avatar on the right edge. Wrap instead of overflow. */
+  .app-topbar {
+    height: auto; flex: 0 0 auto;
+    flex-wrap: wrap; row-gap: 8px;
+    padding: 8px 12px;
+  }
+  .app-search { flex: 1 1 100%; min-width: 0; }
+  .app-search input { min-width: 0; }
+  .app-search .kbd { display: none; }   /* keyboard hint is desktop-only */
+  .top-right { flex-wrap: wrap; gap: 8px; min-width: 0; }
+  /* the fixed assistant FAB must never pin a footer link under it */
+  .system-footer { padding-bottom: 4.5rem; }
 }
 
 /* ==========================================================================
@@ -1973,7 +1989,10 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
 
 .side-caption {
   font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--c-faint); font-weight: 800; padding: 12px 14px 8px;
+  color: var(--c-faint); font-weight: 800;
+  /* R49: uniform section rhythm (was 12px/8px — uneven against the 3px
+     row gaps of both the .tabs group and the .side-link rows). */
+  padding: 14px 14px 7px;
 }
 
 /* Sidebar restyle of the existing tab strip (same elements/roles — the
@@ -2148,7 +2167,8 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .side-spacer { display: none; }
   .side-promo { display: none; }
   .app-topbar { padding: 0 14px; }
-  .app-search { flex: 1 1 auto; }
+  .app-search { flex: 1 1 auto; min-width: 0; }
+  .app-search input { min-width: 0; }
 }
 
 /* ==========================================================================

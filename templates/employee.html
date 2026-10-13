@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css?v=20261013c">
-  <link rel="stylesheet" href="/static/css/ui.css?v=20261013c">
-  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013c">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261013d">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261013d">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013d">
   <script src="/static/js/employee_head_boot.js?v=20261013b"></script>
   <style>
     /* Instant Seamless Pre-Unlock state (prevents jerky login-screen flash) */
@@ -82,7 +82,9 @@
 
     /* Login Screen Specific Styles - Balanced Comfort & Centered */
     .login-wrapper {
-      max-width: 600px;
+      /* R49: 720px (was 600px) — at laptop widths the narrow card floated in
+         dead space next to the sidebar; the wider column fills the area. */
+      max-width: 720px;
       margin: 0.60rem auto;
       animation: fadeIn 0.3s ease-in-out;
     }
@@ -144,18 +146,17 @@
       height: 35px;
     }
     .officer-chip-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.45rem;
+      /* R49: flex wrap instead of a fixed 4-col grid — with 7 officers the old
+         grid left a lopsided half-empty last row (and cramped phone gutters).
+         flex-basis 130px => 4/row on desktop, 2/row on phones, and the last
+         row STRETCHES so it never looks lopsided. */
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       margin-top: 0.35rem;
       margin-bottom: 0.25rem;
       width: 100%;
       box-sizing: border-box;
-    }
-    @media (max-width: 520px) {
-      .officer-chip-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
     }
     .officer-chip {
       background: var(--bg-muted);
@@ -174,7 +175,7 @@
       box-sizing: border-box;
       min-height: 50px;
       min-width: 0;
-      width: 100%;
+      flex: 1 1 130px;
       overflow: hidden;
     }
     .officer-chip:hover {
@@ -224,13 +225,15 @@
     }
     .password-toggle-btn {
       position: absolute;
-      right: 5px;
+      /* R49: 6px inset + roomier hit area (was jammed against the input's
+         right edge — cramped at laptop widths). */
+      right: 6px;
       background: none;
       border: none;
       cursor: pointer;
       color: var(--text-muted);
-      font-size: 0.70rem;
-      padding: 0.15rem 0.35rem;
+      font-size: 0.74rem;
+      padding: 0.25rem 0.55rem;
       font-weight: 600;
     }
     .password-toggle-btn:hover {
@@ -509,7 +512,7 @@
               placeholder="e.g., EMP01 or emp.north@ndli.edu.in"
               autocomplete="username"
             >
-            <p style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.12rem; margin-bottom: 0; line-height: 1.15;">
+            <p style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.3rem; margin-bottom: 0; line-height: 1.35;">
               Enter your Zonal Employee ID (e.g. <code>EMP01</code> to <code>EMP07</code>) or official registered email address.
             </p>
           </div>
@@ -523,7 +526,7 @@
                 required
                 placeholder="Enter your password"
                 autocomplete="current-password"
-                style="padding-right: 4.0rem;"
+                style="padding-right: 4.7rem;"
               >
               <button
                 type="button"
@@ -549,7 +552,7 @@
 
         <!-- Quick Credential Assistant for 7 Operational Zones -->
         <div style="margin-top: 0.85rem; border-top: 1px dashed var(--border); padding-top: 0.75rem; margin-bottom: 0.65rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.25rem 0.75rem;">
             <span style="font-size: 0.76rem; font-weight: 700; color: var(--primary);">
               7 Nodal Officers Directory (Click to select):
             </span>
