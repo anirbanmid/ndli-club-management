@@ -281,8 +281,11 @@
 
       const width = 500;
       const height = 180;
-      const padLeft = 40;
-      const padRight = 20;
+      /* R51: tight gutters -- no y-axis labels exist, so the old 40px left pad
+         just misaligned the plot from the card title. The curve now starts at
+         the card's content edge. */
+      const padLeft = 14;
+      const padRight = 14;
       const padTop = 20;
       const padBottom = 30;
 
@@ -313,7 +316,8 @@
       // Data dots and labels
       let dotsHtml = "";
       let labelsHtml = "";
-      pts.forEach(p => {
+      const labelStep = Math.max(1, Math.ceil(pts.length / 8));
+      pts.forEach((p, i) => {
         dotsHtml += `
           <circle cx="${p.x}" cy="${p.y}" r="5.5" fill="#ffffff" stroke="#0D7751" stroke-width="3" style="cursor: default; filter: drop-shadow(0 2px 4px rgba(13, 119, 81, 0.35));">
             <title>${p.label}: ${p.val} clubs approved</title>
@@ -321,9 +325,13 @@
           <text x="${p.x}" y="${p.y - 11}" font-size="11" font-weight="700" fill="#103125" text-anchor="middle" stroke="#ffffff" stroke-width="3.5" paint-order="stroke">${p.val}</text>
         `;
         const shortLabel = p.label;
-        labelsHtml += `
-          <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="700" fill="#64748b" text-anchor="middle">${shortLabel}</text>
-        `;
+        /* R51: thin the axis labels so they never collide (dense month series
+           cramped and truncated them). Dots + hover titles keep every point. */
+        if (i % labelStep === 0 || i === pts.length - 1) {
+          labelsHtml += `
+            <text x="${p.x}" y="${height - 8}" font-size="10" font-weight="700" fill="#64748b" text-anchor="middle">${shortLabel}</text>
+          `;
+        }
       });
 
       container.innerHTML = `

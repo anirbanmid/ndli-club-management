@@ -113,10 +113,45 @@
     }
   }
 
+  /* ---------- 4. Mobile nav drawer (R51) ----------------------------
+     The sidebar becomes an off-canvas drawer at <=980px (see the media block
+     in style.css). This wires the topbar menu button: toggle, scrim click,
+     Escape, and auto-close after picking a nav item. Degrades silently when
+     the button/aside is absent. */
+  function wireNavDrawer() {
+    var toggle = $("#nav-toggle");
+    var sidebar = $("#app-sidebar") || $(".app-sidebar");
+    if (!toggle || !sidebar) return;
+    var scrim = $("#nav-scrim") || $(".nav-scrim");
+
+    function setOpen(open) {
+      var shell = sidebar.closest ? sidebar.closest(".app-shell") : null;
+      if (shell) shell.classList.toggle("nav-open", open);
+      else sidebar.classList.toggle("nav-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (scrim) scrim.hidden = !open;
+    }
+
+    toggle.addEventListener("click", function () {
+      setOpen(toggle.getAttribute("aria-expanded") !== "true");
+    });
+    if (scrim) scrim.addEventListener("click", function () { setOpen(false); });
+    document.addEventListener("keydown", function (e) {
+      if ((e.key === "Escape" || e.keyCode === 27)) setOpen(false);
+    });
+    $all(".app-sidebar .tab-btn, .app-sidebar .side-link").forEach(function (el) {
+      el.addEventListener("click", function () { setOpen(false); });
+    });
+    window.addEventListener("resize", function () {
+      if (window.innerWidth > 980) setOpen(false);
+    });
+  }
+
   function init() {
     wireSearch();
     wireCounts();
     wireChips();
+    wireNavDrawer();
   }
 
   if (document.readyState === "loading") {

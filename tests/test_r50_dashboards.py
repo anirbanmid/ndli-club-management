@@ -220,14 +220,14 @@ class TestCacheStampsMovedForward(unittest.TestCase):
         total = 0
         for rel in TMPL_FILES:
             for m in re.finditer(r'<link rel="stylesheet" href="([^"]+)"', read(rel)):
-                self.assertIn("?v=20261013g", m.group(1),
+                self.assertIn("?v=20261014c", m.group(1),
                               "%s: stylesheet link missing the R50 stamp: %s" % (rel, m.group(1)))
                 total += 1
         self.assertGreaterEqual(total, 11, "expected the 11 stamped links from R49/R50")
 
     def test_pin_follow_stamp_updated_in_r49_file(self):
         text = read("tests/test_r49_responsive.py")
-        self.assertIn("?v=20261013g", text,
+        self.assertIn("?v=20261014c", text,
                       "test_r49 stamp pin must follow the moving stamp")
 
 

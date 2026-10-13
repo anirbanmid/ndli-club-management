@@ -1670,7 +1670,11 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* R51v2: hug the header (user smoke: "huge blank space on top" of the line
+     graph). In a stretched grid row, space-between injected the extra height
+     BETWEEN header and chart; flex-start keeps the chart under its title and
+     leaves any residual whitespace at the card bottom instead. */
+  justify-content: flex-start;
   transition: transform var(--transition), box-shadow var(--transition);
   margin-bottom: 1rem;
 }
@@ -1781,7 +1785,9 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
 .donut-chart-container {
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  /* R51: center the donut+legend as one group (was space-around -- the legend
+     rows stretched across the whole card and read as a floating gap). */
+  justify-content: center;
   flex-wrap: wrap;
   gap: 1.15rem;
   margin-top: 0.80rem;
@@ -1831,8 +1837,15 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   flex-direction: column;
   gap: 0.38rem;
   font-size: 0.78rem;
-  flex: 1;
+  /* R51v2: compact legend WITHOUT forcing a wrap (user smoke 2026-10-14: the
+     donut jumped on top of the zone list). `flex: 0 1 300px` made the item's
+     hypothetical size 300px, so any card under ~468px wrapped the pair into a
+     vertical stack (measured: wrapped at a 479px container). Basis 220px keeps
+     the pair side-by-side from ~390px up; max-width 300px still caps the old
+     455px stretched-rows gap; min-width keeps the pairs readable. */
+  flex: 1 1 220px;
   min-width: 150px;
+  max-width: 300px;
 }
 
 .donut-legend-item {
@@ -1923,8 +1936,15 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   /* ---- R49: small-display shell fixes ----
      The topbar flex row could not shrink below ~420px, so the whole page
      overflowed horizontally at 390px and clipped the tab titles, the date
-     chip and the avatar on the right edge. Wrap instead of overflow. */
-  .app-topbar {
+     chip and the avatar on the right edge. Wrap instead of overflow.
+     R51v2 (user smoke 2026-10-14: "top bar overlapping with the KPI card"): 
+     the bare .app-topbar selector LOST the cascade to the later base rule
+     (height: 70px; flex: 0 0 70px -- equal specificity, later wins), so the
+     wrapped rows could not grow the box and .top-right spilled over the first
+     KPI card (measured ~91px overlap). The .app-shell descendant selector
+     (0,2,0) now beats the base (0,1,0) regardless of source order --
+     specificity-proof, pinned (same disease as the nav-toggle hide). */
+  .app-shell .app-topbar {
     height: auto; flex: 0 0 auto;
     flex-wrap: wrap; row-gap: 8px;
     padding: 8px 12px;
@@ -2148,24 +2168,30 @@ tbody tr:hover td:last-child  { border-radius: 0 12px 12px 0; }
   .app-main .container { padding: 0; }
 }
 
-/* Narrow screens: the rail collapses above the content as a scroll strip */
+/* Narrow screens: the rail becomes an off-canvas drawer behind the topbar's
+   menu button. R51 (user report 2026-10-14): the old top scroll-strip stacked
+   ABOVE the sticky topbar -- 145px of chrome over the KPI cards, and the two
+   panels overlapped while scrolling. User order: "the side panel should be
+   placed within a clickable menu button in mobile". */
 @media (max-width: 980px) {
   .app-shell { flex-direction: column; }
   .app-sidebar {
-    width: 100%; flex: none; height: auto; position: static;
-    flex-direction: row; align-items: center; gap: 8px;
-    overflow-x: auto; padding: 12px 14px;
-    border-right: none; border-bottom: 1px solid var(--c-line);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: min(300px, 84vw);
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    z-index: 60;
+    background: #E2EFE8;
+    box-shadow: 0 12px 40px rgba(16, 49, 37, 0.22);
   }
-  .app-sidebar .brand { padding: 0 8px 0 0; flex: 0 0 auto; }
-  .app-sidebar .brand .brand-text p { display: none; }
-  .side-caption { display: none; }
-  .app-sidebar .tabs { flex-direction: row; width: auto; flex: 0 0 auto; }
-  .app-sidebar .tab-btn { width: auto; white-space: nowrap; padding: 8px 13px; }
-  .side-link { width: auto; white-space: nowrap; padding: 8px 13px; margin: 0; }
-  .side-link .side-count { margin-left: 6px; }
-  .side-spacer { display: none; }
-  .side-promo { display: none; }
+  .app-shell.nav-open .app-sidebar { transform: translateX(0); }
+  .nav-scrim:not([hidden]) {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(16, 49, 37, 0.45);
+  }
+  .nav-toggle { display: inline-flex; }
   .app-topbar { padding: 0 14px; }
   .app-search { flex: 1 1 auto; min-width: 0; }
   .app-search input { min-width: 0; }
@@ -2394,6 +2420,9 @@ body { font-size: 14px; }
 .infographic-card .card-header {
   border-bottom: 1px solid #E7F1EB;
   padding-bottom: 0.9rem;
+  /* R51: the pill ("Growth Curve" etc.) floated at the vertical middle of a
+     two-line title -- align it with the title's first line instead. */
+  align-items: flex-start;
 }
 .infographic-card .card-title {
   font-size: 0.84rem;
@@ -2769,3 +2798,18 @@ body { font-size: 14px; }
     line-height: 1.4;
   }
 }
+
+/* ==========================================================================
+   R51: mobile nav drawer + chart polish (2026-10-14)
+   The drawer geometry itself lives in the <=980px block above (user order:
+   the side panel goes behind a clickable menu button on mobile). These are
+   the additive base rules. NOTE: the desktop hide is a min-width media rule,
+   NOT a bare `display: none` -- a bare rule at file end would override the
+   <=980 `display: inline-flex` (same cascade trap as R49's .app-search).
+   Chart polish (donut legend compactness, pill alignment) is in the chart
+   recipes above.
+   ========================================================================== */
+@media (min-width: 981px) {
+  .nav-toggle { display: none; }
+}
+.nav-scrim[hidden] { display: none; }

@@ -86,7 +86,7 @@ class TestR41AdminJsExtraction(unittest.TestCase):
         # pre-R41 external modules keep their place/relative order
         for tag in ('<script src="/static/js/app.js"></script>',
                     '<script src="/static/js/ui.js"></script>',
-                    '<script src="/static/js/shell.js?v=20261007"></script>',
+                    '<script src="/static/js/shell.js?v=20261014c"></script>',
                     '<script src="/static/js/assistant.js"></script>',
                     '<script src="/static/js/report_generator.js"></script>'):
             self.assertIn(tag, self.html)

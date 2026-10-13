@@ -180,7 +180,7 @@ class TestCacheStamp(unittest.TestCase):
         # change (R50 bumped it d -> f); the invariant is "a stamp is present".
         for rel in TMPL_FILES:
             for m in re.finditer(r'<link rel="stylesheet" href="([^"]+)"', read(rel)):
-                self.assertIn("?v=20261013g", m.group(1),
+                self.assertIn("?v=20261014c", m.group(1),
                               "%s: stylesheet link missing the R50 stamp: %s" % (rel, m.group(1)))
 
 

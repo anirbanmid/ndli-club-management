@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/css/style.css?v=20261013g">
-  <link rel="stylesheet" href="/static/css/ui.css?v=20261013g">
-  <link rel="stylesheet" href="/static/css/assistant.css?v=20261013g">
+  <link rel="stylesheet" href="/static/css/style.css?v=20261014c">
+  <link rel="stylesheet" href="/static/css/ui.css?v=20261014c">
+  <link rel="stylesheet" href="/static/css/assistant.css?v=20261014c">
   <style>
     /* .ai-card / .ai-rec-box: the old dark-glass override block was removed —
        the class-level Direction C light recipe in style.css now applies.
@@ -176,7 +176,7 @@
 </head>
 <body>
   <div class="app-shell">
-    <aside class="app-sidebar">
+    <aside class="app-sidebar" id="app-sidebar">
       <a href="/" class="brand">
         <div class="brand-logo-card">
           <img src="/static/img/ndli_club_logo.png" alt="NDLI Club Logo" class="brand-logo-img">
@@ -225,8 +225,14 @@
         </div>
       </div>
     </aside>
+    <!-- R51: drawer scrim (phones/tablets) -->
+    <div class="nav-scrim" id="nav-scrim" hidden></div>
     <div class="app-main">
       <header class="app-topbar">
+        <!-- R51: mobile menu button (drawer toggle; desktop hides it) -->
+        <button type="button" class="nav-toggle icon-btn" id="nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar" style="flex: 0 0 auto;">
+          <svg viewBox="0 0 24 24" width="16.5" height="16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+        </button>
         <div class="app-search">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg>
           <input id="topbar-search" data-shell-search="filter" type="text" placeholder="Filter current view…" autocomplete="off">
@@ -970,7 +976,7 @@
 
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui.js"></script>
-  <script src="/static/js/shell.js?v=20261007"></script>
+  <script src="/static/js/shell.js?v=20261014c"></script>
   <script src="/static/js/admin_dashboard.js?v=20261012"></script>
   <script src="/static/js/admin_master_csv.js?v=20261012"></script>
   <script src="/static/js/admin_backup.js?v=20261012"></script>
@@ -978,7 +984,7 @@
   <script src="/static/js/admin_training.js?v=20261012"></script>
   <script src="/static/js/admin_restore.js?v=20261012"></script>
   <script src="/static/js/admin_escalations.js?v=20261012"></script>
-  <script src="/static/js/admin_analytics.js?v=20261012"></script>
+  <script src="/static/js/admin_analytics.js?v=20261014c"></script>
   <script src="/static/js/admin_auth.js?v=20261012"></script>
   <script src="/static/js/admin_employees.js?v=20261012"></script>
   <script src="/static/js/admin_attention.js?v=20261012"></script>
