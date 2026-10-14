@@ -684,14 +684,15 @@ const CertificateEngine = (function () {
   /**
    * R3 #16a: on-page print route — prints ONLY the certificate canvas on A4.
    * Must be invoked synchronously inside the user's click so window.print()
-   * keeps the gesture's transient activation (the popup route below calls
-   * window.print() from a new window's img onload handler, where activation is
-   * gone and modern browsers silently ignore the call).
+   * keeps the gesture's transient activation (the popup route below uses a
+   * button INSIDE the popup for the same reason).
    *
-   * Strategy: inject a @media print stylesheet that hides all body children
-   * except a dedicated print root, temporarily relocate the canvas into that
-   * root (no transformed/overflow ancestors to distort fixed positioning),
-   * print, then restore on afterprint (with a setTimeout fallback).
+   * Strategy (R54 hardened): inject a @media print stylesheet that hides all
+   * body children except a dedicated print root, CLONE the canvas pixels into
+   * a print-only canvas inside that root (the original canvas NEVER leaves
+   * its DOM slot — the old relocate/restore dance could yank it out mid
+   * preview on browsers whose print() returns before the dialog closes),
+   * print, then clean up on afterprint / the print media query / a long guard.
    *
    * Returns true when the on-page route ran, false when it could not run
    * (caller may fall back to the popup route).
@@ -707,10 +708,16 @@ const CertificateEngine = (function () {
       styleEl.textContent =
         "@media print {" +
         "  @page { size: A4 portrait; margin: 0; }" +
-        "  html, body { background: #ffffff !important; }" +
+        "  html, body { background: #ffffff !important; margin: 0 !important; padding: 0 !important;" +
+        "    min-height: 0 !important; height: auto !important; overflow: hidden !important; display: block !important; }" +
+        "  body.printing-certificate { width: 210mm; height: 297mm; min-height: 0 !important;" +
+        "    overflow: hidden !important; display: block !important; line-height: 0 !important; }" +
         "  body.printing-certificate > *:not(#" + ROOT_ID + ") { display: none !important; }" +
-        "  #" + ROOT_ID + " { display: block !important; width: 210mm; height: 297mm; background: #ffffff !important; }" +
+        "  #" + ROOT_ID + " { display: block !important; position: absolute; top: 0; left: 0;" +
+        "    width: 210mm; height: 297mm; overflow: hidden !important; background: #ffffff !important;" +
+        "    line-height: 0 !important; font-size: 0 !important; }" +
         "  #" + ROOT_ID + " canvas {" +
+        "    display: block !important;" +
         "    width: 210mm !important; height: 297mm !important; max-width: none !important;" +
         "    margin: 0 !important; padding: 0 !important; border: 0 !important;" +
         "    border-radius: 0 !important; box-shadow: none !important;" +
@@ -720,26 +727,37 @@ const CertificateEngine = (function () {
       (document.head || document.documentElement).appendChild(styleEl);
     }
 
-    const parent = canvas.parentNode;
-    const next = canvas.nextSibling;
+    // R54: synchronous pixel clone — the live canvas is never relocated.
     const root = document.createElement("div");
     root.id = ROOT_ID;
+    const printCanvas = document.createElement("canvas");
+    printCanvas.width = canvas.width;
+    printCanvas.height = canvas.height;
+    printCanvas.getContext("2d").drawImage(canvas, 0, 0);
+    root.appendChild(printCanvas);
     document.body.appendChild(root);
-    root.appendChild(canvas);
 
     let done = false;
+    let printMql = null;
+    const onPrintMediaChange = (e) => { if (!e.matches) cleanup(); };
     const cleanup = () => {
       if (done) return;
       done = true;
       document.body.classList.remove("printing-certificate");
       window.removeEventListener("afterprint", cleanup);
-      if (parent) {
-        if (next) parent.insertBefore(canvas, next);
-        else parent.appendChild(canvas);
+      if (printMql) {
+        try { printMql.removeEventListener("change", onPrintMediaChange); } catch (err) { /* old Safari */ }
       }
       if (root.parentNode) root.parentNode.removeChild(root);
     };
-
+    if (typeof window.matchMedia === "function") {
+      try {
+        printMql = window.matchMedia("print");
+        printMql.addEventListener("change", onPrintMediaChange);
+      } catch (err) {
+        printMql = null;
+      }
+    }
     window.addEventListener("afterprint", cleanup);
     document.body.classList.add("printing-certificate");
     let ok = true;
@@ -748,24 +766,34 @@ const CertificateEngine = (function () {
     } catch (err) {
       ok = false;
     }
-    setTimeout(cleanup, 1500); /* fallback if afterprint never fires */
+    /* R54: guard timer raised 1.5s -> 30s. The old 1.5s timer could rip the
+       print root out while the dialog was still open on browsers whose
+       print() returns immediately (async print); this timer now only covers
+       webviews where neither afterprint nor the media query ever fires. */
+    setTimeout(cleanup, 30000);
     return ok;
   }
 
   /**
-   * Triggers clean print view for A4 portrait certificate (legacy popup route).
-   * R3 #16a: kept as a SECONDARY FALLBACK only — window.print() is called from
-   * the popup img's onload handler, where the click's user activation is gone
-   * (and not inherited by the new window), so modern browsers may silently
-   * ignore it; popup blockers can also eat window.open. The primary route is
-   * printCertificateOnPage() above.
+   * Popup route — SECONDARY FALLBACK only (the on-page route is primary).
+   * R54 hardened: the old popup printed from the image's onload and then
+   * closed itself — with the click's user activation gone, browsers ignored
+   * window.print() silently, and the auto-close raced (and could cancel) the
+   * print job. The popup now shows the certificate with an explicit Print
+   * button: a click INSIDE the popup gives window.print() fresh activation,
+   * nothing closes under the dialog, and popup-blockers get an honest
+   * pointer to the Download PDF button.
    */
   async function printCertificate(canvas) {
     const dataUrl = canvas.toDataURL("image/jpeg", 0.98);
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("Popup blocked! Please allow popups for this site to print the certificate.");
-      return;
+      if (typeof UI !== "undefined" && UI.toast) {
+        UI.toast("Popup blocked — use the Download PDF button instead.", { type: "danger" });
+      } else {
+        alert("Popup blocked! Please allow popups for this site, or use the Download PDF button.");
+      }
+      return false;
     }
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -789,20 +817,41 @@ const CertificateEngine = (function () {
             justify-content: center;
             align-items: center;
           }
+          .print-actions {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+          }
+          .print-actions button {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+          }
           img {
             width: 100%;
             height: 100%;
             display: block;
             object-fit: fill;
           }
+          @media print {
+            .print-actions { display: none !important; }
+          }
         </style>
       </head>
       <body>
-        <img src="${dataUrl}" onload="window.print(); window.close();" />
+        <div class="print-actions">
+          <button onclick="window.print()">Print Certificate</button>
+          <button onclick="window.close()">Close</button>
+        </div>
+        <img src="${dataUrl}" alt="NDLI Club Renewal Certificate" />
       </body>
       </html>
     `);
     printWindow.document.close();
+    return true;
   }
 
   /**
