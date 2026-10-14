@@ -45,6 +45,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+from ai.redaction import SECRET_REDACTION  # single-source redaction token (R45/R52)
+
 try:
     import config as _config
 except Exception:  # config should exist in-app; never let that break the gateway
@@ -106,11 +108,19 @@ def is_disabled() -> bool:
 
 
 def _redact(text: Any) -> str:
-    """Masks the API key anywhere it could leak into logs/exceptions."""
+    """Masks the API key anywhere it could leak into logs/exceptions.
+
+    Uses ai.redaction.SECRET_REDACTION -- the ONE redaction token for the whole
+    assistant surface (R45). A private literal here once spelled the token in
+    upper case while the rest of the surface used the shared constant; that
+    mismatch is gone and pinned in tests/test_r52_redaction_single_token.py.
+    (The spelling is written without quote marks on purpose -- this module
+    must not trip that file's literal scan.)
+    """
     s = str(text)
     key = _get_api_key()
     if key:
-        s = s.replace(key, "[REDACTED]")
+        s = s.replace(key, SECRET_REDACTION)
     return s
 
 

@@ -344,7 +344,7 @@ class TestKeyHygiene(_GatewayTestBase):
             self.assertNotIn(FAKE_KEY, c["url"], "the key must NEVER travel in a URL")
         self.assertNotIn(FAKE_KEY, self._log_content(), "the key must NEVER reach the log")
         self.assertNotIn(FAKE_KEY, llm_gateway._redact(f"leak {FAKE_KEY} here"))
-        self.assertIn("[REDACTED]", llm_gateway._redact(f"leak {FAKE_KEY} here"))
+        self.assertIn("[redacted]", llm_gateway._redact(f"leak {FAKE_KEY} here"))
 
     def test_key_stays_in_request_headers_only(self):
         self._use_key()
@@ -373,7 +373,7 @@ class TestKeyHygiene(_GatewayTestBase):
             llm_gateway.ask_llm_checked("anything")
         log = self._log_content()
         self.assertNotIn(FAKE_KEY, log, "exception text must be redacted before logging")
-        self.assertIn("[REDACTED]", log)
+        self.assertIn("[redacted]", log)
 
 
 # ---------------------------------------------------------------------------
