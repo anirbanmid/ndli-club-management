@@ -41,6 +41,8 @@ def get_static_assets(h, path, query_params):
         content_type = "image/png"
     elif path.endswith(".jpg") or path.endswith(".jpeg"):
         content_type = "image/jpeg"
+    elif path.endswith(".webmanifest"):
+        content_type = "application/manifest+json"
     elif path.endswith(".json"):
         content_type = "application/json; charset=utf-8"
     elif path.endswith(".pdf"):

@@ -1,0 +1,41 @@
+{
+  "name": "NDLI Club Management",
+  "short_name": "NDLI Club",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#103125",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/static/android-icon-72x72.png?v=20261014e",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/android-icon-96x96.png?v=20261014e",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/android-icon-144x144.png?v=20261014e",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/android-icon-192x192.png?v=20261014e",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/android-icon-512x512.png?v=20261014e",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
