@@ -179,18 +179,42 @@ def _py_lines(rel):
     return len(path.read_text(encoding="utf-8").splitlines()) if path.is_file() else 0
 
 
+# Files that are NOT tree content: backups from deploy kits, bytecode caches,
+# editor droppings, dotfiles. They differ between hosts (a clean checkout vs a
+# live deployed tree) and must never move a measured count -- R55's first PA
+# install tripped exactly this (same-size stale docs: one count off because a
+# `*.pre_r20` backup sat in static/ on the build host only).
+JUNK_SUFFIXES = (".pyc", ".pyo", ".bak", ".orig", ".rej", "~")
+
+# deploy-kit backups look like `style.css.pre_r20` or `x.pre_r55.bak`
+BACKUP_RE = re.compile(r"\.pre_r\d+(?:\.bak)?$")
+
+
+def _is_junk(path):
+    """True for backup/cache/droppings paths -- never counted, never listed."""
+    if "__pycache__" in path.parts:
+        return True
+    name = path.name
+    return (name.startswith(".")
+            or name.endswith(JUNK_SUFFIXES)
+            or BACKUP_RE.search(name) is not None)
+
+
 def _py_package_lines(pkg):
     total = 0
     count = 0
     for path in sorted((BASE / pkg).glob("*.py")):
+        if _is_junk(path):
+            continue
         total += len(path.read_text(encoding="utf-8").splitlines())
         count += 1
     return count, total
 
 
-def _file_count(rel, pattern="**/*"):
-    root = BASE / rel
-    return sum(1 for p in root.glob(pattern) if p.is_file()) if root.is_dir() else 0
+def _file_count(rel, pattern="**/*", root=None):
+    root = (BASE if root is None else root) / rel
+    return sum(1 for p in root.glob(pattern)
+               if p.is_file() and not _is_junk(p)) if root.is_dir() else 0
 
 
 def collect_components():

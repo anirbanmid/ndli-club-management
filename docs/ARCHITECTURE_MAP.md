@@ -22,7 +22,7 @@ Sizes are **measured from the tree** at generation time. Roles are the stable on
 | `init_db.py` | storage hierarchy + master schema bootstrap | 325 lines |
 | `restore_backup.py` | CLI disaster-recovery restore utility | 81 lines |
 | `templates/` | portal HTML pages (admin, employee, index, verify) | 4 files |
-| `static/` | front-end assets (css / js / images) | 73 files, 44 JS |
+| `static/` | front-end assets (css / js / images) | 69 files, 44 JS |
 | `docs/` | technical + user manuals (Robu KB sources) + figures | 4 manual files + figures |
 | `tests/` | the pinned gate (unittest, zero third-party deps) | 75 test modules |
 | `data/` | runtime flat-file store (CSV, sessions, backups, logs) -- runtime state, deliberately not counted | runtime state |

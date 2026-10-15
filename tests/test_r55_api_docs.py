@@ -25,6 +25,7 @@ import ast
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -251,6 +252,59 @@ class TestManualAppendix(unittest.TestCase):
         # sections 11-12 (hand-written semantics) must survive generation
         self.assertIn("11. REST API Specification", self.html)
         self.assertIn("12. REST API Specification", self.html)
+
+
+class TestJunkProofMeasurements(unittest.TestCase):
+    """R55v2: measured counts must never move because of backups/caches.
+
+    Regression pin for the first R55 PA install: a `style.css.pre_r20` backup
+    sat in static/ on the BUILD host only -> the shipped counts disagreed
+    with the deployed tree -> same-size stale docs. Backups, bytecode caches
+    and editor droppings are not tree content.
+    """
+
+    def test_is_junk_knows_the_offenders(self):
+        junk = ["style.css.pre_r20", "x.bak", "x.pyc", "x.pyo",
+                ".DS_Store", "y~", "z.pre_r55.bak", "w.orig", "w.rej"]
+        clean = ["style.css", "app.py", "site.webmanifest",
+                 "test_r55_api_docs.py", "style.css.pre_r20.png"]
+        for name in junk:
+            with self.subTest(name=name):
+                self.assertTrue(gen_api_docs._is_junk(Path("static") / name))
+        for name in clean:
+            with self.subTest(name=name):
+                self.assertFalse(gen_api_docs._is_junk(Path("static") / name))
+        self.assertTrue(gen_api_docs._is_junk(Path("static/__pycache__/x.py")))
+
+    def test_measured_counts_ignore_junk(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "static").mkdir()
+            for name in ("a.css", "b.css",              # counted
+                         "style.css.pre_r20", ".DS_Store", "c.bak"):
+                (root / "static" / name).write_text("x")
+            (root / "static" / "__pycache__").mkdir()
+            (root / "static" / "__pycache__" / "d.pyc").write_text("x")
+            self.assertEqual(gen_api_docs._file_count("static", root=root), 2,
+                             "backups / caches / droppings must not count")
+            self.assertEqual(gen_api_docs._file_count("static", "**/*.css", root=root), 2)
+
+    def test_arch_map_counts_exclude_junk_independent_recount(self):
+        """Arch map's static/ count == a recount with a RE-IMPLEMENTED rule.
+
+        The rule is duplicated here on purpose: a regression in
+        gen_api_docs._is_junk must not be able to hide behind itself.
+        """
+        row = next(ln for ln in _read(ARCH_MD).splitlines()
+                   if ln.startswith("| `static/`"))
+        documented = int(re.search(r"\| (\d+) files", row).group(1))
+        clean = [p for p in (BASE_DIR / "static").glob("**/*")
+                 if p.is_file()
+                 and "__pycache__" not in p.parts
+                 and not p.name.startswith(".")
+                 and not p.name.endswith((".pyc", ".pyo", ".bak", ".orig", ".rej", "~"))
+                 and not re.search(r"\.pre_r\d+(?:\.bak)?$", p.name)]
+        self.assertEqual(documented, len(clean))
 
 
 class TestGeneratorHygiene(unittest.TestCase):
