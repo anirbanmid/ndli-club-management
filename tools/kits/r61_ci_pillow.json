@@ -1,0 +1,46 @@
+{
+  "round": "R61",
+  "name": "r61_ci_pillow",
+  "title": "CI installs the test suite's one third-party dependency (Pillow)",
+  "intro": "R61 (2026-10-16): the R59 workflow assumed the whole suite is stdlib-only, but tests/test_r52_app_icon.py imports PIL at module level (R52/R53 icon pixel pins) -- on a clean runner the module died at import, the 13 icon pins vanished behind one loader error and CI ran 922 tests instead of 934/932. The gate job now installs Pillow before the suite, the misleading 'no pip install needed' comment is corrected (stdlib-only is true for the APP, not the TESTS), and three pins keep it honest: Pillow is installed, it is installed BEFORE the suite, and the icon pins keep their module-level PIL import (a missing Pillow must stay a loud error, never a silent skip).",
+  "payload": [
+    ".github/workflows/ci.yml",
+    "tests/test_r61_ci_pillow.py",
+    "tools/kits/r61_ci_pillow.json",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "replaced": [
+    ".github/workflows/ci.yml",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "markers": [
+    [".github/workflows/ci.yml", "python3 -m pip install \"Pillow>=10\"", "the gate job installs Pillow"],
+    [".github/workflows/ci.yml", "The TEST suite is NOT", "the stdlib-only comment is corrected honestly"],
+    ["tests/test_r61_ci_pillow.py", "def test_gate_job_installs_pillow", "the install pin is shipped"],
+    ["tests/test_r61_ci_pillow.py", "def test_icon_pins_never_silently_skip", "the no-silent-skip pin is shipped"],
+    ["tools/kits/r61_ci_pillow.json", "r61_ci_pillow", "this round's own manifest ships"],
+    ["docs/ARCHITECTURE_MAP.md", "## Component map", "regenerated architecture map present"],
+    ["docs/technical_manual.html", "BEGIN GENERATED APPENDIX A (gen_api_docs.py)", "regenerated manual keeps its generated appendix"]
+  ],
+  "py_compiles": [
+    "tests/test_r61_ci_pillow.py"
+  ],
+  "js_checks": [],
+  "test_runs": [
+    ["test_r61_ci_pillow.py", 3],
+    ["test_r52_app_icon.py", 13],
+    ["test_r59_deploy_ci.py", 19]
+  ],
+  "regen_step": true,
+  "drift_gate": true,
+  "commit_files": [
+    ".github/workflows/ci.yml",
+    "tests/test_r61_ci_pillow.py",
+    "tools/kits/r61_ci_pillow.json",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "commit_message": "R61: CI installs Pillow for the icon pixel pins (missing PIL hid 13 pins behind one loader error)"
+}

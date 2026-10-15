@@ -13,8 +13,11 @@
 #     lesson, three occurrences.)
 #   - CI NEVER commits/pushes back and never runs `git add -A` (deploy
 #     commits stay a human step -- the smoke test is the gate's job).
-#   - The app is stdlib-only: no `pip install` needed (requirements.txt is
-#     documentation).
+#   - The APP is stdlib-only: no `pip install` needed (requirements.txt is
+#     documentation). The TEST suite is NOT: tests/test_r52_app_icon.py
+#     imports PIL at module level (R52/R53 icon pixel pins) -- the gate job
+#     installs Pillow (R61), and a missing Pillow must stay a LOUD loader
+#     error, never a silent skip.
 #
 # Minutes: a gate run is ~6 min on a runner. GitHub gives 2000 free
 # min/month for private repos -> budget ~300 pushes/month; trigger is
@@ -42,6 +45,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install test-only deps (Pillow for the icon pixel pins)
+        run: python3 -m pip install "Pillow>=10"
       - name: Drift gate (docs describe this tree)
         run: python3 gen_api_docs.py --check
       - name: Full gate (python3 -m unittest discover -s tests)
