@@ -28,7 +28,7 @@ Stdlib only (the repo runs zero third-party dependencies -- keep it that way).
 import ast
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 BASE = Path(__file__).resolve().parent
 ROUTES_INIT = BASE / "routes" / "__init__.py"
@@ -200,11 +200,62 @@ def _is_junk(path):
             or BACKUP_RE.search(name) is not None)
 
 
+# R57 (2026-10-15): the OTHER half of R55's drift class. A clean clone never
+# CONTAINS a gitignored file, so a counter that counts them measures different
+# numbers on different hosts -- `static/ndli_promo_video.mp4` on PA measured 69
+# where every clean clone measured 68 (drift gate red on clean checkouts).
+# Rule: measured counts must equal what a clean checkout would count.
+# `.gitignore` is the authoritative host-artifact list (its pinned entries are
+# guarded by tests/test_repo_hygiene.py), so the counter follows it -- and a
+# future artifact is fixed for every tree the moment it is gitignored.
+# Caveat: a TRACKED file matching a gitignore pattern would be wrongly skipped
+# (gitignore governs untracked files only); the independent-recount pin in
+# tests/test_r55_api_docs.py trips on that case.
+_GITIGNORE_PATTERNS = None
+
+
+def _gitignore_patterns():
+    """Parsed .gitignore patterns as tuples of path segments (cached)."""
+    global _GITIGNORE_PATTERNS
+    if _GITIGNORE_PATTERNS is None:
+        pats = []
+        gi = BASE / ".gitignore"
+        if gi.is_file():
+            for line in gi.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or line.startswith("!"):
+                    continue
+                segs = tuple(s for s in line.strip("/").split("/") if s)
+                if segs:
+                    pats.append(segs)
+        _GITIGNORE_PATTERNS = tuple(pats)
+    return _GITIGNORE_PATTERNS
+
+
+def _is_host_artifact(relpath):
+    """True for repo-relative paths .gitignore excludes -- a clean clone
+    never has them. Single-segment patterns match the file name or any
+    parent dir (gitignore's any-level rule); multi-segment patterns match
+    anchored from the repo root (gitignore's anchored rule)."""
+    name = relpath.name
+    parts = relpath.parts
+    for segs in _gitignore_patterns():
+        if len(segs) == 1:
+            if PurePosixPath(name).match(segs[0]):
+                return True
+            if any(PurePosixPath(part).match(segs[0]) for part in parts[:-1]):
+                return True
+        elif len(parts) >= len(segs) and all(
+                PurePosixPath(parts[k]).match(segs[k]) for k in range(len(segs))):
+            return True
+    return False
+
+
 def _py_package_lines(pkg):
     total = 0
     count = 0
     for path in sorted((BASE / pkg).glob("*.py")):
-        if _is_junk(path):
+        if _is_junk(path) or _is_host_artifact(Path(pkg) / path.name):
             continue
         total += len(path.read_text(encoding="utf-8").splitlines())
         count += 1
@@ -212,9 +263,11 @@ def _py_package_lines(pkg):
 
 
 def _file_count(rel, pattern="**/*", root=None):
-    root = (BASE if root is None else root) / rel
-    return sum(1 for p in root.glob(pattern)
-               if p.is_file() and not _is_junk(p)) if root.is_dir() else 0
+    root_base = BASE if root is None else root
+    base = root_base / rel
+    return sum(1 for p in base.glob(pattern)
+               if p.is_file() and not _is_junk(p)
+               and not _is_host_artifact(p.relative_to(root_base))) if base.is_dir() else 0
 
 
 def collect_components():

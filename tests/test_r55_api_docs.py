@@ -27,7 +27,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePath
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
@@ -294,16 +294,33 @@ class TestJunkProofMeasurements(unittest.TestCase):
 
         The rule is duplicated here on purpose: a regression in
         gen_api_docs._is_junk must not be able to hide behind itself.
+        R57: the clean-clone contract also excludes GITIGNORED host
+        artifacts (a deployed tree can carry them; a clean clone never does)
+        -- the artifact half is re-implemented here too, straight from
+        .gitignore, without calling the generator's rule.
         """
+        gi_pats = []
+        for ln in (BASE_DIR / ".gitignore").read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if ln and not ln.startswith(("#", "!")):
+                segs = [s for s in ln.strip("/").split("/") if s]
+                if len(segs) == 1:      # any-level name patterns suffice here
+                    gi_pats.append(segs[0])
         row = next(ln for ln in _read(ARCH_MD).splitlines()
                    if ln.startswith("| `static/`"))
         documented = int(re.search(r"\| (\d+) files", row).group(1))
+
+        def is_artifact(rel):
+            return any(PurePath(seg).match(pat)
+                       for seg in rel.parts for pat in gi_pats)
+
         clean = [p for p in (BASE_DIR / "static").glob("**/*")
                  if p.is_file()
                  and "__pycache__" not in p.parts
                  and not p.name.startswith(".")
                  and not p.name.endswith((".pyc", ".pyo", ".bak", ".orig", ".rej", "~"))
-                 and not re.search(r"\.pre_r\d+(?:\.bak)?$", p.name)]
+                 and not re.search(r"\.pre_r\d+(?:\.bak)?$", p.name)
+                 and not is_artifact(p.relative_to(BASE_DIR))]
         self.assertEqual(documented, len(clean))
 
 
