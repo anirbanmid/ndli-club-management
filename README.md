@@ -9,6 +9,9 @@ A high-performance, modern, minimalist web application engineered for tracking e
 > **Deployment & Security Docs**
 > - `PYTHONANYWHERE_DEPLOYMENT.md` — free-tier deployment via `wsgi.py` (persistent disk, no cold starts)
 > - `HANDOVER_SECURITY_CHECKLIST.md` — password/secret rotation procedure for client handover
+> - `docs/ops/OPERATIONS_HANDOVER.md` — accounts, data map, uptime alerts, incident playbook, handover checklists
+> - `docs/ops/DEPLOY_WORKFLOW.md` — how changes reach production (round workflow, smoke rules, rollback)
+> - `docs/ops/NDLI_Uptime_Watcher.gs` — Telegram uptime watcher (Apps Script; token placeholder on purpose)
 > - Security note: API endpoints enforce session auth (admin gates + self-or-admin identity checks); the
 >   in-app **🔑 Change Password** provision rotates any account credential.
 
