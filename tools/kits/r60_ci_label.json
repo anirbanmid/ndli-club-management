@@ -1,0 +1,46 @@
+{
+  "round": "R60",
+  "name": "r60_ci_label",
+  "title": "CI job label honesty (no baked pin counts)",
+  "intro": "R60 (2026-10-16): the R59 gate job label said '913 pins' while the measured gate was 932 -- a count copied into an artifact goes stale the moment the tree moves (the 69/68 disease class). The label is now count-free (the measured count lives in the run output: 'Ran N tests ... OK') and a permanent pin keeps any count from creeping back into it. Tiny round, one fix, one pin file.",
+  "payload": [
+    ".github/workflows/ci.yml",
+    "tests/test_r60_ci_label.py",
+    "tools/kits/r60_ci_label.json",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "replaced": [
+    ".github/workflows/ci.yml",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "markers": [
+    [".github/workflows/ci.yml", "name: Full test gate (count lives in the run output)", "the baked pin count is gone from the gate job label"],
+    [".github/workflows/ci.yml", "python3 -m unittest discover -s tests", "the gate still runs the safe discovery mode"],
+    ["tests/test_r60_ci_label.py", "def test_gate_job_label_never_bakes_a_pin_count", "the no-count pin is shipped"],
+    ["tests/test_r60_ci_label.py", "def test_gate_job_label_still_names_the_contract", "the contract-name pin is shipped"],
+    ["tools/kits/r60_ci_label.json", "r60_ci_label", "this round's own manifest ships"],
+    ["docs/ARCHITECTURE_MAP.md", "## Component map", "regenerated architecture map present"],
+    ["docs/technical_manual.html", "BEGIN GENERATED APPENDIX A (gen_api_docs.py)", "regenerated manual keeps its generated appendix"]
+  ],
+  "py_compiles": [
+    "tests/test_r60_ci_label.py"
+  ],
+  "js_checks": [],
+  "test_runs": [
+    ["test_r60_ci_label.py", 2],
+    ["test_r59_deploy_ci.py", 19],
+    ["test_r55_api_docs.py", 25]
+  ],
+  "regen_step": true,
+  "drift_gate": true,
+  "commit_files": [
+    ".github/workflows/ci.yml",
+    "tests/test_r60_ci_label.py",
+    "tools/kits/r60_ci_label.json",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "commit_message": "R60: CI job label honesty - no baked pin counts (count lives in the run output)"
+}
