@@ -32,7 +32,7 @@ class TestNoPlaintextSecrets(unittest.TestCase):
     def test_prod_code_has_no_credential_literals(self):
         offenders = []
         for f in _prod_python_files():
-            text = f.read_text()
+            text = f.read_text(encoding="utf-8")
             for needle, label in FORBIDDEN_PATTERNS:
                 if needle in text:
                     offenders.append(f"{f.relative_to(ROOT)}: {label}")
