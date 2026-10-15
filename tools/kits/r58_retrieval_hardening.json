@@ -1,0 +1,58 @@
+{
+  "round": "R58",
+  "name": "r58_retrieval_hardening",
+  "title": "Robu retrieval hardening (overlap chunking + hybrid retriever + centered snippets)",
+  "intro": "R58 (2026-10-15): the assistant's documentation retrieval is hardened -- relevance-centered snippets (keywords no longer need to sit early in a chunk), overlap-tailed chunking (manual edits can no longer orphan a boundary fact), hybrid ranking (BM25 + phrase + title + deliberate spelling aliases) and an honest relaxed second pass (the matched-term gate is never relaxed). The numeric tripwires (test_r37_robu_v5 etc.) are untouched and run green here.",
+  "payload": [
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r58_retrieval.py",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "replaced": [
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "docs/technical_manual.html"
+  ],
+  "markers": [
+    ["ai/knowledge_base.py", "OVERLAP_CHARS", "boundary-overlap constant present"],
+    ["ai/knowledge_base.py", "def _tail_overlap", "word-aligned overlap tail mechanism present"],
+    ["ai/knowledge_base.py", "def best_snippet", "relevance-centered snippet selector present"],
+    ["ai/knowledge_base.py", "def rank_chunks", "hybrid-ranker entry point present"],
+    ["ai/knowledge_base.py", "KB_RELAXED_MIN_SCORE", "honest relaxed second pass present"],
+    ["ai/knowledge_base.py", "ALIAS_MAP", "deliberate spelling-variant canon map present"],
+    ["ai/knowledge_base.py", "PHRASE_BONUS", "phrase/adjacency bonus wired into ranking"],
+    ["ai/knowledge_base.py", "TITLE_BONUS", "title-match bonus wired into ranking"],
+    ["ai/assistant_core.py", "knowledge_base.best_snippet(chunk, question", "answer path uses the centered snippet (not the head trim)"],
+    ["tests/test_r58_retrieval.py", "test_overlapping_piece_keeps_the_boundary_fact", "overlap regression pin shipped"],
+    ["tests/test_r58_retrieval.py", "test_boundary_straddling_query_is_retrievable", "boundary-straddle retrieval pin shipped"],
+    ["tests/test_r58_retrieval.py", "test_late_keyword_survives_in_the_snippet", "late-keyword (Stage-3 lesson) pin shipped"],
+    ["tests/test_r58_retrieval.py", "test_relaxed_second_pass_rescues_low_score_match", "relaxed-pass pin shipped"],
+    ["tests/test_r58_retrieval.py", "test_alias_map_is_pinned", "alias map is a visible contract"],
+    ["docs/ARCHITECTURE_MAP.md", "## Component map", "regenerated architecture map present"],
+    ["docs/technical_manual.html", "BEGIN GENERATED APPENDIX A (gen_api_docs.py)", "regenerated manual keeps its generated appendix"]
+  ],
+  "py_compiles": [
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r58_retrieval.py"
+  ],
+  "js_checks": [],
+  "test_runs": [
+    ["test_r58_retrieval.py", 22],
+    ["test_assistant_kb.py", 27],
+    ["test_r55_api_docs.py", 25],
+    ["test_r37_robu_v5.py", 13]
+  ],
+  "regen_step": true,
+  "drift_gate": true,
+  "commit_files": [
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r58_retrieval.py",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/technical_manual.html"
+  ],
+  "commit_message": "R58: Robu retrieval hardening (overlap chunking + hybrid retriever + centered snippets)"
+}

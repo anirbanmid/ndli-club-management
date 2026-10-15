@@ -1,0 +1,60 @@
+# R59 (2026-10-15) -- the "tiny CI" from the critique: gate + md5 kit build.
+#
+# Job 1 (gate): every push/PR runs the FULL test gate on a clean checkout,
+#   plus the docs drift gate (gen_api_docs.py --check) BEFORE the suite, so a
+#   stale measured-docs tree fails fast with a readable reason.
+# Job 2 (kit): the latest kit manifest in tools/kits/ is rebuilt from the tree
+#   and its md5 manifest + markers + installer self-check are verified -- the
+#   kit the deployer uploads is reproducible from a clean clone.
+#
+# Rules baked in (pinned by tests/test_r59_deploy_ci.py):
+#   - ALWAYS `discover -s tests` (bare `discover` imports ai/ before
+#     tests/__init__ seeds _seed_env -> 199x-401 auth failures. 2026-10-15
+#     lesson, three occurrences.)
+#   - CI NEVER commits/pushes back and never runs `git add -A` (deploy
+#     commits stay a human step -- the smoke test is the gate's job).
+#   - The app is stdlib-only: no `pip install` needed (requirements.txt is
+#     documentation).
+#
+# Minutes: a gate run is ~6 min on a runner. GitHub gives 2000 free
+# min/month for private repos -> budget ~300 pushes/month; trigger is
+# push/PR to main only.
+
+name: CI (gate + kit)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Full test gate (913 pins)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Drift gate (docs describe this tree)
+        run: python3 gen_api_docs.py --check
+      - name: Full gate (python3 -m unittest discover -s tests)
+        run: python3 -m unittest discover -s tests
+
+  kit:
+    name: Kit build + md5 verify (tools/kits manifest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build + verify the latest kit (no zip kept)
+        run: python3 tools/build_kit.py --latest --verify-only
