@@ -902,7 +902,11 @@ def _answer_from_kb(question: str) -> Optional[Dict[str, Any]]:
     sources: List[Dict[str, str]] = []
     for i, chunk in enumerate(chunks, 1):
         title = str(chunk.get("title") or "documentation")
-        text = _trim(str(chunk.get("text") or ""), knowledge_base.SNIPPET_TRIM_CHARS)
+        # R58: the snippet is the best-matching verbatim window (query-centred),
+        # not the first 280 chars -- a manual keyword no longer has to sit early
+        # in its chunk to show up in the quoted answer.
+        text = knowledge_base.best_snippet(chunk, question,
+                                           knowledge_base.SNIPPET_TRIM_CHARS)
         lines.append(f"[{i}] {title}: {text}")
         sources.append(_src(title, f"{chunk.get('source', '')} \u203a {chunk.get('section', '')}"))
     suggestions = [

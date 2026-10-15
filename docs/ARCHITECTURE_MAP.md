@@ -13,7 +13,7 @@ Sizes are **measured from the tree** at generation time. Roles are the stable on
 | `app.py` | HTTP request handler + startup wiring (no dispatch chain) | 509 lines |
 | `routes/` | URL router: ordered dispatch tables + 16 domain modules | 17 files, 3595 lines, 81 dispatch entries |
 | `db/` | flat-file CSV storage engine (mutex, backup, migration, counting) | 9 modules, 3227 lines |
-| `ai/` | Robu assistant (KB retrieval, tools, LLM gateway, guard, audit) | 11 modules, 4404 lines |
+| `ai/` | Robu assistant (KB retrieval, tools, LLM gateway, guard, audit) | 11 modules, 4609 lines |
 | `auth.py` | PBKDF2 password hashing + session tokens | 430 lines |
 | `config.py` | environment-driven configuration + seed accounts | 200 lines |
 | `state_zone_mapper.py` | state/zone normalization + alias matching | 147 lines |
@@ -24,7 +24,7 @@ Sizes are **measured from the tree** at generation time. Roles are the stable on
 | `templates/` | portal HTML pages (admin, employee, index, verify) | 4 files |
 | `static/` | front-end assets (css / js / images) | 68 files, 44 JS |
 | `docs/` | technical + user manuals (Robu KB sources) + figures | 4 manual files + figures |
-| `tests/` | the pinned gate (unittest, zero third-party deps) | 77 test modules |
+| `tests/` | the pinned gate (unittest, zero third-party deps) | 78 test modules |
 | `data/` | runtime flat-file store (CSV, sessions, backups, logs) -- runtime state, deliberately not counted | runtime state |
 
 ## Route module map (`routes/`)

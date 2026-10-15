@@ -78,8 +78,22 @@ MANUAL_PATHS: List[Tuple[str, Path]] = [
 MAX_CHUNK_CHARS = 800          # split a huge section into ~800-char pieces
 SNIPPET_TRIM_CHARS = 280       # orchestrator trims a chunk to this for the answer
 KB_MIN_SCORE = 2.0             # tunable relevance gate for answering from the KB
+KB_RELAXED_MIN_SCORE = 1.0     # R58 second-pass gate (matched-term gate unchanged)
 BM25_K1 = 1.5
 BM25_B = 0.75
+
+# R58 (retrieval hardening): consecutive split pieces share a tail of this many
+# chars, so a fact near a chunk boundary is present in BOTH neighbours -- adding
+# text to a manual can no longer "orphan" a keyword on the wrong side of a
+# boundary (the Stage-3 flakiness class). Pieces stay <= MAX_CHUNK_CHARS (+ the
+# coalesce overhead), so the chunk-size contract is unchanged.
+OVERLAP_CHARS = 120
+
+# R58 hybrid-ranking bonuses (pure scoring additions on top of BM25).
+PHRASE_BONUS = 0.6             # per adjacent query-token pair found adjacent in the chunk
+PHRASE_BONUS_CAP = 1.8
+TITLE_BONUS = 0.8              # per distinct query token found in the chunk's title
+TITLE_BONUS_CAP = 1.6
 
 # Heading levels treated as section boundaries.
 _HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3}
@@ -132,6 +146,48 @@ def tokenize(text: str) -> List[str]:
         if len(t) > 1 and t not in _STOPWORDS:
             out.append(_normalize_token(t))
     return out
+
+
+# R58: post-tokenize canonicalisation so spelling variants and abbreviations
+# hit the same index term. Deliberately SMALL and domain-scoped: variants of the
+# same word only -- never fuzzy semantics (a synonym guess is worse than no
+# match). Applied to BOTH sides (query and docs) by _index_tokens(); the
+# tokenize() contract above is untouched. The exact map is pinned by
+# tests/test_r58_retrieval.py -- additions are deliberate, not incidental.
+ALIAS_MAP = {
+    "synchronisation": "sync",
+    "synchronization": "sync",
+    "synchronize": "sync",
+    "synchronized": "sync",
+    "synchronizes": "sync",
+    "synchronizing": "sync",
+    "synchronise": "sync",
+    "synchronised": "sync",
+    "sync": "sync",
+    "authentication": "authentication",
+    "authorize": "authorization",
+    "authorized": "authorization",
+    "customise": "customize",
+    "customised": "customize",
+    "initialise": "initialize",
+    "initialised": "initialize",
+    "analyse": "analyze",
+    "behaviour": "behavior",
+    "favourite": "favorite",
+    "config": "configuration",
+    "renew": "renewal",
+    "renewed": "renewal",
+    "renewing": "renewal",
+    "renewal": "renewal",
+}
+
+
+def _index_tokens(text: str) -> List[str]:
+    """
+    tokenize() + ALIAS_MAP canonicalisation. The single token stream used by the
+    index AND the query (so variants match symmetrically). Pure.
+    """
+    return [ALIAS_MAP.get(t, t) for t in tokenize(text)]
 
 
 def idf(n_docs: int, doc_freq: int) -> float:
@@ -268,16 +324,34 @@ def _clean_text(raw: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _tail_overlap(prev: str, overlap: int) -> str:
+    """Last <=overlap chars of prev, starting at a word boundary. Pure."""
+    if overlap <= 0 or not prev:
+        return ""
+    if len(prev) <= overlap:
+        return prev
+    # First space at/after the overlap window start -> the tail begins on a
+    # word boundary and is <= overlap chars long.
+    cut = prev.find(" ", len(prev) - overlap)
+    return prev[cut + 1:] if cut >= 0 else prev[-overlap:]
+
+
 def _split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> List[str]:
     """
     Split long text into <=max_chars pieces at sentence boundaries where
-    possible. Pure. Never returns empty pieces.
+    possible, with an R58 overlap tail: every piece after the first starts with
+    the tail of its predecessor (<= OVERLAP_CHARS, word-aligned) so a fact that
+    lands near a split boundary is present in BOTH pieces -- boundary drift from
+    manual edits can no longer orphan it. Pure. Never returns empty pieces.
+    Bounds: a piece is <= max_chars + the coalesce overhead (150), unchanged.
     """
     text = text.strip()
     if not text:
         return []
     if len(text) <= max_chars:
         return [text]
+    overlap = min(OVERLAP_CHARS, max_chars // 4)
+    budget = max_chars - overlap
     sentences = re.split(r"(?<=[.!?])\s+", text)
     pieces: List[str] = []
     buf = ""
@@ -286,10 +360,10 @@ def _split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> List[str]:
         if not sent:
             continue
         # A single sentence longer than the budget: hard-split at word boundary.
-        while len(sent) > max_chars:
-            cut = sent.rfind(" ", 0, max_chars)
+        while len(sent) > budget:
+            cut = sent.rfind(" ", 0, budget)
             if cut <= 0:
-                cut = max_chars
+                cut = budget
             piece = sent[:cut].strip()
             if piece:
                 pieces.append(piece)
@@ -297,7 +371,7 @@ def _split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> List[str]:
         if not sent:
             continue
         candidate = f"{buf} {sent}".strip() if buf else sent
-        if len(candidate) <= max_chars:
+        if len(candidate) <= budget:
             buf = candidate
         else:
             if buf:
@@ -305,7 +379,14 @@ def _split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> List[str]:
             buf = sent
     if buf:
         pieces.append(buf)
-    return _coalesce_short(pieces, max_chars)
+    pieces = _coalesce_short(pieces, budget)
+    if overlap > 0 and len(pieces) > 1:
+        with_tail = [pieces[0]]
+        for i in range(1, len(pieces)):
+            tail = _tail_overlap(pieces[i - 1], overlap)
+            with_tail.append(f"{tail} {pieces[i]}".strip() if tail else pieces[i])
+        pieces = with_tail
+    return pieces
 
 
 def _coalesce_short(pieces: List[str], max_chars: int,
@@ -458,6 +539,18 @@ def _doc_text(chunk: Dict[str, Any]) -> str:
     return f"{chunk.get('title', '')} {chunk.get('section', '')} {chunk.get('text', '')}"
 
 
+def _build_index(chunks: Sequence[Dict[str, Any]]) -> Tuple[List[List[str]], Dict[str, int], int, float]:
+    """Tokenised index over (title+section+text). Pure (no caching)."""
+    docs = [_index_tokens(_doc_text(c)) for c in chunks]
+    df: Dict[str, int] = {}
+    for toks in docs:
+        for term in set(toks):
+            df[term] = df.get(term, 0) + 1
+    total_len = sum(len(d) for d in docs)
+    avgdl = (total_len / len(docs)) if docs else 0.0
+    return docs, df, len(docs), avgdl
+
+
 def _get_index() -> Tuple[List[List[str]], Dict[str, int], int, float]:
     """Tokenised index over (title+section+text). Cached + thread-safe."""
     global _INDEX_CACHE
@@ -467,41 +560,69 @@ def _get_index() -> Tuple[List[List[str]], Dict[str, int], int, float]:
     with _KB_LOCK:
         if _INDEX_CACHE is not None:
             return _INDEX_CACHE
-        docs = [tokenize(_doc_text(c)) for c in chunks]
-        df: Dict[str, int] = {}
-        for toks in docs:
-            for term in set(toks):
-                df[term] = df.get(term, 0) + 1
-        total_len = sum(len(d) for d in docs)
-        avgdl = (total_len / len(docs)) if docs else 0.0
-        _INDEX_CACHE = (docs, df, len(docs), avgdl)
+        _INDEX_CACHE = _build_index(chunks)
         return _INDEX_CACHE
 
 
-def search(query: str, k: int = 3) -> List[Dict[str, Any]]:
+def _rank(query: str, chunks: Sequence[Dict[str, Any]],
+          index: Tuple[List[List[str]], Dict[str, int], int, float],
+          k: int) -> List[Dict[str, Any]]:
     """
-    BM25 retrieval over the documentation chunks.
-
-    Returns [{chunk, score, rank}] sorted by descending score, at most k items.
-    Empty / stopword-only query -> [] (never raises). rank is 1-based.
+    R58 hybrid ranking core: BM25 + phrase/adjacency bonus + title bonus.
+    Deterministic (score desc, then chunk_id). Pure. Shared by search() (the
+    cached real-KB path) and rank_chunks() (the testable chunk-list path).
     """
-    q_tokens = tokenize(query)
-    if not q_tokens:
+    q_tokens = _index_tokens(query)
+    if not q_tokens or not chunks:
         return []
-    chunks = load_kb()
-    docs, doc_freq, n_docs, avgdl = _get_index()
+    docs, doc_freq, n_docs, avgdl = index
     if n_docs == 0:
         return []
+    q_set = set(q_tokens)
+    q_pairs = set(zip(q_tokens, q_tokens[1:]))
     scored: List[Tuple[float, Dict[str, Any]]] = []
     for chunk, doc_tokens in zip(chunks, docs):
         s = bm25_score(q_tokens, doc_tokens, doc_freq, n_docs, avgdl)
-        if s > 0:
-            scored.append((s, chunk))
+        if s <= 0:
+            continue
+        # Phrase/adjacency bonus: query token pairs adjacent in the doc chunk
+        # (order-preserving) are a much stronger relevance signal than scattered
+        # term hits. Capped so BM25 still dominates.
+        if q_pairs:
+            adj = sum(1 for a, b in zip(doc_tokens, doc_tokens[1:]) if (a, b) in q_pairs)
+            s += min(PHRASE_BONUS * adj, PHRASE_BONUS_CAP)
+        # Title bonus: the heading names the topic -- a query term in the title
+        # is worth more than a passing mention in the body. Capped.
+        title_hits = len(q_set & set(_index_tokens(str(chunk.get("title") or ""))))
+        if title_hits:
+            s += min(TITLE_BONUS * title_hits, TITLE_BONUS_CAP)
+        scored.append((s, chunk))
     scored.sort(key=lambda pair: (-pair[0], pair[1].get("chunk_id", "")))
     results: List[Dict[str, Any]] = []
     for rank, (s, chunk) in enumerate(scored[: max(0, k)], 1):
         results.append({"chunk": chunk, "score": s, "rank": rank})
     return results
+
+
+def rank_chunks(query: str, chunks: Sequence[Dict[str, Any]], k: int = 3) -> List[Dict[str, Any]]:
+    """
+    Rank an arbitrary chunk list (the testable entry point). Same semantics as
+    search() but without the global cache. Pure w.r.t. the filesystem.
+    """
+    return _rank(query, chunks, _build_index(chunks), k)
+
+
+def search(query: str, k: int = 3) -> List[Dict[str, Any]]:
+    """
+    Hybrid retrieval over the documentation chunks (BM25 + phrase + title).
+
+    Returns [{chunk, score, rank}] sorted by descending score, at most k items.
+    Empty / stopword-only query -> [] (never raises). rank is 1-based.
+    """
+    if not _index_tokens(query):
+        return []
+    chunks = load_kb()
+    return _rank(query, chunks, _get_index(), k)
 
 
 # ---------------------------------------------------------------------------
@@ -513,7 +634,7 @@ MIN_MATCHED_TERMS = 2  # a citation needs >=2 distinct query terms in the chunk
 
 def matched_term_count(query_tokens: Sequence[str], chunk: Dict[str, Any]) -> int:
     """Distinct query terms present in the chunk (title+section+text). Pure."""
-    return len(set(query_tokens) & set(tokenize(_doc_text(chunk))))
+    return len(set(query_tokens) & set(_index_tokens(_doc_text(chunk))))
 
 
 def retrieve_for_answer(query: str, k: int = 2) -> List[Dict[str, Any]]:
@@ -524,20 +645,100 @@ def retrieve_for_answer(query: str, k: int = 2) -> List[Dict[str, Any]]:
     common word like "log" -- are rejected so the orchestrator falls back to
     its honest "template mode" answer instead of over-claiming. Returns at
     most k chunk dicts (the plain chunk dicts, in rank order).
+
+    R58 second pass: if NOTHING clears the strict score gate but a chunk still
+    matches >= MIN_MATCHED_TERMS distinct terms at KB_RELAXED_MIN_SCORE, it is
+    accepted (the strict gate can under-shoot on short queries whose terms sit
+    far apart in a chunk). The matched-term gate is NEVER relaxed -- gibberish
+    and single-common-term queries stay rejected in both passes.
     """
-    q_tokens = tokenize(query)
+    q_tokens = _index_tokens(query)
     if not q_tokens:
         return []
-    accepted: List[Dict[str, Any]] = []
-    for r in search(query, k=max(k, 3)):
-        if r["score"] < KB_MIN_SCORE:
-            continue
-        if matched_term_count(q_tokens, r["chunk"]) < MIN_MATCHED_TERMS:
-            continue
-        accepted.append(r["chunk"])
-        if len(accepted) >= k:
-            break
-    return accepted
+
+    def _accept(min_score: float) -> List[Dict[str, Any]]:
+        accepted: List[Dict[str, Any]] = []
+        for r in search(query, k=max(k, 3)):
+            if r["score"] < min_score:
+                continue
+            if matched_term_count(q_tokens, r["chunk"]) < MIN_MATCHED_TERMS:
+                continue
+            accepted.append(r["chunk"])
+            if len(accepted) >= k:
+                break
+        return accepted
+
+    got = _accept(KB_MIN_SCORE)
+    if got:
+        return got
+    return _accept(KB_RELAXED_MIN_SCORE)
+
+
+# ---------------------------------------------------------------------------
+# R58 relevance-centered snippets (kills the "keywords must sit early in a
+# chunk" fragility: the orchestrator shows the best-matching window verbatim).
+# ---------------------------------------------------------------------------
+
+
+def best_snippet(chunk: Dict[str, Any], query: str,
+                 limit: int = SNIPPET_TRIM_CHARS) -> str:
+    """
+    The verbatim window of chunk text (up to limit chars) with the highest
+    density of query-term matches -- NOT the first limit chars. Pure.
+
+    Contract:
+    - VERBATIM: the result is a substring of the (whitespace-collapsed) chunk
+      text, optionally wrapped in "..." ellipses when the window is interior.
+      Every word shown is still a quote from the manual (single source of truth).
+    - Short chunks (<= limit) are returned whole, unchanged (pre-R58 behaviour).
+    - Ties prefer the EARLIEST window, so chunks whose keywords already sit
+      early produce exactly the old head-trim answer.
+    """
+    text = _clean_text(str(chunk.get("text") or ""))
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    q_set = set(_index_tokens(query))
+    # Word spans as (start, end) char offsets in the collapsed text.
+    spans = [(m.start(), m.end()) for m in re.finditer(r"\S+", text)]
+    if not spans:
+        return ""
+    best_score = -1.0
+    best_start = 0
+    best_end = len(text)
+    for i, (start, _s) in enumerate(spans):
+        end = start
+        hits: List[str] = []
+        occ = 0
+        j = i
+        while j < len(spans):
+            w_start, w_end = spans[j]
+            if w_end - start > limit:
+                break
+            end = w_end
+            toks = set(_index_tokens(text[w_start:w_end]))
+            matched = toks & q_set
+            if matched:
+                hits.extend(matched)
+                occ += 1
+            j += 1
+        score = float(len(set(hits))) + 0.2 * occ
+        if score > best_score:  # ties keep the EARLIEST window (old head-trim)
+            best_score = score
+            best_start = start
+            best_end = end
+    if best_score <= 0.0:
+        # No query hit anywhere in the text: keep the head window (the
+        # pre-R58 behaviour) so unretrieved snippets render unchanged.
+        best_start = 0
+        best_end = text.find(" ", limit)
+        if best_end <= 0:
+            best_end = limit
+    window = text[best_start:best_end].strip()
+    prefix = "..." if best_start > 0 else ""
+    suffix = "..." if best_end < len(text) else ""
+    return f"{prefix}{window}{suffix}"
 
 
 # ---------------------------------------------------------------------------
