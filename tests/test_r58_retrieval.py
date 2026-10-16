@@ -312,18 +312,30 @@ class TestHonestFallbackGates(unittest.TestCase):
 
 
 class TestGoldenCoverage(unittest.TestCase):
-    """Every golden question's top hit quotes at least one expected keyword."""
+    """Every golden question's top hit quotes at least one expected keyword.
+
+    R62 pin-follow (R57 precedent: pinned rule copies evolve with the
+    contract): goldens routed to the manual_map intent are answered by the
+    deterministic orientation composer, not by plain retrieval -- so for
+    exactly those goldens the keywords are asserted on the answer the user
+    actually receives. Never skipped, never vacuous.
+    """
 
     def test_golden_snippets_still_carry_expected_keywords(self):
+        from ai import assistant_core
         for g in GOLDEN_QUESTIONS:
             with self.subTest(golden=g["id"]):
-                hits = retrieve_for_answer(g["question"], k=2)
-                self.assertTrue(hits, f"[{g['id']}] retrieval found nothing")
-                snippet = best_snippet(hits[0], g["question"], SNIPPET_TRIM_CHARS)
-                joined = (snippet + " " + str(hits[0].get("title") or "")).lower()
+                if assistant_core._route(g["question"])[0] == "manual_map":
+                    answer = assistant_core._compose_manual_map(g["question"])["answer"]
+                    joined = answer.lower()
+                else:
+                    hits = retrieve_for_answer(g["question"], k=2)
+                    self.assertTrue(hits, f"[{g['id']}] retrieval found nothing")
+                    snippet = best_snippet(hits[0], g["question"], SNIPPET_TRIM_CHARS)
+                    joined = (snippet + " " + str(hits[0].get("title") or "")).lower()
                 self.assertTrue(
                     any(kw.lower() in joined for kw in g["expected_keywords"]),
-                    f"[{g['id']}] snippet lost the expected keywords: {snippet[:120]!r}")
+                    f"[{g['id']}] answer lost the expected keywords")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,70 @@
+{
+  "round": "R62",
+  "name": "r62_manual_robu",
+  "title": "Manual readability (black code blocks fixed) + system mindmap & process-flow diagrams + Robu manual-map mastery",
+  "intro": "R62 (2026-10-16): the user reported the technical manual full of blank 'black screen' screenshots and asked for a mindmap/process-flow diagram; a real Robu chat showed vague manual queries answered with cover-page dumps (incl. personal contact details) and 'Full NDLI Club Management manual' answered with live club counts. Root cause of the black boxes: `code { color: #0F172A }` beat the inherited `pre { color: #E2E8F0 }` inside `pre { background: #0B151F }`, so code text was dark-on-dark and invisible (they were code blocks, not screenshots). This round: (A1) the pre-code colour fix; (A2) two new front-matter pages with hand-authored SVG diagrams -- System Overview & End-to-End Process Flow + System Mindmap & Manual Map (chapter map table); (A3) honest pagination -- every 'Page X of N' label and TOC row agrees with the page that carries the chapter (this also caught a pre-existing ch.11 TOC typo), and the Technical Reference PDF is rebuilt with WeasyPrint at exactly 32 physical pages, every label landing on its own page; (B1) both cover pages are wrapped in KB-EXCLUDE markers so author contact details are never retrievable; (B2) the overview pages are the retrieval anchor for process/architecture questions; (B3/B4) bare manual requests and pasted manual URLs route to a deterministic orientation answer BEFORE the club-data intents ('manual entry' stays an app feature); (B5) the three real chat failures are permanent golden-question regressions (21/21 evals). Pin-follow (R57 precedent): test_r58_retrieval's golden-coverage pin evolved so manual_map goldens assert their keywords on the composer answer the user actually receives.",
+  "payload": [
+    "docs/technical_manual.html",
+    "docs/user_manual.html",
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r62_manual_robu.py",
+    "tests/test_r58_retrieval.py",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/NDLI_Club_Management_Technical_Reference_Manual.pdf",
+    "tools/kits/r62_manual_robu.json"
+  ],
+  "replaced": [
+    "docs/technical_manual.html",
+    "docs/user_manual.html",
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r58_retrieval.py",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/NDLI_Club_Management_Technical_Reference_Manual.pdf"
+  ],
+  "markers": [
+    ["docs/technical_manual.html", "color: #E2E8F0;", "code blocks readable (pre code colour fix)"],
+    ["docs/technical_manual.html", "id=\"fig-process-flow\"", "process-flow diagram shipped"],
+    ["docs/technical_manual.html", "id=\"fig-system-mindmap\"", "system mindmap shipped"],
+    ["docs/technical_manual.html", "KB-EXCLUDE-START", "technical cover excluded from the KB"],
+    ["docs/technical_manual.html", "BEGIN GENERATED APPENDIX A (gen_api_docs.py)", "regenerated manual keeps its generated appendix"],
+    ["docs/user_manual.html", "KB-EXCLUDE-START", "user cover excluded from the KB"],
+    ["ai/knowledge_base.py", "def handle_comment", "extractor honors KB-EXCLUDE markers"],
+    ["ai/knowledge_base.py", "r62_manual_map_vague", "golden regressions shipped"],
+    ["ai/assistant_core.py", "_MANUAL_MAP_RE", "manual-map routing shipped"],
+    ["ai/assistant_core.py", "_compose_manual_map", "orientation composer shipped"],
+    ["tests/test_r62_manual_robu.py", "class TestHonestPagination", "pagination honesty pins shipped"],
+    ["tests/test_r58_retrieval.py", "manual_map", "golden-coverage pin evolved with the R62 contract"],
+    ["docs/ARCHITECTURE_MAP.md", "## Component map", "regenerated architecture map present"],
+    ["tools/kits/r62_manual_robu.json", "r62_manual_robu", "this round's own manifest ships"]
+  ],
+  "py_compiles": [
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r62_manual_robu.py",
+    "tests/test_r58_retrieval.py"
+  ],
+  "js_checks": [],
+  "test_runs": [
+    ["test_r62_manual_robu.py", 17],
+    ["test_assistant_kb.py", 27],
+    ["test_r58_retrieval.py", 22],
+    ["test_r55_api_docs.py", 25],
+    ["test_slice_f_learning.py", 40]
+  ],
+  "regen_step": true,
+  "drift_gate": true,
+  "commit_files": [
+    "docs/technical_manual.html",
+    "docs/user_manual.html",
+    "ai/knowledge_base.py",
+    "ai/assistant_core.py",
+    "tests/test_r62_manual_robu.py",
+    "tests/test_r58_retrieval.py",
+    "docs/ARCHITECTURE_MAP.md",
+    "docs/NDLI_Club_Management_Technical_Reference_Manual.pdf",
+    "tools/kits/r62_manual_robu.json"
+  ],
+  "commit_message": "R62: manual black-code-blocks fixed + system mindmap & process-flow diagrams + Robu manual-map routing (cover dumps and club-count steals fixed)"
+}

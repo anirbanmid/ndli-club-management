@@ -106,6 +106,14 @@ _SKIP_TAGS = {"script", "style", "head", "nav", "footer", "svg", "noscript", "te
 _SEP_TAGS = {"p", "div", "tr", "td", "th", "li", "br", "h1", "h2", "h3", "h4",
              "pre", "table", "section", "article", "ul", "ol", "blockquote", "hr", "figcaption"}
 
+# R62 (B1): cover pages are wrapped in these HTML comments in both manuals.
+# Everything between them (author contact, marketing pills, cover title) is
+# deliberately NOT part of the retrieval KB: vague queries used to be answered
+# with cover-page dumps (incl. personal contact details). Marker-driven, not
+# title/regex heuristics -- renaming a heading can never re-open the hole.
+KB_EXCLUDE_START = "KB-EXCLUDE-START"
+KB_EXCLUDE_END = "KB-EXCLUDE-END"
+
 
 # ---------------------------------------------------------------------------
 # Pure tokenisation + BM25 scoring (unit-testable, no I/O)
@@ -244,6 +252,7 @@ class _SectionExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self._skip_depth = 0
+        self._excluded = False
         self._heading_level: Optional[int] = None
         self._heading_buf: List[str] = []
         self._body_buf: List[str] = []
@@ -252,7 +261,17 @@ class _SectionExtractor(HTMLParser):
         self.sections: List[Dict[str, Any]] = []
 
     # -- tag handling ---------------------------------------------------
+    def handle_comment(self, data: str) -> None:
+        # R62 (B1): KB-EXCLUDE markers wrap cover pages. Inside a marker EVERYTHING
+        # (headings included) is dropped, so no cover section ever forms.
+        if KB_EXCLUDE_START in data:
+            self._excluded = True
+        elif KB_EXCLUDE_END in data:
+            self._excluded = False
+
     def handle_starttag(self, tag: str, attrs: Any) -> None:
+        if self._excluded:
+            return
         if tag in _SKIP_TAGS:
             self._skip_depth += 1
             return
@@ -268,6 +287,8 @@ class _SectionExtractor(HTMLParser):
             self._body_buf.append(" ")
 
     def handle_endtag(self, tag: str) -> None:
+        if self._excluded:
+            return
         if tag in _SKIP_TAGS:
             if self._skip_depth > 0:
                 self._skip_depth -= 1
@@ -286,7 +307,7 @@ class _SectionExtractor(HTMLParser):
             self._body_buf.append(" ")
 
     def handle_data(self, data: str) -> None:
-        if self._skip_depth:
+        if self._skip_depth or self._excluded:
             return
         if self._heading_level is not None:
             self._heading_buf.append(data)
@@ -835,5 +856,23 @@ GOLDEN_QUESTIONS: List[Dict[str, Any]] = [
         "id": "correct_historical_dates",
         "question": "How does an administrator correct wrongly recorded historical dates?",
         "expected_keywords": ["Correct Historical Dates", "admin-only"],
+    },
+    # R62 (B5): the three real user-chat failures (2026-10-16) as permanent
+    # regression goldens. All three used to be answered with cover-page dumps
+    # or live club counts instead of a documentation orientation.
+    {
+        "id": "r62_manual_map_vague",
+        "question": "technical manual",
+        "expected_keywords": ["overview", "process flow"],
+    },
+    {
+        "id": "r62_manual_map_full_title",
+        "question": "Full NDLI Club Management manual",
+        "expected_keywords": ["overview", "manual map"],
+    },
+    {
+        "id": "r62_manual_url_paste",
+        "question": "https://anirbanmid.pythonanywhere.com/docs/technical_manual.html",
+        "expected_keywords": ["overview", "process flow"],
     },
 ]

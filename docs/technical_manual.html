@@ -11,7 +11,7 @@
       size: A4 portrait;
       margin: 12mm 15mm 14mm 15mm;
       @bottom-right {
-        content: "Page " counter(page) " of 30";
+        content: "Page " counter(page) " of 32";
         font-family: 'Consolas', 'Segoe UI', monospace;
         font-size: 7.5pt;
         color: #64748B;
@@ -418,6 +418,7 @@
       line-height: 1.20;
       background: transparent;
       padding: 0;
+      color: #E2E8F0;
     }
 
     pre {
@@ -580,6 +581,7 @@
 </head>
 <body>
 
+  <!-- KB-EXCLUDE-START: cover page, not part of the retrieval KB -->
   <!-- ===================================================================
        PAGE 1: COVER PAGE
        =================================================================== -->
@@ -640,53 +642,233 @@
       </div>
     </div>
   </div>
+  <!-- KB-EXCLUDE-END -->
 
-    <!-- ===================================================================
+  <!-- ===================================================================
        PAGE 2: COMPREHENSIVE TECHNICAL NAVIGATION INDEX
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 2 of 30</span>
+      <span class="header-tag-right">Page 2 of 32</span>
     </div>
 
     <h1>Comprehensive Technical Navigation Index</h1>
     <p>An exhaustive architectural reference index across all 20 technical sections, security models, and code implementations:</p>
 
     <div class="toc-container">
-      <div class="toc-row"><span class="toc-chapter">1. Executive Technical Summary &amp; Architectural Philosophy</span><span class="toc-dots"></span><span class="toc-page-num">Page 3</span></div>
-      <div class="toc-row"><span class="toc-chapter">2. System Topology &amp; Multi-Tier Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 4</span></div>
-      <div class="toc-row"><span class="toc-chapter">3. Cryptographic Security &amp; Authentication Subsystem</span><span class="toc-dots"></span><span class="toc-page-num">Page 5</span></div>
-      <div class="toc-row"><span class="toc-chapter">4. Dual-Layer Security Challenge for Disaster Recovery</span><span class="toc-dots"></span><span class="toc-page-num">Page 6</span></div>
-      <div class="toc-row"><span class="toc-chapter">5. Database Schemas &amp; Flat-File Storage Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 7</span></div>
-      <div class="toc-row"><span class="toc-chapter">6. Flat-File ACID Simulation &amp; Mutex Concurrency Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 8</span></div>
-      <div class="toc-row"><span class="toc-chapter">7. Core Backend Codebase &amp; Module Specifications</span><span class="toc-dots"></span><span class="toc-page-num">Page 9</span></div>
-      <div class="toc-row"><span class="toc-chapter">8. Synchronization &amp; Node-to-Master Reconciliation</span><span class="toc-dots"></span><span class="toc-page-num">Page 10</span></div>
-      <div class="toc-row"><span class="toc-chapter">9. Mathematical Models &amp; Analytical Formulas</span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
-      <div class="toc-row"><span class="toc-chapter">10. Geopolitical State-Zone Mapping Specification</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
-      <div class="toc-row"><span class="toc-chapter">11. REST API Specification (Part 1: Operations)</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
-      <div class="toc-row"><span class="toc-chapter">12. REST API Specification (Part 2: Admin &amp; System)</span><span class="toc-dots"></span><span class="toc-page-num">Page 14</span></div>
-      <div class="toc-row"><span class="toc-chapter">13. Backup Architecture &amp; Disaster Recovery Pipeline</span><span class="toc-dots"></span><span class="toc-page-num">Page 15</span></div>
-      <div class="toc-row"><span class="toc-chapter">14. Emergency Restore Protocol &amp; CLI Fallback</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
-      <div class="toc-row"><span class="toc-chapter">15. Front-End Architecture &amp; Design System v3.0</span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
-      <div class="toc-row"><span class="toc-chapter">16. Cloud Deployment &amp; DevOps Infrastructure</span><span class="toc-dots"></span><span class="toc-page-num">Page 18</span></div>
-      <div class="toc-row"><span class="toc-chapter">17. Automated Quality Assurance &amp; Test Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 19</span></div>
-      <div class="toc-row"><span class="toc-chapter">18. System Maintenance, Operations &amp; Troubleshooting Runbook</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
-      <div class="toc-row"><span class="toc-chapter">19. Security Audit, Data Integrity &amp; Compliance</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
-      <div class="toc-row"><span class="toc-chapter">20. System Handover Sign-Off &amp; Architectural Attribution</span><span class="toc-dots"></span><span class="toc-page-num">Page 22</span></div>
-      <div class="toc-row"><span class="toc-chapter">Appendix A. Auto-Generated API Reference &amp; Architecture Map</span><span class="toc-dots"></span><span class="toc-page-num">Page 25</span></div>
+      <div class="toc-row"><span class="toc-chapter">&#9733; System Overview &amp; End-to-End Process Flow (Start Here)</span><span class="toc-dots"></span><span class="toc-page-num">Page 3</span></div>
+      <div class="toc-row"><span class="toc-chapter">&#9733; System Mindmap &amp; Manual Map</span><span class="toc-dots"></span><span class="toc-page-num">Page 4</span></div>
+      <div class="toc-row"><span class="toc-chapter">1. Executive Technical Summary &amp; Architectural Philosophy</span><span class="toc-dots"></span><span class="toc-page-num">Page 5</span></div>
+      <div class="toc-row"><span class="toc-chapter">2. System Topology &amp; Multi-Tier Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 6</span></div>
+      <div class="toc-row"><span class="toc-chapter">3. Cryptographic Security &amp; Authentication Subsystem</span><span class="toc-dots"></span><span class="toc-page-num">Page 7</span></div>
+      <div class="toc-row"><span class="toc-chapter">4. Dual-Layer Security Challenge for Disaster Recovery</span><span class="toc-dots"></span><span class="toc-page-num">Page 8</span></div>
+      <div class="toc-row"><span class="toc-chapter">5. Database Schemas &amp; Flat-File Storage Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 9</span></div>
+      <div class="toc-row"><span class="toc-chapter">6. Flat-File ACID Simulation &amp; Mutex Concurrency Engine</span><span class="toc-dots"></span><span class="toc-page-num">Page 10</span></div>
+      <div class="toc-row"><span class="toc-chapter">7. Core Backend Codebase &amp; Module Specifications</span><span class="toc-dots"></span><span class="toc-page-num">Page 11</span></div>
+      <div class="toc-row"><span class="toc-chapter">8. Synchronization &amp; Node-to-Master Reconciliation</span><span class="toc-dots"></span><span class="toc-page-num">Page 12</span></div>
+      <div class="toc-row"><span class="toc-chapter">9. Mathematical Models &amp; Analytical Formulas</span><span class="toc-dots"></span><span class="toc-page-num">Page 13</span></div>
+      <div class="toc-row"><span class="toc-chapter">10. Geopolitical State-Zone Mapping Specification</span><span class="toc-dots"></span><span class="toc-page-num">Page 14</span></div>
+      <div class="toc-row"><span class="toc-chapter">11. REST API Specification (Part 1: Auth &amp; Operations)</span><span class="toc-dots"></span><span class="toc-page-num">Page 15</span></div>
+      <div class="toc-row"><span class="toc-chapter">12. REST API Specification (Part 2: Admin &amp; System)</span><span class="toc-dots"></span><span class="toc-page-num">Page 16</span></div>
+      <div class="toc-row"><span class="toc-chapter">13. Backup Architecture &amp; Disaster Recovery Pipeline</span><span class="toc-dots"></span><span class="toc-page-num">Page 17</span></div>
+      <div class="toc-row"><span class="toc-chapter">14. Emergency Restore Protocol &amp; CLI Fallback</span><span class="toc-dots"></span><span class="toc-page-num">Page 18</span></div>
+      <div class="toc-row"><span class="toc-chapter">15. Front-End Architecture &amp; Design System v3.0</span><span class="toc-dots"></span><span class="toc-page-num">Page 19</span></div>
+      <div class="toc-row"><span class="toc-chapter">16. Cloud Deployment &amp; DevOps Infrastructure</span><span class="toc-dots"></span><span class="toc-page-num">Page 20</span></div>
+      <div class="toc-row"><span class="toc-chapter">17. Automated Quality Assurance &amp; Test Architecture</span><span class="toc-dots"></span><span class="toc-page-num">Page 21</span></div>
+      <div class="toc-row"><span class="toc-chapter">18. System Maintenance, Operations &amp; Troubleshooting Runbook</span><span class="toc-dots"></span><span class="toc-page-num">Page 22</span></div>
+      <div class="toc-row"><span class="toc-chapter">19. Security Audit, Data Integrity &amp; Compliance</span><span class="toc-dots"></span><span class="toc-page-num">Page 23</span></div>
+      <div class="toc-row"><span class="toc-chapter">20. System Handover Sign-Off &amp; Architectural Attribution</span><span class="toc-dots"></span><span class="toc-page-num">Page 24</span></div>
+      <div class="toc-row"><span class="toc-chapter">Appendix A. Auto-Generated API Reference &amp; Architecture Map</span><span class="toc-dots"></span><span class="toc-page-num">Page 27</span></div>
     </div>
   </div>
 
-<!-- ===================================================================
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
+      <span class="header-tag-right">Page 3 of 32</span>
+    </div>
+
+    <h1>System Overview &amp; End-to-End Process Flow (Start Here)</h1>
+    <p>
+      This page answers the single most important question in the manual: <strong>how does the
+      entire system execute one unit of work, end to end?</strong> Every business action &mdash; an
+      activity logged, a club approved, a certificate issued &mdash; travels the same pipeline
+      shown below: client tier &rarr; Python engine tier &rarr; atomic flat-file storage tier
+      mirrored to Google Drive.
+    </p>
+
+    <div class="arch-diagram">
+      <svg id="fig-process-flow" viewBox="0 0 660 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="End-to-end process flow" style="width:95%; height:auto;">
+        <defs>
+          <marker id="arrow-r62" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <polygon points="0,0 9,4.5 0,9" fill="#1A503E"></polygon>
+          </marker>
+        </defs>
+        <!-- main lane -->
+        <g font-family="Consolas, Courier New, monospace">
+          <rect x="20" y="14" width="410" height="46" rx="6" fill="#D1FAE5" stroke="#0D7751" stroke-width="1.5"></rect>
+          <text x="225" y="33" text-anchor="middle" font-size="12" font-weight="bold" fill="#064E3B">Employee Portal &mdash; Login &amp; Auth Gate</text>
+          <text x="225" y="50" text-anchor="middle" font-size="9.5" fill="#0F172A">PBKDF2-HMAC-SHA256 &middot; 24-byte session token &middot; role-scoped RBAC</text>
+
+          <line x1="225" y1="60" x2="225" y2="84" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+
+          <rect x="20" y="88" width="410" height="46" rx="6" fill="#FFFFFF" stroke="#0D7751" stroke-width="1.5"></rect>
+          <text x="225" y="107" text-anchor="middle" font-size="12" font-weight="bold" fill="#064E3B">Record Work &mdash; activities &middot; bulk entries &middot; club approvals</text>
+          <text x="225" y="124" text-anchor="middle" font-size="9.5" fill="#0F172A">live door (counted) vs history door (imported legacy, never counted)</text>
+
+          <line x1="225" y1="134" x2="225" y2="158" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+
+          <rect x="20" y="162" width="410" height="46" rx="6" fill="#FFFFFF" stroke="#0D7751" stroke-width="1.5"></rect>
+          <text x="225" y="181" text-anchor="middle" font-size="12" font-weight="bold" fill="#064E3B">NODE CSVs &mdash; emp01&hellip;emp07 local databases</text>
+          <text x="225" y="198" text-anchor="middle" font-size="9.5" fill="#0F172A">instant local commit &middot; zero cross-region contention</text>
+
+          <line x1="225" y1="208" x2="225" y2="232" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+
+          <rect x="20" y="236" width="410" height="46" rx="6" fill="#FFFFFF" stroke="#0D7751" stroke-width="1.5"></rect>
+          <text x="225" y="255" text-anchor="middle" font-size="12" font-weight="bold" fill="#064E3B">Sync Engine &mdash; node &harr; master reconciliation</text>
+          <text x="225" y="272" text-anchor="middle" font-size="9.5" fill="#0F172A">atomic mutex &middot; quota recompute &middot; renewal dedupe window</text>
+
+          <line x1="225" y1="282" x2="225" y2="306" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+
+          <rect x="20" y="310" width="410" height="46" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"></rect>
+          <text x="225" y="329" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400E">MASTER CSVs &mdash; central hub (data/master/)</text>
+          <text x="225" y="346" text-anchor="middle" font-size="9.5" fill="#0F172A">clubs &middot; activities &middot; quotas &middot; users &mdash; single source of truth</text>
+
+          <line x1="225" y1="356" x2="225" y2="374" stroke="#1A503E" stroke-width="2"></line>
+          <line x1="85" y1="374" x2="365" y2="374" stroke="#1A503E" stroke-width="2"></line>
+          <line x1="85" y1="374" x2="85" y2="392" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+          <line x1="225" y1="374" x2="225" y2="392" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+          <line x1="365" y1="374" x2="365" y2="392" stroke="#1A503E" stroke-width="2" marker-end="url(#arrow-r62)"></line>
+
+          <rect x="20" y="396" width="130" height="30" rx="5" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"></rect>
+          <text x="85" y="415" text-anchor="middle" font-size="9.5" fill="#0F172A">Dashboards &amp; AI roadmaps</text>
+          <rect x="160" y="396" width="130" height="30" rx="5" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"></rect>
+          <text x="225" y="415" text-anchor="middle" font-size="9.5" fill="#0F172A">Certificates (QR-verified)</text>
+          <rect x="300" y="396" width="130" height="30" rx="5" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"></rect>
+          <text x="365" y="415" text-anchor="middle" font-size="9.5" fill="#0F172A">Reports (PDF / DOC)</text>
+        </g>
+        <!-- continuous services rail -->
+        <g font-family="Consolas, Courier New, monospace">
+          <line x1="452" y1="14" x2="452" y2="426" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,4"></line>
+          <text x="458" y="248" font-size="9" fill="#64748B" transform="rotate(90 458 248)">runs alongside every write</text>
+
+          <rect x="486" y="18" width="158" height="76" rx="6" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.3"></rect>
+          <text x="565" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#0C4A6E">Issue Manager</text>
+          <text x="565" y="56" text-anchor="middle" font-size="9" fill="#0F172A">72-hour reminder stream</text>
+          <text x="565" y="70" text-anchor="middle" font-size="9" fill="#0F172A">30-day admin escalations</text>
+
+          <rect x="486" y="110" width="158" height="76" rx="6" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.3"></rect>
+          <text x="565" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#0C4A6E">Backup Engine</text>
+          <text x="565" y="148" text-anchor="middle" font-size="9" fill="#0F172A">7-day rolling ZIP snapshots</text>
+          <text x="565" y="162" text-anchor="middle" font-size="9" fill="#0F172A">2-version retention policy</text>
+
+          <rect x="486" y="202" width="158" height="76" rx="6" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.3"></rect>
+          <text x="565" y="224" text-anchor="middle" font-size="11" font-weight="bold" fill="#0C4A6E">Cloud Relay</text>
+          <text x="565" y="240" text-anchor="middle" font-size="9" fill="#0F172A">Google Apps Script webhook</text>
+          <text x="565" y="254" text-anchor="middle" font-size="9" fill="#0F172A">mirrors to Google Drive</text>
+
+          <rect x="486" y="294" width="158" height="76" rx="6" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.3"></rect>
+          <text x="565" y="316" text-anchor="middle" font-size="11" font-weight="bold" fill="#0C4A6E">AI Decision Module</text>
+          <text x="565" y="332" text-anchor="middle" font-size="9" fill="#0F172A">growth corridors</text>
+          <text x="565" y="346" text-anchor="middle" font-size="9" fill="#0F172A">30/90/365-day roadmaps</text>
+        </g>
+      </svg>
+    </div>
+    <p class="figure-caption">Figure 0.1 &mdash; End-to-end process flow: one unit of work travels login &rarr; record &rarr; node CSVs &rarr; sync &rarr; master CSVs &rarr; outputs, while four continuous services (issues, backups, cloud relay, AI) run alongside every write.</p>
+  </div>
+
+  <div class="page-break"></div>
+  <div class="doc-page">
+    <div class="header-bar">
+      <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
+      <span class="header-tag-right">Page 4 of 32</span>
+    </div>
+
+    <h1>System Mindmap &amp; Manual Map</h1>
+    <p>
+      The mindmap groups every subsystem into its tier; the manual map table after it jumps
+      straight to the chapter that answers your question.
+    </p>
+
+    <div class="arch-diagram">
+      <svg id="fig-system-mindmap" viewBox="0 0 660 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="System mindmap" style="width:86%; height:auto;">
+        <g font-family="Consolas, Courier New, monospace">
+          <ellipse cx="330" cy="186" rx="112" ry="40" fill="#103125" stroke="#064E3B" stroke-width="1.5"></ellipse>
+          <text x="330" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFFFFF">NDLI Club</text>
+          <text x="330" y="198" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFFFFF">Management System</text>
+
+          <!-- spokes -->
+          <line x1="330" y1="146" x2="330" y2="106" stroke="#0D7751" stroke-width="2"></line>
+          <line x1="230" y1="212" x2="168" y2="238" stroke="#334155" stroke-width="2"></line>
+          <line x1="430" y1="212" x2="492" y2="238" stroke="#D97706" stroke-width="2"></line>
+
+          <!-- CLIENT TIER card -->
+          <rect x="205" y="16" width="250" height="92" rx="6" fill="#D1FAE5" stroke="#0D7751" stroke-width="1.5"></rect>
+          <text x="330" y="36" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#064E3B">CLIENT TIER</text>
+          <text x="330" y="53" text-anchor="middle" font-size="9" fill="#0F172A">Master Login Gate &middot; Admin Portal</text>
+          <text x="330" y="67" text-anchor="middle" font-size="9" fill="#0F172A">(dashboard, migration, toolbox, training)</text>
+          <text x="330" y="81" text-anchor="middle" font-size="9" fill="#0F172A">Employee Workspace &times;7 (daily, search,</text>
+          <text x="330" y="95" text-anchor="middle" font-size="9" fill="#0F172A">history, tools) &middot; Public QR verification</text>
+
+          <!-- ENGINE TIER card -->
+          <rect x="24" y="238" width="248" height="118" rx="6" fill="#F8FAFC" stroke="#334155" stroke-width="1.5"></rect>
+          <text x="148" y="258" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#0F172A">ENGINE TIER</text>
+          <text x="148" y="275" text-anchor="middle" font-size="9" fill="#0F172A">Auth (PBKDF2 + RBAC) &middot; Sync Engine</text>
+          <text x="148" y="289" text-anchor="middle" font-size="9" fill="#0F172A">(node&harr;master) &middot; Counting &amp; Quota Rules</text>
+          <text x="148" y="303" text-anchor="middle" font-size="9" fill="#0F172A">Certificate Engine &middot; Backup Engine</text>
+          <text x="148" y="317" text-anchor="middle" font-size="9" fill="#0F172A">Issue Manager &middot; AI Decision Module</text>
+          <text x="148" y="331" text-anchor="middle" font-size="9" fill="#0F172A">Report generator (one-click PDF/DOC)</text>
+          <text x="148" y="345" text-anchor="middle" font-size="9" fill="#0F172A">LLM gateway + assistant knowledge base</text>
+
+          <!-- STORAGE & RELAY card -->
+          <rect x="388" y="238" width="248" height="118" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"></rect>
+          <text x="512" y="258" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#92400E">STORAGE &amp; CLOUD RELAY</text>
+          <text x="512" y="275" text-anchor="middle" font-size="9" fill="#0F172A">Atomic flat-file CSVs: data/master/</text>
+          <text x="512" y="289" text-anchor="middle" font-size="9" fill="#0F172A">+ data/employees/emp01&hellip;emp07</text>
+          <text x="512" y="303" text-anchor="middle" font-size="9" fill="#0F172A">Rolling ZIP backups (2 versions)</text>
+          <text x="512" y="317" text-anchor="middle" font-size="9" fill="#0F172A">Google Apps Script webhook relay</text>
+          <text x="512" y="331" text-anchor="middle" font-size="9" fill="#0F172A">Google Drive cloud mirror &middot; signature</text>
+          <text x="512" y="345" text-anchor="middle" font-size="9" fill="#0F172A">files for restore verification</text>
+        </g>
+      </svg>
+    </div>
+    <p class="figure-caption">Figure 0.2 &mdash; System mindmap: the three tiers and every subsystem inside them.</p>
+
+    <h2>Manual Map &mdash; which chapter answers your question</h2>
+    <table>
+      <tr><th>If you want to know&hellip;</th><th>Read</th></tr>
+      <tr><td>How one unit of work executes end to end</td><td>This page (Figure 0.1)</td></tr>
+      <tr><td>Architecture, tiers, and which engines exist</td><td>Ch. 2 + Figure 0.2</td></tr>
+      <tr><td>Password hashing, sessions, RBAC</td><td>Ch. 3</td></tr>
+      <tr><td>Disaster-recovery security challenge</td><td>Ch. 4</td></tr>
+      <tr><td>Database schemas and the flat-file engine</td><td>Ch. 5&ndash;6</td></tr>
+      <tr><td>Backend modules and code specifications</td><td>Ch. 7</td></tr>
+      <tr><td>Node-to-master synchronization</td><td>Ch. 8</td></tr>
+      <tr><td>Quota formulas and analytics math</td><td>Ch. 9</td></tr>
+      <tr><td>State-zone mapping (36 states &rarr; 6 zones)</td><td>Ch. 10</td></tr>
+      <tr><td>REST API contracts (auth, admin, system)</td><td>Ch. 11&ndash;12 + Appendix A</td></tr>
+      <tr><td>Backups and the disaster-recovery pipeline</td><td>Ch. 13&ndash;14</td></tr>
+      <tr><td>Front-end architecture and design system</td><td>Ch. 15</td></tr>
+      <tr><td>Cloud deployment and DevOps</td><td>Ch. 16</td></tr>
+      <tr><td>Testing and the QA architecture</td><td>Ch. 17</td></tr>
+      <tr><td>Operations runbook and troubleshooting</td><td>Ch. 18</td></tr>
+      <tr><td>Security audit and compliance</td><td>Ch. 19</td></tr>
+      <tr><td>Handover sign-off and attribution</td><td>Ch. 20</td></tr>
+      <tr><td>Day-to-day operating how-tos (step by step)</td><td>The User Manual</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================================================================
        PAGE 3: EXECUTIVE TECHNICAL SUMMARY
        =================================================================== -->
   <div class="page-break"></div>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 3 of 30</span>
+      <span class="header-tag-right">Page 5 of 32</span>
     </div>
 
     <h1>1. Executive Technical Summary &amp; Architectural Philosophy</h1>
@@ -735,7 +917,7 @@
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 4 of 30</span>
+      <span class="header-tag-right">Page 6 of 32</span>
     </div>
 
     <h1>2. System Topology &amp; Multi-Tier Architecture</h1>
@@ -793,7 +975,7 @@
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 5 of 30</span>
+      <span class="header-tag-right">Page 7 of 32</span>
     </div>
 
     <h1>3. Cryptographic Security &amp; Authentication Subsystem</h1>
@@ -869,7 +1051,7 @@ def verify_password(stored_hash_hex: str, stored_salt_hex: str, password_attempt
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 6 of 30</span>
+      <span class="header-tag-right">Page 8 of 32</span>
     </div>
 
     <h1>4. Dual-Layer Security Challenge for Disaster Recovery</h1>
@@ -926,7 +1108,7 @@ RESTORE REQUEST TRIGGERED (Admin clicks "One-Click Restore Database")
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 7 of 30</span>
+      <span class="header-tag-right">Page 9 of 32</span>
     </div>
 
     <h1>5. Database Schemas &amp; Flat-File Storage Engine</h1>
@@ -1003,7 +1185,7 @@ RESTORE REQUEST TRIGGERED (Admin clicks "One-Click Restore Database")
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 8 of 30</span>
+      <span class="header-tag-right">Page 10 of 32</span>
     </div>
 
     <h1>6. Flat-File ACID Simulation &amp; Mutex Concurrency Engine</h1>
@@ -1081,7 +1263,7 @@ CONCURRENT WRITE REQUEST (Worker Thread)
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 9 of 30</span>
+      <span class="header-tag-right">Page 11 of 32</span>
     </div>
 
     <h1>7. Core Backend Codebase &amp; Module Specifications</h1>
@@ -1176,7 +1358,7 @@ class NDLIRequestHandler(BaseHTTPRequestHandler):
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 10 of 30</span>
+      <span class="header-tag-right">Page 12 of 32</span>
     </div>
 
     <h1>8. Synchronization &amp; Node-to-Master Reconciliation</h1>
@@ -1219,7 +1401,7 @@ Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities"
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 11 of 30</span>
+      <span class="header-tag-right">Page 13 of 32</span>
     </div>
 
     <h1>9. Mathematical Models &amp; Analytical Formulas</h1>
@@ -1287,7 +1469,7 @@ Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities"
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 12 of 30</span>
+      <span class="header-tag-right">Page 14 of 32</span>
     </div>
 
     <h1>10. Geopolitical State-Zone Mapping Specification</h1>
@@ -1361,7 +1543,7 @@ Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities"
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 13 of 30</span>
+      <span class="header-tag-right">Page 15 of 32</span>
     </div>
 
     <h1>11. REST API Specification (Part 1: Auth &amp; Operations)</h1>
@@ -1470,7 +1652,7 @@ Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities"
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 14 of 30</span>
+      <span class="header-tag-right">Page 16 of 32</span>
     </div>
 
     <h1>12. REST API Specification (Part 2: Admin &amp; System)</h1>
@@ -1577,7 +1759,7 @@ Step 7: Return summary payload: { "reconciled_clubs": N, "reconciled_activities"
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 15 of 30</span>
+      <span class="header-tag-right">Page 17 of 32</span>
     </div>
 
     <h1>13. Backup Architecture &amp; Disaster Recovery Pipeline</h1>
@@ -1630,7 +1812,7 @@ backup_20260915_180000.zip
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 16 of 30</span>
+      <span class="header-tag-right">Page 18 of 32</span>
     </div>
 
     <h1>14. Emergency Restore Protocol &amp; CLI Fallback</h1>
@@ -1674,7 +1856,7 @@ NDLI Emergency Backup Restore Engine (CLI Utility)
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 17 of 30</span>
+      <span class="header-tag-right">Page 19 of 32</span>
     </div>
 
     <h1>15. Front-End Architecture &amp; Design System v3.0</h1>
@@ -1724,7 +1906,7 @@ NDLI Emergency Backup Restore Engine (CLI Utility)
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 18 of 30</span>
+      <span class="header-tag-right">Page 20 of 32</span>
     </div>
 
     <h1>16. Cloud Deployment &amp; DevOps Infrastructure</h1>
@@ -1772,7 +1954,7 @@ services:
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 19 of 30</span>
+      <span class="header-tag-right">Page 21 of 32</span>
     </div>
 
     <h1>17. Automated Quality Assurance &amp; Test Architecture</h1>
@@ -1846,7 +2028,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 20 of 30</span>
+      <span class="header-tag-right">Page 22 of 32</span>
     </div>
 
     <h1>18. System Maintenance, Operations &amp; Troubleshooting Runbook</h1>
@@ -1899,7 +2081,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 21 of 30</span>
+      <span class="header-tag-right">Page 23 of 32</span>
     </div>
 
     <h1>19. Security Audit, Data Integrity &amp; Compliance</h1>
@@ -1960,7 +2142,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 22 of 30</span>
+      <span class="header-tag-right">Page 24 of 32</span>
     </div>
 
     <h1>20. System Handover Sign-Off &amp; Architectural Attribution</h1>
@@ -2052,7 +2234,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 23 of 30</span>
+      <span class="header-tag-right">Page 25 of 32</span>
     </div>
 
     <h2>v5.0 Data Counting, Migration &amp; Operations (API &amp; data notes)</h2>
@@ -2101,7 +2283,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual • Client Handover Edition</span>
-      <span class="header-tag-right">Page 24 of 30</span>
+      <span class="header-tag-right">Page 26 of 32</span>
     </div>
 
     <ul style="margin-top: 4px;">
@@ -2143,7 +2325,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 25 of 30</span>
+      <span class="header-tag-right">Page 27 of 32</span>
     </div>
     <h1>Appendix A. Auto-Generated API Reference &amp; Architecture Map</h1>
     <p>This appendix is <strong>generated from the code</strong> by <code>gen_api_docs.py</code> straight from the dispatch tables in <code>routes/</code> -- it can never disagree with the router. Hand-written request/response semantics stay in sections 11-12; module prose stays in section 7. Regenerate after any route change (<code>python3 gen_api_docs.py</code>), and run the drift gate (<code>--check</code>) in CI / the test suite.</p>
@@ -2157,7 +2339,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
 <tr><td><code>app.py</code></td><td>HTTP request handler + startup wiring (no dispatch chain)</td><td>509 lines</td></tr>
 <tr><td><code>routes/</code></td><td>URL router: ordered dispatch tables + 16 domain modules</td><td>17 files, 3595 lines, 81 dispatch entries</td></tr>
 <tr><td><code>db/</code></td><td>flat-file CSV storage engine (mutex, backup, migration, counting)</td><td>9 modules, 3227 lines</td></tr>
-<tr><td><code>ai/</code></td><td>Robu assistant (KB retrieval, tools, LLM gateway, guard, audit)</td><td>11 modules, 4609 lines</td></tr>
+<tr><td><code>ai/</code></td><td>Robu assistant (KB retrieval, tools, LLM gateway, guard, audit)</td><td>11 modules, 4731 lines</td></tr>
 <tr><td><code>auth.py</code></td><td>PBKDF2 password hashing + session tokens</td><td>430 lines</td></tr>
 <tr><td><code>config.py</code></td><td>environment-driven configuration + seed accounts</td><td>200 lines</td></tr>
 <tr><td><code>state_zone_mapper.py</code></td><td>state/zone normalization + alias matching</td><td>147 lines</td></tr>
@@ -2168,7 +2350,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
 <tr><td><code>templates/</code></td><td>portal HTML pages (admin, employee, index, verify)</td><td>4 files</td></tr>
 <tr><td><code>static/</code></td><td>front-end assets (css / js / images)</td><td>68 files, 44 JS</td></tr>
 <tr><td><code>docs/</code></td><td>technical + user manuals (Robu KB sources) + figures</td><td>4 manual files + figures</td></tr>
-<tr><td><code>tests/</code></td><td>the pinned gate (unittest, zero third-party deps)</td><td>81 test modules</td></tr>
+<tr><td><code>tests/</code></td><td>the pinned gate (unittest, zero third-party deps)</td><td>82 test modules</td></tr>
 <tr><td><code>data/</code></td><td>runtime flat-file store (CSV, sessions, backups, logs) -- runtime state, deliberately not counted</td><td>runtime state</td></tr>
 </tbody></table>
   </div>
@@ -2177,7 +2359,7 @@ OK (132 tests passing, 0 failures, 0 errors)</code></pre>
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 26 of 30</span>
+      <span class="header-tag-right">Page 28 of 32</span>
     </div>
     <h2>A.2 Route Module Map (generated from routes/)</h2>
 <table>
@@ -2226,7 +2408,7 @@ h._send_json(...)  /  h._send_file(...)  /  h._send_error(...)   -&gt; response
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 27 of 30</span>
+      <span class="header-tag-right">Page 29 of 32</span>
     </div>
     <h2>A.4 GET Endpoints (dispatch order) (1/2)</h2>
     <p>Path legend: no suffix = exact match, <code>*</code> = path-prefix match. Rows are in dispatch order -- the first matching row wins.</p>
@@ -2271,7 +2453,7 @@ h._send_json(...)  /  h._send_file(...)  /  h._send_error(...)   -&gt; response
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 28 of 30</span>
+      <span class="header-tag-right">Page 30 of 32</span>
     </div>
     <h2>A.4 GET Endpoints (dispatch order) (2/2)</h2>
 <table>
@@ -2309,7 +2491,7 @@ h._send_json(...)  /  h._send_file(...)  /  h._send_error(...)   -&gt; response
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 29 of 30</span>
+      <span class="header-tag-right">Page 31 of 32</span>
     </div>
     <h2>A.5 POST Endpoints (dispatch order) (1/2)</h2>
     <p>Path legend: no suffix = exact match, <code>*</code> = path-prefix match. Rows are in dispatch order -- the first matching row wins.</p>
@@ -2354,7 +2536,7 @@ h._send_json(...)  /  h._send_file(...)  /  h._send_error(...)   -&gt; response
   <div class="doc-page">
     <div class="header-bar">
       <span class="header-title-left">NDLI Technical Architecture Manual &bull; Client Handover Edition</span>
-      <span class="header-tag-right">Page 30 of 30</span>
+      <span class="header-tag-right">Page 32 of 32</span>
     </div>
     <h2>A.5 POST Endpoints (dispatch order) (2/2)</h2>
 <table>

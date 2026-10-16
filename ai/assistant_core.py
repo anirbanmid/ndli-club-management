@@ -142,7 +142,7 @@ def _llm_answer(question: str, ctx: ToolContext) -> Optional[str]:
                                 {"question": question[:120]})
 
         figures_text = ""
-        if intent not in ("app_help", "fallback", "help_index"):
+        if intent not in ("app_help", "fallback", "help_index", "manual_map"):
             tool_name, tool_params, composer = _plan(intent, params, ctx)
             if tool_name:
                 try:
@@ -255,6 +255,23 @@ _STRONG_HELP_RE = re.compile(
 
 # Weak "where is it" phrasings -> task guides only if no data intent matched.
 _WEAK_HELP_RE = re.compile(r"\bwhere (do|does|can|is|are|to)\b", re.IGNORECASE)
+
+# R62 (B3/B4): a BARE documentation request -- "technical manual", "user
+# manual", "Full NDLI Club Management manual", or pasting the manual's own
+# URL -- must get the documentation orientation answer. Checked BEFORE the
+# data intents because "Full NDLI Club Management manual" used to match a
+# club-data pattern and get answered with live club counts. Explicit
+# question shapes ("what does the manual say about X") are already caught by
+# the app-help gate ABOVE and still get retrieval with citations. Combinations
+# like "manual entry" (a real app feature) are excluded by the lookahead.
+_MANUAL_MAP_RE = re.compile(
+    r"https?://\S*(?:docs/(?:technical|user)_manual\.html|/manual)\b"
+    r"|\bdocs/(?:technical|user)_manual\.html\b"
+    r"|\b(?:technical|user|operations?|reference|architecture|full|entire|the|this|that|your)\s+"
+    r"(?:manual|documentation|docs|handbook|guide)\b"
+    r"|\b(?:manual|documentation|handbook)\b"
+    r"(?!\s+(?:entry|entries|update|approval|input|check|count|verif))",
+    re.IGNORECASE)
 
 # Slice C: app/FAQ/how-does-it-work questions ("what is X", "how does X work",
 # "where can I find X") -> documentation knowledge base with citations.
@@ -484,6 +501,11 @@ def _route(question: str) -> Tuple[str, Dict[str, Any]]:
             params["task_id"] = task
             return "help", params
         return "help_index", params
+
+    # R62 (B3/B4): bare manual/documentation requests and pasted manual URLs
+    # -> deterministic orientation answer (see _compose_manual_map).
+    if _MANUAL_MAP_RE.search(q):
+        return "manual_map", {}
 
     for intent, pattern in _INTENT_RULES:
         if pattern.search(q):
@@ -916,6 +938,62 @@ def _answer_from_kb(question: str) -> Optional[Dict[str, Any]]:
     return {"answer": "\n".join(lines), "sources": sources, "suggestions": suggestions}
 
 
+def _compose_manual_map(question: str) -> Dict[str, Any]:
+    """
+    R62 (B4): deterministic orientation answer for BARE manual requests and
+    pasted manual URLs. Quotes the overview + manual-map sections (the two
+    front-matter pages added in R62) -- never a cover-page dump, never a
+    live-data tool. The quoted text is verbatim manual content (DATA).
+    """
+    try:
+        chunks = knowledge_base.load_kb()
+    except Exception as exc:  # loud, then honest fallback
+        log_assistant_issue("assistant_core.manual_map", f"KB load FAILED: {exc!r}",
+                            {"question": question[:120]})
+        chunks = []
+
+    def _find(predicate: Callable[[Dict[str, Any]], bool]) -> Optional[Dict[str, Any]]:
+        for c in chunks:
+            if c.get("source") == "technical manual" and predicate(c):
+                return c
+        return None
+
+    # Exact section roles: the h1 overview page, then the h2 chapter-map table.
+    overview = _find(lambda c: str(c.get("title", "")).lower().startswith("system overview"))
+    manual_map = _find(lambda c: str(c.get("title", "")).lower().startswith("manual map"))
+    if manual_map is None:
+        manual_map = _find(lambda c: "manual map" in str(c.get("title", "")).lower())
+    picked = [c for c in (overview, manual_map) if c]
+    if not picked:  # the overview pages are missing from the tree -- say so
+        log_assistant_issue("assistant_core.manual_map",
+                            "overview/manual-map chunk MISSING from KB",
+                            {"question": question[:120]})
+        return {
+            "answer": _compose_fallback({}),
+            "sources": [_src("Robu — NDLI Club assistant",
+                             "template mode (overview unavailable)")],
+            "suggestions": [{"title": "User manual", "detail": "Full NDLI Club Management manual",
+                             "href": "/manual", "label": "Open"}],
+        }
+
+    lines = ["Here's the NDLI documentation map — start here:"]
+    sources: List[Dict[str, str]] = []
+    for i, chunk in enumerate(picked, 1):
+        title = str(chunk.get("title") or "documentation")
+        text = knowledge_base.best_snippet(chunk, question, knowledge_base.SNIPPET_TRIM_CHARS)
+        lines.append(f"[{i}] {title}: {text}")
+        sources.append(_src(title, f"{chunk.get('source', '')} \u203a {chunk.get('section', '')}"))
+    lines.append("Tell me which part to explore — security (ch. 3), sync (ch. 8), "
+                 "REST API (ch. 11-12 + Appendix A), backups (ch. 13-14), operations "
+                 "(ch. 18) — or ask how a specific feature works.")
+    return {
+        "answer": "\n".join(lines),
+        "sources": sources,
+        "suggestions": [{"title": "User manual", "detail": "Full NDLI Club Management manual",
+                         "href": "/manual", "label": "Open"}],
+    }
+
+
 # intent -> (tool name or None, tool params fn, composer)
 def _plan(intent: str, params: Dict[str, Any], ctx: ToolContext) -> Tuple[Optional[str], Dict[str, Any], Callable[[Dict[str, Any], ToolContext], str]]:
     # Explicit targets (e.g. "quota for EMP05") are passed through VERBATIM:
@@ -1085,6 +1163,11 @@ def _ask_assistant_inner(question: str, session: Dict[str, Any]) -> Dict[str, An
             "sources": [_src("Robu — NDLI Club assistant", "template mode (no matching documentation section)")],
             "suggestions": list(_SUGGESTIONS_BY_INTENT.get("app_help", [])),
         }
+
+    # R62 (B4): bare manual requests + pasted manual URLs -> the orientation
+    # map (deterministic, front-matter chunks only).
+    if intent == "manual_map":
+        return _compose_manual_map(clean_q)
 
     if intent == "help_index":
         return {
